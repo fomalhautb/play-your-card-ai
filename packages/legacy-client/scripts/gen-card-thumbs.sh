@@ -31,7 +31,7 @@
 # 脚本是幂等的，每次全量重烤覆盖，不做增量判断——几十张图总共几秒，不值得为此引入时间戳比对。
 #
 # 用法（在仓库任意目录下都能跑）：
-#   packages/client/scripts/gen-card-thumbs.sh
+#   packages/legacy-client/scripts/gen-card-thumbs.sh
 #
 # 依赖 ffmpeg（需带 libwebp 编码器）。本机装在 /opt/homebrew/bin/ffmpeg，
 # 不在 PATH 里时脚本会退回这个绝对路径。
@@ -42,7 +42,7 @@ set -euo pipefail
 # 写死能顺带在下面校验源图比例是否跑偏。
 QUALITY=80
 
-# 脚本位置推算出 packages/client，这样从哪个目录调用都一样。
+# 脚本位置推算出 packages/legacy-client，这样从哪个目录调用都一样。
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLIENT_DIR="$(dirname "$SCRIPT_DIR")"
 CARDS_DIR="$CLIENT_DIR/public/cards"

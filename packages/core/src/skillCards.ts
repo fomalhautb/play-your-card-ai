@@ -23,12 +23,12 @@ import type { CardId, SkillCard } from './types'
  * 什么都不发生。文案里写着挑目标的那些也一样，engine.ts 不认识它们。
  *
  * `text` 同时是卡面文案和卡背文案：正面那句是烤进原画里的，DOM 里改不动，所以翻面、
- * 放大查看和图鉴背面显示的都是这一份（见 client 的 ui/cardText.ts）。边界条件
+ * 放大查看和图鉴背面显示的都是这一份（见 legacy-client 的 ui/cardText.ts）。边界条件
  * ——选谁当目标、只活本轮、会不会误伤自己——都得写进它，玩家出牌前只读得到这一段。
  *
  * `tokenCost` 起初是逐张照原画转录的：每张原画左上角都印着一枚「N TOKEN」圆章。
  * 现在改这里的数字不必再动原画了——客户端会照原样再画一枚圆章盖在那枚上面，数字现取
- * 这里的 tokenCost（见 client 的 ui/CardCostBadge.tsx 和 ui/skillCardFace.ts）。
+ * 这里的 tokenCost（见 legacy-client 的 ui/CardCostBadge.tsx 和 ui/skillCardFace.ts）。
  * 原画上印的那个数因此只是底图，玉净瓶、金钟罩、核电站、内存紧缺、模型蒸馏这 5 张
  * 底下印的都已经是旧价，玩家看到的是盖上去的新价。
  * 核电站的减费只影响自己"打出去实际扣多少"，不改这里的印刷数字。
@@ -277,7 +277,7 @@ export const SKILL_DESIGN_CARD_IDS: CardId[] = Object.keys(SKILL_DESIGN_CARDS)
  * 保持这层对应是有意的——占位牌打出去什么都不发生，放进卡池只会让人以为游戏坏了。
  * 所以给一张卡接上效果和把它挪进这个集合是同一件事的两半，得一起做。
  * 剩下 14 张不是删掉，而是转成「即将上线」：牌组页照常把它们摆出来，只是灰着、
- * 排在所有卡的最后，碰一下只提示「即将上线」（见 client 的 DeckScreen）。
+ * 排在所有卡的最后，碰一下只提示「即将上线」（见 legacy-client 的 DeckScreen）。
  */
 const OPEN_SKILL_IDS = new Set<CardId>([
   'black-white-reversal',

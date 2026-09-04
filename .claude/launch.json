@@ -1,15 +1,25 @@
 {
   "version": "0.0.1",
-  "note": "本地联调要同时起 client 和 relay 两个进程；前端还需在 packages/client/.env.local 里设 VITE_SERVER_URL=http://127.0.0.1:8787 才连得到转发器（线上是同一个 Worker，不需要）。",
+  "note": "legacy-client 是线上那一版（黑客松版），本地联调它要同时起 legacy-client 和 relay 两个进程；前端还需在 packages/legacy-client/.env.local 里设 VITE_SERVER_URL=http://127.0.0.1:8787 才连得到转发器（线上是同一个 Worker，不需要）。web 是正式版的壳，现在还是空的。",
   "configurations": [
     {
-      "name": "client",
-      "note": "前端 Vite dev server；连本地转发器需要 packages/client/.env.local 里的 VITE_SERVER_URL=http://127.0.0.1:8787。",
+      "name": "legacy-client",
+      "note": "黑客松版前端 Vite dev server；连本地转发器需要 packages/legacy-client/.env.local 里的 VITE_SERVER_URL=http://127.0.0.1:8787。",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev:legacy"
+      ],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "web",
+      "note": "正式版网页壳 apps/web，目前只是占位页面。",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "dev"
       ],
-      "port": 5173,
+      "port": 5174,
       "autoPort": true
     },
     {

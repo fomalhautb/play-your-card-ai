@@ -1,5 +1,10 @@
 # AI Duel 架构说明
 
+> **这份文档描述的是黑客松版本**：`packages/legacy-client` 和旧服务端（不跑规则、只转发消息的 Worker）。
+> 这一版已经冻结，不再加功能，只留 typecheck 和现有测试，等正式版追平后整包删掉。
+> 它仍然有用——新客户端的动画时长、节奏、演出顺序都以这里描述的行为为准。
+> 正式版的需求、选型和项目结构见 [`docs/正式版架构.md`](./正式版架构.md)。
+
 ## 1. 项目边界
 
 这是一个黑客松项目，目标是**在有限时间内做出一个能上手玩、能演示的 1v1 卡牌对战**。
@@ -58,15 +63,17 @@ TypeScript + pnpm monorepo，三个包互不循环依赖：
 
 ```
 packages/
-  core     @ai-duel/core     纯规则引擎（无渲染、无 IO、无网络）
-  client   @ai-duel/client   Vite + React + GSAP（全部是 DOM，没有画布）
-  server   @ai-duel/server   Cloudflare Worker：消息转发器 + 前端静态资源托管
+  core            @ai-duel/core            纯规则引擎（无渲染、无 IO、无网络）
+  legacy-client   @ai-duel/legacy-client   Vite + React + GSAP（全部是 DOM，没有画布）
+  server          @ai-duel/server          Cloudflare Worker：消息转发器 + 前端静态资源托管
 ```
 
-依赖方向只有一条：`client → core`。
+依赖方向只有一条：`legacy-client → core`。
 `server` 不依赖 `core`——它根本不需要知道游戏是什么。
+（正式版反过来：服务器权威，规则在服务端跑，所以 `packages/server/package.json` 已经先挂上了
+`core`、`content`、`protocol` 的依赖，旧 Worker 代码里还没用到。）
 
-三个包都**不经过 tsc 编译产出 JS**：`client` 交给 Vite，`server` 交给 wrangler（它自己打包上传 Worker），
+三个包都**不经过 tsc 编译产出 JS**：`legacy-client` 交给 Vite，`server` 交给 wrangler（它自己打包上传 Worker），
 `core` 的 `exports` 直接指向 `src/index.ts`，被前两者当源码消费。
 `tsc` 在这个仓库里只当类型检查器（`pnpm typecheck`）。少一个构建步骤，改 core 立刻生效。
 
@@ -579,7 +586,7 @@ Token 补满、进下一轮。所以自动驾驶这一层只管交卷，不管�
 那边跑出来的答案就是这份表的数据来源，文案对不上就成了"界面说注入了 A、播的却是 B 的结果"。
 改文案要两边一起改，并重跑预生成。
 
-## 5. client：全部是 React DOM + GSAP
+## 5. legacy-client：全部是 React DOM + GSAP
 
 | 层 | 技术 | 负责 |
 |---|---|---|
@@ -1408,7 +1415,7 @@ packages/core/
   src/pregenAnswers.json      上面那张表的数据，由 scripts/build-core-answers.mjs 生成，手改无效
   src/engine.ts               createGame / execute；另导出 effectivePlayCost（客户端算实际费用要用）
   test/                       Vitest
-packages/client/
+packages/legacy-client/
   index.html
   vite.config.ts
   src/main.tsx                入口，只负责挂 <App>
@@ -1554,20 +1561,20 @@ Stage 又反过来引 `screens/DeckScreen`、`screens/HeroScreen`——教程复
 ```bash
 pnpm install
 pnpm typecheck          # 全仓类型检查
-pnpm test               # 单元测试：core 规则、client 存档的读写与回落
+pnpm test               # 单元测试：core 规则、legacy-client 存档的读写与回落
 pnpm dev                # 起客户端 (http://localhost:5173)
                         # 一个人调对局界面：首页 dev 区「测试对局」或匹配房「测试房（dev）」
                         # 端口被占时用 PORT=5174 pnpm dev
 pnpm dev:server         # 起 Worker (http://localhost:8787)，同时发前端产物和 WebSocket
                         # 转发器的端到端测试：先 build 前端，再 pnpm --filter @ai-duel/server smoke
-pnpm --filter @ai-duel/client build
+pnpm --filter @ai-duel/legacy-client build
 ```
 
 **两台电脑联机**：客户端已经监听了局域网（`server.host = true`），
 另一台用 `http://<你的局域网IP>:5173` 打开即可。
 线上前端和转发器是同一个 Worker、同一个域名，联机地址默认就是当前页面的 origin，不用配。
 本地开发是两个进程（Vite 在 5173、`wrangler dev` 在 8787），页面 origin 指不到转发器，
-要在 `packages/client/.env.local` 里设 `VITE_SERVER_URL=http://<你的局域网IP>:8787` 指过去——
+要在 `packages/legacy-client/.env.local` 里设 `VITE_SERVER_URL=http://<你的局域网IP>:8787` 指过去——
 写 localhost 的话另一台电脑会连到它自己身上。
 这么连是跨域的，靠 `/api/room` 响应上的 `Access-Control-Allow-Origin: *` 放行。
 
@@ -1659,7 +1666,7 @@ Vite 的 dev server 自带这个回退，开发时不用管。
    还得把这道题的 8×16×3 格答案跑出来，否则对局里查表就缺格。
    关键词是照现有题面补的，换题时要一起写。
    卡池扩容顺带让赢局抽卡重新生效（`INITIAL_COLLECTION` 现在等于整个卡池，见 3.5）。
-5. **卡组选择**（client）——现在联机双方都写死用 `STARTER_DECK`。
+5. **卡组选择**（legacy-client）——现在联机双方都写死用 `STARTER_DECK`。
 6. **联机端到端实测**——协议和转发器都有测试，房主/客人 driver 也接好了，
    但答题制这一版没有在两台真机上跑过完整一局。
 7. ~~**新手教程**~~——已经做完，挪到上面那份清单里了（见 5.3）。

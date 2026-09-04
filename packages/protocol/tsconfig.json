@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    // 协议类型两端共用：服务端在 workerd 里，客户端在浏览器里，都不是 Node。
+    // 这里清空全局类型，误用 DOM 或 Node API 时会直接编译报错。
+    "types": []
+  },
+  "include": ["src"]
+}

@@ -21,7 +21,7 @@
 # 不会每跑一次就叠一层有损压缩。加了新原画之后直接重跑即可。
 #
 # 用法（在仓库任意目录下都能跑）：
-#   packages/client/scripts/optimize-images.sh
+#   packages/legacy-client/scripts/optimize-images.sh
 #
 # 依赖 cwebp（brew install webp）和 ffprobe（brew install ffmpeg，只用来读原图的透明通道）。
 

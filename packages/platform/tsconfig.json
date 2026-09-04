@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // 接口本身与平台无关，但 web 实现直接调浏览器 API，所以要 DOM 的全局类型。
+    // 不加 "node"：electron 实现只写渲染进程那一侧，主进程的 Node 代码归 apps/steam，
+    // 在这里误用 process、fs 要在编译期就拦下来。
+    "types": []
+  },
+  "include": ["src"]
+}

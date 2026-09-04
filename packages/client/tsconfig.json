@@ -3,9 +3,9 @@
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    // vite.config.ts 跑在 Node 里，和浏览器代码共用一份配置，所以两边的全局类型都要带上；
-    // vite/client 提供 import './xx.css' 这类资源导入的类型声明。
-    "types": ["node", "vite/client"]
+    // 装配层最终跑在浏览器 / WebView / Electron 渲染进程里，所以要 DOM 全局类型，
+    // 屏幕组件是 JSX。不加 "node"：误用 process、fs 这类 Node 全局要在编译期就拦下来。
+    "types": []
   },
-  "include": ["src", "test", "vite.config.ts"]
+  "include": ["src"]
 }

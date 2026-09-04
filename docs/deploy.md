@@ -11,7 +11,7 @@
               │                                       │
       静态资源层（免费、不计 Worker 调用）        Worker 脚本
       /  /assets/*  以及匹配不到的路径            /api/room      摇房间码
-      → packages/client/dist                     /room/:code    WebSocket 升级
+      → packages/legacy-client/dist              /room/:code    WebSocket 升级
                                                       │
                                                  Durable Object
                                                  一个房间一个实例
@@ -131,7 +131,7 @@ Worker 原本的 `ai-duel.<你的账号>.workers.dev` 地址**已经停用**：�
 连接进入 CLOSING/CLOSED 后 `send()` 既不抛错也不排队直接丢；
 以及链路中间被掐断时本地 socket 还显示 OPEN、数据却出不去（半开连接），TCP 要几分钟才发现。
 
-所以客户端（`packages/client/src/net/socket.ts`）有四道防线：
+所以客户端（`packages/legacy-client/src/net/socket.ts`）有四道防线：
 
 | 防线 | 做法 | 治什么 |
 |---|---|---|
@@ -164,7 +164,7 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 
 ### 客户端在哪接的
 
-`packages/client/src/net/socket.ts` 是联机通道的**唯一**封装，用浏览器原生 `WebSocket`。
+`packages/legacy-client/src/net/socket.ts` 是联机通道的**唯一**封装，用浏览器原生 `WebSocket`。
 上层（`screens/RoomScreen.tsx`、`match/hostDriver.ts`、`match/guestDriver.ts`）只认它导出的
 `RoomHandle` 接口，所以换传输方式不会波及对局逻辑——这次从 socket.io 迁过来就只动了这一个文件。
 
@@ -193,9 +193,9 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 ## 7. 自动部署
 
 `.github/workflows/deploy.yml`：push 到 `main` 或者手动触发 → 装依赖 →
-`pnpm --filter @ai-duel/client build` → 在 `packages/server` 里跑 `wrangler deploy`。
+`pnpm --filter @ai-duel/legacy-client build` → 在 `packages/server` 里跑 `wrangler deploy`。
 
-**必须先构建前端**：`wrangler.jsonc` 里 `assets.directory` 指向 `../client/dist`，
+**必须先构建前端**：`wrangler.jsonc` 里 `assets.directory` 指向 `../legacy-client/dist`，
 而 `dist/` 是 gitignore 掉的，仓库里没有这个目录。
 
 需要在仓库的 Settings → Secrets and variables → Actions 里配**一个** secret：
@@ -249,7 +249,7 @@ WebSocket 升级请求不是导航请求，所以能正常进到 Worker。
 ## 9. 本地跑和验证
 
 ```bash
-pnpm --filter @ai-duel/client build     # 先出静态资源，Worker 要用
+pnpm --filter @ai-duel/legacy-client build     # 先出静态资源，Worker 要用
 pnpm dev:server                         # wrangler dev，默认 http://127.0.0.1:8787
 
 # 另开一个终端，跑端到端冒烟测试

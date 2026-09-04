@@ -35,7 +35,7 @@ function skillCardsIn(deck: readonly CardId[]): SkillCard[] {
   return deck.map((id) => CARDS[id]).filter((card): card is SkillCard => card?.kind === 'skill')
 }
 
-/** 构筑页的同名卡上限（client 的 deckStore.MAX_COPIES）：预设不该出现玩家自己编不出来的牌组。 */
+/** 构筑页的同名卡上限（legacy-client 的 deckStore.MAX_COPIES）：预设不该出现玩家自己编不出来的牌组。 */
 const MAX_COPIES = 3
 
 describe('卡池与初始收藏', () => {
@@ -63,7 +63,7 @@ describe('卡池与初始收藏', () => {
   })
 
   it('三套预设各 20 张、同名卡不超过 3 份、没有一张是卡池外的牌', () => {
-    // 三套预设会被直接播成玩家最初的三套牌组（见 client 的 deckStore），
+    // 三套预设会被直接播成玩家最初的三套牌组（见 legacy-client 的 deckStore），
     // 混进一张卡池外的牌，读档时会被当脏数据剔掉，玩家一进构筑页就看到一副缺张的牌；
     // 带满 4 份则是玩家自己在构筑页编不出来的牌组。
     expect(PRESET_DECKS).toHaveLength(3)

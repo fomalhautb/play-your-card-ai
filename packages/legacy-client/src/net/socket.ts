@@ -37,7 +37,7 @@ import type { RelayMessage } from './protocol'
  * 不需要配置也不会有跨域问题。
  *
  * 本地开发是两个进程：Vite 在 5173，`wrangler dev` 在 8787，页面 origin 指不到转发器，
- * 这时要在 `packages/client/.env.local` 里设 `VITE_SERVER_URL=http://127.0.0.1:8787`。
+ * 这时要在 `packages/legacy-client/.env.local` 里设 `VITE_SERVER_URL=http://127.0.0.1:8787`。
  * 两台电脑局域网联调时写成 `http://<局域网IP>:8787`——写 localhost 的话另一台会连到它自己身上。
  * 这样是跨域的，但转发器给 `/api/room` 加了 `Access-Control-Allow-Origin: *`，
  * 所以 fetch 房间码不会被浏览器拦；WebSocket 本身不受 CORS 约束。

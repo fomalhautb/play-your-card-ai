@@ -11,7 +11,7 @@
   // 前端构建产物和 Worker 脚本部署成同一个 Worker、同一个域名，
   // 所以客户端连 WebSocket 时用相对路径就行，不需要配跨域，也不需要第二个服务。
   "assets": {
-    "directory": "../client/dist",
+    "directory": "../legacy-client/dist",
     // 前端是单页应用：/room/1234 这种路径在磁盘上没有对应文件，回落到 index.html 交给前端路由。
     "not_found_handling": "single-page-application",
     // 给 Worker 一个手动取静态资源的入口。Worker 兜底处理没匹配上的请求时靠它回 index.html。

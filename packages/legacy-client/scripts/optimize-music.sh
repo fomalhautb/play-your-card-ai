@@ -18,7 +18,7 @@
 # 可以反复跑：mp3 转完就删了，第二次跑没有文件可转，直接空跑。
 #
 # 用法（在仓库任意目录下都能跑）：
-#   packages/client/scripts/optimize-music.sh
+#   packages/legacy-client/scripts/optimize-music.sh
 #
 # 依赖 ffmpeg（brew install ffmpeg）。
 

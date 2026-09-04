@@ -1,7 +1,7 @@
 /**
  * 转发器的端到端冒烟测试。
  *
- * 跑法：先 `pnpm --filter @ai-duel/client build` 出静态资源，
+ * 跑法：先 `pnpm --filter @ai-duel/legacy-client build` 出静态资源，
  * 另开一个终端 `pnpm --filter @ai-duel/server dev`，然后 `pnpm --filter @ai-duel/server smoke`。
  * 换地址用环境变量：SMOKE_BASE=https://playyourcardai.online node test/smoke.mjs
  *
@@ -281,7 +281,7 @@ async function main() {
    * 这条断言依赖上一项的心跳：本地 wrangler 里，一条**从没往上发过消息**的连接
    * 被服务端主动 close 时，关闭帧不会真的送到客户端（服务端侧停在 CLOSING）。
    * 上一项让 host 发过 ping 之后这里才稳定——真实客户端每 15 秒一次心跳，
-   * 所以线上不存在"从没发过消息"的连接（见 client 的 socket.ts）。
+   * 所以线上不存在"从没发过消息"的连接（见 legacy-client 的 socket.ts）。
    *
    * 顺带说明：就算关闭帧真的没送达也不影响对局。房里谁是谁按玩家 id 分组，
    * 僵尸连接和顶替它的新连接算同一个玩家，不会被当成对端，也不会占掉对手的位置。

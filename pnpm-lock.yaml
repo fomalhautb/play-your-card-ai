@@ -15,7 +15,143 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  apps/mobile: {}
+
+  apps/steam: {}
+
+  apps/web:
+    dependencies:
+      '@ai-duel/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.4.0
+        version: 26.4.0
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      '@vitejs/plugin-react':
+        specifier: ^6.1.0
+        version: 6.1.0(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(tsx@4.23.12))
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vite:
+        specifier: ^8.2.2
+        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(tsx@4.23.12)
+
+  packages/bench:
+    dependencies:
+      '@ai-duel/canvas':
+        specifier: workspace:*
+        version: link:../canvas
+      '@ai-duel/design':
+        specifier: workspace:*
+        version: link:../design
+      '@ai-duel/platform':
+        specifier: workspace:*
+        version: link:../platform
+    devDependencies:
+      '@types/node':
+        specifier: ^26.4.0
+        version: 26.4.0
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/canvas:
+    dependencies:
+      '@ai-duel/design':
+        specifier: workspace:*
+        version: link:../design
+      '@ai-duel/platform':
+        specifier: workspace:*
+        version: link:../platform
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/client:
+    dependencies:
+      '@ai-duel/canvas':
+        specifier: workspace:*
+        version: link:../canvas
+      '@ai-duel/content':
+        specifier: workspace:*
+        version: link:../content
+      '@ai-duel/core':
+        specifier: workspace:*
+        version: link:../core
+      '@ai-duel/design':
+        specifier: workspace:*
+        version: link:../design
+      '@ai-duel/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@ai-duel/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@ai-duel/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/content:
+    dependencies:
+      '@ai-duel/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/core:
+    dependencies:
+      pure-rand:
+        specifier: ^8.4.2
+        version: 8.4.2
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@26.4.0)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(tsx@4.23.12))
+
+  packages/design:
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
+  packages/legacy-client:
     dependencies:
       '@ai-duel/core':
         specifier: workspace:*
@@ -61,21 +197,33 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@26.4.0)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(tsx@4.23.12))
 
-  packages/core:
-    dependencies:
-      pure-rand:
-        specifier: ^8.4.2
-        version: 8.4.2
+  packages/platform:
     devDependencies:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
-      vitest:
-        specifier: ^4.1.11
-        version: 4.1.11(@types/node@26.4.0)(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(tsx@4.23.12))
+
+  packages/protocol:
+    dependencies:
+      '@ai-duel/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
 
   packages/server:
     dependencies:
+      '@ai-duel/content':
+        specifier: workspace:*
+        version: link:../content
+      '@ai-duel/core':
+        specifier: workspace:*
+        version: link:../core
+      '@ai-duel/protocol':
+        specifier: workspace:*
+        version: link:../protocol
       nanoid:
         specifier: ^6.0.1
         version: 6.0.1
@@ -89,6 +237,31 @@ importers:
       wrangler:
         specifier: ^4.127.0
         version: 4.127.0(@cloudflare/workers-types@5.20260827.1)
+
+  packages/ui:
+    dependencies:
+      '@ai-duel/design':
+        specifier: workspace:*
+        version: link:../design
+      '@ai-duel/platform':
+        specifier: workspace:*
+        version: link:../platform
+      react:
+        specifier: ^19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.2.5
+        version: 19.2.5(@types/react@19.2.18)
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
 
 packages:
 

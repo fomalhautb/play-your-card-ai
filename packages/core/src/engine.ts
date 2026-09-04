@@ -113,7 +113,7 @@ export interface PlayerSetup {
   deck: CardId[]
   /**
    * 这一方的英雄，不填就是 DEFAULT_HERO。
-   * 联机对局双方都会明确传（匹配后的选英雄那一步，见 client 的 RoomScreen）；
+   * 联机对局双方都会明确传（匹配后的选英雄那一步，见 legacy-client 的 RoomScreen）；
    * 测试房只在存档里存过英雄时才传，没存过就吃默认值。
    * 传 null 表示这一方不带英雄（现在只有测试会这么用）。
    */

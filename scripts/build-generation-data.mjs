@@ -18,7 +18,7 @@ import { MODELS, QUESTIONS, VARIANTS } from './pregen-answers.mjs';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(SCRIPT_DIR, 'out');
-const TARGET = join(SCRIPT_DIR, '..', 'packages', 'client', 'src', 'screens', 'generationResults.json');
+const TARGET = join(SCRIPT_DIR, '..', 'packages', 'legacy-client', 'src', 'screens', 'generationResults.json');
 
 // 结果文件按顺序读，后面文件里的条目按 (variant, questionId, modelId) 覆盖前面的同一格。
 // 这是为「补跑失败格子」准备的：整轮跑完发现某个模型翻车，不用重跑全部，只补跑它那几格

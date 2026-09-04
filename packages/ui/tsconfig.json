@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    // React 组件直接操作 DOM，所以要 DOM 全局类型；jsx 用 react-jsx，源码里不必再 import React。
+    // 不加 "node"：组件跑在浏览器 / WebView / Electron 渲染进程里，
+    // 误用 process、fs 这类 Node 全局要在编译期就拦下来。
+    "types": []
+  },
+  "include": ["src"]
+}
