@@ -98,7 +98,9 @@ export const CARD_BACK_FULL_ASSETS: readonly string[] = [
  * battle-bg.webp 在整个 tsx 里搜不到，它只出现在 CSS 的背景简写里：
  * styles.css 的 .battle__battlefield（战场）和 screens/deck.css 的 .deck-pool（组卡池，同一张图）——
  * 改图片地址时这三处要一起改，不然对局页会先空一块背景再刷出来。两张硬币是开局猜先动画里条件挂载的 <img>，
- * final-victory-bg 是终局结算那张横幅底图（也只写在 CSS 里，styles.css 的 .final-victory）。
+ * final-victory / final-defeat / final-draw 三张是终局结算底板的三种结果（也只写在 CSS 里，
+ * styles.css 的 .battle__result-panel::before 和它的两个 --defeat / --draw 变体）。
+ * 三张都要预载：结算面板是对局结束那一刻直接铺上去的，等到那时才开始下就会先闪一块空白。
  *
  * 卡面和卡背也算进来：对局里出现哪几张卡要等发牌、等对手出牌才知道，
  * 没法只等"这局用得上的那几张"。既然一局下来 46 张里哪张都可能上场，就整批一起等——
@@ -111,6 +113,8 @@ export const BATTLE_ASSETS: readonly string[] = [
   '/battle/coin-first.webp',
   '/battle/coin-second.webp',
   '/battle/final-victory-bg.webp',
+  '/battle/final-defeat-bg.webp',
+  '/battle/final-draw-bg.webp',
   ...CARD_ART_ASSETS,
   ...CARD_BACK_ASSETS,
 ]
