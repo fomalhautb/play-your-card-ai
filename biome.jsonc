@@ -26,6 +26,10 @@
       "!packages/legacy-client",
       // wrangler types 生成的，改了也会被下次生成覆盖。
       "!packages/server/worker-configuration.d.ts",
+      // 设计令牌的产物，由 packages/design/sd.config.mjs 从 tokens/*.json 生成（迁移第 8 条）。
+      // 格式由生成器定，手改也会被下次 build 覆盖，所以格式化和 lint 都不看它；
+      // 400 行那条上限同理——它管的是「人写的文件别长到没人读」，而令牌只会越加越多。
+      "!packages/design/src/generated",
       // 一次性脚本的输出，是数据不是代码。
       "!scripts/out",
       "!pnpm-lock.yaml",
@@ -71,7 +75,18 @@
           "options": {
             "patterns": [
               {
-                "group": ["@ai-duel/*/*", "@ai-duel/*/**"],
+                // group 里是 gitignore 式的模式，支持 `!` 开头的否定项来开例外；
+                // 和 .gitignore 一样后面的压前面的，所以放行那条必须排在两条禁令之后。
+                "group": [
+                  "@ai-duel/*/*",
+                  "@ai-duel/*/**",
+                  // 这是 design 包在 package.json 的 exports 里声明的第二个入口
+                  // （"./tokens.css" -> src/generated/tokens.css），不是内部文件：
+                  // React 那边要在应用入口 import 它，才能拿到 :root 上的那批 CSS 变量。
+                  // 上面两条禁令按形状匹配，会把它一起拦掉，所以单独放行这一个精确路径——
+                  // 只开这一条，别的深路径照旧禁。
+                  "!@ai-duel/design/tokens.css"
+                ],
                 "message": "跨包只能 import 包名本身（比如 @ai-duel/core），不能伸进它的内部文件。每个包对外只有 src/index.ts 一个入口，内部文件怎么摆是它自己的事。见《正式版架构》7.2 第 2 条。"
               },
               {

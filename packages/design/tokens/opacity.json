@@ -1,0 +1,81 @@
+{
+  "opacity": {
+    "plaqueLine": {
+      "navy": {
+        "default": {
+          "$value": 0.62,
+          "$type": "number",
+          "$description": "墨蓝匾额内框细线的不透明度。旧样式把颜色和透明度写在一起（rgb(174 168 151 / 62%)），这里拆成 color.plaque.navy.default.line 加这一份，因为颜色令牌一律是不带透明度的 #rrggbb（Pixi 的 tint 和 alpha 本来也是分开的两件事）。来源：legacy-client/src/styles.css 的 .plaque-button --plaque-line。"
+        },
+        "hover": {
+          "$value": 0.85,
+          "$type": "number",
+          "$description": "墨蓝匾额悬停时内框细线的不透明度。来源：styles.css 的 .plaque-button:hover --plaque-line。"
+        },
+        "disabled": {
+          "$value": 0.3,
+          "$type": "number",
+          "$description": "墨蓝匾额禁用时内框细线的不透明度。来源：styles.css 的 .plaque-button:disabled --plaque-line。"
+        }
+      },
+      "paper": {
+        "default": {
+          "$value": 0.55,
+          "$type": "number",
+          "$description": "纸白匾额内框细线的不透明度。来源：styles.css 的 .battle__end-turn .plaque-button --plaque-line。"
+        },
+        "hover": {
+          "$value": 0.78,
+          "$type": "number",
+          "$description": "纸白匾额悬停时内框细线的不透明度（颜色不变，只是更实）。来源：styles.css 的 .battle__end-turn .plaque-button:hover。"
+        },
+        "disabled": {
+          "$value": 0.5,
+          "$type": "number",
+          "$description": "纸白匾额禁用时内框细线的不透明度。来源：styles.css 的 .battle__end-turn .plaque-button:disabled。"
+        }
+      },
+      "terracotta": {
+        "default": {
+          "$value": 0.62,
+          "$type": "number",
+          "$description": "陶橙匾额内框细线的不透明度。来源：styles.css 的 .battle__urge .plaque-button。"
+        },
+        "hover": {
+          "$value": 0.82,
+          "$type": "number",
+          "$description": "陶橙匾额悬停时内框细线的不透明度。来源：styles.css 的 .battle__urge .plaque-button:hover。"
+        },
+        "disabled": {
+          "$value": 0.32,
+          "$type": "number",
+          "$description": "陶橙匾额禁用时内框细线的不透明度。来源：styles.css 的 .battle__urge .plaque-button:disabled。"
+        }
+      },
+      "ivory": {
+        "default": {
+          "$value": 0.55,
+          "$type": "number",
+          "$description": "米白匾额内框细线的不透明度。来源：legacy-client/src/screens/hero.css 的 .hero__confirm。"
+        },
+        "hover": {
+          "$value": 0.75,
+          "$type": "number",
+          "$description": "米白匾额悬停时内框细线的不透明度（颜色不变，只是更实）。来源：hero.css 的 .hero__confirm:hover。"
+        }
+      }
+    },
+    "home": {
+      "flourishStar": {
+        "$value": 0.8,
+        "$type": "number",
+        "$description": "首页花饰里那颗四角星的不透明度。来源：styles.css 的 .home__cast-panel-rule --home-flourish-star-color: rgb(232 198 159 / 80%)。"
+      },
+      "flourishLine": {
+        "$value": 0.7,
+        "$type": "number",
+        "$description": "首页花饰细线最实那一端的不透明度，线本身是往外侧淡到 0 的渐变。来源：styles.css 的 .home__flourish-line 的渐变终点 rgb(232 198 159 / 70%)。"
+      }
+    }
+  }
+}

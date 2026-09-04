@@ -1,0 +1,34 @@
+{
+  "radius": {
+    "xs": {
+      "$value": "3px",
+      "$type": "dimension",
+      "$description": "圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计 legacy-client/src/styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。"
+    },
+    "sm": {
+      "$value": "4px",
+      "$type": "dimension",
+      "$description": "圆角阶梯。同一份统计里 4px 出现 7 次。"
+    },
+    "md": {
+      "$value": "6px",
+      "$type": "dimension",
+      "$description": "圆角阶梯。同一份统计里 6px 出现 10 次，和「胶囊」那一档并列第 2。"
+    },
+    "lg": {
+      "$value": "8px",
+      "$type": "dimension",
+      "$description": "圆角阶梯，也是旧样式里用得最多的一档：同一份统计里 8px 出现 13 次，排第 1。"
+    },
+    "xl": {
+      "$value": "12px",
+      "$type": "dimension",
+      "$description": "圆角阶梯最大的一档。同一份统计里 12px 出现 6 次。"
+    },
+    "pill": {
+      "$value": "999px",
+      "$type": "dimension",
+      "$description": "胶囊形：一个大到必定被裁到半高的值，用来把矩形两端做成半圆。同一份统计里出现 10 次。"
+    }
+  }
+}

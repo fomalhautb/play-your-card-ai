@@ -1,0 +1,112 @@
+{
+  "size": {
+    "card": {
+      "width": {
+        "$value": "150px",
+        "$type": "dimension",
+        "$description": "卡面基准宽。全站卡牌的几何都从这个数派生，扇形手牌的间距和 hover 放大的下限也按它算。来源：legacy-client/src/styles.css 的 :root --card-w（和 ui/fanMath.ts 的 CARD_WIDTH 是同一个数）。"
+      },
+      "height": {
+        "$value": "225px",
+        "$type": "dimension",
+        "$description": "卡面基准高，和宽保持 2:3。来源：styles.css 的 :root --card-h（和 fanMath.ts 的 CARD_HEIGHT 同值）。"
+      },
+      "tileWidth": {
+        "$value": "110px",
+        "$type": "dimension",
+        "$description": "战场上小卡的宽。来源：styles.css 的 :root --tile-w。"
+      },
+      "tileHeight": {
+        "$value": "165px",
+        "$type": "dimension",
+        "$description": "战场小卡的高。必须和卡面同比例，否则打出时的飞行会把卡面拉变形。来源：styles.css 的 :root --tile-h。"
+      },
+      "tileScale": {
+        "$value": 0.733333,
+        "$type": "number",
+        "$description": "战场小卡相对卡面的缩放倍数（110 / 150）。来源：styles.css 的 :root --tile-scale。"
+      },
+      "heroScale": {
+        "$value": 0.5,
+        "$type": "number",
+        "$description": "侧栏英雄牌相对卡面的缩放倍数，实际值由 JS 按面板宽度重新量（MatchStage 的 useHeroCardScale），这里是兜底。来源：styles.css 的 .battle__player-panel --hero-card-scale。"
+      },
+      "revealScale": {
+        "$value": 1.7,
+        "$type": "number",
+        "$description": "点开放大查看时，屏幕中央那张展示卡相对卡面的倍数，桌面档普通卡（150x225 放到 255x382.5）。来源：styles.css 的 :root --reveal-scale。"
+      },
+      "revealScaleHero": {
+        "$value": 2.2,
+        "$type": "number",
+        "$description": "桌面档英雄牌的放大倍数。侧栏那张英雄牌本身就有 259x389，按 1.7 飞到中央反而比原位还小，所以单独调高一档。来源：styles.css 的 .reveal-clip--hero --reveal-scale。"
+      },
+      "revealScaleTouch": {
+        "$value": 2.2,
+        "$type": "number",
+        "$description": "触屏档普通卡的放大倍数。1.7 倍在手机上只有约 126 个屏幕像素宽，和「点开看清楚」差得远。来源：styles.css 末尾 @media (pointer: coarse) 的 .battle-scaler --reveal-scale。"
+      },
+      "revealScaleHeroTouch": {
+        "$value": 2.9,
+        "$type": "number",
+        "$description": "触屏档英雄牌的放大倍数，上界是舞台高 941（卡上沿落在 107，字幕落在 781，都进得来）。来源：styles.css 末尾 @media (pointer: coarse) 的 .reveal-clip--hero。"
+      }
+    },
+    "battle": {
+      "topbarHeight": {
+        "$value": "72px",
+        "$type": "dimension",
+        "$description": "对局顶栏高度，桌面档。不止排版要用：展示卡的裁剪层也拿它当「顶栏下沿」那条线。来源：styles.css 的 .battle --battle-topbar-h。"
+      },
+      "topbarHeightTouch": {
+        "$value": "56px",
+        "$type": "dimension",
+        "$description": "对局顶栏高度，触屏档。字放大之后要把地方让给战场和手牌，而顶栏只有轮次和比分，是最不需要看清的部分。来源：styles.css 末尾 @media (pointer: coarse) 的 .battle。"
+      },
+      "sidebarWidth": {
+        "$value": "306px",
+        "$type": "dimension",
+        "$description": "对局左侧栏宽度，桌面档。两排扇形手牌靠它让开侧栏、正对战场居中，三处必须是同一个数。来源：styles.css 的 .battle --battle-side-w。"
+      },
+      "sidebarWidthTouch": {
+        "$value": "250px",
+        "$type": "dimension",
+        "$description": "对局左侧栏宽度，触屏档。来源：styles.css 末尾 @media (pointer: coarse) 的 .battle。"
+      },
+      "actionsWidth": {
+        "$value": "142px",
+        "$type": "dimension",
+        "$description": "顶栏右端那簇控件（静音 + 离开）连右边距一共占掉的宽度：26 右边距 + 两颗 51 图标 + 中间 14 间隙。回合结算层要用它让位，否则轮次和比分会被压住。来源：styles.css 的 .battle --battle-actions-w。"
+      },
+      "handZoneHeight": {
+        "$value": "250px",
+        "$type": "dimension",
+        "$description": "战场底部留给自己手牌的高度。来源：styles.css 的 .battle__battlefield --battle-hand-zone-h。"
+      },
+      "foeHandHeight": {
+        "$value": "84px",
+        "$type": "dimension",
+        "$description": "战场顶部留给对方手牌的高度。正式对局里对方手牌是不占文档流的倒扇形，在顶栏下方露出约 72px，84 正好给它让开。来源：styles.css 的 .battle__battlefield --battle-foe-hand-h。"
+      },
+      "foeHandHeightTest": {
+        "$value": "122px",
+        "$type": "dimension",
+        "$description": "测试房里对方手牌那一条的高度：那里是真占位置的摊开手牌条，要摆下真实卡面所以更高。来源：styles.css 的 .battle__battlefield--test。"
+      }
+    },
+    "settle": {
+      "cardMinWidth": {
+        "$value": "300px",
+        "$type": "dimension",
+        "$description": "回合结算层里每张结算卡的最小宽度，也是「一行最多摆几列」的推导依据（超宽就改成横向滚动）。来源：styles.css 的 .settle__cards --settle-card-min-w。"
+      }
+    },
+    "control": {
+      "muteSize": {
+        "$value": "38px",
+        "$type": "dimension",
+        "$description": "静音钮的尺寸。位置由每个页面在自己的版式里安排，抽成变量是因为它在好几页里出现、各页摆放时要按这个尺寸留位。来源：styles.css 的 :root --mute-size。"
+      }
+    }
+  }
+}

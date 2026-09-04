@@ -1,0 +1,45 @@
+{
+  "duration": {
+    "hand": {
+      "layout": {
+        "$value": "0.4s",
+        "$type": "duration",
+        "$description": "手牌重排（加牌、减牌、改窗口大小）的时长。两侧手牌共用同一个值，加减牌时上下两排的节奏才是一套的。来源：legacy-client/src/ui/fanMath.ts 的 LAYOUT_DUR，HandFan 和 OpponentFan 都读它。"
+      }
+    },
+    "card": {
+      "zoomIn": {
+        "$value": "0.55s",
+        "$type": "duration",
+        "$description": "卡牌放大查看的进场时长。来源：legacy-client/src/ui/CardZoomOverlay.tsx 的 ZOOM_IN_DUR，CardZoomOverlay、HeroScreen、DeckScreen 三处共用。"
+      },
+      "zoomOut": {
+        "$value": "0.6s",
+        "$type": "duration",
+        "$description": "卡牌放大查看的退场时长，比进场略长。来源：CardZoomOverlay.tsx 的 ZOOM_OUT_DUR，同样三处共用（DeckScreen 还拿它当后续动作的延迟基准）。"
+      },
+      "loaderCycle": {
+        "$value": "1.75s",
+        "$type": "duration",
+        "$description": "卡片加载动画弹一次的周期，卡片和它的影子共用同一个周期。来源：styles.css 的 .card-loader --cl-speed（index.html 里的首屏 loader 抄了同一份）。"
+      }
+    },
+    "home": {
+      "castFadeIn": {
+        "$value": "0.26s",
+        "$type": "duration",
+        "$description": "首页人物金色高亮和介绍卡片的淡入时长。进入比离开慢一点，出现时看得出是「浮上来的」。来源：styles.css 的 .home__stage --home-cast-fade-in。"
+      },
+      "castFadeOut": {
+        "$value": "0.2s",
+        "$type": "duration",
+        "$description": "首页人物高亮和介绍卡片的淡出时长。必须短于淡入：换人时是两张介绍卡片在同一块地方交叉，旧卡要先退干净才不会叠成重影。来源：styles.css 的 .home__stage --home-cast-fade-out。"
+      },
+      "castPanelDelay": {
+        "$value": "0.08s",
+        "$type": "duration",
+        "$description": "首页人物介绍卡片淡入的起跑延迟，只有卡片用、高亮不用。和上面那对时长配合，让旧卡先退干净。来源：styles.css 的 .home__stage --home-cast-panel-in-delay。"
+      }
+    }
+  }
+}

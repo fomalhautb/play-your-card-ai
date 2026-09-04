@@ -47,7 +47,13 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      # `pnpm -r test` 只进有 test 脚本的包，现在是 core 和 legacy-client。
+      # 设计令牌的 TS / CSS 产物是提交进仓库的（迁移第 8 条）：Pixi 和 React 两边直接读，
+      # 谁也不用先跑一遍生成器。代价是产物可能和 tokens/*.json 走岔，所以这里当场重新生成一遍比对。
+      # 红了就是「改了令牌没重新生成」或者「手改了产物」，按提示跑 build 再提交。
+      - name: 设计令牌产物与源一致
+        run: pnpm --filter @ai-duel/design check
+
+      # `pnpm -r test` 只进有 test 脚本的包，现在是 core、design 和 legacy-client。
       # 骨架包没有 test 脚本，会被直接跳过——别为了"看着整齐"给它们加空脚本，
       # 那样一个空跑的绿色会盖住"这个包其实一条测试都没有"。
       - name: 测试

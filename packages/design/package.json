@@ -5,12 +5,19 @@
   "type": "module",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/generated/tokens.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "node sd.config.mjs",
+    "check": "node sd.config.mjs --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "style-dictionary": "^5.5.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }
