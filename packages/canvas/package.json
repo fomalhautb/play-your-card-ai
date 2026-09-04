@@ -8,13 +8,19 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@ai-duel/design": "workspace:*",
-    "@ai-duel/platform": "workspace:*"
+    "@ai-duel/platform": "workspace:*",
+    "gsap": "^3.15.0",
+    "pixi.js": "^8.20.1",
+    "pure-rand": "^8.4.2"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }

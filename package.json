@@ -12,6 +12,7 @@
     "dev:legacy": "pnpm --filter @ai-duel/legacy-client dev",
     "dev:server": "pnpm --filter @ai-duel/server dev",
     "build": "pnpm -r build",
+    "assets:build": "node assets/build-atlas.mjs",
     "lint": "biome check . && depcruise packages apps && knip",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
@@ -19,10 +20,12 @@
     "test": "pnpm -r test"
   },
   "devDependencies": {
+    "@assetpack/core": "^1.7.0",
     "@biomejs/biome": "^2.5.12",
     "dependency-cruiser": "^18.2.0",
     "knip": "^6.34.0",
     "playwright": "^1.62.1",
+    "sharp": "^0.34.3",
     "typescript": "^7.0.2"
   },
   "pnpm": {

@@ -18,12 +18,14 @@
     "@ai-duel/platform": "workspace:*",
     "@ai-duel/protocol": "workspace:*",
     "@ai-duel/ui": "workspace:*",
+    "pixi.js": "^8.20.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
   }
 }
