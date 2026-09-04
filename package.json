@@ -12,11 +12,26 @@
     "dev:legacy": "pnpm --filter @ai-duel/legacy-client dev",
     "dev:server": "pnpm --filter @ai-duel/server dev",
     "build": "pnpm -r build",
+    "lint": "biome check . && depcruise packages apps && knip",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "dependency-cruiser": "^18.2.0",
+    "knip": "^6.34.0",
     "playwright": "^1.62.1",
     "typescript": "^7.0.2"
+  },
+  "pnpm": {
+    "packageExtensions": {
+      "dependency-cruiser": {
+        "dependencies": {
+          "typescript": "^6.0.3"
+        }
+      }
+    }
   }
 }

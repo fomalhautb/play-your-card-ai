@@ -60,8 +60,15 @@ pnpm dev:legacy         # 黑客松版客户端 http://localhost:5173
 pnpm dev                # 正式版网页壳 apps/web http://localhost:5174（还是空的）
 pnpm dev:server         # 另开一个终端，起 Worker http://localhost:8787
 pnpm typecheck          # 全仓类型检查
+pnpm lint               # Biome + dependency-cruiser + knip，任一红则红
+pnpm lint:fix           # 能自动修的都修掉（格式、import 排序）
 pnpm test               # 单元测试：core 规则、答题剧本
 ```
+
+这三条（typecheck / lint / test）就是 CI 快档跑的全部内容，见
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml)。lint 的三件工具各管一摊：
+Biome 管格式和单文件行数，dependency-cruiser 管包之间的依赖方向，knip 管没人用的导出和依赖。
+冻结的 `legacy-client` 三个都不看，但它的 typecheck 和测试照跑。
 
 ## 技术栈
 

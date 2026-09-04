@@ -30,7 +30,8 @@ export const HEROES: Record<HeroId, HeroCard> = {
     text: '她推动开放域问答、信息检索与语言模型结合，让 AI 不只会「生成」，还能从大量信息中找到可靠答案。',
     skillName: '精准检索',
     skillText: '每局限一次：指定 1 个己方场上 Agent，免费升级为同系列下一代。',
-    roleText: '知识成长型辅助：把关键 Agent 提前强化，适合在需要知识储备或推理深度的对局中建立优势。',
+    roleText:
+      '知识成长型辅助：把关键 Agent 提前强化，适合在需要知识储备或推理深度的对局中建立优势。',
   },
   'melanie-perkins': {
     kind: 'hero',
@@ -78,7 +79,8 @@ export const HEROES: Record<HeroId, HeroCard> = {
     enName: 'Mira Murati',
     text: '生成式 AI 产品化的重要推动者，长期参与将前沿模型转化为真实可用的产品与工具。',
     skillName: '快速部署',
-    skillText: '每局限一次：双方 Agent 已选、题目未揭晓时，可重新选择己方 Agent，仅需支付新旧 Agent 的 Token 差额。',
+    skillText:
+      '每局限一次：双方 Agent 已选、题目未揭晓时，可重新选择己方 Agent，仅需支付新旧 Agent 的 Token 差额。',
     comingSoon: true,
   },
   'margaret-hamilton': {

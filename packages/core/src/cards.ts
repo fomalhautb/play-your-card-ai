@@ -1,6 +1,6 @@
-import type { CardId, HandCard } from './types'
-import { AI_MODEL_CARDS, PLAYABLE_AI_CARD_IDS } from './aiModels'
+import { AI_MODEL_CARDS } from './aiModels'
 import { SKILL_DESIGN_CARDS } from './skillCards'
+import type { CardId, HandCard } from './types'
 
 /**
  * 全部卡牌定义：十八张具名 AI 牌（表在 aiModels.ts，那边一张卡对一张原画）

@@ -1,27 +1,4 @@
 import { describe, expect, it } from 'vitest'
-// 直接读数据文件对账：断言"取到了表里哪一档"，不依赖各档答案长什么样。
-import pregenAnswers from '../src/pregenAnswers.json'
-import {
-  ADA_TOKEN_MAX_BONUS,
-  CARDS,
-  createGame,
-  effectivePlayCost,
-  execute,
-  getCard,
-  INITIAL_TOKEN_MAX,
-  INTERFERENCE_PROMPTS,
-  other,
-  PLAYABLE_AI_CARD_IDS,
-  QUESTION_POOL,
-  ROUND_DRAW_SIZE,
-  scriptedAnswers,
-  BALANCED_DECK,
-  STARTING_HAND_SIZE,
-  TOKEN_MAX_GROWTH,
-  UNAVAILABLE_AI_CARD_IDS,
-  upgradeTargetOf,
-  WIN_TARGET,
-} from '../src/index'
 import type {
   AnswerResult,
   CardId,
@@ -34,6 +11,28 @@ import type {
   PlayerId,
   Question,
 } from '../src/index'
+import {
+  ADA_TOKEN_MAX_BONUS,
+  BALANCED_DECK,
+  createGame,
+  effectivePlayCost,
+  execute,
+  getCard,
+  INITIAL_TOKEN_MAX,
+  INTERFERENCE_PROMPTS,
+  other,
+  PLAYABLE_AI_CARD_IDS,
+  QUESTION_POOL,
+  ROUND_DRAW_SIZE,
+  STARTING_HAND_SIZE,
+  scriptedAnswers,
+  TOKEN_MAX_GROWTH,
+  UNAVAILABLE_AI_CARD_IDS,
+  upgradeTargetOf,
+  WIN_TARGET,
+} from '../src/index'
+// 直接读数据文件对账：断言"取到了表里哪一档"，不依赖各档答案长什么样。
+import pregenAnswers from '../src/pregenAnswers.json'
 
 /**
  * 先手是抛硬币掷出来的，测试里要能指定谁先手，这两个种子就是查出来的现成答案。
@@ -313,7 +312,10 @@ describe('开局', () => {
     expect(state.firstPlayer).toBe(0)
     expect(state.activePlayer).toBe(state.firstPlayer)
     expect(state.winner).toBeNull()
-    expect(state.players.map((p) => p.hand.length)).toEqual([STARTING_HAND_SIZE, STARTING_HAND_SIZE])
+    expect(state.players.map((p) => p.hand.length)).toEqual([
+      STARTING_HAND_SIZE,
+      STARTING_HAND_SIZE,
+    ])
     expect(state.players.map((p) => p.score)).toEqual([0, 0])
 
     expect(events.map((e) => e.type)).toEqual([
@@ -612,9 +614,7 @@ describe('要选目标的技能牌', () => {
       instanceId: skill.instanceId,
       targetInstanceId: '不存在',
     })
-    expect(result.events).toEqual([
-      { type: 'COMMAND_REJECTED', reason: '目标必须是对方场上的 AI' },
-    ])
+    expect(result.events).toEqual([{ type: 'COMMAND_REJECTED', reason: '目标必须是对方场上的 AI' }])
     expect(result.state).toBe(state)
   })
 
@@ -635,9 +635,7 @@ describe('要选目标的技能牌', () => {
       instanceId: skill.instanceId,
       targetInstanceId: board(deployed, 0)[0]!.instanceId,
     })
-    expect(result.events).toEqual([
-      { type: 'COMMAND_REJECTED', reason: '目标必须是对方场上的 AI' },
-    ])
+    expect(result.events).toEqual([{ type: 'COMMAND_REJECTED', reason: '目标必须是对方场上的 AI' }])
     expect(result.state).toBe(deployed)
   })
 
@@ -690,9 +688,7 @@ describe('要选目标的技能牌', () => {
       instanceId: second!.instanceId,
       targetInstanceId: target.instanceId,
     })
-    expect(result.events).toEqual([
-      { type: 'COMMAND_REJECTED', reason: '这个 AI 已经被干扰过了' },
-    ])
+    expect(result.events).toEqual([{ type: 'COMMAND_REJECTED', reason: '这个 AI 已经被干扰过了' }])
     expect(result.state).toBe(once)
   })
 
@@ -877,9 +873,7 @@ describe('玉净瓶', () => {
     const state = interferedMine()
     const foe = deploy(state, 1, ['gpt-2'])
     expect(
-      rejection(
-        playSkill(foe, 0, 'jade-purification-vase', board(foe, 1)[0]!.instanceId),
-      ),
+      rejection(playSkill(foe, 0, 'jade-purification-vase', board(foe, 1)[0]!.instanceId)),
     ).toBe('目标必须是你自己场上的 AI')
   })
 
@@ -938,7 +932,11 @@ describe('保送', () => {
     const passed = playSkill(state, 0, 'safe-pass', saved.instanceId).state
     const quiz = execute(passed, { type: 'DEBUG_SKIP_TO_QUIZ' }).state
     const wrong = board(quiz, 0).map((a) => a.instanceId)
-    return { saved, quiz, result: execute(quiz, { type: 'SUBMIT_ANSWERS', results: answersFor(quiz, wrong) }) }
+    return {
+      saved,
+      quiz,
+      result: execute(quiz, { type: 'SUBMIT_ANSWERS', results: answersFor(quiz, wrong) }),
+    }
   }
 
   it('答错也留在场上，发 AI_SAFE_PASSED 而不是 AI_ELIMINATED', () => {
@@ -1107,9 +1105,7 @@ describe('核电站', () => {
     expect(mine.players[0].tokens).toBe(
       SKILL_TEST_TOKENS - getCard('nuclear-power-station').tokenCost - 3,
     )
-    expect(mine.players[0].spentThisRound).toBe(
-      getCard('nuclear-power-station').tokenCost + 3,
-    )
+    expect(mine.players[0].spentThisRound).toBe(getCard('nuclear-power-station').tokenCost + 3)
 
     // 对手一点便宜都占不到。
     const foe = deploy(state, 1, ['gpt-4o'])
@@ -1128,7 +1124,11 @@ describe('核电站', () => {
   })
 
   it('再怎么减也不会低于 1 点', () => {
-    const state = playSkill(playSkill(skillGame(), 0, 'nuclear-power-station').state, 0, 'nuclear-power-station').state
+    const state = playSkill(
+      playSkill(skillGame(), 0, 'nuclear-power-station').state,
+      0,
+      'nuclear-power-station',
+    ).state
     expect(state.players[0].costReduction).toBe(2)
     // GPT-2 卡面就 1 点，减 2 也还是 1，不会变成 0 或负数。
     expect(effectivePlayCost(state.players[0], getCard('gpt-2'))).toBe(1)
@@ -1222,7 +1222,9 @@ describe('内存紧缺', () => {
       cardId: 'gpt-2',
       by: 'memory-shortage',
     })
-    expect(result.state.players[0].discard.map((c) => c.instanceId)).toContain(removed[0]!.instanceId)
+    expect(result.state.players[0].discard.map((c) => c.instanceId)).toContain(
+      removed[0]!.instanceId,
+    )
   })
 
   it('场上只有 1 个时一个都不清（ceil(1/2) = 1）', () => {
@@ -1940,9 +1942,7 @@ describe('回合确认', () => {
   it('不在结算阶段确认会被拒', () => {
     const game = newGame()
     const play = execute(game.state, { type: 'CONFIRM_ROUND', player: 0 })
-    expect(play.events).toEqual([
-      { type: 'COMMAND_REJECTED', reason: '现在不是回合结算阶段' },
-    ])
+    expect(play.events).toEqual([{ type: 'COMMAND_REJECTED', reason: '现在不是回合结算阶段' }])
     expect(play.state).toBe(game.state)
 
     const quiz = toQuiz(game.state)
@@ -2137,10 +2137,7 @@ describe('胜负', () => {
     }
 
     expect(state.round).toBe(state.totalRounds)
-    expect(state.players.map((p) => p.score)).toEqual([
-      QUESTION_POOL.length,
-      QUESTION_POOL.length,
-    ])
+    expect(state.players.map((p) => p.score)).toEqual([QUESTION_POOL.length, QUESTION_POOL.length])
     expect(state.winner).toBe('draw')
     expect(events.at(-1)).toEqual({ type: 'GAME_OVER', winner: 'draw' })
   })
@@ -2175,7 +2172,11 @@ describe('胜负', () => {
             definition.kind === 'skill' && definition.target === 'foe-ai'
               ? state.players[other(seat)].board.find((a) => a.interference === undefined)
               : undefined
-          if (definition.kind === 'skill' && definition.target !== undefined && target === undefined)
+          if (
+            definition.kind === 'skill' &&
+            definition.target !== undefined &&
+            target === undefined
+          )
             continue
           const played = execute(state, {
             type: 'PLAY_CARD',
@@ -2536,7 +2537,11 @@ describe('英雄技能：Debug（格蕾丝·霍珀）', () => {
     const fresh = newGame({ deck0: deckOf('one-sentence-answer') })
     expect(fresh.state.players.map((p) => p.heroSkillUsed)).toEqual([false, false])
     const card = handCard(fresh.state, 0, 'one-sentence-answer')
-    const again = execute(fresh.state, { type: 'PLAY_CARD', player: 0, instanceId: card.instanceId })
+    const again = execute(fresh.state, {
+      type: 'PLAY_CARD',
+      player: 0,
+      instanceId: card.instanceId,
+    })
     expect(again.events).toEqual(cancelPair(0, card.instanceId))
   })
 
@@ -2828,9 +2833,7 @@ describe('英雄技能：升降级（陈丹琦 / 梅拉妮·珀金斯）', () =>
       player: 0,
       targetInstanceId: board(deployed, 0)[0]!.instanceId,
     })
-    expect(result.events).toEqual([
-      { type: 'COMMAND_REJECTED', reason: '目标必须是对方场上的 AI' },
-    ])
+    expect(result.events).toEqual([{ type: 'COMMAND_REJECTED', reason: '目标必须是对方场上的 AI' }])
     expect(result.state).toBe(deployed)
   })
 
@@ -2928,9 +2931,7 @@ describe('题库与预生成回答', () => {
   it('题库覆盖三个类别，且题目 id 不重复', () => {
     const ids = QUESTION_POOL.map((q) => q.id)
     expect(new Set(ids).size).toBe(ids.length)
-    expect(new Set(QUESTION_POOL.map((q) => q.category))).toEqual(
-      new Set(['meme', 'bias', 'life']),
-    )
+    expect(new Set(QUESTION_POOL.map((q) => q.category))).toEqual(new Set(['meme', 'bias', 'life']))
     expect(
       QUESTION_POOL.every(
         (q) => q.text.length > 0 && q.answer.length > 0 && q.explanation.length > 0,
@@ -2961,7 +2962,12 @@ describe('题库与预生成回答', () => {
       for (const cardId of PLAYABLE_AI_CARD_IDS) {
         for (const by of interferences) {
           const [answer] = scriptedAnswers(question, [
-            { instanceId: 'x', cardId, owner: 0, ...(by === undefined ? {} : { interference: by }) },
+            {
+              instanceId: 'x',
+              cardId,
+              owner: 0,
+              ...(by === undefined ? {} : { interference: by }),
+            },
           ])
           expect(answer!.instanceId).toBe('x')
           expect(answer!.answer.length).toBeGreaterThan(0)
@@ -2983,7 +2989,12 @@ describe('题库与预生成回答', () => {
     const CARD = 'gpt-4o'
     const read = (by?: InterferenceCardId) =>
       scriptedAnswers(question, [
-        { instanceId: 'x', cardId: CARD, owner: 0, ...(by === undefined ? {} : { interference: by }) },
+        {
+          instanceId: 'x',
+          cardId: CARD,
+          owner: 0,
+          ...(by === undefined ? {} : { interference: by }),
+        },
       ])[0]!
     // JSON 模块的推断类型是照文件当前内容长出来的字面量类型，用变量当 key 索引不了，
     // 所以先放宽成「三级字符串表」再查。
@@ -3033,7 +3044,7 @@ describe('题库与预生成回答', () => {
   it('两种干扰各有一句注入 prompt', () => {
     // 只守"两种干扰各配一句、都不为空"。句子本身是文案，会随设计改口吻
     //（复读机那句是利诱而不是命令，见 script.ts 的说明），断言原文只会挡住改文案。
-    // 真正要盯的是"这两句和 scripts/pregen-answers.mjs 的注入词一字不差"，
+    // 真正要盯的是"这两句和 scripts/pregen-data.mjs 的注入词一字不差"，
     // 但那份脚本不在 core 的依赖里（node 脚本、要读 .env），只能靠 script.ts 上的注释约束。
     expect(Object.keys(INTERFERENCE_PROMPTS).sort()).toEqual([
       'black-white-reversal',
@@ -3043,5 +3054,4 @@ describe('题库与预生成回答', () => {
       expect(prompt.length).toBeGreaterThan(0)
     }
   })
-
 })

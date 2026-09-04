@@ -21,7 +21,7 @@ import type { AiInstance, AnswerResult, CardId, InterferenceCardId, Question } f
 /**
  * 干扰类技能牌真正的效果本体：往被命中那个 AI 的 prompt 里注入的一句话。
  *
- * **这两句必须和 scripts/pregen-answers.mjs 里 VARIANTS 的注入词一字不差**：
+ * **这两句必须和 scripts/pregen-data.mjs 里 VARIANTS 的注入词一字不差**：
  * 那边跑出来的答案就是这份表的数据来源，文案对不上的话，界面上写着注入了 A、
  * 实际播的却是照 B 跑出来的回答。改一句就要两边一起改，并重跑预生成。
  *
@@ -104,9 +104,7 @@ export function scriptedAnswers(
     const byVariant = byCard[ai.cardId]
     if (!byVariant) throw new Error(`预生成回答缺少 ${question.id} × ${ai.cardId}`)
     const variant =
-      ai.interference === undefined
-        ? BASELINE_VARIANT
-        : VARIANT_BY_INTERFERENCE[ai.interference]
+      ai.interference === undefined ? BASELINE_VARIANT : VARIANT_BY_INTERFERENCE[ai.interference]
     const pregen = byVariant[variant]
     if (!pregen) {
       throw new Error(`预生成回答缺少 ${question.id} × ${ai.cardId} × ${variant}`)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { CARDS, SKILL_DESIGN_CARDS, SKILL_DESIGN_CARD_IDS } from '../src/index'
 import type { SkillCard } from '../src/index'
+import { CARDS, SKILL_DESIGN_CARD_IDS, SKILL_DESIGN_CARDS } from '../src/index'
 
 /**
  * 24 张技能卡（src/skillCards.ts）的形状约束。

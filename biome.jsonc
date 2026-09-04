@@ -1,0 +1,153 @@
+{
+  // 用 jsonc 而不是 json，是为了能在规则旁边写清楚"为什么"——这份文件里几乎每条都对应
+  //《正式版架构》里的一条纪律，光看规则名看不出来。
+  //
+  // 三件工具分工（见 6.2「静态检查」）：
+  //   - Biome：格式化、通用 lint、单文件行数、循环依赖、包内禁止的 import；
+  //   - dependency-cruiser（.dependency-cruiser.cjs）：包与包之间的单向依赖方向；
+  //   - knip（knip.json）：未使用的导出和依赖。
+  // 三个都由根目录的 `pnpm lint` 依次跑，任何一个红整条就红。
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    // 让 Biome 读 .gitignore，省得把构建产物、.env 这类东西再抄一遍。
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**",
+      // 下面几条 .gitignore 里没有，得单独排除。
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.wrangler",
+      // 旧客户端已冻结，不加功能也不整改，整包排除在 lint 之外（迁移第 7 条）。
+      // 它的 typecheck 和测试照常在 CI 里跑——它还是线上跑着的那一版。
+      "!packages/legacy-client",
+      // wrangler types 生成的，改了也会被下次生成覆盖。
+      "!packages/server/worker-configuration.d.ts",
+      // 一次性脚本的输出，是数据不是代码。
+      "!scripts/out",
+      "!pnpm-lock.yaml",
+      // Claude Code 自己会重写这个目录里的 json，格式化它只会让 CI 三天两头变红。
+      "!.claude"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    // 100 是在现有代码上试出来的：80 到 120 之间逐个跑 `biome format`，
+    // 100~102 处需要改动的行数最少，取整到 100。
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      // 对齐现有代码：不写分号、单引号、多行结构末尾带逗号。
+      "semicolons": "asNeeded",
+      "quoteStyle": "single",
+      "trailingCommas": "all"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      // 以 recommended 那套为底，再按下面几条加加减减。
+      "preset": "recommended",
+      "style": {
+        // 关掉。现有代码里有 171 处 `!`，全是被 tsconfig 的 noUncheckedIndexedAccess 逼出来的：
+        // 开了那个选项之后 `arr[0]` 的类型是 `T | undefined`，而"这个下标一定有值"这件事
+        // 往往是上一行刚校验过的，写 `arr[0]!` 就是把它说给类型检查器听。
+        // 留着这条规则等于让每一次合法的下标访问都报一次警，几百条噪音会把真问题埋掉。
+        "noNonNullAssertion": "off",
+        // 7.2 第 3 条：单文件不超过 400 行，lint 卡死。
+        // 含测试文件——测试一样会长到没人愿意读。
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": { "maxLines": 400 }
+        },
+        // 7.2 第 2 条：跨包只走包入口。具体两条禁令见下面每条 pattern 的 message。
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["@ai-duel/*/*", "@ai-duel/*/**"],
+                "message": "跨包只能 import 包名本身（比如 @ai-duel/core），不能伸进它的内部文件。每个包对外只有 src/index.ts 一个入口，内部文件怎么摆是它自己的事。见《正式版架构》7.2 第 2 条。"
+              },
+              {
+                "group": [
+                  "../*/src/**",
+                  "../../*/src/**",
+                  "../../../*/src/**",
+                  "../../../../*/src/**",
+                  "../../../../../*/src/**"
+                ],
+                "message": "别用相对路径穿到另一个包里。要用别的包就在 package.json 里声明依赖，然后 import 包名（比如 @ai-duel/core）——绕过包名等于绕过依赖方向检查。见《正式版架构》7.2 第 1、2 条。"
+              }
+            ]
+          }
+        }
+      },
+      "suspicious": {
+        // 6.2：循环依赖。dependency-cruiser 那边也有一条同样的规则，
+        // 但它只看 packages/ 和 apps/ 的模块图，Biome 这条是文件级的兜底。
+        "noImportCycles": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // knip 用 JSONC 解析自己的配置，所以 knip.json 里是有注释的。
+      // Biome 按扩展名判断，不开这个开关会把每条注释报成语法错误。
+      "includes": ["knip.json"],
+      "json": { "parser": { "allowComments": true } }
+    },
+    {
+      // 6.2：core、content、protocol、design 不碰浏览器对象。
+      //
+      // 这四个包要能原样跑在浏览器、Cloudflare Worker 和 Node 三种环境里，
+      // 碰了 window / document 就只剩浏览器一种，服务端权威那条（需求第 6 条）第一个做不成。
+      // Node 内建模块那半边由 .dependency-cruiser.cjs 的「边界-底层包不碰-node-内建」管：
+      // 那些是 import，这些是全局变量，两种东西得分开查。
+      "includes": ["packages/{core,content,protocol,design}/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "window": "这个包要能在浏览器、Worker、Node 三种环境里原样跑，不能碰浏览器对象。需要平台能力就走 platform 包的接口。",
+                  "document": "这个包要能在浏览器、Worker、Node 三种环境里原样跑，不能碰 DOM。需要平台能力就走 platform 包的接口。",
+                  "localStorage": "存储走 platform 包的接口，别直接碰浏览器的实现。",
+                  "navigator": "这个包要能在浏览器、Worker、Node 三种环境里原样跑，平台信息走 platform 包的接口。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      // 白名单豁免：core 这三个文件现在就超 400 行。
+      //
+      // 到期条款：第三阶段（迁移第 12-15 条）重做 core 时把它们拆掉，
+      // 顺手删掉这段 override。在那之前它们不许再长——新代码请开新文件。
+      //   engine.ts       规则引擎主体，第 12-13 条把内容数据和视图裁剪拆出去之后会瘦下来
+      //   types.ts        类型定义，第 12、14 条会把内容和协议的类型分别搬到 content、protocol
+      //   engine.test.ts  跟着 engine.ts 一起拆
+      "includes": [
+        "packages/core/src/engine.ts",
+        "packages/core/src/types.ts",
+        "packages/core/test/engine.test.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noExcessiveLinesPerFile": "off"
+          }
+        }
+      }
+    }
+  ]
+}

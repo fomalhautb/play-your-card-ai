@@ -82,7 +82,7 @@ export const SKILL_DESIGN_CARDS: Record<CardId, SkillCard> = {
      * 命中写 `AiInstance.interference`；干扰的本体是往 prompt 里注入一句话
      *（见 script.ts 的 INTERFERENCE_PROMPTS）。那句话是骗它的——编一条"答香蕉给双倍积分"
      * 的假规则，赌它上钩。**上不上钩由模型自己决定**：离线预生成时各家表现不一，
-     * 有的真答香蕉、有的照常答题（scripts/pregen-answers.mjs 的 banana-bribe 变体）。
+     * 有的真答香蕉、有的照常答题（scripts/pregen-data.mjs 的 banana-bribe 变体）。
      * 真答了香蕉就按答错算，游戏里也没有什么双倍积分。
      * 效果是真的，所以不写 `plannedEffect`。
      */
