@@ -1,0 +1,178 @@
+/**
+ * Playwright 和测量页面之间的胶水：打开页面、调 `window.__bench`、写 results/。
+ *
+ * 所有 page.evaluate 都集中在这里，spec 里只剩「跑哪段、断言什么」。
+ * 这样页面 API 一改，要跟着改的只有这一个文件。
+ */
+
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import type { CDPSession, Page } from '@playwright/test'
+import type { BenchMetrics, OverdrawResult } from '../src/metrics/types'
+import { DECK, type Profile, SEED } from '../src/node/profiles'
+import type { BenchApi, BenchInitOptions, GpuReport } from '../src/page/benchApi'
+
+declare global {
+  interface Window {
+    __bench: BenchApi
+  }
+}
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const RESULTS_DIR = resolve(HERE, '../results')
+
+export interface SegmentRun {
+  metrics: BenchMetrics
+  overdraw: OverdrawResult
+  /** 剧本跑完时的常驻纹理内存，泄漏检查拿它当基线。 */
+  textureBytes: number
+}
+
+export function initOptions(profile: Profile, manualClock: boolean): BenchInitOptions {
+  return {
+    profile: profile.name,
+    width: profile.width,
+    height: profile.height,
+    resolution: profile.resolution,
+    tier: profile.tier,
+    seed: SEED,
+    deck: [...DECK],
+    manualClock,
+  }
+}
+
+export async function openBench(page: Page): Promise<void> {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto('/')
+  await page.waitForFunction(() => Boolean(window.__bench), null, { timeout: 60_000 })
+  if (errors.length > 0) throw new Error(`页面报错：${errors.join('；')}`)
+}
+
+/**
+ * 建场景。和跑剧本分成两步，是为了堆采样能只框住剧本那一段：
+ * init 要建纹理、建对象池、预热，那是几百 KB 的一次性分配，
+ * 算进「稳态每帧堆分配」里，短剧本会被这一笔直接顶穿上限。
+ */
+export async function initScene(page: Page, opts: BenchInitOptions): Promise<void> {
+  await page.evaluate(async (options) => {
+    await window.__bench.init(options as BenchInitOptions)
+  }, opts)
+}
+
+/** 在已经 init 好的场景上跑一段剧本，返回这一段的全部指标。 */
+export async function runOnly(page: Page, segment: string): Promise<SegmentRun> {
+  return page.evaluate(async (name) => {
+    await window.__bench.run(name as string)
+    return {
+      metrics: window.__bench.metrics(),
+      overdraw: window.__bench.overdraw(),
+      textureBytes: window.__bench.counters().textureBytes,
+    }
+  }, segment)
+}
+
+/** 重新建场景再跑一段。两遍之间不留任何残留状态，确定性那条断言靠的就是这个。 */
+export async function runSegment(
+  page: Page,
+  opts: BenchInitOptions,
+  segment: string,
+): Promise<SegmentRun> {
+  await initScene(page, opts)
+  return runOnly(page, segment)
+}
+
+/** 在已经 init 好的场景上跑一段剧本，但不记录逐帧数据。堆采样用这一档。 */
+export async function runQuiet(page: Page, segment: string): Promise<void> {
+  await page.evaluate(async (name) => {
+    await window.__bench.run(name as string, { record: false })
+  }, segment)
+}
+
+/** 建场景、跑一段、拆掉，全程不记录。泄漏那一轮用。 */
+export async function runAndDispose(
+  page: Page,
+  opts: BenchInitOptions,
+  segment: string,
+): Promise<void> {
+  await page.evaluate(
+    async ([options, name]) => {
+      await window.__bench.init(options as BenchInitOptions)
+      await window.__bench.run(name as string, { record: false })
+      await window.__bench.reset()
+    },
+    [opts, segment] as const,
+  )
+}
+
+export async function residentTextureBytes(page: Page): Promise<number> {
+  return page.evaluate(() => window.__bench.counters().textureBytes)
+}
+
+/** 计数器有没有真的接管到 WebGL 上下文。为 false 时所有上限都会「通过」，那是假绿。 */
+export async function contextSeen(page: Page): Promise<boolean> {
+  return page.evaluate(() => window.__bench.contextSeen())
+}
+
+export async function enableGpuTiming(page: Page): Promise<boolean> {
+  return page.evaluate(() => window.__bench.enableGpuTiming())
+}
+
+export async function gpuReport(page: Page): Promise<GpuReport> {
+  return page.evaluate(() => window.__bench.gpu())
+}
+
+/** DevTools 协议的堆采样：一段剧本期间总共分配了多少字节。 */
+export interface HeapSampler {
+  start(): Promise<void>
+  stop(): Promise<number>
+}
+
+interface SamplingNode {
+  selfSize: number
+  children?: SamplingNode[]
+}
+
+function totalSelfSize(node: SamplingNode): number {
+  return (node.children ?? []).reduce((sum, child) => sum + totalSelfSize(child), node.selfSize)
+}
+
+export function createHeapSampler(client: CDPSession): HeapSampler {
+  return {
+    async start() {
+      await client.send('HeapProfiler.enable')
+      // 采样间隔越小估得越准，代价是开销。1 KiB 对「稳态每帧接近 0」这个量级够用了。
+      await client.send('HeapProfiler.startSampling', { samplingInterval: 1024 })
+    },
+    async stop() {
+      const result = (await client.send('HeapProfiler.stopSampling')) as {
+        profile: { head: SamplingNode }
+      }
+      return totalSelfSize(result.profile.head)
+    },
+  }
+}
+
+/**
+ * 强制 GC 之后的 JS 堆占用。泄漏那条检查比的就是它和基线。
+ *
+ * 连收三轮：一轮 GC 只能回收「这一轮判定为不可达」的东西，
+ * 被 FinalizationRegistry 或者 WeakRef 拖着的对象要等下一轮才轮到，
+ * 只收一次会把这部分算成泄漏。
+ */
+export async function heapAfterGc(client: CDPSession): Promise<number> {
+  await client.send('HeapProfiler.enable')
+  for (let i = 0; i < 3; i += 1) {
+    await client.send('HeapProfiler.collectGarbage')
+  }
+  const usage = (await client.send('Runtime.getHeapUsage')) as { usedSize: number }
+  return usage.usedSize
+}
+
+export function writeResult(name: string, content: string): string {
+  mkdirSync(RESULTS_DIR, { recursive: true })
+  const path = resolve(RESULTS_DIR, name)
+  writeFileSync(path, content, 'utf8')
+  return path
+}

@@ -33,3 +33,11 @@ pnpm-debug.log*
 tmp/
 output/
 scripts/out/pregen-smoke.json
+
+# 性能剧本的产物（迁移第 2 条）。
+# results/ 是每台机器各跑各的数字，提交进来只会天天冲突；
+# public/atlas/ 是图集脚本从别处复制过来的，源头在美术资源那边不在这里；
+# test-results/ 和 playwright-report/ 是 Playwright 失败时留的现场。
+packages/bench/results/
+packages/bench/test-results/
+packages/bench/playwright-report/

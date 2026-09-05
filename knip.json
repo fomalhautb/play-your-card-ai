@@ -50,7 +50,21 @@
       ]
     },
     "packages/bench": {
-      "ignoreDependencies": ["@ai-duel/canvas", "@ai-duel/design", "@ai-duel/platform"]
+      /*
+       * bench 已经开始写代码了（迁移第 2 条），design 那条按上面的到期条款删掉了——
+       * 桩场景现在真的读 @ai-duel/design 的令牌。剩下这两条各有各的原因，不是「忘了删」：
+       *   - canvas：性能剧本要驱动的是它的对局场景，但那个包现在还只有一句 export {}。
+       *     等真实场景合并进来、src/page/benchApi.ts 里 makeScene 那个 TODO 换成
+       *     import { createDuelPrototype } from '@ai-duel/canvas'，这条就该删。
+       *   - platform：同上，接口还没定（迁移第 11 条）。
+       */
+      "ignoreDependencies": ["@ai-duel/canvas", "@ai-duel/platform"],
+      /*
+       * uv 是本机的 Python 运行器，不是 npm 包，装不进 package.json。
+       * 时间指标那一步用它跑 scripts/frames.py（见 6.12「解析 trace 取帧时间」那行），
+       * 没装的话 tests/timing.spec.ts 会整组跳过而不是失败。
+       */
+      "ignoreBinaries": ["uv"]
     },
     "packages/client": {
       // canvas、design、react 已经被开发页用上了，剩下这几个还没有调用方。

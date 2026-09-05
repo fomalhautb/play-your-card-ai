@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>性能剧本</title>
+    <style>
+      /* 页面本身不参与测量，样式只求不干扰：不缩放画布、不留边距。 */
+      body {
+        margin: 0;
+        background: #101018;
+        color: #f4ecd8;
+        font: 13px/1.6 system-ui, sans-serif;
+      }
+      #status {
+        padding: 8px 12px;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <p id="status">加载中……</p>
+    <!--
+      两个 script 标签的顺序是有意义的，别合并成一个。
+
+      计数器必须在 Pixi 创建 WebGL 上下文之前装好。同一个模块里靠 import 的先后来保证这件事
+      是不牢靠的——格式化工具会按字母序重排 import。而多个 type="module" 的脚本，
+      浏览器保证按文档顺序求值：install.ts 这一整棵图跑完，才轮到 main.ts 那棵（里面才有 Pixi）。
+    -->
+    <script type="module" src="/src/page/install.ts"></script>
+    <script type="module" src="/src/page/main.ts"></script>
+  </body>
+</html>
