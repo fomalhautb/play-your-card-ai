@@ -15,7 +15,10 @@ pnpm --filter @ai-duel/bench dev      # 只把测量页面跑起来，手动在�
 ```
 
 `bench` 和 `timing` 都由 Playwright 拉起 Vite（`playwright.config.ts` 的 `webServer`），不用先手动开服务器。
+卡面图集不在位时也由 Playwright 的 `globalSetup` 自己跑一遍 `pnpm assets:build`（见 `src/node/ensureAtlas.ts`）。
 第一次跑要先 `pnpm exec playwright install chromium`。
+
+`dev` 起的页面默认也是真实场景，`?scene=stub` 切到桩场景。
 
 `timing` 还需要本机有 [uv](https://docs.astral.sh/uv/)（`brew install uv`）：帧数据用 Perfetto 的
 trace_processor 提取，脚本是 `scripts/frames.py`，由 `uv run --with perfetto python` 跑，不用预装 Python 依赖。
@@ -25,7 +28,7 @@ trace_processor 提取，脚本是 `scripts/frames.py`，由 `uv run --with perf
 
 ```
 src/
-  scene/       契约（contract.ts）和自带的桩场景（stubScene.ts）
+  scene/       契约（contract.ts，从 canvas 重新导出）、图集地址、纹理、桩场景
   scenarios/   剧本：驱动循环 + 对局那三段
   metrics/     WebGL 计数器、rAF 计数器、差分与汇总（纯逻辑）
   page/        跑在浏览器里：装计数器、建场景、量过度绘制，产出 window.__bench
@@ -36,9 +39,14 @@ tests/         Playwright 用例（deterministic / timing 两个 project）
 scripts/       frames.py：从 Chrome trace 里取帧
 ```
 
-被测场景通过 `src/scene/contract.ts` 的契约接进来。契约由 `canvas` 包实现，
-现在那个包还是空骨架，所以 bench 自带一个**桩场景**（`stubScene.ts`，几十个 Pixi 精灵）当骨架自测的固定物。
-真实场景合并后只要改一处：`src/page/benchApi.ts` 里 `makeScene` 那个 TODO。
+被测场景通过 `src/scene/contract.ts` 的契约接进来，契约的真身在 `@ai-duel/canvas`，
+这个文件只是重新导出，好让 bench 里的模块都不直接 import canvas。
+
+默认跑的是 canvas 包的**真实对局场景**（`createDuelPrototype`），纹理从 `public/atlas/` 的卡面图集加载。
+另有一个**桩场景**（`stubScene.ts`，几十个 Pixi 精灵、程序生成的纯色卡面）：它是测量骨架自测的固定物，
+真实场景一改所有数字都会跟着变，那时候分不清是场景退步了还是计数器坏了，桩场景是唯一不跟着变的对照组。
+切换方式两条，都不用改代码：页面 URL 加 `?scene=stub`，或者 `init()` 时传 `scene: 'stub'`
+（`tests/deterministic.spec.ts` 里留了一条桩场景的冒烟用例，主力用例跑的是真实场景）。
 
 ## 每个指标怎么来的
 
@@ -101,10 +109,11 @@ scripts/       frames.py：从 Chrome trace 里取帧
 ## 阈值在哪改
 
 全在 `src/thresholds.ts`，每条都标了它对应《正式版架构》第 3 节的哪条纪律。
-带 `todo` 字段的是**占位值**，对应 6.9 表里写「按验证结果定」的那几行；
-迁移第 3 条要求用真实场景的验证结果把它们填实、并写回架构文档。跑批结束时它们会单独列在报告里。
+6.9 表里原来写「按验证结果定」的那几行已经用真实场景的验证结果填实了（迁移第 3 条，
+口径是实测峰值留约 1.5 倍余量再取整），数字和架构文档 6.9 那节对得上，改这里要同时改那边。
+`todo` 字段留给以后新加的指标当占位标记，跑批结束时还带着 `todo` 的会单独列在报告里。
 
-别为了让某条过而放宽这里：这些上限就是纪律本身，放宽等于把纪律删了。
+别为了让某条过而放宽这里：这些上限就是纪律本身，放宽等于把纪律删了。场景改完超了，要改的是场景。
 
 ## 结果文件
 
@@ -135,7 +144,8 @@ JSON 的形状就是 `src/node/report.ts` 里的 `DeterministicReport` 和 `Timi
   常驻纹理内存那条不受影响，它一直精确回到 0。
 - **过度绘制只处理能临时改掉外观的对象**（tint、混合模式、精灵纹理）。
   用了自定义 Shader、Mesh 或 Filter 的对象换不掉，会按原样画进去，数字偏小。
-  真实场景接上后要重新确认这一条还成不成立。
+  真实场景现在覆盖得全：场景图里只有 Container 和 Sprite，边框、圆章、烟尘、文字全是预烤纹理的精灵，
+  一个 Graphics、Mesh、Filter 都没有（3.1 不许挂 Filter）。哪天场景里加了这三种东西，这条要重新确认。
 - **文字纹理的大小和机器有关**。字体光栅化在不同系统上略有差别，所以「常驻纹理内存」这条在跨机器比较时
   会有几百 KB 的浮动。预算留了足够余量，但两台机器的这一项不必强求完全相同。
 - **抓 Pixi 场景靠的是包 `WebGLRenderer.prototype.render`**（`page/renderProbe.ts`），

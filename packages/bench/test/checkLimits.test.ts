@@ -10,6 +10,9 @@ const summary = (patch: Partial<SegmentSummary> = {}): SegmentSummary => ({
   idleFrames: 30,
   maxDrawCalls: 2,
   maxBatchBreaks: 16,
+  maxTextureSwitches: 12,
+  maxProgramSwitches: 1,
+  maxBlendSwitches: 3,
   maxOffscreenBinds: 0,
   textureUploads: 0,
   shaderCompiles: 0,
@@ -58,26 +61,25 @@ describe('checkLimits', () => {
     expect(checkLimits({ syncCalls: 1 }, limits)).toHaveLength(1)
   })
 
-  it('超限条目带上纪律编号和占位标记', () => {
+  it('超限条目带上纪律编号', () => {
     const violations = checkLimits({ offscreenBindsPerFrame: 1 }, limits)
     expect(violations[0]?.discipline).toContain('3.1')
-    // 手机档这条不是占位值：纪律 3.1 说死了移动端一次离屏都不许有。
-    expect(violations[0]?.todo).toBeUndefined()
     expect(describeViolations(violations)).toContain('offscreenBindsPerFrame')
   })
 
-  it('桌面档的离屏上限还是占位值', () => {
-    const violations = checkLimits({ offscreenBindsPerFrame: 99 }, limitsFor('desktop'))
-    expect(violations[0]?.todo).toBeDefined()
+  it('桌面档的离屏上限也是 0，验证下来一次都不需要', () => {
+    const violations = checkLimits({ offscreenBindsPerFrame: 1 }, limitsFor('desktop'))
+    expect(violations).toHaveLength(1)
+    expect(violations[0]?.todo).toBeUndefined()
   })
 })
 
 describe('placeholderKeys', () => {
-  it('列出还没填实的上限，两档都得有几条', () => {
-    // 迁移第 3 条要求用真实场景的验证结果把这些填实并写回架构文档，
-    // 这条断言只保证「还没填」这件事一直看得见。
+  it('两档都没有占位值了', () => {
+    // 迁移第 3 条已经用真实场景的验证结果把 6.9 表里那几行填实。
+    // 这条断言反过来看门：以后新加的指标如果先用占位值糊上，这里会立刻显出来。
     for (const profile of Object.keys(LIMITS) as Array<keyof typeof LIMITS>) {
-      expect(placeholderKeys(LIMITS[profile]).length).toBeGreaterThan(0)
+      expect(placeholderKeys(LIMITS[profile])).toEqual([])
     }
   })
 })

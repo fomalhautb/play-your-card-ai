@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
 import type { CDPSession, Page } from '@playwright/test'
 import type { BenchMetrics, OverdrawResult } from '../src/metrics/types'
 import { DECK, type Profile, SEED } from '../src/node/profiles'
-import type { BenchApi, BenchInitOptions, GpuReport } from '../src/page/benchApi'
+import type { BenchApi, BenchInitOptions, GpuReport, SceneKind } from '../src/page/benchApi'
 
 declare global {
   interface Window {
@@ -29,7 +29,12 @@ export interface SegmentRun {
   textureBytes: number
 }
 
-export function initOptions(profile: Profile, manualClock: boolean): BenchInitOptions {
+/** @param scene 默认测 canvas 包的真实场景；'stub' 只给测量骨架自测那条冒烟用例用。 */
+export function initOptions(
+  profile: Profile,
+  manualClock: boolean,
+  scene: SceneKind = 'duel',
+): BenchInitOptions {
   return {
     profile: profile.name,
     width: profile.width,
@@ -39,6 +44,7 @@ export function initOptions(profile: Profile, manualClock: boolean): BenchInitOp
     seed: SEED,
     deck: [...DECK],
     manualClock,
+    scene,
   }
 }
 

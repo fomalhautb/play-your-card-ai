@@ -5,7 +5,7 @@
  * 一段剧本跑完再用 summarize 压成几个数，Playwright 那边拿它和 thresholds.ts 比。
  */
 
-import type { SceneCounters } from '../scene/contract'
+import type { DuelPrototypeCounters } from '../scene/contract'
 import type { FrameRecord, GlCounters, SegmentSummary } from './types'
 
 /** 全零的计数器，安装计数器和 reset 时都用它当起点。 */
@@ -55,7 +55,10 @@ export function diffCounters(before: GlCounters, after: GlCounters): GlCounters 
 }
 
 /** 场景自己那三个计数器的差。它们都是累计值，直接减。 */
-export function diffScene(before: SceneCounters, after: SceneCounters): SceneCounters {
+export function diffScene(
+  before: DuelPrototypeCounters,
+  after: DuelPrototypeCounters,
+): DuelPrototypeCounters {
   return {
     textCreated: after.textCreated - before.textCreated,
     renders: after.renders - before.renders,
@@ -86,6 +89,9 @@ export function summarize(segment: string, frames: FrameRecord[]): SegmentSummar
     idleFrames: idle.length,
     maxDrawCalls: max(action, (f) => f.gl.drawCalls),
     maxBatchBreaks: max(action, (f) => f.gl.batchBreaks),
+    maxTextureSwitches: max(action, (f) => f.gl.textureSwitches),
+    maxProgramSwitches: max(action, (f) => f.gl.programSwitches),
+    maxBlendSwitches: max(action, (f) => f.gl.blendSwitches),
     maxOffscreenBinds: max(action, (f) => f.gl.offscreenBinds),
     textureUploads: sum(action, (f) => f.gl.textureUploads),
     shaderCompiles: sum(action, (f) => f.gl.compileShader),

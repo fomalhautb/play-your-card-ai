@@ -104,6 +104,32 @@ for (const profile of PROFILES) {
   })
 }
 
+/**
+ * 桩场景的冒烟：只确认测量骨架自己还是好的。
+ *
+ * 上面那批跑的是真实场景，真实场景一改，所有数字都会跟着变——那时候分不清是场景退步了
+ * 还是计数器坏了。桩场景是唯一不会跟着一起变的对照组（见 src/scene/stubScene.ts），
+ * 所以这里留一条：计数器接上了、剧本渲染了、空转停了、两遍一模一样。
+ * 上限不在这里判：桩场景是刻意做得每条计数器都会动的固定物，不是要达标的东西。
+ */
+test('桩场景：测量骨架自身跑得通，且两遍完全一致', async ({ page }) => {
+  await openBench(page)
+  const profile = PROFILES.find((p) => p.name === 'mobile') ?? PROFILES[0]
+  if (!profile) throw new Error('没有可用的视口档位')
+  const opts = initOptions(profile, true, 'stub')
+
+  const first = await runSegment(page, opts, 'play10')
+  expect(await contextSeen(page), '计数器没接管到 WebGL 上下文，所有数字都不可信').toBe(true)
+  expect(first.metrics.summary.renders).toBeGreaterThan(0)
+  expect(first.metrics.summary.idleFrames).toBeGreaterThan(0)
+  expect(first.overdraw.nodes).toBeGreaterThan(0)
+
+  const second = await runSegment(page, opts, 'play10')
+  expect(second.metrics.summary).toEqual(first.metrics.summary)
+  expect(second.metrics.frames).toEqual(first.metrics.frames)
+  expect(second.overdraw).toEqual(first.overdraw)
+})
+
 test('泄漏：连跑十段之后堆和常驻纹理内存回到基线', async ({ page }) => {
   test.setTimeout(300_000)
   await openBench(page)

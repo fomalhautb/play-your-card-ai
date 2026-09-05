@@ -30,7 +30,8 @@ import { Rng } from '../runtime/rng'
 import { TextTextureCache } from '../runtime/textCache'
 import { cardVisualOf } from './deckCards'
 import type { DuelPrototype, DuelPrototypeOptions } from './duelContract'
-import { computeLayout, type DuelLayout } from './duelLayout'
+import { computeLayout, type DuelLayout, fanToWorld, toFanLocal } from './duelLayout'
+import { warmupScene } from './warmup'
 
 /** 卡牌从手上飞到战场落点的时长和缓动，抄自旧客户端 MatchStage 里那段 Flip 飞行。 */
 const FLIGHT_DUR = 0.65
@@ -55,7 +56,7 @@ export async function createDuelPrototype(opts: DuelPrototypeOptions): Promise<D
   })
 
   const state = new DuelScene(renderer, opts)
-  state.render(0)
+  state.warmup()
   return state.handle()
 }
 
@@ -131,8 +132,8 @@ class DuelScene {
       dragLayer: this.dragLayer,
       animator: this.animator,
       dropZone: () => this.layout.dropZone,
-      toFanLocal: (x, y) => this.toFanLocal(x, y),
-      fanToWorld: (x, y, scale) => this.fanToWorld(x, y, scale),
+      toFanLocal: (x, y) => toFanLocal(this.layout, x, y),
+      fanToWorld: (x, y, scale) => fanToWorld(this.layout, x, y, scale),
       tiltFor: (card) => this.tilts.get(card.cardId),
       onPlay: (card) => void this.flyToBoard(card),
       enabled: () => !this.frozen,
@@ -158,6 +159,25 @@ class DuelScene {
       resize: (width, height) => this.resize(width, height),
       destroy: () => this.destroy(),
     }
+  }
+
+  /**
+   * 把这一局要用的纹理和文字全部先过一遍 GPU，理由见 warmup.ts。
+   * 建完场景就跑，剧本和玩家的第一帧之前一定已经做完。
+   */
+  warmup(): void {
+    warmupScene({
+      renderer: this.renderer,
+      stage: this.stage,
+      // 挂在战场层：它在最底下，预热卡不会盖住别的层，而这时候场上本来也是空的。
+      layer: this.boardLayer,
+      deck: this.opts.deck,
+      textures: this.opts.textures,
+      deps: { baked: this.baked, text: this.text },
+      width: this.layout.width,
+      height: this.layout.height,
+    })
+    this.render(0)
   }
 
   /** 一帧：先把逐帧跟随推一步，再把画面交出去。补间的时间已经由帧循环推过了。 */
@@ -198,7 +218,7 @@ class DuelScene {
     this.frozen = true
     this.fan.setHover(handIndex)
 
-    const world = this.fanToWorld(card.x, card.y, card.scale.x)
+    const world = fanToWorld(this.layout, card.x, card.y, card.scale.x)
     this.fan.detach(card)
     this.animator.killTweensOf(card)
     this.animator.killTweensOf(card.scale)
@@ -235,7 +255,7 @@ class DuelScene {
 
     // 牌可能还挂在扇形容器上（真拖拽松手那条路），先统一挪到拖拽层，坐标才是视口坐标。
     if (card.parent !== this.dragLayer) {
-      const world = this.fanToWorld(card.x, card.y, card.scale.x)
+      const world = fanToWorld(this.layout, card.x, card.y, card.scale.x)
       this.dragLayer.addChild(card)
       applyPose(card, { x: world.x, y: world.y, rotation: 0, scale: world.scale })
     }
@@ -326,28 +346,9 @@ class DuelScene {
   /** 牌库那摞牌此刻的姿态，换算到手牌容器的坐标系里——发牌就是从这个姿态起飞的。 */
   private deckPose(): { x: number; y: number; rotation: number; scale: number } {
     const deck = this.layout.deck
-    const local = this.toFanLocal(deck.x, deck.y)
+    const local = toFanLocal(this.layout, deck.x, deck.y)
     // 牌库上的牌是正着摞的，扇形的倾角留给飞行途中转出来。
     return { x: local.x, y: local.y, rotation: 0, scale: deck.scale / this.layout.handScale }
-  }
-
-  /**
-   * 视口坐标 → 手牌容器坐标。
-   * 两层之间只有平移（handOrigin）和等比缩放（handScale），所以换算就是减一下再除一下。
-   */
-  private toFanLocal(x: number, y: number): { x: number; y: number } {
-    const { handOrigin, handScale } = this.layout
-    return { x: (x - handOrigin.x) / handScale, y: (y - handOrigin.y) / handScale }
-  }
-
-  /** 手牌容器坐标 → 视口坐标，连缩放一起换算。 */
-  private fanToWorld(x: number, y: number, scale: number): { x: number; y: number; scale: number } {
-    const { handOrigin, handScale } = this.layout
-    return {
-      x: handOrigin.x + x * handScale,
-      y: handOrigin.y + y * handScale,
-      scale: scale * handScale,
-    }
   }
 
   /**

@@ -112,3 +112,27 @@ export function computeLayout(width: number, height: number): DuelLayout {
     deck,
   }
 }
+
+/**
+ * 视口坐标 → 手牌容器坐标。
+ * 两层之间只有平移（handOrigin）和等比缩放（handScale），所以换算就是减一下再除一下。
+ */
+export function toFanLocal(layout: DuelLayout, x: number, y: number): { x: number; y: number } {
+  const { handOrigin, handScale } = layout
+  return { x: (x - handOrigin.x) / handScale, y: (y - handOrigin.y) / handScale }
+}
+
+/** 手牌容器坐标 → 视口坐标，连缩放一起换算。 */
+export function fanToWorld(
+  layout: DuelLayout,
+  x: number,
+  y: number,
+  scale: number,
+): { x: number; y: number; scale: number } {
+  const { handOrigin, handScale } = layout
+  return {
+    x: handOrigin.x + x * handScale,
+    y: handOrigin.y + y * handScale,
+    scale: scale * handScale,
+  }
+}

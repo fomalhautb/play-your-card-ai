@@ -73,6 +73,8 @@ export class FrameLoop {
   private readonly options: FrameLoopOptions
   /** 虚拟时钟，单位毫秒。GSAP 要的是秒，喂进去之前除以 1000。 */
   private elapsedMs = 0
+  /** 有人改了画面但当时没有补间在跑（resize、上下文恢复），下一帧得补画一次。 */
+  private dirty = true
   private rafId: number | null = null
   private lastStamp = 0
   private renders = 0
@@ -87,8 +89,11 @@ export class FrameLoop {
   }
 
   /**
-   * 手动推进一帧：先把补间推到新时刻，再画。
-   * 空闲时照样推进和渲染——调用方要的是"一步一帧"的确定性，不是省电。
+   * 手动推进一帧：先把补间推到新时刻，画面有变化才画。
+   *
+   * 空闲时不画，和真实时钟下"没有动画就停下"是同一条纪律（3.6）：
+   * 性能剧本跑完之后会空转几十帧，那几帧里一次渲染都不该发生，
+   * 有的话就说明还有东西在偷偷动。确定性不受影响——同一段剧本推出来的渲染次数是固定的。
    */
   step(deltaMs: number): void {
     if (this.destroyed) return
@@ -100,7 +105,9 @@ export class FrameLoop {
    * 重复调用是安全的：已经在跑就直接返回。
    */
   wake(): void {
-    if (this.destroyed || this.options.manual || this.rafId !== null) return
+    if (this.destroyed) return
+    this.dirty = true
+    if (this.options.manual || this.rafId !== null) return
     this.lastStamp = performance.now()
     this.rafId = requestAnimationFrame(this.tick)
   }
@@ -134,10 +141,17 @@ export class FrameLoop {
   }
 
   private advance(deltaMs: number): void {
+    // 推进之前先问一次忙不忙：这一帧 updateRoot 会把最后一条补间演完并销账，
+    // 只看推进之后的结果，收尾那一帧的终点位置就画不出来了。
+    const wasBusy = this.options.isBusy()
     this.elapsedMs += deltaMs
     gsap.updateRoot(this.elapsedMs / 1000)
-    this.renders += 1
-    this.options.render(deltaMs)
+    const needsRender = this.dirty || wasBusy || this.options.isBusy()
+    this.dirty = false
+    if (needsRender) {
+      this.renders += 1
+      this.options.render(deltaMs)
+    }
     // 补间回调里可能又建了新补间，GSAP 会顺手叫醒它自己那台空转的 ticker，这里按回去。
     gsap.ticker.sleep()
   }

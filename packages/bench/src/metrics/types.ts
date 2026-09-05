@@ -4,7 +4,7 @@
  * 字段名直接对应《正式版架构》6.9 的指标表，改名之前先去改文档。
  */
 
-import type { SceneCounters } from '../scene/contract'
+import type { DuelPrototypeCounters } from '../scene/contract'
 
 /**
  * WebGL 计数器的一次快照。
@@ -64,7 +64,7 @@ export interface FrameRecord {
   /** 'action' 是剧本动作期间，'idle' 是动作跑完之后的空转帧。 */
   phase: 'action' | 'idle'
   gl: GlCounters
-  scene: SceneCounters
+  scene: DuelPrototypeCounters
   /** 这一帧里 requestAnimationFrame 被调用的次数。手动时钟下应当恒为 0。 */
   rafRequests: number
 }
@@ -78,6 +78,14 @@ export interface SegmentSummary {
   /** 动作期间的每帧峰值。 */
   maxDrawCalls: number
   maxBatchBreaks: number
+  /**
+   * 打断的构成：纹理、着色器、混合模式各自的每帧峰值。
+   * 上限只判 maxBatchBreaks，这三个是给「超了先查是谁在打断」用的（纪律 3.9 那句话）。
+   * 三者的峰值不一定出现在同一帧，所以它们加起来可以大于 maxBatchBreaks。
+   */
+  maxTextureSwitches: number
+  maxProgramSwitches: number
+  maxBlendSwitches: number
   maxOffscreenBinds: number
   /** 动作期间的累计值。表里写「动画期间为 0」的几行都看这个。 */
   textureUploads: number

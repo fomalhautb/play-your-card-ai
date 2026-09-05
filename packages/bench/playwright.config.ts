@@ -21,6 +21,8 @@ export default defineConfig({
   // 一段剧本几百帧，软件渲染下比默认的 30 秒长。
   timeout: 180_000,
   reporter: [['list']],
+  // 图集不在就先打一份：它是构建产物、不进仓库，少了这一步第一次跑批只会看到一串 404。
+  globalSetup: './src/node/ensureAtlas.ts',
   use: { baseURL: BASE_URL },
   webServer: {
     command: 'pnpm exec vite',

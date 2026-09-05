@@ -8,7 +8,7 @@
  * 页面本身不自动跑任何东西——什么时候 init、跑哪段剧本，全由 Playwright 那边说了算。
  */
 
-import type { BenchApi } from './benchApi'
+import type { BenchApi, SceneKind } from './benchApi'
 import { createBenchApi } from './benchApi'
 import { frameLoop, glCounters } from './install'
 import { installRenderProbe } from './renderProbe'
@@ -19,7 +19,19 @@ declare global {
   }
 }
 
-window.__bench = createBenchApi(glCounters, frameLoop, installRenderProbe())
+/**
+ * 测哪个场景：默认 canvas 包的真实对局场景，`?scene=stub` 切到桩场景。
+ * 手动调试和 Playwright 都走这一个开关，不用改代码。别的值一律当默认，
+ * 打错字时页面照常起得来，跑批那边有单独的断言兜底。
+ */
+function sceneFromUrl(): SceneKind {
+  return new URLSearchParams(location.search).get('scene') === 'stub' ? 'stub' : 'duel'
+}
+
+const scene = sceneFromUrl()
+window.__bench = createBenchApi(glCounters, frameLoop, installRenderProbe(), scene)
 
 const status = document.getElementById('status')
-if (status) status.textContent = `就绪，可跑的剧本：${window.__bench.segments().join('、')}`
+if (status) {
+  status.textContent = `就绪（场景：${scene}），可跑的剧本：${window.__bench.segments().join('、')}`
+}

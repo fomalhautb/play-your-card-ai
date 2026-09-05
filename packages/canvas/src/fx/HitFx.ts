@@ -64,6 +64,9 @@ export class HitFx {
       const puff = new Sprite(options.baked.softDot)
       puff.anchor.set(0.5)
       puff.alpha = 0
+      // 池子里的精灵不演的时候要整个藏起来：Pixi 判要不要画看 visible 不看 alpha，
+      // 留着就是每帧白白多几个空批次（3.9）。
+      puff.visible = false
       // 灰褐色的尘，和旧版一套配色：取纸面色板里偏深的那档线色。
       puff.tint = tokens.color.battle.lineDark
       options.layer.addChild(puff)
@@ -75,6 +78,8 @@ export class HitFx {
     this.comet.alpha = 0
     this.comet.tint = tokens.color.theme.gold
     this.comet.blendMode = 'add'
+    // 叠加混合的东西留在批里代价更大：前后各切一次混合模式，不演的时候必须摘掉。
+    this.comet.visible = false
     options.layer.addChild(this.comet)
   }
 
@@ -122,6 +127,7 @@ export class HitFx {
       const size = 34 + rng.next() * 30
       puff.setSize(size, size)
       puff.position.set(cx, cy)
+      puff.visible = true
       // 按奇偶分左右，保证两边都有。纯随机方向的话经常整把灰全扑到同一侧，看着像风吹的。
       const dir = i % 2 === 0 ? -1 : 1
       animator.fromTo(
@@ -134,6 +140,11 @@ export class HitFx {
           duration: 0.62 + rng.next() * 0.18,
           ease: 'power2.out',
           overwrite: 'auto',
+          // 演完就摘掉。被下一次落地顶掉的那条走 onInterrupt 不走这里，
+          // 而顶掉它的那条自己会把 visible 打开再负责摘，账是平的。
+          onComplete: () => {
+            puff.visible = false
+          },
         },
       )
       animator.fromTo(
@@ -162,8 +173,14 @@ export class HitFx {
     const progress = { t: 0 }
     const comet = this.comet
     comet.setSize(EDGE_COMET.long, EDGE_COMET.short)
+    comet.visible = true
 
-    const timeline = animator.timeline({ onComplete: () => (comet.alpha = 0) })
+    const timeline = animator.timeline({
+      onComplete: () => {
+        comet.alpha = 0
+        comet.visible = false
+      },
+    })
     timeline.to(
       progress,
       {

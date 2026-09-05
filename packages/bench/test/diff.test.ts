@@ -54,11 +54,25 @@ describe('diffScene', () => {
 
 describe('summarize', () => {
   const frames: FrameRecord[] = [
-    frame(0, 'action', { drawCalls: 5, batchBreaks: 3, textureUploads: 1, textureBytes: 100 }),
+    frame(0, 'action', {
+      drawCalls: 5,
+      batchBreaks: 3,
+      textureSwitches: 3,
+      textureUploads: 1,
+      textureBytes: 100,
+    }),
     frame(
       1,
       'action',
-      { drawCalls: 9, batchBreaks: 7, syncCalls: 2, textureBytes: 300 },
+      {
+        drawCalls: 9,
+        batchBreaks: 7,
+        textureSwitches: 2,
+        programSwitches: 1,
+        blendSwitches: 4,
+        syncCalls: 2,
+        textureBytes: 300,
+      },
       {
         renders: 1,
         textCreated: 1,
@@ -75,6 +89,14 @@ describe('summarize', () => {
     expect(summary.textureUploads).toBe(1)
     expect(summary.syncCalls).toBe(2)
     expect(summary.textCreated).toBe(1)
+  })
+
+  it('打断的构成各取各的峰值，不必来自同一帧', () => {
+    // 这三个是给「打断超了先查是谁在打断」用的诊断数，各自独立取峰值。
+    const summary = summarize('play10', frames)
+    expect(summary.maxTextureSwitches).toBe(3)
+    expect(summary.maxProgramSwitches).toBe(1)
+    expect(summary.maxBlendSwitches).toBe(4)
   })
 
   it('空闲那几条只看空转帧', () => {

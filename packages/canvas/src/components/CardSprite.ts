@@ -114,6 +114,13 @@ export class CardSprite extends Container {
     // 叠加混合：反光是"多打上去的光"，不是盖一层白。不用 Filter，所以不吃离屏渲染（3.1）。
     this.glare.blendMode = 'add'
     this.glare.alpha = 0
+    /*
+     * 不亮的时候整个藏起来，不能只把 alpha 归零。
+     * Pixi 判要不要画看的是 visible 不是 alpha，alpha 为 0 的精灵照样进绘制批；
+     * 而它是叠加混合，进批就意味着前后各切一次混合模式——十几张牌就是三十几次白白的打断（3.9）。
+     * 低档位本来就不开反光（见 fx/effectTier.ts），那时它一次都不该出现在批里。
+     */
+    this.glare.visible = false
     this.glare.setSize(CARD_WIDTH * 1.6, CARD_WIDTH * 1.6)
     this.frontLayer.addChild(this.glare)
   }

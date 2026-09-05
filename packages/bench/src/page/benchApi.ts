@@ -5,18 +5,23 @@
  * setup 阶段的帧不记录：它只是把场景摆到被测动作开始前的样子，混进去会污染峰值。
  */
 
+import { createDuelPrototype } from '@ai-duel/canvas'
 import { diffCounters, diffScene, summarize } from '../metrics/diff'
 import type { FrameLoopHandle } from '../metrics/frameLoop'
 import type { GlCounterHandle } from '../metrics/glCounters'
 import type { BenchMetrics, FrameRecord, GlCounters, OverdrawResult } from '../metrics/types'
 import type { FrameDriver } from '../scenarios/index'
 import { createContext, FRAME_MS, runIdle, SCENARIOS } from '../scenarios/index'
+import type { AtlasOptions } from '../scene/atlas'
+import { DEFAULT_ATLAS } from '../scene/atlas'
 import type { CardTextures, DuelPrototype, EffectTier } from '../scene/contract'
 import { createStubDuelPrototype } from '../scene/stubScene'
-import type { AtlasOptions } from '../scene/textures'
+import type { LoadedTextures } from '../scene/textures'
 import { createProceduralTextures, createWhiteTexture, loadAtlasTextures } from '../scene/textures'
 import { measureOverdraw } from './overdraw'
 import type { RenderProbe } from './renderProbe'
+
+export type SceneKind = 'stub' | 'duel'
 
 export interface BenchInitOptions {
   profile: string
@@ -27,9 +32,12 @@ export interface BenchInitOptions {
   seed: number
   deck: string[]
   manualClock: boolean
-  /** 'stub' 是 bench 自带的桩场景；'duel' 留给 canvas 包的真实场景。 */
-  scene?: 'stub' | 'duel'
-  /** 传了就从图集加载纹理，不传就用程序生成的纯色卡面。 */
+  /**
+   * 测哪个场景。默认 'duel'，也就是 canvas 包的真实对局场景——6.9 的指标要的是它的数字。
+   * 'stub' 是 bench 自带的桩场景，只在自测测量骨架时用（见 scene/stubScene.ts）。
+   */
+  scene?: SceneKind
+  /** 传了就从图集加载纹理，不传就按场景挑默认：真实场景用图集，桩场景用程序生成的纯色卡面。 */
   atlas?: AtlasOptions
   /** 剧本跑完之后空转多少帧，用来验证帧循环停了。 */
   idleFrames?: number
@@ -72,7 +80,7 @@ interface Session {
   opts: BenchInitOptions
   canvas: HTMLCanvasElement
   scene: DuelPrototype
-  textures: CardTextures
+  textures: LoadedTextures
   white: ReturnType<typeof createWhiteTexture>
 }
 
@@ -84,8 +92,16 @@ const DEFAULT_OVERDRAW_SAMPLE_EVERY = 25
  */
 const MAX_OVERDRAW_SAMPLES = 10
 
-async function makeTextures(opts: BenchInitOptions): Promise<CardTextures> {
-  if (opts.atlas) return loadAtlasTextures(opts.deck, opts.atlas)
+/**
+ * 纹理从哪来。
+ *
+ * 真实场景默认走图集：6.9 的「常驻纹理内存」量的必须是真实资源，程序生成的纯色卡面
+ * 只有几十 KB，那条预算就永远通过。桩场景反过来默认走程序生成——它是测量骨架的固定物，
+ * 不该依赖一份要先跑 `pnpm assets:build` 才存在的产物。
+ */
+async function makeTextures(opts: BenchInitOptions): Promise<LoadedTextures> {
+  const atlas = opts.atlas ?? (opts.scene === 'duel' ? DEFAULT_ATLAS : undefined)
+  if (atlas) return loadAtlasTextures(opts.deck, atlas)
   return createProceduralTextures(opts.deck)
 }
 
@@ -93,13 +109,9 @@ async function makeScene(
   opts: BenchInitOptions,
   canvas: HTMLCanvasElement,
   textures: CardTextures,
-) {
-  if (opts.scene === 'duel') {
-    // canvas 包合并进来之后，把这里换成 `import { createDuelPrototype } from '@ai-duel/canvas'`。
-    // 契约一模一样，所以只有这一行要改。
-    throw new Error('真实场景还没接上：canvas 包目前还是空骨架')
-  }
-  return createStubDuelPrototype({
+): Promise<DuelPrototype> {
+  const create = opts.scene === 'duel' ? createDuelPrototype : createStubDuelPrototype
+  return create({
     canvas,
     width: opts.width,
     height: opts.height,
@@ -112,10 +124,15 @@ async function makeScene(
   })
 }
 
+/**
+ * @param defaultScene init 没指定 scene 时测哪个场景。页面从 URL 的 `?scene=` 取，
+ *   跑批那边则由 Playwright 显式传进来，两条路都不用改代码就能切到桩场景。
+ */
 export function createBenchApi(
   glCounters: GlCounterHandle,
   frameLoop: FrameLoopHandle,
   probe: RenderProbe,
+  defaultScene: SceneKind = 'duel',
 ): BenchApi {
   let session: Session | null = null
   let frames: FrameRecord[] = []
@@ -190,7 +207,9 @@ export function createBenchApi(
   }
 
   const api: BenchApi = {
-    async init(opts) {
+    async init(raw) {
+      // scene 在这里就定死，后面 makeTextures / makeScene / metrics 看到的都是同一个值。
+      const opts: BenchInitOptions = { ...raw, scene: raw.scene ?? defaultScene }
       await api.reset()
       frameLoop.setBlocking(opts.manualClock)
       const canvas = document.createElement('canvas')
@@ -198,7 +217,7 @@ export function createBenchApi(
       canvas.style.height = `${opts.height}px`
       document.body.appendChild(canvas)
       const textures = await makeTextures(opts)
-      const scene = await makeScene(opts, canvas, textures)
+      const scene = await makeScene(opts, canvas, textures.textures)
       session = { opts, canvas, scene, textures, white: createWhiteTexture() }
       // 预热已经在场景内部做完了，这里把计数器清零，之后数到的就都是剧本自己产生的。
       glCounters.reset()
@@ -260,9 +279,8 @@ export function createBenchApi(
       session = null
       scene.destroy()
       // 纹理归页面所有（契约里是传给场景的），场景不会替我们销毁。
-      // 不显式销毁的话它们留在显存里，泄漏那条检查会看到常驻纹理内存回不到基线。
-      for (const texture of Object.values(textures.faces)) texture.destroy(true)
-      textures.back.destroy(true)
+      // 不还回去的话它们留在显存里，泄漏那条检查会看到常驻纹理内存回不到基线。
+      await textures.dispose()
       white.destroy(true)
       canvas.remove()
       frames = []

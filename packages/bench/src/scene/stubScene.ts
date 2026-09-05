@@ -12,7 +12,7 @@
 import { tokens } from '@ai-duel/design'
 import { gsap } from 'gsap'
 import { Container, Sprite, Text, Texture, Ticker, WebGLRenderer } from 'pixi.js'
-import type { DuelPrototype, DuelPrototypeOptions, SceneCounters } from './contract'
+import type { DuelPrototype, DuelPrototypeCounters, DuelPrototypeOptions } from './contract'
 import { mulberry32 } from './random'
 import { boardSlot, deckAnchor, fanSlot, TIERS } from './stubLayout'
 
@@ -317,7 +317,19 @@ class StubScene implements DuelPrototype {
     return this.active === 0 && !this.dirty
   }
 
-  counters(): SceneCounters {
+  /**
+   * 视口变了。契约里有这一条是给开发页跟随窗口大小用的，桩场景只会被 bench 驱动，
+   * 而剧本的视口是固定的（见 node/profiles.ts），所以这里只把渲染尺寸对上，
+   * 不重排已经摆好的牌——重排会让「两遍完全一致」那条断言依赖调用顺序。
+   */
+  resize(width: number, height: number): void {
+    this.opts.width = width
+    this.opts.height = height
+    this.renderer.resize(width, height)
+    this.markDirty()
+  }
+
+  counters(): DuelPrototypeCounters {
     return {
       textCreated: this.textCreated,
       renders: this.renders,

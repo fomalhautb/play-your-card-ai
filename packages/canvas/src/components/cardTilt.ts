@@ -29,6 +29,8 @@ const GLARE_ALPHA = 0.34
 const SKEW_K = 0.25
 /** 收敛判据：三个通道都进到这个范围内就算停了，帧循环可以歇了。 */
 const SETTLED_EPS = 0.0005
+/** 反光暗到这个程度就当没有，直接从绘制批里摘掉。1/255 都不到，肉眼看不出差别。 */
+const GLARE_EPS = 0.002
 
 /**
  * 一张卡的倾斜跟随。指针在卡面上的相对位置由调用方算好传进来（0~1，超出范围会被夹住）。
@@ -102,7 +104,9 @@ export class CardTilt {
     layer.skew.set(-Math.sin(radX) * SKEW_K, Math.sin(radY) * SKEW_K)
 
     this.card.glare.alpha = this.currentGlare
-    if (this.currentGlare > 0.001) this.card.glare.position.set(this.glareX, this.glareY)
+    // 暗到看不见就整个藏起来：它是叠加混合的，留在绘制批里等于白挨两次混合模式切换（3.9）。
+    this.card.glare.visible = this.currentGlare > GLARE_EPS
+    if (this.card.glare.visible) this.card.glare.position.set(this.glareX, this.glareY)
 
     return (
       Math.abs(this.currentX - this.targetX) > SETTLED_EPS ||
@@ -120,6 +124,7 @@ export class CardTilt {
     this.card.tiltLayer.scale.set(1)
     this.card.tiltLayer.skew.set(0)
     this.card.glare.alpha = 0
+    this.card.glare.visible = false
   }
 }
 
