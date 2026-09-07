@@ -6,6 +6,9 @@
  * 让每次绘制正好给红通道加 1，所以读回来的字节值本身就是「这个像素被画了几次」，
  * 平均一下就是每像素平均绘制次数。
  *
+ * 这一趟是**降分辨率**渲的（见 OVERDRAW_SCALE）：读回来的是个空间平均值，对采样分辨率不敏感，
+ * 缩小之后那次同步读回便宜十几倍。
+ *
  * 为什么换成白纹理而不是保留原图：这条指标量的是填充率，透明像素照样过片元着色器、
  * 照样耗带宽。按原图算等于把圆角、镂空的地方当没画，那就不是过度绘制了。
  *
@@ -25,6 +28,7 @@
 import {
   type Container,
   type Filter,
+  Matrix,
   Mesh,
   type Renderer,
   RenderTexture,
@@ -34,6 +38,28 @@ import {
   ViewContainer,
 } from 'pixi.js'
 import type { OverdrawResult } from '../metrics/types'
+
+/**
+ * 调试渲染缩到原尺寸的几分之几。每个维度四分之一，像素数就是十六分之一。
+ *
+ * 为什么可以缩：这条指标读回来的是「每像素平均绘制次数」，一个空间平均值。
+ * 缩小之后每个四边形盖住的像素数和画布总像素数按同一个比例一起变小，比值几乎不动——
+ * 实测六段剧本改前改后最多差 0.004（手机档 play10 的 0.954 → 0.958）。
+ * 而这一趟的开销几乎全在下面那次同步读回上，是按像素数收费的：桌面档从 1920×1080 的 8 MB
+ * 降到 480×270 的 0.5 MB，无头 SwiftShader 上实测一次 20 ms 降到 2 ms。
+ *
+ * 别指望靠它把跑批变快。一段剧本动作期间最多采 10 次（benchApi.ts 的 MAX_OVERDRAW_SAMPLES），
+ * 加上收尾那次是 11 次，一条用例前后两轮记录也就 22 次，省下的是零点几秒；跑批的时间在场景自己的逐帧绘制上
+ * （桌面 play10 三轮共四千多帧，每帧 2880×1620 的软件光栅，那才是四分多钟的来源）。
+ * CPU profile 会把大量时间算在下面 extract.pixels 那一行，别信：绘制命令是异步排队的，
+ * 一直攒到这里的读回才被强制刷完，profile 记在这里的其实是前面几百帧的账。
+ *
+ * 为什么是四分之一、不接着往下缩：场景里最细的东西是命中特效那道 46×14 的边缘追光
+ * （canvas 的 fx/HitFx.ts），其次是 31×31 的费用章和高 30 的名牌（canvas 的 fx/bakedTextures.ts）。
+ * 缩到四分之一它们还占三到八个像素，照样被数进来；再缩一半就只剩一两个像素，
+ * 光栅化的覆盖规则会开始整块地丢掉它们，平均值就偏小了。
+ */
+const OVERDRAW_SCALE = 0.25
 
 interface Saved {
   node: Container
@@ -173,11 +199,31 @@ export function measureOverdraw(
 ): OverdrawResult {
   const swap = swapForOverdraw(stage, white)
 
-  // 按 1 倍分辨率读回：过度绘制是「每个像素被画了几次」，这个比值和渲染倍率无关，
-  // 而 1.5 倍的 1920×1080 要读回 18 MB，白等好几百毫秒。
-  const target = RenderTexture.create({ width, height, resolution: 1, antialias: false })
+  // 先把采样尺寸取整，再拿「取整后的尺寸 ÷ 原尺寸」当缩放比，而不是直接用 OVERDRAW_SCALE：
+  // 手机档 390 的四分之一是 97.5，而纹理的宽高必须是整数。按实际比例缩，内容和画布缩的是
+  // 同一个比例，覆盖率仍然等于原分辨率下的覆盖率，取整这一下不会把数字带偏。
+  const sampleWidth = Math.max(1, Math.round(width * OVERDRAW_SCALE))
+  const sampleHeight = Math.max(1, Math.round(height * OVERDRAW_SCALE))
+
+  // resolution 固定 1：过度绘制是「每个像素被画了几次」，这个比值和渲染倍率无关，
+  // 按视口的 1.5 倍去渲只是白读回更多字节。
+  // 缩放也不走 resolution：Pixi 的 TextureSource 是拿 width × resolution 直接当像素宽高、
+  // 不取整的，手机档传 0.25 会得到 97.5 这种非整数尺寸。尺寸只有下面这一个来源。
+  const target = RenderTexture.create({
+    width: sampleWidth,
+    height: sampleHeight,
+    resolution: 1,
+    antialias: false,
+  })
   try {
-    renderer.render({ container: stage, target, clear: true, clearColor: [0, 0, 0, 1] })
+    // 缩放交给 render 的 transform。它是**顶替**掉 stage 自己的 localTransform 的
+    // （Pixi 的 scene/container/RenderGroupSystem 直接 copyFrom），不是乘在它上面，
+    // 所以要自己把 stage 那一份乘回来，否则 stage 有位移或缩放时这趟渲染会画歪。
+    stage.updateLocalTransform()
+    const transform = new Matrix()
+      .scale(sampleWidth / width, sampleHeight / height)
+      .append(stage.localTransform)
+    renderer.render({ container: stage, target, transform, clear: true, clearColor: [0, 0, 0, 1] })
     const { pixels } = renderer.extract.pixels(target)
     let total = 0
     let peak = 0

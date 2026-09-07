@@ -110,7 +110,11 @@ export interface OverdrawResult {
   average: number
   /** 单像素最大绘制次数，用来找是谁在叠。 */
   max: number
-  /** 读回的像素数，出问题时用来确认量对不对。 */
+  /**
+   * 真正读回的像素数，出问题时用来确认量对不对。
+   * 这一趟调试渲染是降分辨率跑的（见 page/overdraw.ts 的 OVERDRAW_SCALE），
+   * 所以它比视口的像素数小一大截，不是视口宽 × 高。
+   */
   sampled: number
   /** 参与这次调试渲染的可见节点数。全 0 时先看它是不是 0——那说明根本没抓到场景。 */
   nodes: number

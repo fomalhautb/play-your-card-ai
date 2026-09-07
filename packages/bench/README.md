@@ -59,7 +59,7 @@ scripts/       frames.py：从 Chrome trace 里取帧
 | 每帧绘制调用数 | 数 `drawArrays` / `drawElements` / 两个 instanced 变体 | `metrics/glCounters.ts` `tally(...)` |
 | 合批被打断次数 | 数纹理绑定、着色器切换、混合模式切换里**真的换了**的那些 | `glCounters.ts` `bindTexture` / `useProgram` / `blend` / `toggle` |
 | 离屏渲染次数 | 数 `bindFramebuffer` 里绑到非 null 的那些 | `glCounters.ts` `bindFramebuffer` |
-| 过度绘制倍数 | 全场景换 1×1 白纹理（网格连自带的着色器一起摘掉）、tint `0x010101`、叠加混合，渲进 RenderTexture 再读回，红通道均值 | `page/overdraw.ts` |
+| 过度绘制倍数 | 全场景换 1×1 白纹理（网格连自带的着色器一起摘掉）、tint `0x010101`、叠加混合，渲进一张长宽各缩到四分之一的 RenderTexture 再读回，红通道均值 | `page/overdraw.ts` |
 | 动画期间纹理上传次数 | 数 `texImage2D` / `texSubImage2D` / `compressedTexImage2D` | `glCounters.ts` |
 | 常驻纹理内存 | 按格式和宽高累加已上传的每一层，`deleteTexture` 时减掉 | `metrics/textureBytes.ts` + `glCounters.ts` `setLevel` |
 | 运行期着色器编译 | 数 `compileShader` / `linkProgram` | `glCounters.ts` |
@@ -83,6 +83,15 @@ scripts/       frames.py：从 Chrome trace 里取帧
   所以只有真正会画东西的节点（`ViewContainer`）涂 1/255，中间的容器要恢复成不染色。
 - **剧本结束后才采一次过度绘制是不够的**：命中特效和全屏发光在中途才叠起来。
   所以动作期间每隔若干帧采一次，`overdraw()` 返回其中最大的那次。
+- **过度绘制那趟调试渲染是降分辨率跑的**：长宽各缩到四分之一，像素数只剩十六分之一
+  （`page/overdraw.ts` 的 `OVERDRAW_SCALE`，缩放走 `render` 的 `transform`）。
+  读回来的是每像素平均绘制次数，一个空间平均值，覆盖面积和总面积一起缩，比值几乎不变
+  （六段剧本实测最多差 0.004）。省的是那次同步读回：桌面档一次 8 MB 降到 0.5 MB，
+  无头 SwiftShader 上 20 ms 降到 2 ms。四分之一是下限，再小的话命中特效那道 46×14
+  的边缘追光只剩一两个像素，会被整块丢掉。
+  它省的**不是**跑批的大头：一条用例二十来次采样一共零点几秒，跑批的时间在场景自己的
+  逐帧绘制上（桌面 play10 前后跑三轮、共四千多帧、每帧 2880×1620）。CPU profile 会把
+  时间算到 `extract.pixels` 那一行，那是假象——绘制是异步排队的，一直攒到这次读回才刷完。
 - **最危险的结果是「假绿」。** 计数器没接管到上下文、剧本一帧都没渲染、根本没空转，
   这三种情况下每一条上限都会顺利通过。所以每段剧本额外断言 `contextSeen()` 为真、
   渲染次数大于 0、空转帧数大于 0。
