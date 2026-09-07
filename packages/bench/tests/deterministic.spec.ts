@@ -6,16 +6,16 @@
  *   2. 同一段剧本跑两遍数字完全一致（6.9 明说这本身就是一条断言）；
  *   3. 连跑十段之后强制 GC，堆和常驻纹理内存回到基线 5% 以内。
  *
- * 跑法：`pnpm --filter @ai-duel/bench bench`。
+ * 跑法：`pnpm --filter @ai-duel/bench bench`。用例之间没有耦合，并行跑（见 playwright.config.ts）。
  */
 
 import { expect, test } from '@playwright/test'
 import { checkLimits, describeViolations, leakVerdict, observedFrom } from '../src/node/checkLimits'
+import { ROW_ATTACHMENT } from '../src/node/deterministicReporter'
 import { PROFILES } from '../src/node/profiles'
 import type { DeterministicRow } from '../src/node/report'
-import { renderDeterministicMarkdown } from '../src/node/report'
 import { scenarioNames } from '../src/scenarios/index'
-import { LEAK_TOLERANCE, limitsFor, placeholderKeys } from '../src/thresholds'
+import { LEAK_TOLERANCE, limitsFor } from '../src/thresholds'
 import {
   contextSeen,
   createHeapSampler,
@@ -28,24 +28,22 @@ import {
   runOnly,
   runQuiet,
   runSegment,
-  writeResult,
 } from './harness'
 
 const SEGMENTS = scenarioNames()
 
-/** 收集起来最后一起写进 results/。Playwright 的 project 内是串行的，所以模块级变量够用。 */
-const rows: DeterministicRow[] = []
-
-test.afterAll(() => {
-  if (rows.length === 0) return
-  const report = {
-    generatedAt: new Date().toISOString(),
-    rows,
-    placeholders: placeholderKeys(limitsFor('desktop')),
-  }
-  writeResult('deterministic.json', `${JSON.stringify(report, null, 2)}\n`)
-  writeResult('deterministic.md', renderDeterministicMarkdown(report))
-})
+/**
+ * 把自己这一行交给主进程的 reporter 去汇总。
+ *
+ * 不能在这里直接写 results/：这组用例是并行的，每个 worker 是独立进程，
+ * 各写各的会互相覆盖（原因写在 src/node/deterministicReporter.ts）。
+ */
+async function reportRow(row: DeterministicRow): Promise<void> {
+  await test.info().attach(ROW_ATTACHMENT, {
+    body: JSON.stringify(row),
+    contentType: 'application/json',
+  })
+}
 
 for (const profile of PROFILES) {
   test.describe(`${profile.name} ${profile.width}×${profile.height}@${profile.resolution}`, () => {
@@ -93,7 +91,7 @@ for (const profile of PROFILES) {
         expect(second.metrics.frames).toEqual(first.metrics.frames)
         expect(second.overdraw).toEqual(first.overdraw)
 
-        rows.push({
+        await reportRow({
           profile: profile.name,
           segment,
           summary,
@@ -134,7 +132,6 @@ test('桩场景：测量骨架自身跑得通，且两遍完全一致', async ({
 })
 
 test('泄漏：连跑十段之后堆和常驻纹理内存回到基线', async ({ page }) => {
-  test.setTimeout(300_000)
   await openBench(page)
   const client = await page.context().newCDPSession(page)
   await client.send('Runtime.enable')

@@ -13,19 +13,12 @@ import { expect, test } from '@playwright/test'
 import { PROFILES } from '../src/node/profiles'
 import type { TimingReport, TimingRow } from '../src/node/report'
 import { renderTimingMarkdown } from '../src/node/report'
+import { writeResult } from '../src/node/results'
 import type { TimingStats } from '../src/node/trace'
 import { medianStats, statsFrom } from '../src/node/trace'
 import { scenarioNames } from '../src/scenarios/index'
 import { FRAME_BUDGET_MS } from '../src/thresholds'
-import {
-  enableGpuTiming,
-  gpuReport,
-  initOptions,
-  initScene,
-  openBench,
-  runQuiet,
-  writeResult,
-} from './harness'
+import { enableGpuTiming, gpuReport, initOptions, initScene, openBench, runQuiet } from './harness'
 import { captureTrace, extractFrames, hasUv, traceScratchDir } from './tracing'
 
 /** 6.9：每次跑五遍取中位数抗噪声。 */

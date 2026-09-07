@@ -18,11 +18,38 @@ pnpm --filter @ai-duel/bench dev      # 只把测量页面跑起来，手动在�
 卡面图集不在位时也由 Playwright 的 `globalSetup` 自己跑一遍 `pnpm assets:build`（见 `src/node/ensureAtlas.ts`）。
 第一次跑要先 `pnpm exec playwright install chromium`。
 
+跑批默认**不复用**已经在跑的 Vite。端口是写死的（`vite.config.ts` 的 `strictPort`），
+另一个 git 工作树里开着同端口的 bench 服务器时，复用等于静悄悄测了那份代码，
+改了什么都「看不出变化」。自己开着 `dev` 想省一次启动就显式打开：
+`BENCH_REUSE_SERVER=1 pnpm --filter @ai-duel/bench bench`。
+
 `dev` 起的页面默认也是真实场景，`?scene=stub` 切到桩场景。
 
 `timing` 还需要本机有 [uv](https://docs.astral.sh/uv/)（`brew install uv`）：帧数据用 Perfetto 的
 trace_processor 提取，脚本是 `scripts/frames.py`，由 `uv run --with perfetto python` 跑，不用预装 Python 依赖。
 没有 uv 时这一组整组跳过，不会失败。
+
+### 跑一遍要多久
+
+确定性那组八条用例，这台 M2（8 核，其中 4 个性能核）上跑完约 6 分钟。
+慢的是 SwiftShader 软件光栅：桌面档 1920×1080 按 1.5 倍渲染就是 2880×1620，
+软件光栅在这个分辨率上是填充率绑定的，而每条用例要把同一段剧本跑三轮——
+逐帧记录一轮、关掉记录做堆采样一轮、再重跑一轮验两遍完全一致。
+要再快只能少跑一轮或者降分辨率，那是改口径，不是调参数。
+
+八条用例之间没有耦合（每条各开各的页面和渲染进程），所以按用例粒度并行：
+worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线程的，一个页面就占掉约三个核，
+再往上加只是让 worker 互相抢核。CI 上写死 2。要串行排查问题就加 `--workers=1`。
+`timing` 那组照旧串行单 worker：它有头、量的是帧时间，两个浏览器同时抢 GPU，数字立刻变噪声。
+
+并行省下来的没有想象中多，因为总时间被最慢的一条用例卡住：串行 7.8 分钟 → 并行 6.1 分钟，
+只快了两成。`desktop/play10` 一条单独跑就要 4.4 分钟，并行时被抢核拖到 6.0 分钟，
+它跑多久整组就至少跑多久。单条超时按并行时的最慢一条给到 8 分钟——
+按单独跑的 4.4 分钟去估会当场超时。
+
+并行带来的一个连锁改动：每条用例算出的那一行不能自己写进 `results/`。
+每个 worker 是独立进程，各写各的只会互相覆盖，报告里只剩一个 worker 那几行。
+现在用例把自己那行挂成附件，由跑在主进程的 reporter 收齐了再写（`src/node/deterministicReporter.ts`）。
 
 ## 结构
 
@@ -133,6 +160,9 @@ scripts/       frames.py：从 Chrome trace 里取帧
 
 JSON 的形状就是 `src/node/report.ts` 里的 `DeterministicReport` 和 `TimingReport`，
 以后接 github-action-benchmark 做趋势和回归门禁（6.12）直接喂它。
+
+确定性那两个文件由 Playwright 主进程的 reporter 写（`src/node/deterministicReporter.ts`），
+时间指标那两个由用例自己写——两组的并发不一样，原因见上面「跑一遍要多久」。
 
 ## 已知的局限
 

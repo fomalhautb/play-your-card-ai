@@ -5,9 +5,6 @@
  * 这样页面 API 一改，要跟着改的只有这一个文件。
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { CDPSession, Page } from '@playwright/test'
 import type { BenchMetrics, OverdrawResult } from '../src/metrics/types'
 import { DECK, type Profile, SEED } from '../src/node/profiles'
@@ -18,9 +15,6 @@ declare global {
     __bench: BenchApi
   }
 }
-
-const HERE = dirname(fileURLToPath(import.meta.url))
-const RESULTS_DIR = resolve(HERE, '../results')
 
 export interface SegmentRun {
   metrics: BenchMetrics
@@ -174,11 +168,4 @@ export async function heapAfterGc(client: CDPSession): Promise<number> {
   }
   const usage = (await client.send('Runtime.getHeapUsage')) as { usedSize: number }
   return usage.usedSize
-}
-
-export function writeResult(name: string, content: string): string {
-  mkdirSync(RESULTS_DIR, { recursive: true })
-  const path = resolve(RESULTS_DIR, name)
-  writeFileSync(path, content, 'utf8')
-  return path
 }
