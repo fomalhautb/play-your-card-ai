@@ -8,6 +8,7 @@
  * 层级只有"右边的牌压住左边的"这一个固定顺序（和炉石一致），hover 和返程都不改它。
  * Pixi 的绘制顺序就是子节点顺序，所以这条不用 zIndex 排序——排序要每帧比一遍，
  * 而被拖起来的那张牌本来就该交给场景的拖拽层去画（那一层在扇形之上）。
+ * 代价是牌从拖拽层回来时得自己插回原来那一位，见 adoptInOrder。
  */
 
 import { Container } from 'pixi.js'
@@ -138,6 +139,31 @@ export class HandFan extends Container {
   reattach(card: CardSprite): void {
     if (!this.detached.delete(card.cardId)) return
     this.layout('reflow')
+  }
+
+  /**
+   * 把一张挂在别的容器上的牌收回扇形容器，并插回它原来的层级。
+   *
+   * 拖起来的牌被挪到了拖拽层（那一层在扇形之上），放回来时**不能用 addChild**：
+   * 那是追加到子节点列表末尾，而 Pixi 的绘制顺序就是子节点顺序，这张牌于是压在了整排之上。
+   * 扇形的层级规矩只有"右边的压左边的"一条（和旧版一致，见类头），中间那张牌压住右邻居
+   * 一眼就能看出错位。
+   *
+   * 插到第几位不能直接拿它在 cards 里的下标：拖拽和出牌期间会有牌被挪到别的容器上
+   * （拖拽层、战场层），那些牌还留在 cards 里，却已经不是扇形的子节点了。
+   * 所以数一遍"排在它前面、而且此刻真挂在扇形上"的有几张，那个数才是子节点列表里的位置。
+   */
+  adoptInOrder(card: CardSprite): void {
+    const index = this.cards.indexOf(card)
+    if (index < 0) {
+      this.addChild(card)
+      return
+    }
+    let at = 0
+    for (let i = 0; i < index; i += 1) {
+      if (this.cards[i]?.parent === this) at += 1
+    }
+    this.addChildAt(card, at)
   }
 
   /** 这张牌现在是不是被摘出去了。 */

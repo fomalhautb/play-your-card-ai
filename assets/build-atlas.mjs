@@ -4,8 +4,8 @@
  *
  * 三步：
  * 1. 暂存：原画尺寸不齐（大多 1024×1536，有一张 1060×1484），先统一缩成 512×768，
- *    图集里每一帧的尺寸才是恒定的。缩放交给 sharp，AssetPack 自己那套按比例缩的选项
- *    对付不了尺寸不齐的输入。
+ *    图集里每一帧的尺寸才是恒定的；同一步里把卡面圆角烤进 alpha（见 roundedMask）。
+ *    缩放和圆角都交给 sharp，AssetPack 自己那套按比例缩的选项对付不了尺寸不齐的输入。
  *    暂存写的是 **png** 而不是 webp：AssetPack 的 texturePacker 只收 jpg / png / gif，
  *    喂 webp 给它会安静地打出一张空图集（它对不认识的扩展名不报错，直接当没有文件）。
  *    最终产物仍然是 webp——那一步由打包配置里的 compress 完成。
@@ -22,7 +22,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { AssetPack } from '@assetpack/core'
 import sharp from 'sharp'
-import { atlasConfig, FRAME_HEIGHT, FRAME_WIDTH } from './atlas.config.mjs'
+import { atlasConfig, FRAME_HEIGHT, FRAME_RADIUS, FRAME_WIDTH } from './atlas.config.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
@@ -50,6 +50,19 @@ const TARGETS = [
   join(repoRoot, 'packages/bench/public/atlas'),
 ]
 
+/**
+ * 圆角遮罩：一整块白色的圆角矩形，用 dest-in 混合上去就只留下圆角以内的像素。
+ *
+ * 用 SVG 而不是自己拼像素，是因为 sharp 会用 librsvg 把它抗锯齿地栅格化，
+ * 圆弧边缘自带半透明过渡；手写像素就得自己做抗锯齿，边上会有台阶。
+ * 每张图都用同一块 Buffer，不用每张重新生成——所有帧的尺寸和半径都一样。
+ */
+const roundedMask = Buffer.from(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${FRAME_WIDTH}" height="${FRAME_HEIGHT}">` +
+    `<rect width="${FRAME_WIDTH}" height="${FRAME_HEIGHT}" rx="${FRAME_RADIUS}" ry="${FRAME_RADIUS}" fill="#fff"/>` +
+    `</svg>`,
+)
+
 async function stage() {
   await rm(distDir, { recursive: true, force: true })
   let count = 0
@@ -63,6 +76,10 @@ async function stage() {
       await sharp(join(source.from, name))
         // cover：原画基本都是 2:3，尺寸不齐的那张会被裁掉边上一点，不会被拉变形。
         .resize(FRAME_WIDTH, FRAME_HEIGHT, { fit: 'cover', position: 'centre' })
+        // 原画是不透明的 webp，先给它一条 alpha 通道，下面那步才有东西可扣。
+        .ensureAlpha()
+        // 圆角烤进 alpha：运行期就不用遮罩也不用 Filter 去切卡角了（纪律 3.1）。
+        .composite([{ input: roundedMask, blend: 'dest-in' }])
         .png()
         .toFile(join(outDir, name.replace(/\.webp$/, '.png')))
       count += 1

@@ -49,8 +49,15 @@ export interface DuelPrototype {
   playCard(handIndex: number): Promise<void>
   /** 翻面。 */
   flip(handIndex: number): Promise<void>
-  /** 抬起某张（null 收回），用来测 hover 动画。 */
-  hover(handIndex: number | null): void
+  /**
+   * 抬起某张（null 收回），用来测 hover 动画。
+   *
+   * @param at 指针压在卡面上的相对位置，左上角是 `{ rx: 0, ry: 0 }`、右下角是 `{ rx: 1, ry: 1 }`。
+   *   传了就顺带走一遍真指针那条路：卡面跟着倾斜、反光跟着亮起来（见 components/cardTilt.ts）。
+   *   不传就只抬牌——扇形动画和倾斜是两件事，只想测抬牌的调用方不该被迫编一个坐标。
+   *   倾斜和反光都是逐帧收敛的，所以传了之后要再推几帧才收得住，一帧看不出效果。
+   */
+  hover(handIndex: number | null, at?: { rx: number; ry: number }): void
   /** 手动推进一帧。 */
   step(deltaMs: number): void
   /** 没有在播的动画；此时帧循环必须停（3.6）。 */
@@ -61,5 +68,6 @@ export interface DuelPrototype {
    * bench 的剧本视口固定，用不到它。
    */
   resize(width: number, height: number): void
+  /** 拆场景。重复调用是安全的（第二次什么都不做）。 */
   destroy(): void
 }

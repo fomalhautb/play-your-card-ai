@@ -288,8 +288,12 @@ class StubScene implements DuelPrototype {
   /**
    * 悬停不带动画：位置立刻变，只标一次脏。
    * 这条路径专门用来检验「没有补间但画面变了」时帧循环也会醒一帧再停。
+   *
+   * 契约第二个参数（指针在卡面上的位置）在这里收下就扔：桩场景的卡是几个纯色精灵，
+   * 没有倾斜也没有反光可跟。它存在的意义是当测量骨架的固定物——数字不跟着真实场景变，
+   * 所以它反而**不该**跟着真实场景一起加特效。
    */
-  hover(handIndex: number | null): void {
+  hover(handIndex: number | null, _at?: { rx: number; ry: number }): void {
     const { width, height } = this.opts
     const restore = (index: number) => {
       const card = this.hand[index]

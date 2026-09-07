@@ -25,6 +25,22 @@
   display: block;
 }
 
+/*
+ * 帧率读数，压在画布左上角。
+ * 不吃指针事件：它正盖在画布上，能点的话会把拖牌的按下事件截走。
+ */
+.hand-fan-dev__fps {
+  position: absolute;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  pointer-events: none;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-paper-base);
+  /* 和下面那条控件栏里的状态、计数器同一档淡，读得出来又不抢画面。 */
+  opacity: var(--opacity-home-flourish-line);
+}
+
 .hand-fan-dev__panel {
   display: flex;
   flex-wrap: wrap;

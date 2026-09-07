@@ -18,6 +18,15 @@ export const CARD_WIDTH = tokens.size.card.width
 export const CARD_HEIGHT = tokens.size.card.height
 
 /**
+ * 卡面圆角，按卡面基准宽配的（旧版是 paper.css 里 `.paper-card` 的 10px）。
+ *
+ * 画卡的三处必须都用它，缺一处卡角就对不齐：原画和牌背的圆角在构建期烤进图集的 alpha
+ * （assets/build-atlas.mjs 按同一个令牌等比放大到 512 那一档），代码画的边框铭牌见
+ * fx/bakedTextures.ts，跟着指针跑的反光在着色器里做圆角裁剪见 fx/cardGlare.ts。
+ */
+export const CARD_RADIUS = tokens.size.card.radius
+
+/**
  * 手牌张开的总角度，几张牌都是这个数。
  *
  * 固定不变是刻意的：早先是"每多一张多张开 5°、封顶 40°"，出一张牌整排就重新拱一次，

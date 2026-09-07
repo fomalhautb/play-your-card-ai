@@ -15,7 +15,7 @@
 
 import { tokens } from '@ai-duel/design'
 import { autoDetectRenderer, Container, Rectangle, type Renderer } from 'pixi.js'
-import { CardSprite } from '../components/CardSprite'
+import { CardSprite, type CardSpriteDeps } from '../components/CardSprite'
 import { CardTilt } from '../components/cardTilt'
 import { applyPose, HandFan } from '../components/HandFan'
 import { type BakedTextures, bakeTextures } from '../fx/bakedTextures'
@@ -77,6 +77,8 @@ class DuelScene {
   private readonly baked: BakedTextures
   private readonly hitFx: HitFx
   private readonly rng: Rng
+  /** 建卡要的那几样东西。预热和发牌共用同一份，两条路建出来的卡才是一样的。 */
+  private readonly cardDeps: CardSpriteDeps
   private readonly tilts = new Map<string, CardTilt>()
   private layout: DuelLayout
   /** 牌库里下一张要发的是第几张，也是卡牌实例编号的来源。 */
@@ -87,6 +89,8 @@ class DuelScene {
   private frozen = false
   /** 上一帧的逐帧跟随（拖拽、倾斜）还没收敛。它和补间账一起决定帧循环停不停。 */
   private interactionBusy = false
+  /** 已经拆过了。见 destroy 里那段注释。 */
+  private destroyed = false
 
   constructor(renderer: Renderer, opts: DuelPrototypeOptions) {
     this.renderer = renderer
@@ -102,6 +106,11 @@ class DuelScene {
 
     this.text = new TextTextureCache(renderer)
     this.baked = bakeTextures(renderer)
+    this.cardDeps = {
+      baked: this.baked,
+      text: this.text,
+      glare: TIER_CONFIG[opts.tier].glare,
+    }
 
     this.animator = new Animator(() => this.frameLoop?.wake())
     this.frameLoop = new FrameLoop({
@@ -137,6 +146,7 @@ class DuelScene {
       tiltFor: (card) => this.tilts.get(card.cardId),
       onPlay: (card) => void this.flyToBoard(card),
       enabled: () => !this.frozen,
+      wake: () => this.frameLoop.wake(),
     })
 
     this.applyLayout()
@@ -149,7 +159,7 @@ class DuelScene {
       deal: (count) => this.deal(count),
       playCard: (index) => this.playCard(index),
       flip: (index) => this.flip(index),
-      hover: (index) => this.fan.setHover(index ?? -1),
+      hover: (index, at) => this.hover(index, at),
       step: (delta) => this.frameLoop.step(delta),
       isIdle: () => !this.animator.isBusy() && !this.interactionBusy,
       counters: () => ({
@@ -173,7 +183,7 @@ class DuelScene {
       layer: this.boardLayer,
       deck: this.opts.deck,
       textures: this.opts.textures,
-      deps: { baked: this.baked, text: this.text },
+      deps: this.cardDeps,
       width: this.layout.width,
       height: this.layout.height,
     })
@@ -188,6 +198,30 @@ class DuelScene {
     }
     this.interactionBusy = busy
     this.renderer.render(this.stage)
+  }
+
+  /**
+   * 抬牌，可选地连指针位置一起喂进去（契约见 duelContract.ts）。
+   *
+   * 给了位置就走和真指针完全一样的那条路：同一个 CardTilt.setPointer，
+   * 所以倾斜的角度、反光的光心、收敛的节奏都和玩家真拿鼠标扫过时一模一样
+   * （真指针那条在 interaction/handPointer.ts 的 setPointerTilt，它只多做一步坐标换算）。
+   * 换手时先给上一张 release()，否则那张的倾斜会僵在离手时的角度上——真指针那边
+   * 由 onOver 负责这件事。
+   */
+  private hover(handIndex: number | null, at?: { rx: number; ry: number }): void {
+    const previous = this.fan.hovered
+    if (previous >= 0 && previous !== handIndex) {
+      const gone = this.fan.laid()[previous]
+      if (gone !== undefined) this.tilts.get(gone.cardId)?.release()
+    }
+    this.fan.setHover(handIndex ?? -1)
+    if (handIndex !== null && at !== undefined) {
+      const card = this.fan.laid()[handIndex]
+      if (card !== undefined) this.tilts.get(card.cardId)?.setPointer(at.rx, at.ry)
+    }
+    // 倾斜和反光是逐帧收敛的，没有补间替它们叫醒帧循环，得自己叫（同 handPointer 的 wake）。
+    this.frameLoop.wake()
   }
 
   private async deal(count: number): Promise<void> {
@@ -338,7 +372,7 @@ class DuelScene {
     if (face === undefined) return null
     const visual = cardVisualOf(key, this.drawn, face, this.opts.textures.back)
     this.drawn += 1
-    const card = new CardSprite(visual, { baked: this.baked, text: this.text })
+    const card = new CardSprite(visual, this.cardDeps)
     this.tilts.set(card.cardId, new CardTilt(card, TIER_CONFIG[this.opts.tier].cardTilt))
     return card
   }
@@ -371,7 +405,18 @@ class DuelScene {
     this.frameLoop.wake()
   }
 
+  /**
+   * 拆场景。调第二次直接返回。
+   *
+   * 挡重复调用不是洁癖：Pixi 的 `renderer.destroy()` 会把内部几个系统的表置成 null，
+   * 第二次进去就在 null 上取属性，当场抛 TypeError。而调用方多半是 React——
+   * 它的 effect 清理很容易写成"句柄和 ref 各拆一次"，那种错在开发模式下表现为整页白屏
+   * （异常从 effect 清理里冒出来，组件被卸载），排查起来完全看不出和画布有关。
+   * 契约里只说了「destroy」，没说「只许调一次」，所以由这里兜住。
+   */
   private destroy(): void {
+    if (this.destroyed) return
+    this.destroyed = true
     this.opts.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.pointer.destroy()
     this.animator.destroy()

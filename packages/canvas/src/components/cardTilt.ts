@@ -2,34 +2,53 @@
  * 卡面「跟着指针倾斜 + 一小块反光」。节奏和物理模型抄自旧客户端 `src/ui/cardTilt.ts`。
  *
  * 模型是：指针像手指一样把卡按下去，被按下的那一角的对角就翘向观察者、正对光源、反光最亮，
- * 所以高光落在指针的**镜像位置**而不是指针底下。改一边就得改另一边。
+ * 所以高光落在指针的**镜像位置**而不是指针底下（取镜像那一步在 fx/cardGlare.ts 里做）。
+ * 改一边就得改另一边。
  *
- * 两处和旧版不一样，都是被 Pixi 的二维性质逼的：
- * 1. 没有 rotationX / rotationY。用「压扁 + 错切」凑：绕 Y 轴转 θ 就横向压到 cos θ、
- *    再按 sin θ 竖着错一点。仿射变换做不出真正的透视梯形，但十度以内看着就是在倾斜。
- * 2. 平滑不走 GSAP。旧版用 quickTo，那条路建的补间不在我们的活动补间账上，
- *    帧循环（3.6）会以为没事在做而停掉。这里改成每帧朝目标值收一段，
- *    收敛没收敛由 advance 自己报，账目和帧循环是同一本。
+ * 和旧版有一处不一样，是被 Pixi 逼的：平滑不走 GSAP。
+ * 旧版用 quickTo，那条路建的补间不在我们的活动补间账上，帧循环（3.6）会以为没事在做而停掉。
+ * 这里改成每帧朝目标值收一段，收敛没收敛由 advance 自己报，账目和帧循环是同一本。
+ * 时长换算成时间常数就是除以三（指数收敛跑三个时间常数约到 95%）。
+ *
+ * 倾斜本身是真透视，不是压扁错切：角度交给 CardSprite，由它换算成各层的四个角
+ * （见 cardProjection.ts）。
  */
 
-import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import { HOVER_TILT_DEG } from '../layout/handLayout'
 import type { CardSprite } from './CardSprite'
 
-/** 倾斜跟随指针的时间常数（秒）。太短会跟得发飘，太长会拖成"甩尾"。 */
+/** 倾斜跟随指针的时间常数（秒），对应旧版 FOLLOW_DUR = 0.35s。太短会跟得发飘，太长会拖成"甩尾"。 */
 const FOLLOW_TAU = 0.35 / 3
-/** 收手时归零的时间常数，比跟随更干脆。 */
+/** 收手时归零的时间常数，对应旧版 RESET_DUR = 0.15s，比跟随更干脆。 */
 const RESET_TAU = 0.15 / 3
-/** 高光淡入淡出的时间常数。 */
+/** 高光淡入淡出的时间常数，对应旧版 GLARE_FADE = 0.2s。 */
 const GLARE_TAU = 0.2 / 3
 
-/** 高光最亮时的不透明度。再高就成了一块白斑，盖住卡面上的字。 */
-const GLARE_ALPHA = 0.34
-/** 错切幅度系数：十度倾角配 0.25 时错切约 2.5°，看得出在动又不至于变形。 */
-const SKEW_K = 0.25
-/** 收敛判据：三个通道都进到这个范围内就算停了，帧循环可以歇了。 */
-const SETTLED_EPS = 0.0005
-/** 反光暗到这个程度就当没有，直接从绘制批里摘掉。1/255 都不到，肉眼看不出差别。 */
+/**
+ * 高光最亮时整层的不透明度。
+ *
+ * 旧版这一层淡入到 1（亮度全由渐变自己的色标定，最亮 40%），因为它混合用的是 soft-light。
+ * 我们没有 soft-light 可用（Pixi v8 里那类混合是拿 Filter 实现的，3.1 不许离屏），
+ * 换成了原生的 screen——screen 等于"朝白色插值"，提得比 soft-light 狠一截，
+ * 照旧版的亮度会白成一块斑、盖住卡面上的字。压到 0.55 之后峰值约等于把底色提亮两成，
+ * 接近覆膜那种哑光反光。
+ */
+const GLARE_ALPHA = 0.55
+/**
+ * 收敛判据：残差小到这个程度就直接落到目标值上，这一路就算停了，帧循环可以歇了（3.6）。
+ *
+ * 角度这一档按「卡上最远的那个点还挪不挪得动一个像素」定：卡心到角约 135
+ * （√(75² + 112.5²)），转 0.05° 是 135 × 0.05 × π/180 ≈ 0.12 个卡单位，
+ * hover 放大约 1.9 倍、渲染倍率封顶 1.5（3.3），折合 0.33 个设备像素——屏幕上表现不出来。
+ *
+ * 为什么不能取得更小：指数收敛的尾巴很长。从 6° 收到 0.0005° 要跑九个多时间常数，
+ * 也就是一秒多；那一秒里画面一动不动，帧循环却一直在转。手机上那是白烧电，
+ * 跑批里是白烧一整段剧本的时间（实测占 play10 的三成帧）。
+ */
+const SETTLED_ANGLE_DEG = 0.05
+/** 高光那一路的收敛判据：1/255 是 8 位颜色通道能表示的最小一档，比它小的差别写不进去。 */
+const SETTLED_ALPHA = 1 / 255
+/** 反光暗到这个程度就当没有，直接从绘制队列里摘掉。1/255 都不到，肉眼看不出差别。 */
 const GLARE_EPS = 0.002
 
 /**
@@ -42,15 +61,13 @@ export class CardTilt {
   private readonly card: CardSprite
   private readonly enabled: boolean
 
-  /** 目标值和当前值：绕 Y、绕 X 的角度（度），以及高光的位置和亮度。 */
+  /** 目标值和当前值：绕 Y、绕 X 的角度（度），以及高光的亮度。 */
   private targetY = 0
   private targetX = 0
   private currentY = 0
   private currentX = 0
   private targetGlare = 0
   private currentGlare = 0
-  private glareX = 0
-  private glareY = 0
   /** 收手时用更快的时间常数，和旧版的 RESET_DUR 对应。 */
   private releasing = true
 
@@ -70,9 +87,11 @@ export class CardTilt {
     this.targetX = -(ry - 0.5) * 2 * HOVER_TILT_DEG
     this.targetY = (rx - 0.5) * 2 * HOVER_TILT_DEG
     this.targetGlare = GLARE_ALPHA
-    // 高光放在指针的镜像位置（对角），不是指针底下，理由见文件头的物理模型。
-    this.glareX = (0.5 - rx) * CARD_WIDTH
-    this.glareY = -CARD_HEIGHT + (1 - ry) * CARD_HEIGHT
+    /*
+     * 光心不做平滑，直接跟手：它本来就该和指针一样跟手（只是取的是镜像点），
+     * 插值反而会糊。也因此只在指针真的动了的时候写一次 uniform，不放进逐帧的 advance 里。
+     */
+    this.card.glare?.setPointer(rx, ry)
   }
 
   /** 收手：倾斜归零、高光淡出。 */
@@ -93,25 +112,22 @@ export class CardTilt {
     if (!this.enabled) return false
     const dt = deltaMs / 1000
     const tau = this.releasing ? RESET_TAU : FOLLOW_TAU
-    this.currentX = approach(this.currentX, this.targetX, dt, tau)
-    this.currentY = approach(this.currentY, this.targetY, dt, tau)
-    this.currentGlare = approach(this.currentGlare, this.targetGlare, dt, GLARE_TAU)
+    this.currentX = approach(this.currentX, this.targetX, dt, tau, SETTLED_ANGLE_DEG)
+    this.currentY = approach(this.currentY, this.targetY, dt, tau, SETTLED_ANGLE_DEG)
+    this.currentGlare = approach(this.currentGlare, this.targetGlare, dt, GLARE_TAU, SETTLED_ALPHA)
 
-    const radX = (this.currentX * Math.PI) / 180
-    const radY = (this.currentY * Math.PI) / 180
-    const layer = this.card.tiltLayer
-    layer.scale.set(Math.cos(radY), Math.cos(radX))
-    layer.skew.set(-Math.sin(radX) * SKEW_K, Math.sin(radY) * SKEW_K)
+    this.card.setTilt(this.currentX, this.currentY)
+    if (this.card.glare !== null) {
+      this.card.glare.alpha = this.currentGlare
+      // 暗到看不见就整个藏起来：它带自己的着色器，留在绘制队列里就是一次白挨的绘制调用（3.9）。
+      this.card.glare.visible = this.currentGlare > GLARE_EPS
+    }
 
-    this.card.glare.alpha = this.currentGlare
-    // 暗到看不见就整个藏起来：它是叠加混合的，留在绘制批里等于白挨两次混合模式切换（3.9）。
-    this.card.glare.visible = this.currentGlare > GLARE_EPS
-    if (this.card.glare.visible) this.card.glare.position.set(this.glareX, this.glareY)
-
+    // approach 到了判据以内就直接落在目标上，所以"还在动"就是"还没等于目标"，不用再留容差。
     return (
-      Math.abs(this.currentX - this.targetX) > SETTLED_EPS ||
-      Math.abs(this.currentY - this.targetY) > SETTLED_EPS ||
-      Math.abs(this.currentGlare - this.targetGlare) > SETTLED_EPS
+      this.currentX !== this.targetX ||
+      this.currentY !== this.targetY ||
+      this.currentGlare !== this.targetGlare
     )
   }
 
@@ -121,10 +137,11 @@ export class CardTilt {
     this.currentX = 0
     this.currentY = 0
     this.currentGlare = 0
-    this.card.tiltLayer.scale.set(1)
-    this.card.tiltLayer.skew.set(0)
-    this.card.glare.alpha = 0
-    this.card.glare.visible = false
+    this.card.setTilt(0, 0)
+    if (this.card.glare !== null) {
+      this.card.glare.alpha = 0
+      this.card.glare.visible = false
+    }
   }
 }
 
@@ -132,8 +149,14 @@ function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v
 }
 
-/** 朝目标收敛一步。dt 是这一帧的秒数，tau 是时间常数（越小收得越快）。 */
-function approach(current: number, target: number, dt: number, tau: number): number {
-  const k = 1 - Math.exp(-dt / tau)
-  return current + (target - current) * k
+/**
+ * 朝目标收敛一步。dt 是这一帧的秒数，tau 是时间常数（越小收得越快）。
+ *
+ * 差到 eps 以内就直接落到目标上，不再慢慢挪：指数收敛永远到不了终点，不落一下的话
+ * 卡会停在一个差零点几像素的角度上不动，"到底停没停"还得调用方再判一次。
+ * 落了之后"还在动"就等价于"还不等于目标"，一个等号就够。
+ */
+function approach(current: number, target: number, dt: number, tau: number, eps: number): number {
+  const next = current + (target - current) * (1 - Math.exp(-dt / tau))
+  return Math.abs(target - next) <= eps ? target : next
 }

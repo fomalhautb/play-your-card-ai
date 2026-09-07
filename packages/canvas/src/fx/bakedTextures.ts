@@ -15,7 +15,7 @@
 
 import { tokens } from '@ai-duel/design'
 import { Graphics, type Renderer, type Texture } from 'pixi.js'
-import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
+import { CARD_HEIGHT, CARD_RADIUS, CARD_WIDTH } from '../layout/fanMath'
 
 /** 柔光圆点的贴图边长。64 足够：它永远被放大成一团糊边的光，采样精度用不上更多。 */
 const SOFT_DOT_SIZE = 64
@@ -24,13 +24,30 @@ const SOFT_DOT_RINGS = 12
 
 /** 卡面铭牌带的高度（卡面基准尺寸下的像素），名字印在里面。 */
 export const NAMEPLATE_HEIGHT = 30
-/** 费用圆章的直径。 */
-export const COST_BADGE_SIZE = 38
-/** 费用圆章圆心离卡面左上角的距离，取旧版 AI_MODEL_FACE 里那批百分比的中位数（约 11% / 7.1%）。 */
+/**
+ * 费用圆章的直径：卡宽的 20.8%，150 宽的卡上就是 31.2。
+ *
+ * 来源是旧客户端 `ui/cardFaceOverlay.css` 里 `.card-overlay__cost` 的 `width: 20.8%`
+ * （那枚章按卡宽取百分比，技能牌原画上烘焙的那枚实测占 16%，取它的 1.3 倍）。
+ * 一并见 docs/design/card-face-overlay.md：直径全场统一，只有圆心逐张配。
+ *
+ * 以前写死 38，配下面那个圆心会让圆章往左、往上各探出卡外 2.5~3px——
+ * 卡面的圆角是烤进图集 alpha 的，探出去的那一块没有卡面接着，看着就是浮在卡外的一枚章。
+ * 按 20.8% 取之后半径 15.6，小于圆心到卡上沿的 15.975，整枚章连描边都落在圆角矩形里。
+ */
+export const COST_BADGE_SIZE = CARD_WIDTH * 0.208
+/**
+ * 费用圆章的圆心离卡面左上角的距离。
+ *
+ * 旧版是**逐张配**的：每张原画左上角自己画了一枚星章，圆章要盖住它，而各张星章的位置
+ * 都不一样（见 legacy-client/src/ui/aiModelFace.ts 的 costBadge）。那是内容数据，
+ * 该跟着卡面一起从 content 包来；接上之前这里先用那批百分比的中位数当统一默认值
+ * （约 11% / 7.1%）。换成逐张配之后要重新确认每张都还落在圆角矩形内。
+ */
 export const COST_BADGE_CENTER = { x: CARD_WIDTH * 0.11, y: CARD_HEIGHT * 0.071 }
 
 export interface BakedTextures {
-  /** 中心实、边缘透明的一团柔光。烟尘、卡面高光、边缘追光共用它，靠 tint 和缩放变样子。 */
+  /** 中心实、边缘透明的一团柔光。落地的烟尘和边缘追光共用它，靠 tint 和缩放变样子。 */
   softDot: Texture
   /** 卡面的边框加底部铭牌带，尺寸就是卡面基准尺寸。 */
   cardChrome: Texture
@@ -116,22 +133,27 @@ function drawSoftDot(): Graphics {
  * 卡面的边框和底部铭牌带。
  *
  * 用的是纸面色板里的卡边米黄和描边色，和旧版 DOM 卡面同一份数（见 design 包）。
- * 画成不透明的一整块，卡面原画铺在它下面，只有边框和铭牌带盖住原画。
+ * 只画边框和铭牌带，中间是透空的，卡面原画铺在它下面。
+ * 四角的圆角和原画那份是同一个令牌（CARD_RADIUS），三处画卡的地方必须一致。
  */
 function drawCardChrome(): Graphics {
   const g = new Graphics()
-  const radius = tokens.radius.lg
   const edge = tokens.color.card.edgeTint
   const line = tokens.color.battle.lineDark
 
+  /*
+   * 描边路径的圆角要按内缩量减一档：圆角矩形往里缩 k 像素，半径就跟着小 k，
+   * 描边的**外沿**才正好落在卡的轮廓上。原画和牌背的圆角是构建期烤进 alpha 的
+   * （见 assets/build-atlas.mjs），两边对不上就会露出一小段直角。
+   */
   // 外圈描边。画在内侧半个线宽的位置，描边才不会被烤纹理时的边界切掉半条。
-  g.roundRect(1.5, 1.5, CARD_WIDTH - 3, CARD_HEIGHT - 3, radius).stroke({
+  g.roundRect(1.5, 1.5, CARD_WIDTH - 3, CARD_HEIGHT - 3, CARD_RADIUS - 1.5).stroke({
     width: 3,
     color: line,
     alpha: 0.85,
   })
   // 内侧那条细线，旧版卡面上那圈"雕花框"的简化版。
-  g.roundRect(6, 6, CARD_WIDTH - 12, CARD_HEIGHT - 12, radius - 2).stroke({
+  g.roundRect(6, 6, CARD_WIDTH - 12, CARD_HEIGHT - 12, CARD_RADIUS - 6).stroke({
     width: 1,
     color: edge,
     alpha: 0.55,
@@ -142,7 +164,7 @@ function drawCardChrome(): Graphics {
     CARD_HEIGHT - 6 - NAMEPLATE_HEIGHT,
     CARD_WIDTH - 12,
     NAMEPLATE_HEIGHT,
-    radius - 2,
+    CARD_RADIUS - 6,
   ).fill({ color: tokens.color.battle.paper, alpha: 0.94 })
   g.moveTo(10, CARD_HEIGHT - 6 - NAMEPLATE_HEIGHT)
     .lineTo(CARD_WIDTH - 10, CARD_HEIGHT - 6 - NAMEPLATE_HEIGHT)
@@ -159,8 +181,17 @@ function drawCardChrome(): Graphics {
 function drawCostBadge(): Graphics {
   const g = new Graphics()
   const r = COST_BADGE_SIZE / 2
-  g.circle(r, r, r - 1).fill({ color: 0xffffff })
-  g.circle(r, r, r - 1.5).stroke({ width: 2, color: tokens.color.battle.ink, alpha: 0.65 })
-  g.circle(r, r, r - 5).stroke({ width: 1, color: 0xffffff, alpha: 0.55 })
+  /*
+   * 三圈的半径和线宽都按半径取比例，不写死像素：直径是从卡宽算出来的（COST_BADGE_SIZE），
+   * 卡宽一改这几圈得跟着缩，写死的话小尺寸上外圈会粗得像个铁环。
+   * 比例沿用直径 38 那一版的观感（盘面 0.947r、外圈 0.921r 线宽 0.105r、内细线 0.737r）。
+   */
+  g.circle(r, r, r * 0.947).fill({ color: 0xffffff })
+  g.circle(r, r, r * 0.921).stroke({
+    width: r * 0.105,
+    color: tokens.color.battle.ink,
+    alpha: 0.65,
+  })
+  g.circle(r, r, r * 0.737).stroke({ width: r * 0.053, color: 0xffffff, alpha: 0.55 })
   return g
 }

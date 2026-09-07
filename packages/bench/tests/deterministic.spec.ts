@@ -77,11 +77,14 @@ for (const profile of PROFILES) {
         const violations = checkLimits(observed, limits)
         expect(violations, describeViolations(violations)).toEqual([])
 
-        // 下面三条是「假绿」的防线：计数器没接上、剧本一帧没渲染、根本没空转，
+        // 下面四条是「假绿」的防线：计数器没接上、剧本一帧没渲染、根本没空转，
         // 这三种情况下上面每一条上限都会顺利通过，而那比测试失败危险得多。
+        // 最后一条防的是另一种假绿：场景里混进了外观换不掉的节点（Graphics、Text 之类），
+        // 那次调试渲染给它们加的不是整数 1，过度绘制会偏小地通过（见 src/page/overdraw.ts）。
         expect(await contextSeen(page), '计数器没接管到 WebGL 上下文，所有数字都不可信').toBe(true)
         expect(summary.renders).toBeGreaterThan(0)
         expect(summary.idleFrames).toBeGreaterThan(0)
+        expect(first.overdraw.unswapped, '有节点的外观换不掉，过度绘制的数字不可信').toBe(0)
 
         // 6.9：同一段剧本产生的确定性指标必须一模一样。
         // 比到逐帧记录这一层：汇总只有峰值和总和，某一帧的绘制调用挪到了下一帧它看不出来。

@@ -11,6 +11,9 @@
  * 对局只要 models 和 backs，牌组编辑才要 skills，不该开局就把四十多张原画全传上显存。
  */
 
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { compress } from '@assetpack/core/image'
 import { texturePacker, texturePackerCompress } from '@assetpack/core/texture-packer'
 
@@ -26,6 +29,25 @@ const PAGE_SIZE = 2048
 /** 卡面在图集里的尺寸。输入原画是 1024×1536，build-atlas.mjs 先缩到这一档再送进来。 */
 export const FRAME_WIDTH = 512
 export const FRAME_HEIGHT = 768
+
+/**
+ * 卡面圆角在图集这一档上的半径（像素）。
+ *
+ * 圆角在构建期烤进原画的 alpha（纪律 3.1：软边这类东西要么写进着色器、要么烤进纹理），
+ * 运行期不用遮罩也不用 Filter。半径按卡面基准宽等比缩到图集这一档：512 × 10 / 150 ≈ 34。
+ *
+ * 两个数都从设计令牌的源文件里读，而不是在这儿抄一份：卡宽和圆角改了这里要跟着改，
+ * 抄一份就迟早对不上。这个脚本不在 pnpm 工作区里（assets/ 不是一个包），
+ * 而 @ai-duel/design 对外导出的是 TS 源码、Node 直接 import 不了，所以退回读它的 tokens/*.json。
+ */
+const here = dirname(fileURLToPath(import.meta.url))
+const cardTokens = JSON.parse(
+  readFileSync(join(here, '../packages/design/tokens/size.json'), 'utf8'),
+).size.card
+export const FRAME_RADIUS = Math.round(
+  (FRAME_WIDTH * Number.parseFloat(cardTokens.radius.$value)) /
+    Number.parseFloat(cardTokens.width.$value),
+)
 
 /** 图集图片的 webp 质量。90 在卡面这种大面积渐变上看不出压缩痕迹，体积却只有 png 的两三成。 */
 const WEBP_QUALITY = 90
@@ -47,7 +69,12 @@ export function atlasConfig(entry, output) {
           // 名字用相对路径去掉扩展名，Pixi 那边就按 `gpt-4o` 这样的贴图名取纹理。
           nameStyle: 'relative',
           removeFileExtension: true,
-          // 卡面是不透明的整张图，没有可裁的透明边；关掉裁剪，帧的尺寸才恒等于 512×768。
+          /*
+           * 关掉裁剪，帧的尺寸才恒等于 512×768。
+           * 这条现在是必需的而不只是图省事：卡面四角被烤成了透明的圆角（见 FRAME_RADIUS），
+           * 开着裁剪的话打包器会把这几块透明边裁掉，帧尺寸变得每张不一样，
+           * 而 canvas 那边是按「一帧就是一整张卡」摆网格的。
+           */
           allowTrim: false,
           // 允许旋转能多塞几张，但取出来的纹理带旋转标记，调试时看着别扭，收益也就一两张。
           allowRotation: false,

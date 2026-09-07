@@ -68,8 +68,12 @@ const SHARED: Omit<Limits, 'offscreenBindsPerFrame' | 'batchBreaksPerFrame'> = {
 export const LIMITS: Readonly<Record<ProfileName, Limits>> = {
   desktop: {
     ...SHARED,
-    // 实测峰值 31 次（出牌那段，手上十二张时纹理数超过一批能带的上限，每帧要重排纹理槽），
-    // 留 1.5 倍余量取整到 48。
+    /*
+     * 实测峰值 34 次（出牌那段，手上十二张时纹理数超过一批能带的上限，每帧要重排纹理槽），
+     * 留 1.5 倍余量取整到 48。
+     * 34 里有 3 次是卡面反光那一层带来的：它有自己的着色器，进绘制队列就是一次程序切换加前后两次
+     * 状态切换。2026-09-08 之前剧本的 hover 不喂指针位置，反光从没亮过，那时候实测是 31。
+     */
     batchBreaksPerFrame: { value: 48, discipline: '3.9 合批被打断' },
     /*
      * 6.9 表原话是「移动端档位为 0，桌面档位设上限」，验证下来桌面档实测也是 0，所以就定 0。

@@ -1,30 +1,69 @@
 /**
- * 一张卡牌：图集里的原画 + 底部铭牌（模型名）+ 左上费用圆章，背面是牌背图。
+ * 一张卡牌：图集里的原画 + 底部铭牌（模型名）+ 左上费用圆章，背面是牌背图，
+ * 再加一层跟着指针跑的反光。
  *
  * 坐标约定：容器的原点在**卡的底边中点**，也就是旋转和缩放的轴（和 fanMath 那套坐标一致）。
  * 卡面因此占 x ∈ [−75, 75]、y ∈ [−225, 0]。旧版 DOM 是靠 `transform-origin: 50% 100%`
  * 做到同一件事的，Pixi 这边直接把子节点摆到负 y 上，省掉一层 pivot。
  *
- * 分三层，每层只由一个人写变换，谁也不覆盖谁（和旧版 slot / tilt / inner 三层一一对应）：
- *   this        扇形布局和拖拽跟随写 position / rotation / scale / alpha
- *   flipLayer   翻面写 scale.x（Pixi 没有三维，绕 Y 轴转用横向压扁模拟，见 setFlipAngle）
- *   tiltLayer   跟着指针的倾斜写 skew 和 scale（见 cardTilt.ts）
+ * 每一层都是四边形网格而不是精灵：倾斜和翻面要真透视（近大远小），仿射变换做不出梯形。
+ * 各层按自己的局部矩形过同一个投影（见 cardProjection.ts），算出四个角写进网格的几何。
+ * 矩形一样的几层（原画、边框、反光都是整张卡）合成一组，一组只算一次、共用一份几何。
+ * 细分只有 5×2 = 10 个顶点，远在 Pixi「顶点数不超过 100 才进合批」的门槛以内，
+ * 换成网格之后仍然和别的卡合成同一批（3.9，实测合批打断次数和用精灵时一模一样）。
  *
- * 卡面上的两段文字（模型名、费用数字）在构造时就烤成纹理，之后场景里挂的是精灵。
+ * 谁写什么，各管各的、谁也不覆盖谁：
+ *   this      扇形布局和拖拽跟随写 position / rotation / scale / alpha
+ *   投影      倾斜（cardTilt.ts）和翻面（场景的 flip）各写一个角度，合成一次投影
+ *
+ * 卡面上的两段文字（模型名、费用数字）在构造时就烤成纹理，之后场景里挂的是网格。
  * 所以这张卡建好之后**没有任何能改文字内容的对象**，3.5 那条不靠自觉靠结构。
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, Rectangle, Sprite, TextStyle, type Texture } from 'pixi.js'
+import {
+  Container,
+  Mesh,
+  type PerspectivePlaneGeometry,
+  Rectangle,
+  type Shader,
+  TextStyle,
+  type Texture,
+} from 'pixi.js'
 import type { BakedTextures } from '../fx/bakedTextures'
 import { COST_BADGE_CENTER, COST_BADGE_SIZE, NAMEPLATE_HEIGHT } from '../fx/bakedTextures'
+import { CardGlare } from '../fx/cardGlare'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import type { TextTextureCache } from '../runtime/textCache'
+import {
+  type LayerRect,
+  type MeshVertices,
+  newLayerGeometry,
+  sharedFlatGeometry,
+} from './cardGeometry'
+import { CardProjector, type Corners, createCorners } from './cardProjection'
 
 /** 铭牌上模型名的字号。卡面 150 宽，14px 下最长的那几个模型名刚好排得开。 */
 const NAME_FONT_SIZE = 14
-/** 费用数字的字号，按圆章直径 38 配的。 */
-const COST_FONT_SIZE = 20
+/**
+ * 费用数字的字号。
+ * 按圆章直径取的（COST_BADGE_SIZE ≈ 31.2）：0.52 倍直径下，两位数也排得进最里面那圈细线。
+ */
+const COST_FONT_SIZE = Math.round(COST_BADGE_SIZE * 0.52)
+
+/**
+ * 整张卡那么大的层用的网格细分。
+ *
+ * 透视校正是在顶点之间做分段线性近似的，顶点越多越准，但每个顶点都要参与合批时的逐帧打包，
+ * 十几张牌乘起来在软件渲染的跑批机上很快就吃掉一大截帧时间，所以能少则少。
+ *
+ * 只加横向、纵向就两排，是因为翻面（绕 Y 轴）造成的透视只沿横向变化：卡面在 z = 0 上，
+ * 绕 Y 转之后每一点的深度只跟它的 x 有关，纵向那一维是严格线性的，细分了也白细分。
+ * 倾斜（绕 X）确实会让纵向也非线性，但它最大只有 6°，那点弯曲不到一个像素。
+ */
+const CARD_MESH_VERTICES: MeshVertices = { x: 5, y: 2 }
+/** 费用章、文字这些小件用的细分。它们只有几十像素见方，四个角就够，多了纯属浪费。 */
+const SMALL_MESH_VERTICES: MeshVertices = { x: 2, y: 2 }
 
 /** 建一张卡要的数据。纹理由调用方给——canvas 不管资源从哪来。 */
 export interface CardVisual {
@@ -45,6 +84,24 @@ export interface CardVisual {
 export interface CardSpriteDeps {
   baked: BakedTextures
   text: TextTextureCache
+  /**
+   * 这一档要不要卡面反光（见 fx/effectTier.ts 的 TierConfig.glare）。
+   * 不要就连建都不建：反光层带一份自己的着色器，低档位建出来也永远不会亮。
+   */
+  glare: boolean
+}
+
+/**
+ * 共用一份几何的一组层：矩形一样、投影结果就一样，没必要各算一遍。
+ * 卡面原画、边框铭牌、反光都是整张卡那么大，所以它们是同一组。
+ */
+interface LayerGroup extends LayerRect {
+  /** 这一组共用的几何。刚建卡时是全场共用的平放那份，见 takeOwnGeometry。 */
+  geometry: PerspectivePlaneGeometry
+  meshes: Mesh<PerspectivePlaneGeometry, Shader>[]
+  vertices: MeshVertices
+  /** 牌背要左右对调才不是镜像的，理由见 cardProjection 的 project。 */
+  mirrored: boolean
 }
 
 /** 两个共享的文字样式，全场只建一次：TextStyle 一变就要重新量文字，没必要每张牌各建一份。 */
@@ -69,16 +126,26 @@ function styles(): { name: TextStyle; cost: TextStyle } {
 
 export class CardSprite extends Container {
   readonly cardId: string
-  /** 翻面层：只有它写 scale.x。 */
-  readonly flipLayer: Container
-  /** 倾斜层：只有 cardTilt 写它的 skew 和 scale。 */
-  readonly tiltLayer: Container
-  /** 卡面那一小块反光，平时 alpha 是 0。 */
-  readonly glare: Sprite
+  /** 卡面那一小块反光，平时藏着（visible 为 false）。这一档不开反光时是 null。 */
+  readonly glare: CardGlare | null
 
-  private readonly frontLayer: Container
-  private readonly backLayer: Container
-  /** 翻面用的角度代理。补间改它，onUpdate 再换算成 scale.x，见 setFlipAngle。 */
+  private readonly frontLayer = new Container()
+  private readonly backLayer = new Container()
+  private readonly frontGroups: LayerGroup[] = []
+  private readonly backGroups: LayerGroup[] = []
+  private readonly projector = new CardProjector()
+  /** 投影结果的落脚点。复用同一个数组，逐帧投影不产生堆分配（3.10）。 */
+  private readonly corners: Corners = createCorners()
+  /** 各层还在用全场共用的那份平放几何。第一次真要投影时才换成自己的，见 takeOwnGeometry。 */
+  private ownsGeometry = false
+
+  /** 跟着指针的倾斜角（度），由 cardTilt 每帧写。 */
+  private tiltX = 0
+  private tiltY = 0
+  /** 翻面转过的角度（度），0 是正面、180 是背面。 */
+  private flipAngle = 0
+
+  /** 翻面用的角度代理。补间改它，onUpdate 再调 setFlipAngle。 */
   readonly flipState = { angle: 0 }
 
   constructor(visual: CardVisual, deps: CardSpriteDeps) {
@@ -86,16 +153,16 @@ export class CardSprite extends Container {
     this.cardId = visual.id
     this.label = `card:${visual.id}`
 
-    this.flipLayer = new Container()
-    this.tiltLayer = new Container()
-    this.frontLayer = new Container()
-    this.backLayer = new Container()
     this.backLayer.visible = false
+    this.addChild(this.frontLayer, this.backLayer)
 
-    this.addChild(this.flipLayer)
-    this.flipLayer.addChild(this.tiltLayer)
-    this.tiltLayer.addChild(this.frontLayer, this.backLayer)
-
+    /*
+     * 反光和卡面原画是同一个四边形，所以它直接借用那一组的几何，自己不再建一份。
+     * 借的是"平放"那份共用几何，之后跟着整组一起换成卡自己的（takeOwnGeometry）。
+     */
+    this.glare = deps.glare
+      ? new CardGlare(sharedFlatGeometry(cardRect(), CARD_MESH_VERTICES, false))
+      : null
     this.buildFront(visual, deps)
     this.buildBack(visual)
 
@@ -103,44 +170,37 @@ export class CardSprite extends Container {
     this.cursor = 'pointer'
     /*
      * 命中区显式给成卡面那个矩形，不让 Pixi 按子节点的包围盒算。
-     * 两个原因：高光那张软光纹理比卡面大得多（要糊出边缘才像光），按包围盒算的话
-     * 卡外一大圈都会吃到指针事件；而每帧重算包围盒本身也是白花的开销。
+     * 两个原因：一是每帧重算包围盒本身就是白花的开销；二是倾斜和翻面期间各层是梯形，
+     * 包围盒每帧都在变，命中区会跟着抖——而扇形 hover 防抖动那套要求命中区必须稳定盖住原位。
      * 这个矩形在卡自己的坐标里，所以 hover 放大、拖拽放大都会自动跟着一起放大。
      */
     this.hitArea = new Rectangle(-CARD_WIDTH / 2, -CARD_HEIGHT, CARD_WIDTH, CARD_HEIGHT)
+  }
 
-    this.glare = new Sprite(deps.baked.softDot)
-    this.glare.anchor.set(0.5)
-    // 叠加混合：反光是"多打上去的光"，不是盖一层白。不用 Filter，所以不吃离屏渲染（3.1）。
-    this.glare.blendMode = 'add'
-    this.glare.alpha = 0
-    /*
-     * 不亮的时候整个藏起来，不能只把 alpha 归零。
-     * Pixi 判要不要画看的是 visible 不是 alpha，alpha 为 0 的精灵照样进绘制批；
-     * 而它是叠加混合，进批就意味着前后各切一次混合模式——十几张牌就是三十几次白白的打断（3.9）。
-     * 低档位本来就不开反光（见 fx/effectTier.ts），那时它一次都不该出现在批里。
-     */
-    this.glare.visible = false
-    this.glare.setSize(CARD_WIDTH * 1.6, CARD_WIDTH * 1.6)
-    this.frontLayer.addChild(this.glare)
+  /**
+   * 跟着指针的倾斜角（度）。绕 X 正数让上沿往后倒、绕 Y 正数让右沿往后倒。
+   * 角度没变就什么都不做：逐帧调用里绝大多数帧是稳态，重算一遍角点纯属浪费。
+   */
+  setTilt(rotXDeg: number, rotYDeg: number): void {
+    if (rotXDeg === this.tiltX && rotYDeg === this.tiltY) return
+    this.tiltX = rotXDeg
+    this.tiltY = rotYDeg
+    this.refreshProjection()
   }
 
   /**
    * 按角度摆好翻面姿态：0° 是正面，180° 是背面。
    *
-   * Pixi 是二维的，没有绕 Y 轴的旋转，所以用横向压扁来模拟——转到 90° 时卡正好侧对观察者、
-   * 投影宽度为零，这一点和真的三维旋转完全一致，观感上分不出来。
+   * 翻面就是绕 Y 轴转，和倾斜的绕 Y 是同一个自由度，所以两者相加后过同一个投影
+   * ——转到 90° 时卡正好侧对观察者、投影宽度为零，转过头之后近的那一侧还会更大，
+   * 这是旧版「压扁到 cos θ」那种二维模拟给不出来的。
    * 正反面在跨过 90° 那一刻硬切：那时卡宽是 0，切换看不见（旧版 DOM 那边也是这么切的，
    * 理由见 legacy 的 flipCard.ts——backface-visibility 在补间途中判断不可靠）。
    */
   setFlipAngle(angleDeg: number): void {
-    const angle = ((angleDeg % 360) + 360) % 360
-    const showBack = angle > 90 && angle < 270
-    this.flipLayer.scale.x = Math.cos((angle * Math.PI) / 180)
-    this.frontLayer.visible = !showBack
-    this.backLayer.visible = showBack
-    // 背面自己再横向翻一次，否则它会跟着正面一起被照成镜像。
-    this.backLayer.scale.x = showBack ? -1 : 1
+    if (angleDeg === this.flipAngle) return
+    this.flipAngle = angleDeg
+    this.refreshProjection()
   }
 
   /** 现在朝上的是不是背面。 */
@@ -148,44 +208,165 @@ export class CardSprite extends Container {
     return this.backLayer.visible
   }
 
+  /**
+   * 把当前的倾斜和翻面角度算成各组的四个角。
+   *
+   * 两处偷懒都是有意的：
+   * 一是角度全为 0 而且还在用共用几何时直接返回——共用的那份本来就是平放的姿态，
+   *   而且它是全场共用的，往里写就是把别的卡一起改了；
+   * 二是只算露在外面那一面，另一面这一帧看不见（可见性就在这里定，先定再算）。
+   */
+  private refreshProjection(): void {
+    const angle = ((this.flipAngle % 360) + 360) % 360
+    const showBack = angle > 90 && angle < 270
+    this.frontLayer.visible = !showBack
+    this.backLayer.visible = showBack
+
+    const flat = this.tiltX === 0 && this.tiltY === 0 && this.flipAngle === 0
+    if (flat && !this.ownsGeometry) return
+    if (!this.ownsGeometry) this.takeOwnGeometry()
+
+    this.projector.setAngles(this.tiltX, this.tiltY + this.flipAngle)
+    for (const group of showBack ? this.backGroups : this.frontGroups) {
+      this.projector.project(
+        group.x,
+        group.y,
+        group.width,
+        group.height,
+        this.corners,
+        group.mirrored,
+      )
+      group.geometry.setCorners(...this.corners)
+    }
+  }
+
+  /**
+   * 把各组从共用的平放几何换成这张卡自己的一份。
+   * 只有真的要投影（被指针倾斜、或者开始翻面）的那一两张卡会走到这里，见 cardGeometry.ts。
+   */
+  private takeOwnGeometry(): void {
+    this.ownsGeometry = true
+    for (const group of [...this.frontGroups, ...this.backGroups]) {
+      const geometry = newLayerGeometry(group, group.vertices, group.mirrored)
+      group.geometry = geometry
+      for (const mesh of group.meshes) mesh.geometry = geometry
+    }
+  }
+
+  /**
+   * 加一组层：几层共用一个矩形、一份几何。
+   * 一开始用的是全场共用的平放几何，所以建卡这一步一个几何都不新建。
+   * 细分记在组上：换成自己那份时必须用同一个细分，理由见 cardGeometry.ts 的 shared。
+   */
+  private addGroup(
+    parent: Container,
+    groups: LayerGroup[],
+    textures: Texture[],
+    rect: LayerRect,
+    vertices: MeshVertices,
+    mirrored = false,
+  ): LayerGroup {
+    const geometry = sharedFlatGeometry(rect, vertices, mirrored)
+    const meshes = textures.map((texture) => {
+      const mesh = new Mesh<PerspectivePlaneGeometry, Shader>({ geometry, texture })
+      parent.addChild(mesh)
+      return mesh
+    })
+    const group: LayerGroup = { geometry, meshes, ...rect, vertices, mirrored }
+    groups.push(group)
+    return group
+  }
+
   private buildFront(visual: CardVisual, deps: CardSpriteDeps): void {
-    const art = new Sprite(visual.face)
-    art.anchor.set(0.5, 1)
-    // 原画是 2:3，卡面 150×225 也是 2:3，所以直接铺满，不用遮罩（遮罩要单独一次绘制）。
-    art.setSize(CARD_WIDTH, CARD_HEIGHT)
-    this.frontLayer.addChild(art)
+    // 原画、边框铭牌、反光都是整张卡那么大，共用一份几何。
+    // 原画是 2:3，卡面 150×225 也是 2:3，所以直接铺满；四角的圆角已经烤进图集的 alpha 了。
+    const face = this.addGroup(
+      this.frontLayer,
+      this.frontGroups,
+      [visual.face, deps.baked.cardChrome],
+      cardRect(),
+      CARD_MESH_VERTICES,
+    )
+    // 反光排在这一组最后，画在原画和边框之上。
+    if (this.glare !== null) {
+      this.frontLayer.addChild(this.glare)
+      face.meshes.push(this.glare)
+    }
 
-    const chrome = new Sprite(deps.baked.cardChrome)
-    chrome.anchor.set(0.5, 1)
-    chrome.setSize(CARD_WIDTH, CARD_HEIGHT)
-    this.frontLayer.addChild(chrome)
-
-    const name = new Sprite(deps.text.get(`name|${visual.name}`, visual.name, styles().name))
-    name.anchor.set(0.5, 0.5)
-    name.y = -6 - NAMEPLATE_HEIGHT / 2
+    const nameText = deps.text.get(`name|${visual.name}`, visual.name, styles().name)
     // 名字太长就整体压窄，不换行也不裁字：铭牌只有一行高，换行会顶出卡外。
     const maxNameWidth = CARD_WIDTH - 24
-    if (name.width > maxNameWidth) name.scale.set(maxNameWidth / name.width)
-    this.frontLayer.addChild(name)
+    const nameScale = Math.min(1, maxNameWidth / nameText.width)
+    this.addGroup(
+      this.frontLayer,
+      this.frontGroups,
+      [nameText],
+      centered(
+        0,
+        -6 - NAMEPLATE_HEIGHT / 2,
+        nameText.width * nameScale,
+        nameText.height * nameScale,
+      ),
+      SMALL_MESH_VERTICES,
+    )
 
-    const badge = new Sprite(deps.baked.costBadge)
-    badge.anchor.set(0.5)
-    badge.setSize(COST_BADGE_SIZE, COST_BADGE_SIZE)
-    badge.tint = visual.accent
-    badge.position.set(-CARD_WIDTH / 2 + COST_BADGE_CENTER.x, -CARD_HEIGHT + COST_BADGE_CENTER.y)
-    this.frontLayer.addChild(badge)
+    const badgeX = -CARD_WIDTH / 2 + COST_BADGE_CENTER.x
+    const badgeY = -CARD_HEIGHT + COST_BADGE_CENTER.y
+    const badge = this.addGroup(
+      this.frontLayer,
+      this.frontGroups,
+      [deps.baked.costBadge],
+      centered(badgeX, badgeY, COST_BADGE_SIZE, COST_BADGE_SIZE),
+      SMALL_MESH_VERTICES,
+    )
+    // 盘底是白的，按各张牌的主色上色；tint 不触发重建，符合 3.10。
+    badge.meshes[0]!.tint = visual.accent
 
     const costText = String(visual.cost)
-    const cost = new Sprite(deps.text.get(`cost|${costText}`, costText, styles().cost))
-    cost.anchor.set(0.5)
-    cost.position.copyFrom(badge.position)
-    this.frontLayer.addChild(cost)
+    const cost = deps.text.get(`cost|${costText}`, costText, styles().cost)
+    this.addGroup(
+      this.frontLayer,
+      this.frontGroups,
+      [cost],
+      centered(badgeX, badgeY, cost.width, cost.height),
+      SMALL_MESH_VERTICES,
+    )
   }
 
   private buildBack(visual: CardVisual): void {
-    const back = new Sprite(visual.back)
-    back.anchor.set(0.5, 1)
-    back.setSize(CARD_WIDTH, CARD_HEIGHT)
-    this.backLayer.addChild(back)
+    this.addGroup(
+      this.backLayer,
+      this.backGroups,
+      [visual.back],
+      cardRect(),
+      CARD_MESH_VERTICES,
+      true,
+    )
   }
+
+  /**
+   * 拆卡。
+   *
+   * 自己那份几何和反光的着色器都要手动收：Pixi 的 `Mesh.destroy` 只把引用置空，
+   * 不动它们（几何和着色器本来就允许多个 Mesh 共用，它没法替调用方决定）。
+   * 还在用共用几何的卡什么都不用收——那批本来就不归任何一张卡（见 cardGeometry.ts）。
+   * 着色器程序也不销毁，那是全场共用的一份，见 fx/cardGlare.ts。
+   */
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    if (this.ownsGeometry) {
+      for (const group of [...this.frontGroups, ...this.backGroups]) group.geometry.destroy()
+    }
+    this.glare?.shader?.destroy()
+    super.destroy(options)
+  }
+}
+
+/** 整张卡那么大的矩形（原点在底边中点，所以卡面在负 y 上）。 */
+function cardRect(): LayerRect {
+  return { x: -CARD_WIDTH / 2, y: -CARD_HEIGHT, width: CARD_WIDTH, height: CARD_HEIGHT }
+}
+
+/** 以 (cx, cy) 为中心的矩形。卡上的小件都是按中心摆的，换算一次省得到处写减法。 */
+function centered(cx: number, cy: number, width: number, height: number): LayerRect {
+  return { x: cx - width / 2, y: cy - height / 2, width, height }
 }

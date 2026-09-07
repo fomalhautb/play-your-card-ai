@@ -27,6 +27,14 @@ const DEAL_COUNT = 5
 /** 剧本里所有随机（烟尘方向、大小）用的种子。写死是为了每次打开看到的都是同一套演出。 */
 const SEED = 20260905
 
+/**
+ * 计数器和帧率的采样间隔（毫秒）。
+ *
+ * 500ms 是个折中：短了 React 重渲染太频繁（那本身就会影响要量的东西），
+ * 长了帧率反应不过来——一次 hover 抬牌只演零点几秒，采样窗口比它还长就永远看不到峰值。
+ */
+const SAMPLE_MS = 500
+
 const TIERS: EffectTier[] = ['low', 'mid', 'high']
 
 export function HandFanDev() {
@@ -36,6 +44,8 @@ export function HandFanDev() {
   const [tier, setTier] = useState<EffectTier>('mid')
   const [status, setStatus] = useState('正在加载图集…')
   const [counters, setCounters] = useState({ textCreated: 0, renders: 0, frameRequests: 0 })
+  /** 最近一个采样窗口里的每秒渲染帧数。空闲（帧循环已经停）时是 0。 */
+  const [fps, setFps] = useState(0)
 
   useEffect(() => {
     const host = hostRef.current
@@ -43,13 +53,12 @@ export function HandFanDev() {
     if (host === null || canvas === null) return
 
     let disposed = false
-    let scene: DuelPrototype | null = null
 
     const boot = async () => {
       const textures = await loadCardAtlas()
       if (disposed) return
       const rect = host.getBoundingClientRect()
-      scene = await createDuelPrototype({
+      const scene = await createDuelPrototype({
         canvas,
         width: rect.width,
         height: rect.height,
@@ -82,23 +91,63 @@ export function HandFanDev() {
     })
     observer.observe(host)
 
+    /*
+     * 清理只拆一次。
+     *
+     * 以前这里既拆 sceneRef.current 又拆闭包里那份局部引用，而两者是同一个对象：
+     * 第二次 destroy 进到 Pixi 的 renderer.destroy 里就在已经置空的表上取属性，
+     * 抛 TypeError，异常从 effect 清理冒出去，React 把整个组件卸载——表现就是切档位后白屏。
+     * 场景那边现在也自己挡了重复调用，两头都堵上：契约没规定「只许拆一次」。
+     * 拆完把 ref 清掉，轮询计数器那个 effect 才不会去问一个已经没了的场景。
+     */
     return () => {
       disposed = true
       observer.disconnect()
       sceneRef.current?.destroy()
       sceneRef.current = null
-      scene?.destroy()
     }
     // tier 变了要整个重建场景：档位决定粒子池大小和特效开关，都是建场景时定下的。
   }, [tier])
 
-  // 计数器是给性能纪律看的（3.5 的文字、3.6 的空闲帧循环），
-  // 用轮询而不是每帧回调：每帧往 React 里塞一次状态本身就会把帧循环钉住不放。
+  /*
+   * 计数器是给性能纪律看的（3.5 的文字、3.6 的空闲帧循环），
+   * 用轮询而不是每帧回调：每帧往 React 里塞一次状态本身就会把帧循环钉住不放。
+   *
+   * 帧率也从这里算，而不是页面自己开一个 rAF 去数：
+   * 页面开了 rAF 就等于给自己上了一个永不停的帧循环，「没动画时停掉帧循环」（3.6）
+   * 这条从此在画面上看不出来了——真停了还是没停，帧率都照样显示六十几。
+   * 现在数的是场景自己的渲染次数（renders），场景不画帧率就是 0，一眼就能看出它停了。
+   */
   useEffect(() => {
+    /** 上一次采样是在哪个场景上取的。换档位会换一个新场景，它的 renders 从头数，不能跨着相减。 */
+    let sampled: DuelPrototype | null = null
+    let lastRenders = 0
+    let lastAt = performance.now()
     const timer = window.setInterval(() => {
       const scene = sceneRef.current
-      if (scene !== null) setCounters(scene.counters())
-    }, 500)
+      const now = performance.now()
+      if (scene === null || scene !== sampled) {
+        // 场景没了或者换了一个：这一档只把窗口对齐到现在，不报帧率（跨场景相减没有意义）。
+        sampled = scene
+        const fresh = scene?.counters() ?? { textCreated: 0, renders: 0, frameRequests: 0 }
+        lastRenders = fresh.renders
+        lastAt = now
+        setCounters(fresh)
+        setFps(0)
+        return
+      }
+      const next = scene.counters()
+      /*
+       * 用真实经过的时间除，不用 SAMPLE_MS：setInterval 在卡顿时会被推迟，
+       * 按名义间隔算出来的帧率反而在卡的时候更高，正好把要看的问题盖掉。
+       */
+      const elapsed = now - lastAt
+      const frames = next.renders - lastRenders
+      setFps(elapsed <= 0 ? 0 : Math.round((frames * 1000) / elapsed))
+      setCounters(next)
+      lastRenders = next.renders
+      lastAt = now
+    }, SAMPLE_MS)
     return () => window.clearInterval(timer)
   }, [])
 
@@ -110,7 +159,15 @@ export function HandFanDev() {
   return (
     <div className="hand-fan-dev">
       <div className="hand-fan-dev__stage" ref={hostRef}>
-        <canvas ref={canvasRef} />
+        {/*
+          key 挂 tier：换档位时让 React 换一个全新的 <canvas>，而不是在旧的上面重建场景。
+          Pixi 的 renderer.destroy() 最后会调 WEBGL_lose_context.loseContext()，
+          把这个 canvas 的 WebGL 上下文永久丢掉；同一个元素上再取上下文拿到的还是那个已丢的，
+          新场景画不出东西（实测还会把页面卡住）。canvas 元素本身很便宜，换一个最省事。
+        */}
+        <canvas key={tier} ref={canvasRef} />
+        {/* 帧率贴在画布左上角。半透明小字，盖不住手牌那片。 */}
+        <span className="hand-fan-dev__fps">{fps === 0 ? '空闲' : `${fps} fps`}</span>
       </div>
       <div className="hand-fan-dev__panel">
         <button type="button" onClick={() => run((s) => void s.deal(1))}>

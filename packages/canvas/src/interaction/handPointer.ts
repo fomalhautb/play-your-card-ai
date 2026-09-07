@@ -7,8 +7,13 @@
  * 二是指针每移动一次就建一条补间的话，稳态每帧堆分配那条（3.10）过不去。
  * 一次性的姿态切换（转正 + 放大）仍然走补间——那是有明确起止的一段演出。
  *
- * 场景合成出牌（playCard）走的是同一条路：调 press / move / release 三个方法，
- * 和真指针共用一套判定，不另开一条"程序出牌"的分支。
+ * pressAt / moveTo / releaseAt 是给"不经过真指针的合成拖拽"留的口子，现在还没有调用方：
+ * 场景的 playCard 前半段是自己按脚本排的（理由见 duelPrototype 里那段注释），
+ * 只有落地之后才和真拖拽合流。留着是因为 6.6 的交互回归要靠它喂坐标。
+ *
+ * 这里所有跟随（拖拽的、倾斜的）都只在 advance 里推进，而 advance 只有帧循环在跑时才被调到。
+ * 补间那条路由 Animator 负责叫醒帧循环，指针这条路没有补间，所以要自己调 options.wake()——
+ * 漏了的地方表现是"指针在动，画面冻着"。
  */
 
 import type { Container, FederatedPointerEvent } from 'pixi.js'
@@ -55,6 +60,15 @@ export interface HandPointerOptions {
   onPlay: (card: CardSprite) => void
   /** 现在允不允许出牌。演出期间整排冻住。 */
   enabled: () => boolean
+  /**
+   * 叫醒帧循环。
+   *
+   * 这个回调是必需的，不是可选的优化：跟随和倾斜都只在 advance 里推进，而 advance 只有
+   * 帧循环在跑的时候才被调到。没有补间在播时帧循环是停着的（3.6），指针再怎么动都没人画，
+   * 卡面就冻在上一帧——表现是"抬起来的牌不跟着鼠标倾斜、高光根本不出现"。
+   * 补间那条路由 Animator 自己叫醒（见场景里 new Animator 那行），指针这条路只能自己叫。
+   */
+  wake: () => void
 }
 
 interface PressState {
@@ -163,6 +177,8 @@ export class HandPointer {
   private onOut(card: CardSprite): void {
     if (this.press !== null || this.hovered !== card) return
     this.leaveCountdown = LEAVE_DELAY_MS
+    // 倒计时是在 advance 里减的，不叫醒帧循环就永远减不到零，抬起来的牌收不回去。
+    this.options.wake()
   }
 
   private collapseHover(): void {
@@ -250,6 +266,15 @@ export class HandPointer {
     const lift = press.pointerType === 'mouse' ? 0 : (DRAG_SCALE * CARD_HEIGHT) / 2
     press.targetX = x
     press.targetY = y - lift
+    /*
+     * 跟随也是在 advance 里收的。
+     *
+     * 今天这一次其实是白叫的：拖拽期间 advance 恒报"还在忙"，帧循环压根不会停。
+     * 留着是因为那个"恒为真"哪天很容易被改掉——比如加一条"卡已经追上指针就别再报忙了"，
+     * 那时候手停一下再动，画面就冻住了，而且现场看不出和帧循环有关。
+     * wake() 在循环已经在跑时直接返回，留着不花钱。
+     */
+    this.options.wake()
   }
 
   /**
@@ -318,8 +343,9 @@ export class HandPointer {
   private returnCard(card: CardSprite): void {
     const { fan } = this.options
     // 先挪回扇形容器再补间：位置是扇形坐标系里的，留在拖拽层上补间等于飞去另一个地方。
+    // 收回去要走 adoptInOrder 而不是 addChild：后者把牌追加到末尾，这张牌就永远压在整排之上了。
     const local = this.options.toFanLocal(card.x, card.y)
-    fan.addChild(card)
+    fan.adoptInOrder(card)
     card.position.set(local.x, local.y)
     fan.returnToFan(card)
   }
@@ -334,5 +360,7 @@ export class HandPointer {
     const local = card.toLocal(this.scratch, undefined, this.scratch)
     // 卡面在自己的坐标里占 x ∈ [−75, 75]、y ∈ [−225, 0]（原点在底边中点）。
     tilt.setPointer(local.x / CARD_WIDTH + 0.5, local.y / CARD_HEIGHT + 1)
+    // 倾斜和高光都要等 advance 收敛，抬起的补间早就演完了，这时候帧循环停着，得自己叫醒。
+    this.options.wake()
   }
 }

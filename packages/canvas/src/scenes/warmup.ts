@@ -9,6 +9,9 @@
  *
  * 做法是把牌库里每个贴图名各建一张卡，正面画一遍、翻到背面再画一遍，然后拆掉。
  * 正面那遍带上全部卡面图集页和烤出来的边框圆章，背面那遍带上牌背图集页。
+ * 正面那遍还顺手把反光点亮一次：它带自己的着色器（见 fx/cardGlare.ts），
+ * 着色器是第一次真的画到才编译的，不在这里编译掉的话，玩家第一次 hover 会卡一帧，
+ * 剧本里也会在计数窗口内多出一次编译（6.9 要求预热后为 0）。
  * 建出来的卡是一次性的：文字纹理留在缓存里（那正是要的结果），卡本身画完就销毁。
  */
 
@@ -51,13 +54,25 @@ export function warmupScene(opts: WarmupOptions): void {
       ((row + 1) * opts.height) / (Math.ceil(keys.length / COLUMNS) + 1),
     )
     card.scale.set(CARD_SCALE)
+    // 反光平时是藏着、且完全透明的，那样不会被真的画到、着色器也就编译不了，所以手动点亮。
+    // 低档位根本不建反光层（见 CardSpriteDeps.glare），那时这里就没什么可预热的。
+    if (card.glare !== null) {
+      card.glare.visible = true
+      card.glare.alpha = 1
+    }
     opts.layer.addChild(card)
     cards.push(card)
   })
 
   opts.renderer.render(opts.stage)
   // 翻到背面再画一遍：牌背是另一张图集，不翻过来它那一页要等到剧本里第一次翻牌才传。
-  for (const card of cards) card.setFlipAngle(180)
+  for (const card of cards) {
+    if (card.glare !== null) {
+      card.glare.visible = false
+      card.glare.alpha = 0
+    }
+    card.setFlipAngle(180)
+  }
   opts.renderer.render(opts.stage)
 
   for (const card of cards) {

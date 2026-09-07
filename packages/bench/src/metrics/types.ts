@@ -114,6 +114,12 @@ export interface OverdrawResult {
   sampled: number
   /** 参与这次调试渲染的可见节点数。全 0 时先看它是不是 0——那说明根本没抓到场景。 */
   nodes: number
+  /**
+   * 外观换不掉的可见节点数（Graphics、Text 这类，见 page/overdraw.ts）。
+   * 它们只被涂上 tint，画出去的还是原来那些深浅不一的像素，加进去的不是整数 1，
+   * 所以这个数一旦不是 0，这次的 average 就偏小、不能拿来判上限。
+   */
+  unswapped: number
 }
 
 /** 一次完整测量的产物，就是 window.__bench.metrics() 的返回值。 */

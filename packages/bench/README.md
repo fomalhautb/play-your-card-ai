@@ -59,7 +59,7 @@ scripts/       frames.py：从 Chrome trace 里取帧
 | 每帧绘制调用数 | 数 `drawArrays` / `drawElements` / 两个 instanced 变体 | `metrics/glCounters.ts` `tally(...)` |
 | 合批被打断次数 | 数纹理绑定、着色器切换、混合模式切换里**真的换了**的那些 | `glCounters.ts` `bindTexture` / `useProgram` / `blend` / `toggle` |
 | 离屏渲染次数 | 数 `bindFramebuffer` 里绑到非 null 的那些 | `glCounters.ts` `bindFramebuffer` |
-| 过度绘制倍数 | 全场景换 1×1 白纹理、tint `0x010101`、叠加混合，渲进 RenderTexture 再读回，红通道均值 | `page/overdraw.ts` |
+| 过度绘制倍数 | 全场景换 1×1 白纹理（网格连自带的着色器一起摘掉）、tint `0x010101`、叠加混合，渲进 RenderTexture 再读回，红通道均值 | `page/overdraw.ts` |
 | 动画期间纹理上传次数 | 数 `texImage2D` / `texSubImage2D` / `compressedTexImage2D` | `glCounters.ts` |
 | 常驻纹理内存 | 按格式和宽高累加已上传的每一层，`deleteTexture` 时减掉 | `metrics/textureBytes.ts` + `glCounters.ts` `setLevel` |
 | 运行期着色器编译 | 数 `compileShader` / `linkProgram` | `glCounters.ts` |
@@ -94,7 +94,7 @@ scripts/       frames.py：从 Chrome trace 里取帧
 | 名字 | 内容 |
 |---|---|
 | `deal` | 开局发 8 张 |
-| `play10` | 连续出牌十次，中间穿插 hover |
+| `play10` | 连续出牌十次，中间穿插 hover（带指针在卡面上的位置，卡面倾斜和反光才会被点亮） |
 | `flip` | 翻面三张，其中一张翻回去 |
 
 6.9 还列了一轮结算、牌组编辑滚动、开包，那几段要等对应场景写出来。
@@ -142,10 +142,17 @@ JSON 的形状就是 `src/node/report.ts` 里的 `DeterministicReport` 和 `Timi
 - **泄漏那条的 JS 堆基线取在空跑十几轮之后**。每轮都新建又销毁一个 WebGL 上下文和一整套 Pixi 系统，
   头十几轮各种池子和缓存要涨到高水位，之后还剩每轮约 25 KB 的残留（Pixi / 浏览器侧，不是场景的）。
   常驻纹理内存那条不受影响，它一直精确回到 0。
-- **过度绘制只处理能临时改掉外观的对象**（tint、混合模式、精灵纹理）。
-  用了自定义 Shader、Mesh 或 Filter 的对象换不掉，会按原样画进去，数字偏小。
-  真实场景现在覆盖得全：场景图里只有 Container 和 Sprite，边框、圆章、烟尘、文字全是预烤纹理的精灵，
-  一个 Graphics、Mesh、Filter 都没有（3.1 不许挂 Filter）。哪天场景里加了这三种东西，这条要重新确认。
+- **过度绘制只处理能临时改掉外观的对象**（tint、混合模式、精灵和网格的纹理）。
+  网格还要顺带把自带的着色器摘成 null：卡面反光那一层的着色器不采样纹理，自己算一个
+  最大 0.4 的渐变 alpha，乘上 tint 的 1/255 之后写进 RGBA8 四舍五入就是 0，
+  整层会被静默漏掉。摘掉着色器它就当一个普通贴图四边形画，每个像素正好加 1，
+  这也才符合「填充率」的定义——四边形盖住多少像素，和着色器输出什么颜色无关。
+  Filter 一律摘掉不算：3.1 本来就不许挂，真挂了「离屏渲染次数」那条会先报出来。
+  剩下那些外观换不掉的节点（Graphics、Text 之类）计进结果的 `unswapped`，
+  它们加进去的不是整数 1，所以真实场景断言这个数必须是 0
+  （`tests/deterministic.spec.ts`）；桩场景每张牌带一个 Text 标签，不是 0 属于预期。
+  真实场景现在覆盖得全：场景图里只有 Container、Sprite 和 Mesh——卡牌各层是网格
+  （要真透视，见 canvas 的 components/CardSprite.ts），烟尘、追光是预烤纹理的精灵。
 - **文字纹理的大小和机器有关**。字体光栅化在不同系统上略有差别，所以「常驻纹理内存」这条在跨机器比较时
   会有几百 KB 的浮动。预算留了足够余量，但两台机器的这一项不必强求完全相同。
 - **抓 Pixi 场景靠的是包 `WebGLRenderer.prototype.render`**（`page/renderProbe.ts`），
