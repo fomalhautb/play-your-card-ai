@@ -76,6 +76,132 @@
         "$type": "number",
         "$description": "首页花饰细线最实那一端的不透明度，线本身是往外侧淡到 0 的渐变。来源：styles.css 的 .home__flourish-line 的渐变终点 rgb(232 198 159 / 70%)。"
       }
+    },
+    "plaqueCorner": {
+      "navy": {
+        "$value": 0.5,
+        "$type": "number",
+        "$description": "墨蓝匾额四角折线的透明度。来源：styles.css 的 .plaque-button__corner stroke: rgb(143 139 128 / 50%)。"
+      },
+      "paper": {
+        "$value": 0.45,
+        "$type": "number",
+        "$description": "纸白匾额四角折线的透明度。来源：styles.css 的 .battle__end-turn .plaque-button__corner。"
+      },
+      "terracotta": {
+        "$value": 0.55,
+        "$type": "number",
+        "$description": "陶橙匾额四角折线的透明度。来源：styles.css 的 .battle__urge .plaque-button__corner。"
+      },
+      "ivory": {
+        "$value": 0.45,
+        "$type": "number",
+        "$description": "米白匾额四角折线的透明度。来源：hero.css 的 .plaque-button__corner。"
+      }
+    },
+    "plaqueSpark": {
+      "$value": 0.72,
+      "$type": "number",
+      "$description": "匾额左右两颗星芒的透明度。四个变体共用这一档，旧样式里没有一处覆盖它。来源：styles.css 的 .plaque-button__spark。"
+    },
+    "control": {
+      "idle": {
+        "$value": 0.72,
+        "$type": "number",
+        "$description": "纸面无底图标钮的常态透明度。纸上贴一枚实心墨色剪影会重得像块补丁，压一档才压得住。来源：styles.css「顶栏那一行右端的控件」一节。"
+      },
+      "hover": {
+        "$value": 1,
+        "$type": "number",
+        "$description": "纸面无底图标钮悬停时回到全实。来源同上。"
+      }
+    },
+    "seal": {
+      "base": {
+        "$value": 0.78,
+        "$type": "number",
+        "$description": "夜色圆章底的透明度。来源：styles.css 的 rgb(20 17 12 / 78%)。"
+      }
+    },
+    "mark": {
+      "base": {
+        "$value": 0.88,
+        "$type": "number",
+        "$description": "战场小卡角标药丸底的透明度。来源：styles.css 的 .battle__tile-mark background。"
+      },
+      "amberLine": {
+        "$value": 0.6,
+        "$type": "number",
+        "$description": "角标默认那档（被干扰）描边的透明度。来源：styles.css 的 .battle__tile-mark border-color。"
+      },
+      "upLine": {
+        "$value": 0.55,
+        "$type": "number",
+        "$description": "角标「变强了」那档描边的透明度。来源：styles.css 的 .battle__tile-mark--up。"
+      },
+      "downLine": {
+        "$value": 0.45,
+        "$type": "number",
+        "$description": "角标「变弱了」那档描边的透明度。来源：styles.css 的 .battle__tile-mark--down。"
+      },
+      "safeLine": {
+        "$value": 0.6,
+        "$type": "number",
+        "$description": "角标「被保住了」那档描边的透明度。来源：styles.css 的 .battle__tile-mark--safe。"
+      }
+    },
+    "bubble": {
+      "tipBase": {
+        "$value": 0.9,
+        "$type": "number",
+        "$description": "浮起小气泡底的透明度。来源：styles.css 的 .hand-fan__lock-tip background。"
+      },
+      "tipLine": {
+        "$value": 0.55,
+        "$type": "number",
+        "$description": "浮起小气泡描边的透明度。来源同上。"
+      }
+    },
+    "midline": {
+      "rail": {
+        "$value": 0.35,
+        "$type": "number",
+        "$description": "中线横杆最实的那一端的透明度（两端往中间渐隐到 0）。来源：styles.css 的 .battle__midline::before。"
+      },
+      "badgeLine": {
+        "$value": 0.38,
+        "$type": "number",
+        "$description": "中线回合徽章描边的透明度。来源：styles.css 的 .battle__midline-badge border。"
+      },
+      "badgeInk": {
+        "$value": 0.88,
+        "$type": "number",
+        "$description": "中线回合徽章字色的透明度。来源同上。"
+      }
+    },
+    "frame": {
+      "innerHighlight": {
+        "$value": 0.3,
+        "$type": "number",
+        "$description": "雕花框内线贴着自己往里 1px 的那道白高光。来源：styles.css 的 .ornate-frame__edge--inner box-shadow。"
+      },
+      "scrollLeaf": {
+        "$value": 0.72,
+        "$type": "number",
+        "$description": "纸匾上四角卷叶的透明度。来源：styles.css 的 .battle__next-plaque-scroll-leaf。"
+      },
+      "scrollArc": {
+        "$value": 0.8,
+        "$type": "number",
+        "$description": "纸匾上卷叶那道弧线的透明度。来源：styles.css 的 .battle__next-plaque-scroll-arc。"
+      }
+    },
+    "turnPlaque": {
+      "dot": {
+        "$value": 0.5,
+        "$type": "number",
+        "$description": "「对方回合」吊匾上那三颗点的静止透明度（跳动时在这个数上下浮动）。来源：styles.css 的 .battle__turn-plaque-dots i。"
+      }
     }
   }
 }

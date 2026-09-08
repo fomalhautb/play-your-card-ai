@@ -40,6 +40,42 @@
         "$type": "duration",
         "$description": "首页人物介绍卡片淡入的起跑延迟，只有卡片用、高亮不用。和上面那对时长配合，让旧卡先退干净。来源：styles.css 的 .home__stage --home-cast-panel-in-delay。"
       }
+    },
+    "plaque": {
+      "press": {
+        "$value": "0.07s",
+        "$type": "duration",
+        "$description": "匾额按钮压下去那一下。快得几乎看不见过程，压入本身才像\"当场吃住了力\"。来源：styles.css 的 .plaque-button:active transition-duration，也是 PlaqueButton.tsx 的 MIN_PRESS_MS（70ms）。"
+      },
+      "release": {
+        "$value": "0.22s",
+        "$type": "duration",
+        "$description": "匾额按钮弹回来那一下。比压下去慢三倍，弹性曲线才有余地走完。来源：styles.css 的 .plaque-button transition。"
+      }
+    },
+    "button": {
+      "hover": {
+        "$value": "0.18s",
+        "$type": "duration",
+        "$description": "按钮悬停换色的过渡。旧样式里多处都是 0.16~0.18s 这一档，取最长的那档。来源：styles.css 的 .plaque-button::before background-color 180ms。"
+      }
+    },
+    "bubble": {
+      "in": {
+        "$value": "0.24s",
+        "$type": "duration",
+        "$description": "气泡淡入。来源：styles.css 的 battle-urge-bubble-in。"
+      },
+      "out": {
+        "$value": "0.25s",
+        "$type": "duration",
+        "$description": "气泡淡出。来源：ui/HandFan.tsx 里 lock-tip 的收尾补间。"
+      },
+      "hold": {
+        "$value": "3.2s",
+        "$type": "duration",
+        "$description": "喊话气泡从弹出到自己消失的停留时长。来源：ui/MatchStage.tsx 的 URGE_BUBBLE_MS。"
+      }
     }
   }
 }

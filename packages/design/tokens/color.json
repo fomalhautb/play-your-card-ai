@@ -186,6 +186,11 @@
             "$value": "#aea897",
             "$type": "color",
             "$description": "墨蓝匾额的内框细线，实际使用带透明度（见 opacity.plaqueLine.navy.default）。来源：styles.css 的 .plaque-button --plaque-line。"
+          },
+          "text": {
+            "$value": "#e7e1d4",
+            "$type": "color",
+            "$description": "墨蓝匾额的字色。来源：styles.css 的 .plaque-button color。"
           }
         },
         "hover": {
@@ -203,6 +208,11 @@
             "$value": "#cb9d7b",
             "$type": "color",
             "$description": "墨蓝匾额悬停时的内框细线，偏暖。来源：styles.css 的 .plaque-button:hover --plaque-line。"
+          },
+          "text": {
+            "$value": "#ead0b9",
+            "$type": "color",
+            "$description": "墨蓝匾额悬停时的字色，跟着内框一起转暖。来源：styles.css 的 .plaque-button:hover。"
           }
         },
         "disabled": {
@@ -220,7 +230,22 @@
             "$value": "#e0dccf",
             "$type": "color",
             "$description": "墨蓝匾额禁用时的内框细线。来源：styles.css 的 .plaque-button:disabled --plaque-line。"
+          },
+          "text": {
+            "$value": "#cfcabb",
+            "$type": "color",
+            "$description": "墨蓝匾额禁用时的字色。来源：styles.css 的 .plaque-button:disabled。"
           }
+        },
+        "corner": {
+          "$value": "#8f8b80",
+          "$type": "color",
+          "$description": "墨蓝匾额四角折线的线色，实际使用带透明度（见 opacity.plaqueCorner.navy）。来源：styles.css 的 .plaque-button__corner。"
+        },
+        "spark": {
+          "$value": "#a59e8c",
+          "$type": "color",
+          "$description": "墨蓝匾额左右两颗星芒的填色。来源：styles.css 的 .plaque-button__spark。"
         }
       },
       "paper": {
@@ -239,6 +264,11 @@
             "$value": "#786442",
             "$type": "color",
             "$description": "纸白匾额的内框细线（暖褐），实际使用带透明度。来源：styles.css 的 --plaque-line: rgb(120 100 66 / 55%)。"
+          },
+          "text": {
+            "$value": "{color.battle.navy}",
+            "$type": "color",
+            "$description": "纸白匾额的字色，用对局那档墨蓝。来源：styles.css 的 .battle__end-turn .plaque-button color。"
           }
         },
         "hover": {
@@ -256,6 +286,11 @@
             "$value": "{color.plaque.paper.default.line}",
             "$type": "color",
             "$description": "纸白匾额悬停时内框色不变，只把透明度提到 78%（见 opacity.plaqueLine.paper.hover）。"
+          },
+          "text": {
+            "$value": "#1b2434",
+            "$type": "color",
+            "$description": "纸白匾额悬停时字色再压深一档：纸面上「变亮」是靠底色，字要跟着更实。来源：styles.css 的 .battle__end-turn .plaque-button:hover。"
           }
         },
         "disabled": {
@@ -273,7 +308,22 @@
             "$value": "#969184",
             "$type": "color",
             "$description": "纸白匾额禁用时的内框细线。来源：styles.css 的 --plaque-line: rgb(150 145 132 / 50%)。"
+          },
+          "text": {
+            "$value": "#8b8a84",
+            "$type": "color",
+            "$description": "纸白匾额禁用时的字色。和底色的对比度从约 10:1 掉到 2.4:1，一眼看出点不动。来源：styles.css 的 .battle__end-turn .plaque-button:disabled。"
           }
+        },
+        "corner": {
+          "$value": "#786442",
+          "$type": "color",
+          "$description": "纸白匾额四角折线的线色：压在纸面上要比墨蓝那档深，否则几乎看不见。来源：styles.css 的 .battle__end-turn .plaque-button__corner。"
+        },
+        "spark": {
+          "$value": "#a08c68",
+          "$type": "color",
+          "$description": "纸白匾额星芒的填色。来源：styles.css 的 .battle__end-turn .plaque-button__spark。"
         }
       },
       "terracotta": {
@@ -292,6 +342,11 @@
             "$value": "#f4d5b5",
             "$type": "color",
             "$description": "陶橙匾额的内框细线。来源：styles.css 的 --plaque-line: rgb(244 213 181 / 62%)。"
+          },
+          "text": {
+            "$value": "#fff1dc",
+            "$type": "color",
+            "$description": "陶橙匾额（催一催）的字色。来源：styles.css 的 .battle__urge .plaque-button。"
           }
         },
         "hover": {
@@ -309,6 +364,11 @@
             "$value": "#ffe3c2",
             "$type": "color",
             "$description": "陶橙匾额悬停时的内框细线。来源：styles.css 的 --plaque-line: rgb(255 227 194 / 82%)。"
+          },
+          "text": {
+            "$value": "#fff7e8",
+            "$type": "color",
+            "$description": "陶橙匾额悬停时的字色。来源：styles.css 的 .battle__urge .plaque-button:hover。"
           }
         },
         "disabled": {
@@ -326,7 +386,22 @@
             "$value": "#e1d6c7",
             "$type": "color",
             "$description": "陶橙匾额禁用时的内框细线。来源：styles.css 的 --plaque-line: rgb(225 214 199 / 32%)。"
+          },
+          "text": {
+            "$value": "#d8cec2",
+            "$type": "color",
+            "$description": "陶橙匾额禁用时的字色。来源：styles.css 的 .battle__urge .plaque-button:disabled。"
           }
+        },
+        "corner": {
+          "$value": "#ffe1bc",
+          "$type": "color",
+          "$description": "陶橙匾额四角折线的线色。来源：styles.css 的 .battle__urge .plaque-button__corner。"
+        },
+        "spark": {
+          "$value": "#f0c696",
+          "$type": "color",
+          "$description": "陶橙匾额星芒的填色。来源：styles.css 的 .battle__urge .plaque-button__spark。"
         }
       },
       "ivory": {
@@ -345,6 +420,11 @@
             "$value": "#786442",
             "$type": "color",
             "$description": "米白匾额的内框细线，和纸白那档同色，只是透明度不同。来源：hero.css 的 --plaque-line: rgb(120 100 66 / 55%)。"
+          },
+          "text": {
+            "$value": "#2c3138",
+            "$type": "color",
+            "$description": "米白匾额的字色。来源：hero.css 的 .hero__confirm。"
           }
         },
         "hover": {
@@ -362,8 +442,153 @@
             "$value": "{color.plaque.ivory.default.line}",
             "$type": "color",
             "$description": "米白匾额悬停时内框色不变，只把透明度提到 75%（见 opacity.plaqueLine.ivory.hover）。"
+          },
+          "text": {
+            "$value": "#1f242a",
+            "$type": "color",
+            "$description": "米白匾额悬停时的字色。来源：hero.css 的 .hero__confirm:hover。"
           }
+        },
+        "corner": {
+          "$value": "#786442",
+          "$type": "color",
+          "$description": "米白匾额四角折线的线色，和纸白同一档。来源：hero.css 的 .plaque-button__corner。"
+        },
+        "spark": {
+          "$value": "#a08c68",
+          "$type": "color",
+          "$description": "米白匾额星芒的填色，和纸白同一档。来源：hero.css 的 .plaque-button__spark。"
         }
+      }
+    },
+    "seal": {
+      "base": {
+        "$value": "#141110",
+        "$type": "color",
+        "$description": "夜色圆章的底，实际使用带透明度（见 opacity.seal.base）。来源：styles.css 的 .card-help-mark 与 MuteButton 的 seal 档，底 rgb(20 17 12 / 78%)。"
+      },
+      "mark": {
+        "$value": "#f3ead6",
+        "$type": "color",
+        "$description": "夜色圆章上线条和符号的颜色。来源同上。"
+      }
+    },
+    "mark": {
+      "base": {
+        "$value": "#0c121e",
+        "$type": "color",
+        "$description": "战场小卡角标的药丸底，实际使用带透明度（见 opacity.mark.base）。来源：styles.css 的 .battle__tile-mark，底 rgb(12 18 30 / 88%)。"
+      },
+      "amber": {
+        "line": {
+          "$value": "#ffc460",
+          "$type": "color",
+          "$description": "角标默认那档（被干扰）的描边，实际使用带透明度。来源：styles.css 的 .battle__tile-mark border-color。"
+        },
+        "ink": {
+          "$value": "#ffd98a",
+          "$type": "color",
+          "$description": "角标默认那档（被干扰）的字色。来源：styles.css 的 .battle__tile-mark color。"
+        }
+      },
+      "up": {
+        "line": {
+          "$value": "#a9dcb8",
+          "$type": "color",
+          "$description": "角标「变强了」那档（已升级、已进化）的描边，实际使用带透明度。绿是整个战场上仅有的两种冷色之一，专留给升降级。来源：styles.css 的 .battle__tile-mark--up。"
+        },
+        "ink": {
+          "$value": "#a9dcb8",
+          "$type": "color",
+          "$description": "角标「变强了」那档的字色，和描边同色。来源同上。"
+        }
+      },
+      "down": {
+        "line": {
+          "$value": "#b7c3d8",
+          "$type": "color",
+          "$description": "角标「变弱了」那档（已降级）的描边，实际使用带透明度。来源：styles.css 的 .battle__tile-mark--down。"
+        },
+        "ink": {
+          "$value": "#b7c3d8",
+          "$type": "color",
+          "$description": "角标「变弱了」那档的字色，和描边同色。来源同上。"
+        }
+      },
+      "safe": {
+        "line": {
+          "$value": "#8cd6ff",
+          "$type": "color",
+          "$description": "角标「被保住了」那档（已净化、保送、金钟罩）的描边，实际使用带透明度。青色和干扰的琥珀是相反的两件事，摞在一起要分得开。来源：styles.css 的 .battle__tile-mark--safe。"
+        },
+        "ink": {
+          "$value": "#bfe6ff",
+          "$type": "color",
+          "$description": "角标「被保住了」那档的字色。来源同上。"
+        }
+      }
+    },
+    "bubble": {
+      "tipBase": {
+        "$value": "#0e1524",
+        "$type": "color",
+        "$description": "浮起小气泡的底，实际使用带透明度（见 opacity.bubble.tipBase）。来源：styles.css 的 .hand-fan__lock-tip，底 rgb(14 21 36 / 90%)。"
+      },
+      "tipLine": {
+        "$value": "#ffe5a4",
+        "$type": "color",
+        "$description": "浮起小气泡的描边，实际使用带透明度。来源同上。"
+      },
+      "tipInk": {
+        "$value": "#ffeec5",
+        "$type": "color",
+        "$description": "浮起小气泡的字色。来源同上。"
+      }
+    },
+    "status": {
+      "ok": {
+        "$value": "#97b487",
+        "$type": "color",
+        "$description": "「连上了」这类正向状态的字色。来源：room.css 的 .room__status。"
+      },
+      "error": {
+        "$value": "#c9847a",
+        "$type": "color",
+        "$description": "纸面和夜色页上的错误红字。来源：room.css 的 .room__error。"
+      },
+      "errorLit": {
+        "$value": "#ffb4a4",
+        "$type": "color",
+        "$description": "压在战场上的错误红字，比 status.error 亮一档才压得住底纹。来源：styles.css 的 .battle__reject。"
+      }
+    },
+    "midline": {
+      "rail": {
+        "$value": "#d6ccb2",
+        "$type": "color",
+        "$description": "战场中线那条横杆，实际使用带透明度并两端渐隐（见 opacity.midline.rail）。来源：styles.css 的 .battle__midline::before/::after。"
+      },
+      "badgeFill": {
+        "$value": "#232f48",
+        "$type": "color",
+        "$description": "中线正中那枚回合徽章的底。来源：styles.css 的 .battle__midline-badge。"
+      },
+      "badgeInk": {
+        "$value": "#e4dac0",
+        "$type": "color",
+        "$description": "中线回合徽章的字色，实际使用带透明度（见 opacity.midline.badgeInk）。来源同上。"
+      }
+    },
+    "turnPlaque": {
+      "line": {
+        "$value": "#8a92ad",
+        "$type": "color",
+        "$description": "「对方回合」吊匾的外框线，也是两根挂绳的颜色。来源：styles.css 的 .battle__turn-plaque-frame 与 -cords。"
+      },
+      "ink": {
+        "$value": "#b8c2d9",
+        "$type": "color",
+        "$description": "「对方回合」吊匾的字色和那三颗跳动的点。来源：styles.css 的 .battle__turn-plaque-label 与 -dots。"
       }
     }
   }

@@ -111,6 +111,155 @@
         "$value": "38px",
         "$type": "dimension",
         "$description": "静音钮的尺寸。位置由每个页面在自己的版式里安排，抽成变量是因为它在好几页里出现、各页摆放时要按这个尺寸留位。来源：styles.css 的 :root --mute-size。"
+      },
+      "iconBattle": {
+        "$value": "44px",
+        "$type": "dimension",
+        "$description": "对局顶栏那两颗纸面无底图标钮（离开、静音）的边长。来源：styles.css「顶栏那一行右端的控件」一节，实测 43.9。"
+      }
+    },
+    "plaque": {
+      "width": {
+        "$value": "224px",
+        "$type": "dimension",
+        "$description": "匾额按钮默认档的宽。来源：styles.css 的 .plaque-button width: min(224px, 100%)。"
+      },
+      "height": {
+        "$value": "68px",
+        "$type": "dimension",
+        "$description": "匾额按钮默认档的高。来源：styles.css 的 .plaque-button。"
+      },
+      "padX": {
+        "$value": "30px",
+        "$type": "dimension",
+        "$description": "匾额按钮默认档的左右内边距。来源：styles.css 的 .plaque-button padding: 0 30px。"
+      },
+      "endTurnWidth": {
+        "$value": "184px",
+        "$type": "dimension",
+        "$description": "对局右下角「结束出牌」的宽。按最长的那句「等待对方…」算出来的：五个字连字距约 120px，加两侧 14px 内边距还富余。来源：styles.css 的 .battle__end-turn .plaque-button。"
+      },
+      "endTurnHeight": {
+        "$value": "60px",
+        "$type": "dimension",
+        "$description": "对局右下角「结束出牌」的高。来源同上。"
+      },
+      "playWidth": {
+        "$value": "132px",
+        "$type": "dimension",
+        "$description": "手牌上方那颗「打出」的宽（触屏才有）。来源：styles.css 的 .hand-fan__play。"
+      },
+      "playHeight": {
+        "$value": "46px",
+        "$type": "dimension",
+        "$description": "手牌上方那颗「打出」的高。来源同上。"
+      },
+      "urgeWidth": {
+        "$value": "154px",
+        "$type": "dimension",
+        "$description": "「催一催」的宽。来源：styles.css 的 .battle__urge .plaque-button。"
+      },
+      "urgeHeight": {
+        "$value": "48px",
+        "$type": "dimension",
+        "$description": "「催一催」的高。来源同上。"
+      },
+      "padXSmall": {
+        "$value": "14px",
+        "$type": "dimension",
+        "$description": "小一档匾额（结束出牌、打出、催一催）的左右内边距。旧样式里这三处是 14~16px，取最小的那档，最长的文案也排得开。来源：styles.css 的 .battle__end-turn .plaque-button padding: 0 14px。"
+      }
+    },
+    "frame": {
+      "band": {
+        "$value": "8px",
+        "$type": "dimension",
+        "$description": "双线雕花框每条边的盒子厚度（线本身只有 1px）。旧版留这么厚是给手绘滤镜的位移让地方，Pixi 这边不挂滤镜，它就是外线到内线之间的间距。来源：styles.css 的 --of-band。"
+      },
+      "corner": {
+        "$value": "38px",
+        "$type": "dimension",
+        "$description": "雕花框四角那组装饰的边长。来源：styles.css 的 .ornate-frame__corner。"
+      },
+      "cornerGem": {
+        "$value": "6px",
+        "$type": "dimension",
+        "$description": "雕花框四角那颗菱形的边长（转 45° 之后看到的是一颗方钻）。来源：styles.css 的 .ornate-frame__corner::after。"
+      },
+      "gem": {
+        "$value": "7px",
+        "$type": "dimension",
+        "$description": "面板之间那条分隔线正中的菱形边长。来源：styles.css 的 .battle__player-divider-gem。"
+      }
+    },
+    "seal": {
+      "helpMark": {
+        "$value": "22px",
+        "$type": "dimension",
+        "$description": "卡牌右上角那枚「能翻面」问号章的直径。对局手牌、组牌页卡池卡和迷你卡三处同值。来源：ui/CardHelpMark.tsx。"
+      }
+    },
+    "midline": {
+      "badgeHeight": {
+        "$value": "20px",
+        "$type": "dimension",
+        "$description": "战场中线那枚回合徽章的高（含 1px 描边）。来源：styles.css 的 .battle__midline-badge。"
+      },
+      "badgePadX": {
+        "$value": "12px",
+        "$type": "dimension",
+        "$description": "中线回合徽章的左右内边距。来源同上。"
+      },
+      "railThickness": {
+        "$value": "2px",
+        "$type": "dimension",
+        "$description": "中线横杆的线粗。旧版从 1px 加到 2px 是因为手绘滤镜会把边缘打散，1px 摊薄后整条发虚；Pixi 这边不挂滤镜，沿用 2px 是为了和旧版一样的分量。来源：styles.css 的 .battle__midline::before background-size。"
+      }
+    },
+    "rail": {
+      "width": {
+        "$value": "44px",
+        "$type": "dimension",
+        "$description": "战场右缘 Token 细条的宽。来源：styles.css 的 .battle__token-rail。"
+      },
+      "height": {
+        "$value": "470px",
+        "$type": "dimension",
+        "$description": "Token 细条的高。来源同上。"
+      }
+    },
+    "turnPlaque": {
+      "width": {
+        "$value": "252px",
+        "$type": "dimension",
+        "$description": "「对方回合」吊匾的宽。来源：styles.css 的 .battle__turn-plaque。"
+      },
+      "height": {
+        "$value": "66px",
+        "$type": "dimension",
+        "$description": "「对方回合」吊匾匾体的高。来源：styles.css 的 .battle__turn-plaque-body。"
+      },
+      "cordLength": {
+        "$value": "21px",
+        "$type": "dimension",
+        "$description": "「对方回合」吊匾两根挂绳的长度。来源：styles.css 的 .battle__turn-plaque-cords。"
+      }
+    },
+    "nextPlaque": {
+      "width": {
+        "$value": "168px",
+        "$type": "dimension",
+        "$description": "战场右上角「下一题」纸匾的宽。来源：styles.css 的 .battle__next-plaque。"
+      },
+      "height": {
+        "$value": "118px",
+        "$type": "dimension",
+        "$description": "「下一题」纸匾匾体的高（viewBox 0 0 168 118）。来源：styles.css 的 .battle__next-plaque-body。"
+      },
+      "cordLength": {
+        "$value": "26px",
+        "$type": "dimension",
+        "$description": "「下一题」纸匾两根挂绳的长度。绳子是从屏幕顶边垂下来的，太短看着像贴上去的。来源：styles.css 的 .battle__next-plaque-cords。"
       }
     }
   }

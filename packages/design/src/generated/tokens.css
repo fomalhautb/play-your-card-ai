@@ -72,66 +72,148 @@
   --color-plaque-navy-default-edge: #77766f;
   /** 墨蓝匾额的内框细线，实际使用带透明度（见 opacity.plaqueLine.navy.default）。来源：styles.css 的 .plaque-button --plaque-line。 */
   --color-plaque-navy-default-line: #aea897;
+  /** 墨蓝匾额的字色。来源：styles.css 的 .plaque-button color。 */
+  --color-plaque-navy-default-text: #e7e1d4;
   /** 墨蓝匾额悬停时的板面。来源：styles.css 的 .plaque-button:hover。 */
   --color-plaque-navy-hover-fill: #2c3953;
   /** 墨蓝匾额悬停时外框不变，沿用默认态那一档（旧样式的 :hover 没有覆盖 --plaque-edge）。 */
   --color-plaque-navy-hover-edge: #77766f;
   /** 墨蓝匾额悬停时的内框细线，偏暖。来源：styles.css 的 .plaque-button:hover --plaque-line。 */
   --color-plaque-navy-hover-line: #cb9d7b;
+  /** 墨蓝匾额悬停时的字色，跟着内框一起转暖。来源：styles.css 的 .plaque-button:hover。 */
+  --color-plaque-navy-hover-text: #ead0b9;
   /** 墨蓝匾额禁用时的板面，掉饱和度。来源：styles.css 的 .plaque-button:disabled。 */
   --color-plaque-navy-disabled-fill: #676965;
   /** 墨蓝匾额禁用时的外框。来源：styles.css 的 .plaque-button:disabled。 */
   --color-plaque-navy-disabled-edge: #9b988d;
   /** 墨蓝匾额禁用时的内框细线。来源：styles.css 的 .plaque-button:disabled --plaque-line。 */
   --color-plaque-navy-disabled-line: #e0dccf;
+  /** 墨蓝匾额禁用时的字色。来源：styles.css 的 .plaque-button:disabled。 */
+  --color-plaque-navy-disabled-text: #cfcabb;
+  /** 墨蓝匾额四角折线的线色，实际使用带透明度（见 opacity.plaqueCorner.navy）。来源：styles.css 的 .plaque-button__corner。 */
+  --color-plaque-navy-corner: #8f8b80;
+  /** 墨蓝匾额左右两颗星芒的填色。来源：styles.css 的 .plaque-button__spark。 */
+  --color-plaque-navy-spark: #a59e8c;
   /** 纸白匾额变体的板面，对局里那几块悬浮 UI（结束出牌、触屏的打出键）用它。来源：styles.css 的 .battle__end-turn .plaque-button 与 .hand-fan .hand-fan__play。 */
   --color-plaque-paper-default-fill: #e2dbc8;
   /** 纸白匾额的外框描边。来源同上。 */
   --color-plaque-paper-default-edge: #777465;
   /** 纸白匾额的内框细线（暖褐），实际使用带透明度。来源：styles.css 的 --plaque-line: rgb(120 100 66 / 55%)。 */
   --color-plaque-paper-default-line: #786442;
+  /** 纸白匾额的字色，用对局那档墨蓝。来源：styles.css 的 .battle__end-turn .plaque-button color。 */
+  --color-plaque-paper-default-text: #253149;
   /** 纸白匾额悬停时的板面：纸面上要更亮才读得出是活的。来源：styles.css 的 .battle__end-turn .plaque-button:hover。 */
   --color-plaque-paper-hover-fill: #f2ead7;
   /** 纸白匾额悬停时外框不变，沿用默认态那一档。 */
   --color-plaque-paper-hover-edge: #777465;
   /** 纸白匾额悬停时内框色不变，只把透明度提到 78%（见 opacity.plaqueLine.paper.hover）。 */
   --color-plaque-paper-hover-line: #786442;
+  /** 纸白匾额悬停时字色再压深一档：纸面上「变亮」是靠底色，字要跟着更实。来源：styles.css 的 .battle__end-turn .plaque-button:hover。 */
+  --color-plaque-paper-hover-text: #1b2434;
   /** 纸白匾额禁用时的板面：留在纸白系但褪到发灰。来源：styles.css 的 .battle__end-turn .plaque-button:disabled。 */
   --color-plaque-paper-disabled-fill: #ded9cd;
   /** 纸白匾额禁用时的外框。来源同上。 */
   --color-plaque-paper-disabled-edge: #a09c90;
   /** 纸白匾额禁用时的内框细线。来源：styles.css 的 --plaque-line: rgb(150 145 132 / 50%)。 */
   --color-plaque-paper-disabled-line: #969184;
+  /** 纸白匾额禁用时的字色。和底色的对比度从约 10:1 掉到 2.4:1，一眼看出点不动。来源：styles.css 的 .battle__end-turn .plaque-button:disabled。 */
+  --color-plaque-paper-disabled-text: #8b8a84;
+  /** 纸白匾额四角折线的线色：压在纸面上要比墨蓝那档深，否则几乎看不见。来源：styles.css 的 .battle__end-turn .plaque-button__corner。 */
+  --color-plaque-paper-corner: #786442;
+  /** 纸白匾额星芒的填色。来源：styles.css 的 .battle__end-turn .plaque-button__spark。 */
+  --color-plaque-paper-spark: #a08c68;
   /** 陶橙匾额变体的板面，用在「催一催」这类轻量互动上——它不该比主操作更抢眼。来源：styles.css 的 .battle__urge .plaque-button。 */
   --color-plaque-terracotta-default-fill: #b77f5f;
   /** 陶橙匾额的外框描边。来源同上。 */
   --color-plaque-terracotta-default-edge: #6f4f3e;
   /** 陶橙匾额的内框细线。来源：styles.css 的 --plaque-line: rgb(244 213 181 / 62%)。 */
   --color-plaque-terracotta-default-line: #f4d5b5;
+  /** 陶橙匾额（催一催）的字色。来源：styles.css 的 .battle__urge .plaque-button。 */
+  --color-plaque-terracotta-default-text: #fff1dc;
   /** 陶橙匾额悬停时的板面。来源：styles.css 的 .battle__urge .plaque-button:hover。 */
   --color-plaque-terracotta-hover-fill: #c28a68;
   /** 陶橙匾额悬停时外框不变，沿用默认态那一档。 */
   --color-plaque-terracotta-hover-edge: #6f4f3e;
   /** 陶橙匾额悬停时的内框细线。来源：styles.css 的 --plaque-line: rgb(255 227 194 / 82%)。 */
   --color-plaque-terracotta-hover-line: #ffe3c2;
+  /** 陶橙匾额悬停时的字色。来源：styles.css 的 .battle__urge .plaque-button:hover。 */
+  --color-plaque-terracotta-hover-text: #fff7e8;
   /** 陶橙匾额禁用时的板面。来源：styles.css 的 .battle__urge .plaque-button:disabled。 */
   --color-plaque-terracotta-disabled-fill: #9b887c;
   /** 陶橙匾额禁用时的外框。来源同上。 */
   --color-plaque-terracotta-disabled-edge: #756961;
   /** 陶橙匾额禁用时的内框细线。来源：styles.css 的 --plaque-line: rgb(225 214 199 / 32%)。 */
   --color-plaque-terracotta-disabled-line: #e1d6c7;
+  /** 陶橙匾额禁用时的字色。来源：styles.css 的 .battle__urge .plaque-button:disabled。 */
+  --color-plaque-terracotta-disabled-text: #d8cec2;
+  /** 陶橙匾额四角折线的线色。来源：styles.css 的 .battle__urge .plaque-button__corner。 */
+  --color-plaque-terracotta-corner: #ffe1bc;
+  /** 陶橙匾额星芒的填色。来源：styles.css 的 .battle__urge .plaque-button__spark。 */
+  --color-plaque-terracotta-spark: #f0c696;
   /** 米白匾额变体的板面，英雄页那颗「确认英雄」用它：那一页背景暗，主按钮得是画面上最亮的一块。来源：legacy-client/src/screens/hero.css 的 .hero__confirm / .hero__return。 */
   --color-plaque-ivory-default-fill: #e7ddc6;
   /** 米白匾额的外框描边。来源同上。 */
   --color-plaque-ivory-default-edge: #8f7c56;
   /** 米白匾额的内框细线，和纸白那档同色，只是透明度不同。来源：hero.css 的 --plaque-line: rgb(120 100 66 / 55%)。 */
   --color-plaque-ivory-default-line: #786442;
+  /** 米白匾额的字色。来源：hero.css 的 .hero__confirm。 */
+  --color-plaque-ivory-default-text: #2c3138;
   /** 米白匾额悬停时的板面。来源：hero.css 的 .hero__confirm:hover。 */
   --color-plaque-ivory-hover-fill: #f2e9d5;
   /** 米白匾额悬停时外框不变，沿用默认态那一档。 */
   --color-plaque-ivory-hover-edge: #8f7c56;
   /** 米白匾额悬停时内框色不变，只把透明度提到 75%（见 opacity.plaqueLine.ivory.hover）。 */
   --color-plaque-ivory-hover-line: #786442;
+  /** 米白匾额悬停时的字色。来源：hero.css 的 .hero__confirm:hover。 */
+  --color-plaque-ivory-hover-text: #1f242a;
+  /** 米白匾额四角折线的线色，和纸白同一档。来源：hero.css 的 .plaque-button__corner。 */
+  --color-plaque-ivory-corner: #786442;
+  /** 米白匾额星芒的填色，和纸白同一档。来源：hero.css 的 .plaque-button__spark。 */
+  --color-plaque-ivory-spark: #a08c68;
+  /** 夜色圆章的底，实际使用带透明度（见 opacity.seal.base）。来源：styles.css 的 .card-help-mark 与 MuteButton 的 seal 档，底 rgb(20 17 12 / 78%)。 */
+  --color-seal-base: #141110;
+  /** 夜色圆章上线条和符号的颜色。来源同上。 */
+  --color-seal-mark: #f3ead6;
+  /** 战场小卡角标的药丸底，实际使用带透明度（见 opacity.mark.base）。来源：styles.css 的 .battle__tile-mark，底 rgb(12 18 30 / 88%)。 */
+  --color-mark-base: #0c121e;
+  /** 角标默认那档（被干扰）的描边，实际使用带透明度。来源：styles.css 的 .battle__tile-mark border-color。 */
+  --color-mark-amber-line: #ffc460;
+  /** 角标默认那档（被干扰）的字色。来源：styles.css 的 .battle__tile-mark color。 */
+  --color-mark-amber-ink: #ffd98a;
+  /** 角标「变强了」那档（已升级、已进化）的描边，实际使用带透明度。绿是整个战场上仅有的两种冷色之一，专留给升降级。来源：styles.css 的 .battle__tile-mark--up。 */
+  --color-mark-up-line: #a9dcb8;
+  /** 角标「变强了」那档的字色，和描边同色。来源同上。 */
+  --color-mark-up-ink: #a9dcb8;
+  /** 角标「变弱了」那档（已降级）的描边，实际使用带透明度。来源：styles.css 的 .battle__tile-mark--down。 */
+  --color-mark-down-line: #b7c3d8;
+  /** 角标「变弱了」那档的字色，和描边同色。来源同上。 */
+  --color-mark-down-ink: #b7c3d8;
+  /** 角标「被保住了」那档（已净化、保送、金钟罩）的描边，实际使用带透明度。青色和干扰的琥珀是相反的两件事，摞在一起要分得开。来源：styles.css 的 .battle__tile-mark--safe。 */
+  --color-mark-safe-line: #8cd6ff;
+  /** 角标「被保住了」那档的字色。来源同上。 */
+  --color-mark-safe-ink: #bfe6ff;
+  /** 浮起小气泡的底，实际使用带透明度（见 opacity.bubble.tipBase）。来源：styles.css 的 .hand-fan__lock-tip，底 rgb(14 21 36 / 90%)。 */
+  --color-bubble-tip-base: #0e1524;
+  /** 浮起小气泡的描边，实际使用带透明度。来源同上。 */
+  --color-bubble-tip-line: #ffe5a4;
+  /** 浮起小气泡的字色。来源同上。 */
+  --color-bubble-tip-ink: #ffeec5;
+  /** 「连上了」这类正向状态的字色。来源：room.css 的 .room__status。 */
+  --color-status-ok: #97b487;
+  /** 纸面和夜色页上的错误红字。来源：room.css 的 .room__error。 */
+  --color-status-error: #c9847a;
+  /** 压在战场上的错误红字，比 status.error 亮一档才压得住底纹。来源：styles.css 的 .battle__reject。 */
+  --color-status-error-lit: #ffb4a4;
+  /** 战场中线那条横杆，实际使用带透明度并两端渐隐（见 opacity.midline.rail）。来源：styles.css 的 .battle__midline::before/::after。 */
+  --color-midline-rail: #d6ccb2;
+  /** 中线正中那枚回合徽章的底。来源：styles.css 的 .battle__midline-badge。 */
+  --color-midline-badge-fill: #232f48;
+  /** 中线回合徽章的字色，实际使用带透明度（见 opacity.midline.badgeInk）。来源同上。 */
+  --color-midline-badge-ink: #e4dac0;
+  /** 「对方回合」吊匾的外框线，也是两根挂绳的颜色。来源：styles.css 的 .battle__turn-plaque-frame 与 -cords。 */
+  --color-turn-plaque-line: #8a92ad;
+  /** 「对方回合」吊匾的字色和那三颗跳动的点。来源：styles.css 的 .battle__turn-plaque-label 与 -dots。 */
+  --color-turn-plaque-ink: #b8c2d9;
   /** 手牌重排（加牌、减牌、改窗口大小）的时长。两侧手牌共用同一个值，加减牌时上下两排的节奏才是一套的。来源：legacy-client/src/ui/fanMath.ts 的 LAYOUT_DUR，HandFan 和 OpponentFan 都读它。 */
   --duration-hand-layout: 0.4s;
   /** 卡牌放大查看的进场时长。来源：legacy-client/src/ui/CardZoomOverlay.tsx 的 ZOOM_IN_DUR，CardZoomOverlay、HeroScreen、DeckScreen 三处共用。 */
@@ -146,6 +228,18 @@
   --duration-home-cast-fade-out: 0.2s;
   /** 首页人物介绍卡片淡入的起跑延迟，只有卡片用、高亮不用。和上面那对时长配合，让旧卡先退干净。来源：styles.css 的 .home__stage --home-cast-panel-in-delay。 */
   --duration-home-cast-panel-delay: 0.08s;
+  /** 匾额按钮压下去那一下。快得几乎看不见过程，压入本身才像"当场吃住了力"。来源：styles.css 的 .plaque-button:active transition-duration，也是 PlaqueButton.tsx 的 MIN_PRESS_MS（70ms）。 */
+  --duration-plaque-press: 0.07s;
+  /** 匾额按钮弹回来那一下。比压下去慢三倍，弹性曲线才有余地走完。来源：styles.css 的 .plaque-button transition。 */
+  --duration-plaque-release: 0.22s;
+  /** 按钮悬停换色的过渡。旧样式里多处都是 0.16~0.18s 这一档，取最长的那档。来源：styles.css 的 .plaque-button::before background-color 180ms。 */
+  --duration-button-hover: 0.18s;
+  /** 气泡淡入。来源：styles.css 的 battle-urge-bubble-in。 */
+  --duration-bubble-in: 0.24s;
+  /** 气泡淡出。来源：ui/HandFan.tsx 里 lock-tip 的收尾补间。 */
+  --duration-bubble-out: 0.25s;
+  /** 喊话气泡从弹出到自己消失的停留时长。来源：ui/MatchStage.tsx 的 URGE_BUBBLE_MS。 */
+  --duration-bubble-hold: 3.2s;
   /** 全站唯一的字体栈。EB Garamond 管拉丁字母和数字，Noto Serif SC 管中文，两者都从 Google Fonts 拿；后面三个本地宋体是兜底，断网或字体没加载成功时至少还是衬线体，不会掉回黑体把古典调子毁掉。来源：legacy-client/src/styles.css 的 :root font-family。 */
   --font-family-serif: 'EB Garamond', 'Noto Serif SC', 'Songti SC', STSong, SimSun, serif;
   /** 允许的最轻字重。Noto Serif SC 只引了 300~700 这几档，写出这个范围浏览器会自己拉伸出很难看的伪细体。来源：styles.css 的 :root 字体栈注释。 */
@@ -214,6 +308,50 @@
   --opacity-home-flourish-star: 0.8;
   /** 首页花饰细线最实那一端的不透明度，线本身是往外侧淡到 0 的渐变。来源：styles.css 的 .home__flourish-line 的渐变终点 rgb(232 198 159 / 70%)。 */
   --opacity-home-flourish-line: 0.7;
+  /** 墨蓝匾额四角折线的透明度。来源：styles.css 的 .plaque-button__corner stroke: rgb(143 139 128 / 50%)。 */
+  --opacity-plaque-corner-navy: 0.5;
+  /** 纸白匾额四角折线的透明度。来源：styles.css 的 .battle__end-turn .plaque-button__corner。 */
+  --opacity-plaque-corner-paper: 0.45;
+  /** 陶橙匾额四角折线的透明度。来源：styles.css 的 .battle__urge .plaque-button__corner。 */
+  --opacity-plaque-corner-terracotta: 0.55;
+  /** 米白匾额四角折线的透明度。来源：hero.css 的 .plaque-button__corner。 */
+  --opacity-plaque-corner-ivory: 0.45;
+  /** 匾额左右两颗星芒的透明度。四个变体共用这一档，旧样式里没有一处覆盖它。来源：styles.css 的 .plaque-button__spark。 */
+  --opacity-plaque-spark: 0.72;
+  /** 纸面无底图标钮的常态透明度。纸上贴一枚实心墨色剪影会重得像块补丁，压一档才压得住。来源：styles.css「顶栏那一行右端的控件」一节。 */
+  --opacity-control-idle: 0.72;
+  /** 纸面无底图标钮悬停时回到全实。来源同上。 */
+  --opacity-control-hover: 1;
+  /** 夜色圆章底的透明度。来源：styles.css 的 rgb(20 17 12 / 78%)。 */
+  --opacity-seal-base: 0.78;
+  /** 战场小卡角标药丸底的透明度。来源：styles.css 的 .battle__tile-mark background。 */
+  --opacity-mark-base: 0.88;
+  /** 角标默认那档（被干扰）描边的透明度。来源：styles.css 的 .battle__tile-mark border-color。 */
+  --opacity-mark-amber-line: 0.6;
+  /** 角标「变强了」那档描边的透明度。来源：styles.css 的 .battle__tile-mark--up。 */
+  --opacity-mark-up-line: 0.55;
+  /** 角标「变弱了」那档描边的透明度。来源：styles.css 的 .battle__tile-mark--down。 */
+  --opacity-mark-down-line: 0.45;
+  /** 角标「被保住了」那档描边的透明度。来源：styles.css 的 .battle__tile-mark--safe。 */
+  --opacity-mark-safe-line: 0.6;
+  /** 浮起小气泡底的透明度。来源：styles.css 的 .hand-fan__lock-tip background。 */
+  --opacity-bubble-tip-base: 0.9;
+  /** 浮起小气泡描边的透明度。来源同上。 */
+  --opacity-bubble-tip-line: 0.55;
+  /** 中线横杆最实的那一端的透明度（两端往中间渐隐到 0）。来源：styles.css 的 .battle__midline::before。 */
+  --opacity-midline-rail: 0.35;
+  /** 中线回合徽章描边的透明度。来源：styles.css 的 .battle__midline-badge border。 */
+  --opacity-midline-badge-line: 0.38;
+  /** 中线回合徽章字色的透明度。来源同上。 */
+  --opacity-midline-badge-ink: 0.88;
+  /** 雕花框内线贴着自己往里 1px 的那道白高光。来源：styles.css 的 .ornate-frame__edge--inner box-shadow。 */
+  --opacity-frame-inner-highlight: 0.3;
+  /** 纸匾上四角卷叶的透明度。来源：styles.css 的 .battle__next-plaque-scroll-leaf。 */
+  --opacity-frame-scroll-leaf: 0.72;
+  /** 纸匾上卷叶那道弧线的透明度。来源：styles.css 的 .battle__next-plaque-scroll-arc。 */
+  --opacity-frame-scroll-arc: 0.8;
+  /** 「对方回合」吊匾上那三颗点的静止透明度（跳动时在这个数上下浮动）。来源：styles.css 的 .battle__turn-plaque-dots i。 */
+  --opacity-turn-plaque-dot: 0.5;
   /** 圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计 legacy-client/src/styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。 */
   --radius-xs: 3px;
   /** 圆角阶梯。同一份统计里 4px 出现 7 次。 */
@@ -224,6 +362,8 @@
   --radius-lg: 8px;
   /** 圆角阶梯最大的一档。同一份统计里 12px 出现 6 次。 */
   --radius-xl: 12px;
+  /** 喊话气泡的圆角。旧样式里只有这一处用 14px，收进阶梯是为了气泡不必写死数值。来源：styles.css 的 .battle__urge-bubble。 */
+  --radius-xxl: 14px;
   /** 胶囊形：一个大到必定被裁到半高的值，用来把矩形两端做成半圆。同一份统计里出现 10 次。 */
   --radius-pill: 999px;
   /** 卡面基准宽。全站卡牌的几何都从这个数派生，扇形手牌的间距和 hover 放大的下限也按它算。来源：legacy-client/src/styles.css 的 :root --card-w（和 ui/fanMath.ts 的 CARD_WIDTH 是同一个数）。 */
@@ -268,6 +408,60 @@
   --size-settle-card-min-width: 300px;
   /** 静音钮的尺寸。位置由每个页面在自己的版式里安排，抽成变量是因为它在好几页里出现、各页摆放时要按这个尺寸留位。来源：styles.css 的 :root --mute-size。 */
   --size-control-mute-size: 38px;
+  /** 对局顶栏那两颗纸面无底图标钮（离开、静音）的边长。来源：styles.css「顶栏那一行右端的控件」一节，实测 43.9。 */
+  --size-control-icon-battle: 44px;
+  /** 匾额按钮默认档的宽。来源：styles.css 的 .plaque-button width: min(224px, 100%)。 */
+  --size-plaque-width: 224px;
+  /** 匾额按钮默认档的高。来源：styles.css 的 .plaque-button。 */
+  --size-plaque-height: 68px;
+  /** 匾额按钮默认档的左右内边距。来源：styles.css 的 .plaque-button padding: 0 30px。 */
+  --size-plaque-pad-x: 30px;
+  /** 对局右下角「结束出牌」的宽。按最长的那句「等待对方…」算出来的：五个字连字距约 120px，加两侧 14px 内边距还富余。来源：styles.css 的 .battle__end-turn .plaque-button。 */
+  --size-plaque-end-turn-width: 184px;
+  /** 对局右下角「结束出牌」的高。来源同上。 */
+  --size-plaque-end-turn-height: 60px;
+  /** 手牌上方那颗「打出」的宽（触屏才有）。来源：styles.css 的 .hand-fan__play。 */
+  --size-plaque-play-width: 132px;
+  /** 手牌上方那颗「打出」的高。来源同上。 */
+  --size-plaque-play-height: 46px;
+  /** 「催一催」的宽。来源：styles.css 的 .battle__urge .plaque-button。 */
+  --size-plaque-urge-width: 154px;
+  /** 「催一催」的高。来源同上。 */
+  --size-plaque-urge-height: 48px;
+  /** 小一档匾额（结束出牌、打出、催一催）的左右内边距。旧样式里这三处是 14~16px，取最小的那档，最长的文案也排得开。来源：styles.css 的 .battle__end-turn .plaque-button padding: 0 14px。 */
+  --size-plaque-pad-x-small: 14px;
+  /** 双线雕花框每条边的盒子厚度（线本身只有 1px）。旧版留这么厚是给手绘滤镜的位移让地方，Pixi 这边不挂滤镜，它就是外线到内线之间的间距。来源：styles.css 的 --of-band。 */
+  --size-frame-band: 8px;
+  /** 雕花框四角那组装饰的边长。来源：styles.css 的 .ornate-frame__corner。 */
+  --size-frame-corner: 38px;
+  /** 雕花框四角那颗菱形的边长（转 45° 之后看到的是一颗方钻）。来源：styles.css 的 .ornate-frame__corner::after。 */
+  --size-frame-corner-gem: 6px;
+  /** 面板之间那条分隔线正中的菱形边长。来源：styles.css 的 .battle__player-divider-gem。 */
+  --size-frame-gem: 7px;
+  /** 卡牌右上角那枚「能翻面」问号章的直径。对局手牌、组牌页卡池卡和迷你卡三处同值。来源：ui/CardHelpMark.tsx。 */
+  --size-seal-help-mark: 22px;
+  /** 战场中线那枚回合徽章的高（含 1px 描边）。来源：styles.css 的 .battle__midline-badge。 */
+  --size-midline-badge-height: 20px;
+  /** 中线回合徽章的左右内边距。来源同上。 */
+  --size-midline-badge-pad-x: 12px;
+  /** 中线横杆的线粗。旧版从 1px 加到 2px 是因为手绘滤镜会把边缘打散，1px 摊薄后整条发虚；Pixi 这边不挂滤镜，沿用 2px 是为了和旧版一样的分量。来源：styles.css 的 .battle__midline::before background-size。 */
+  --size-midline-rail-thickness: 2px;
+  /** 战场右缘 Token 细条的宽。来源：styles.css 的 .battle__token-rail。 */
+  --size-rail-width: 44px;
+  /** Token 细条的高。来源同上。 */
+  --size-rail-height: 470px;
+  /** 「对方回合」吊匾的宽。来源：styles.css 的 .battle__turn-plaque。 */
+  --size-turn-plaque-width: 252px;
+  /** 「对方回合」吊匾匾体的高。来源：styles.css 的 .battle__turn-plaque-body。 */
+  --size-turn-plaque-height: 66px;
+  /** 「对方回合」吊匾两根挂绳的长度。来源：styles.css 的 .battle__turn-plaque-cords。 */
+  --size-turn-plaque-cord-length: 21px;
+  /** 战场右上角「下一题」纸匾的宽。来源：styles.css 的 .battle__next-plaque。 */
+  --size-next-plaque-width: 168px;
+  /** 「下一题」纸匾匾体的高（viewBox 0 0 168 118）。来源：styles.css 的 .battle__next-plaque-body。 */
+  --size-next-plaque-height: 118px;
+  /** 「下一题」纸匾两根挂绳的长度。绳子是从屏幕顶边垂下来的，太短看着像贴上去的。来源：styles.css 的 .battle__next-plaque-cords。 */
+  --size-next-plaque-cord-length: 26px;
   /** 间距阶梯。旧样式没有做过间距令牌化，这一档是统计 legacy-client/src/styles.css 里 padding / gap / margin 的 px 取值定出来的，6px 出现 13 次，排第 6。 */
   --space-xs: 6px;
   /** 间距阶梯。同一份统计里 8px 出现 18 次，排第 3。 */
