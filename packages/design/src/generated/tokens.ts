@@ -42,6 +42,10 @@ export const tokens = {
       gold: "#d9a441",
       /** 生命值那一档红。来源：paper.css 的 --c-life。 */
       life: "#b23f33",
+      /** 结算层里「对」的那一档深绿：标准答案框的描边、领先徽章的底、步骤条的勾、顶栏我方比分的方块都用它。来源：legacy-client/src/styles.css 的 .settle 一族。 */
+      forest: "#2f6b46",
+      /** 结算层里「错」的那一档砖红：判定块答错时的底色。比 theme.life（生命值那档红）更暗更闷，盖在纸上像一枚印章而不是一块警示牌。来源：styles.css 的 .settle-card__verdict。 */
+      brick: "#9e3a2e",
     },
     battle: {
       /** 对局界面自己的一套纸色，比全局纸张略暖一点。来源：styles.css 的 .battle --battle-paper。 */
@@ -58,6 +62,8 @@ export const tokens = {
       inkMuted: "#6d6b61",
       /** 对局界面的墨蓝，纸白匾额上的字用它。来源：styles.css 的 .battle --battle-navy。 */
       navy: "#253149",
+      /** 压在战场和全屏过场上的暖白字：中央横幅、抵消层的技能名和说明、选目标的提示条都用它。比纸面那套墨色亮得多——它印在深色背景上，不是印在纸上。来源：styles.css 的 .battle__banner / .skill-cancel__title / .battle__targeting-text。 */
+      cueInk: "#ffeec5",
     },
     home: {
       /** 首页画面上所有米色字的颜色，从设计稿里取的。来源：styles.css 的 .home --home-ink。 */
@@ -215,6 +221,16 @@ export const tokens = {
         corner: "#786442",
         /** 米白匾额星芒的填色，和纸白同一档。来源：hero.css 的 .plaque-button__spark。 */
         spark: "#a08c68",
+        disabled: {
+          /** 米白匾额禁用时的板面。旧样式里米白只出现在英雄页那颗「确认英雄」上，那颗从来不禁用，所以 hero.css 里没有这一档；纸白和米白同属浅纸面那一族（内框细线、四角折线、星芒三处本来就同色），褪色方向一致，直接沿用纸白那档。哪天米白真有了自己的禁用样式再改成独立值。 */
+          fill: "#ded9cd",
+          /** 米白匾额禁用时的外框，沿用纸白那档，理由同上。 */
+          edge: "#a09c90",
+          /** 米白匾额禁用时的内框细线，沿用纸白那档，理由同上。 */
+          line: "#969184",
+          /** 米白匾额禁用时的字色，沿用纸白那档，理由同上。 */
+          text: "#8b8a84",
+        },
       },
     },
     seal: {
@@ -280,6 +296,14 @@ export const tokens = {
       line: "#8a92ad",
       /** 「对方回合」吊匾的字色和那三颗跳动的点。来源：styles.css 的 .battle__turn-plaque-label 与 -dots。 */
       ink: "#b8c2d9",
+    },
+    overlay: {
+      /** 抛硬币和英雄技能抵消这两层全屏过场的遮罩底色。旧样式里带着透明度写在一起（rgb(0 0 0 / 68%)），这里按 design 的规矩拆成颜色加 opacity.overlay.veil。来源：styles.css 的 .coin-toss / .skill-cancel。 */
+      veil: "#000000",
+      /** 展示层（强制展示、放大查看）的遮罩底色。和 overlay.veil 同色不同透明度：那两层要把整块战场推远，这一层还得让人认出背景是战场。来源：styles.css 的 .reveal-overlay。 */
+      reveal: "#000000",
+      /** 选目标层的压暗。偏蓝的深色而不是纯黑：这一层压着的是战场，纯黑会把场上小卡的暖色压成灰。来源：styles.css 的 .battle__targeting。 */
+      targeting: "#060b16",
     },
   },
   duration: {
@@ -407,6 +431,8 @@ export const tokens = {
         default: 0.55,
         /** 米白匾额悬停时内框细线的不透明度（颜色不变，只是更实）。来源：hero.css 的 .hero__confirm:hover。 */
         hover: 0.75,
+        /** 米白匾额禁用时内框细线的不透明度，沿用纸白那档（见 color.plaque.ivory.disabled.fill 的说明）。 */
+        disabled: 0.5,
       },
     },
     home: {
@@ -474,6 +500,14 @@ export const tokens = {
     turnPlaque: {
       /** 「对方回合」吊匾上那三颗点的静止透明度（跳动时在这个数上下浮动）。来源：styles.css 的 .battle__turn-plaque-dots i。 */
       dot: 0.5,
+    },
+    overlay: {
+      /** 抛硬币和抵消层遮罩的不透明度。旧版原本还叠一层背景模糊，去掉模糊之后从 52% 补到这一档当补偿（模糊本来担着一半「把背景推远」的活）。来源：styles.css 的 .coin-toss。 */
+      veil: 0.68,
+      /** 展示层遮罩的不透明度。同样是去掉背景模糊之后从 50% 补上来的。来源：styles.css 的 .reveal-overlay。 */
+      reveal: 0.66,
+      /** 选目标层压暗的不透明度。来源：styles.css 的 .battle__targeting。 */
+      targeting: 0.62,
     },
   },
   radius: {

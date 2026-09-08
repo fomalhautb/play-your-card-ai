@@ -62,6 +62,11 @@
           "$value": 0.75,
           "$type": "number",
           "$description": "米白匾额悬停时内框细线的不透明度（颜色不变，只是更实）。来源：hero.css 的 .hero__confirm:hover。"
+        },
+        "disabled": {
+          "$value": 0.5,
+          "$type": "number",
+          "$description": "米白匾额禁用时内框细线的不透明度，沿用纸白那档（见 color.plaque.ivory.disabled.fill 的说明）。"
         }
       }
     },
@@ -201,6 +206,23 @@
         "$value": 0.5,
         "$type": "number",
         "$description": "「对方回合」吊匾上那三颗点的静止透明度（跳动时在这个数上下浮动）。来源：styles.css 的 .battle__turn-plaque-dots i。"
+      }
+    },
+    "overlay": {
+      "veil": {
+        "$value": 0.68,
+        "$type": "number",
+        "$description": "抛硬币和抵消层遮罩的不透明度。旧版原本还叠一层背景模糊，去掉模糊之后从 52% 补到这一档当补偿（模糊本来担着一半「把背景推远」的活）。来源：styles.css 的 .coin-toss。"
+      },
+      "reveal": {
+        "$value": 0.66,
+        "$type": "number",
+        "$description": "展示层遮罩的不透明度。同样是去掉背景模糊之后从 50% 补上来的。来源：styles.css 的 .reveal-overlay。"
+      },
+      "targeting": {
+        "$value": 0.62,
+        "$type": "number",
+        "$description": "选目标层压暗的不透明度。来源：styles.css 的 .battle__targeting。"
       }
     }
   }

@@ -35,44 +35,52 @@ export const PLAQUE_PLAIN: PlaqueVariant = 'K'
 export type PlaqueButtonState = 'default' | 'hover' | 'pressed' | 'disabled'
 
 /**
- * 四个尺寸档。
+ * 四个尺寸档各自匾上那行字的字号和字距（px）。
  *
- * 宽高和左右内边距从令牌取；字号和字距**不取**——旧样式里这几个是就地写的中号字
- *（24 / 20 / 18 / 19px），互不相同也不成阶梯，design 的 README 明确说这一类不收令牌。
- * 字距那一栏是把旧样式的 em 值乘开的结果（0.25em × 24px = 6）。
+ * 这一批**不进设计令牌**：它们是旧样式里就地写的中号字（24 / 20 / 18 / 19px），
+ * 四个数互不相同也不成阶梯，只服务这一个组件，收进令牌就是给一个没人复用的数起个全局名字
+ *（design 的 README「明确不收什么」里「组件私有字号」那条说的就是它们）。
+ * 集中成一张表而不是分散写进下面四个尺寸对象里，是为了「不进令牌」这件事有一处交代得清——
+ * 散开写的话，下一个人只会看到四处零散的魔法数字，看不出它们是同一类东西。
+ *
+ * 字距是把旧样式的 em 值乘开的结果：0.25em × 24px = 6，0.22em × 18px = 3.96，以此类推。
  */
+const PLAQUE_TYPE = {
+  default: { fontSize: 24, letterSpacing: 6 },
+  endTurn: { fontSize: 20, letterSpacing: 4 },
+  play: { fontSize: 18, letterSpacing: 3.96 },
+  urge: { fontSize: 19, letterSpacing: 4.56 },
+} as const
+
+/** 四个尺寸档。宽高和左右内边距从令牌取，字号和字距取上面那张表。 */
 export const PLAQUE_SIZES = {
   /** 全站主操作键的默认档。 */
   default: {
     width: tokens.size.plaque.width,
     height: tokens.size.plaque.height,
     padX: tokens.size.plaque.padX,
-    fontSize: 24,
-    letterSpacing: 6,
+    ...PLAQUE_TYPE.default,
   },
   /** 对局右下角的「结束出牌 / 等待对方… / 答题中…」。 */
   endTurn: {
     width: tokens.size.plaque.endTurnWidth,
     height: tokens.size.plaque.endTurnHeight,
     padX: tokens.size.plaque.padXSmall,
-    fontSize: 20,
-    letterSpacing: 4,
+    ...PLAQUE_TYPE.endTurn,
   },
   /** 手牌上方那颗「打出」，触屏才有。 */
   play: {
     width: tokens.size.plaque.playWidth,
     height: tokens.size.plaque.playHeight,
     padX: tokens.size.plaque.padXSmall,
-    fontSize: 18,
-    letterSpacing: 3.96,
+    ...PLAQUE_TYPE.play,
   },
   /** 等对方出牌时的「催一催」。 */
   urge: {
     width: tokens.size.plaque.urgeWidth,
     height: tokens.size.plaque.urgeHeight,
     padX: tokens.size.plaque.padXSmall,
-    fontSize: 19,
-    letterSpacing: 4.56,
+    ...PLAQUE_TYPE.urge,
   },
 } as const
 
@@ -346,8 +354,9 @@ export class PlaqueButton extends Container {
     const palette = PALETTES[this.variant]
     const colorState = COLOR_STATE[this.state]
     /*
-     * 米白那档（按钮 D）没有禁用配色，纸白 / 陶橙 / 墨蓝三档齐全。
-     * 这里只用得到 A~C，所以直接取；将来接上按钮 D 要先补它的禁用令牌。
+     * 四个变体的三档配色现在都齐了（米白那档的禁用色见 color.plaque.ivory.disabled）。
+     * 但米白（按钮 D）还没接进这个类：它只出现在英雄页，那一页还没做，
+     * 接上之前不先加一条没人走的代码路径。
      */
     const colors = palette.states[colorState]
     for (const { sprite, role } of this.layers) {
