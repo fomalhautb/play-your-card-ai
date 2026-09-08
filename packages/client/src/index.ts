@@ -9,3 +9,16 @@
  */
 
 export { App } from './App'
+export type {
+  MatchDriver,
+  MatchEventBatch,
+  MatchLink,
+  MatchStatus,
+  MatchView,
+  PeerState,
+} from './match/driver'
+export type { ServerDriver, ServerDriverOptions } from './match/serverDriver'
+export { createServerDriver } from './match/serverDriver'
+export { lobbyUrl, roomUrl } from './net/endpoints'
+export type { LobbyClient, LobbyClientOptions } from './net/lobbyClient'
+export { createLobbyClient, LobbyError } from './net/lobbyClient'

@@ -1,0 +1,6 @@
+{
+  // 测试单独一份配置，只为了把 test/ 也纳入类型检查（写法照抄 core 和 protocol 那边）。
+  // 沿用主配置的 DOM 全局类型：被测的 serverDriver 会读 window.location.origin 兜底。
+  "extends": "./tsconfig.json",
+  "include": ["test"]
+}

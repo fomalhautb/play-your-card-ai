@@ -8,7 +8,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit && tsc --noEmit -p dev/storybook",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p dev/storybook",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "storybook": "storybook dev -c dev/storybook --no-open -p 6006",
     "build-storybook": "storybook build -c dev/storybook",
     "catalog:test": "playwright test -c dev/storybook/playwright.config.ts",
@@ -34,6 +36,7 @@
     "@types/react-dom": "^19.2.5",
     "storybook": "^10.6.0",
     "typescript": "^7.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
   }
 }
