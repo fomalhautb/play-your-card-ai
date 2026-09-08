@@ -31,11 +31,9 @@
       // 组件目录页的条目也是入口：story 文件没人 import，Storybook 是按文件名扫进来的
       // （见 packages/client/dev/storybook/main.ts 的 stories）。
       // 包入口 src/index.ts 不用写，knip 从 package.json 的 exports 里认。
-      "entry": ["src/**/*.stories.ts"],
-      // design 已经在用了（组件从令牌取颜色和时长）。platform 还没：
-      // 迁移第 1 条这批组件的纹理是调用方加载好传进来的，场景不碰平台能力。
-      // 接音频、触感、安全区的时候（迁移第 17 条起）把这条删掉。
-      "ignoreDependencies": ["@ai-duel/platform"]
+      "entry": ["src/**/*.stories.ts"]
+      // 这里原来有一条 ignoreDependencies: ["@ai-duel/platform"]，按上面的到期条款删掉了：
+      // 迁移第 17 条的匾额按钮按下时要调触感和音效（见 components/PlaqueButton.ts）。
     },
     "packages/ui": {
       // 同 canvas：目录页条目也是入口。现在这里只有令牌一览那一条。
