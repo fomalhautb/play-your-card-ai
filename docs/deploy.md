@@ -1,8 +1,8 @@
 # 部署说明
 
 > 这份文档写的是**黑客松那版转发器**怎么部署，线上跑的仍然是它。
-> 新的权威房间对象（《正式版架构》迁移第 22 条）并排加在同一个 Worker 里，
-> 走 `/match/:code` 和 `MATCH_ROOM` 绑定，和下面这套互不相干——
+> 新的权威房间对象和大厅对象（《正式版架构》迁移第 22、24 条）并排加在同一个 Worker 里，
+> 走 `/match/:code` + `MATCH_ROOM` 和 `/lobby` + `LOBBY` 两组绑定，和下面这套互不相干——
 > 它自己的目录结构、本地开发和测试见 `packages/server/README.md`。
 > 部署方式两套是一样的：同一个 `wrangler deploy`。
 
@@ -229,7 +229,8 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 ```jsonc
 "exports": {
   "Room": { "type": "durable-object", "storage": "sqlite" },
-  "MatchRoom": { "type": "durable-object", "storage": "sqlite" }
+  "MatchRoom": { "type": "durable-object", "storage": "sqlite" },
+  "Lobby": { "type": "durable-object", "storage": "sqlite" }
 }
 ```
 

@@ -1,18 +1,21 @@
 /**
- * 房间成员这一层：装载牌组、就绪、离开、重同步、催一催，以及「双方都就绪」之后开局。
+ * 房间成员这一层：谁坐进来、装载牌组、就绪、离开、重同步、催一催，
+ * 以及「双方都就绪」之后开局。
  *
  * 和 commands.ts 的分工按协议的两个前缀切：`room:` 是成员关系（开局前后都要用），
  * `match:` 是对局本身（只有开局之后才有意义）。
+ * 座位是怎么占上的（大厅那三条路）在下面 `setupRoom` / `reserveRoom` / `joinRoom` 三个函数里。
  */
 
 import { CARD_POOL, createCatalog, DECK_SIZE, HEROES, QUESTION_POOL } from '@ai-duel/content'
 import type { CardId, PlayerId } from '@ai-duel/core'
 import { createGame, other } from '@ai-duel/core'
 import type { ClientMessage } from '@ai-duel/protocol'
-import type { RoomContext } from './commands'
-import { closeRoom, dispatchStarted, sendSnapshot } from './dispatch'
+import { dispatchStarted, sendSnapshot } from './dispatch'
+import { closeRoom, scheduleIdleCheck } from './lifecycle'
 import { SEATS, seatOnline, sendRoomError, sendToSeat } from './session'
-import type { SeatLoadout } from './state'
+import type { RoomContext, RoomRecord, RoomStore, SeatLoadout } from './state'
+import { seatOf } from './state'
 
 /** 客户端发上来的那条 `room:loadout`。protocol 只导出了 schema，类型从消息联合里挑出来。 */
 type LoadoutMessage = Extract<ClientMessage, { type: 'room:loadout' }>
@@ -91,13 +94,18 @@ function startIfReady(room: RoomContext): void {
   if (!record.ready[0] || !record.ready[1]) return
   if (room.store.game() !== null) return
 
+  // 私人房在朋友进来之前 1 号座位是 null。没人坐就没人装载，走不到这儿，
+  // 这一句是让类型收窄，顺带兜住「有人绕过 join 直接改了记录」这种不该发生的情况。
+  const [firstName, secondName] = record.players
+  if (secondName === null) return
+
   const result = createGame({
     seed: newSeed(),
     catalog: createCatalog(),
     questionPool: QUESTION_POOL,
     players: [
-      { name: record.players[0], deck: first.deck, hero: first.hero },
-      { name: record.players[1], deck: second.deck, hero: second.hero },
+      { name: firstName, deck: first.deck, hero: first.hero },
+      { name: secondName, deck: second.deck, hero: second.hero },
     ],
   })
   room.store.saveGame(result.state)
@@ -149,8 +157,8 @@ export function handleReady(room: RoomContext, ws: WebSocket, seat: PlayerId): v
  * 和掉线不是一回事——掉线只是暂时的，对手会看到 `room:peer` 的 online 变 false 然后等重连；
  * 这条是明确退出，房间当场收摊。
  */
-export function handleLeave(room: RoomContext): void {
-  closeRoom(room.ctx, room.record, 'peer-left', '对手离开了房间')
+export async function handleLeave(room: RoomContext): Promise<void> {
+  await closeRoom(room, 'peer-left', '对手离开了房间')
   room.store.saveRoom(room.record)
 }
 
@@ -185,4 +193,69 @@ export function handleResync(
  */
 export function handleUrge(room: RoomContext, seat: PlayerId, id: string): void {
   sendToSeat(room.ctx, other(seat), { type: 'room:urged', from: seat, id })
+}
+
+/**
+ * 大厅那三条路进房间的结果。取值和协议的 `lobbyErrorReasonSchema` 对得上，
+ * 大厅拿到它直接当 `lobby:error` 的 reason 用，不用再翻译一道。
+ */
+export type JoinOutcome = 'ok' | 'room-full' | 'room-not-found'
+
+/** 建好的房间要排第一次空房检查：开了房一直没人来，到点自己关掉（见 lifecycle.ts）。 */
+async function openRoom(
+  ctx: DurableObjectState,
+  store: RoomStore,
+  players: [string, string | null],
+): Promise<void> {
+  const record: RoomRecord = {
+    players,
+    loadout: [null, null],
+    ready: [false, false],
+    seq: [0, 0],
+    closed: null,
+  }
+  store.saveRoom(record)
+  await scheduleIdleCheck(ctx, store)
+}
+
+/**
+ * 排队配对成功：两个人一起到，两个座位一次写满。
+ *
+ * 房间已经有了就直接忽略而不是重建：房间码有可能撞上一个还在打的房间，
+ * 重建会把正在进行的对局抹掉。
+ */
+export async function setupRoom(
+  ctx: DurableObjectState,
+  store: RoomStore,
+  players: [string, string],
+): Promise<void> {
+  if (store.room() !== null) return
+  await openRoom(ctx, store, players)
+}
+
+/** 私人开房第一步：开房的人先占 0 号座，1 号座空着等朋友（`join` 来补）。 */
+export async function reserveRoom(
+  ctx: DurableObjectState,
+  store: RoomStore,
+  userId: string,
+): Promise<void> {
+  if (store.room() !== null) return
+  await openRoom(ctx, store, [userId, null])
+}
+
+/**
+ * 私人开房第二步：朋友按码进来占 1 号座。
+ *
+ * 同一个人再来一次返回 `ok`（他本来就在房里）：大厅那边可能因为客户端重发
+ * 或者界面重进而调第二次，让它幂等好过让玩家看见一条「房间满了」。
+ */
+export function joinRoom(store: RoomStore, userId: string): JoinOutcome {
+  const record = store.room()
+  // 房间没建过，或者已经收摊了——两种对要进来的人来说都是「这个码没用了」。
+  if (record === null || record.closed !== null) return 'room-not-found'
+  if (seatOf(record, userId) !== null) return 'ok'
+  if (record.players[1] !== null) return 'room-full'
+  record.players[1] = userId
+  store.saveRoom(record)
+  return 'ok'
 }

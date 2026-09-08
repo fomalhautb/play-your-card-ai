@@ -3,14 +3,22 @@
  *
  * 测试全部走**真的连接**（`SELF.fetch` 拿 101 再 `accept()`），不直接调内部函数：
  * 这一层要验的正是握手、座位、下发这些只有过一遍电线才成立的东西。
- * 唯一的例外是建房和答题，那两件事本来就没有客户端消息（见 MatchRoom 的两个 RPC）。
+ * 例外只有两处，它们本来就没有客户端消息：建房走的是大厅调的那几个 RPC，
+ * 答题走的是 Durable Object 的 alarm。
  */
 
-import { env, runInDurableObject, SELF } from 'cloudflare:test'
+import { env, runDurableObjectAlarm, runInDurableObject, SELF } from 'cloudflare:test'
 import type { GameState } from '@ai-duel/core'
 import type { ClientMessage, ServerMessage } from '@ai-duel/protocol'
-import { parseServerMessage, subprotocolsFor } from '@ai-duel/protocol'
+import { PROTOCOL_VERSION, parseServerMessage, subprotocolsFor } from '@ai-duel/protocol'
 import { SignJWT } from 'jose'
+
+/** 一条能用的 `session:hello`。大厅和房间的第一条消息是同一条。 */
+export const HELLO: ClientMessage = {
+  type: 'session:hello',
+  protocolVersion: PROTOCOL_VERSION,
+  clientVersion: '0.0.0-test',
+}
 
 /** 和 vitest.config.ts 里那份绑定必须一模一样，不然签出来的 token 验不过。 */
 const JWT_SECRET = new TextEncoder().encode('test-jwt-secret')
@@ -37,7 +45,7 @@ export async function signForgedToken(userId: string): Promise<string> {
     .sign(new TextEncoder().encode('another-secret-entirely'))
 }
 
-/** 建一个房间，两个座位分别是这两个账号。 */
+/** 建一个房间，两个座位分别是这两个账号（大厅配对成功时调的就是这个 RPC）。 */
 export async function setupRoom(code: string, players: [string, string]): Promise<void> {
   await env.MATCH_ROOM.getByName(code).setup({ players })
 }
@@ -59,9 +67,54 @@ export async function authoritativeState(code: string): Promise<GameState> {
   })
 }
 
-/** 让房间替场上的 AI 答完这一轮（迁移第 23 条改成 alarm 自己触发）。 */
-export async function autoAnswer(code: string): Promise<void> {
-  await env.MATCH_ROOM.getByName(code).submitAnswers()
+/**
+ * 把房间的 alarm 立刻叫醒，返回有没有真的响过一次。
+ *
+ * 答题、空房超时都靠它推进：`runDurableObjectAlarm` 不管到没到点，排着就会跑一次，
+ * 所以测试不用真等 2.5 秒（房间那边为什么这样也是对的，见 src/room/alarms.ts 的文件头）。
+ * 房间收摊之后 alarm 会被撤掉，这时它返回 false。
+ */
+export async function fireRoomAlarm(code: string): Promise<boolean> {
+  return runDurableObjectAlarm(env.MATCH_ROOM.getByName(code))
+}
+
+/**
+ * 等到房间里一条连接都不剩。
+ *
+ * 客户端 `close()` 之后服务端那半边的关闭回调是异步的，不等一下就去验空房超时，
+ * 房间可能还以为有人在线。轮询而不是固定睡一觉：workerd 里这几步是微秒级的，
+ * 睡死时间只会让测试变慢。
+ */
+export async function waitRoomEmpty(code: string): Promise<void> {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const count = await runInDurableObject(
+      env.MATCH_ROOM.getByName(code),
+      (_instance, state) => state.getWebSockets().length,
+    )
+    if (count === 0) return
+    await new Promise((resolve) => setTimeout(resolve, 5))
+  }
+  throw new Error(`房间 ${code} 里的连接一直没断干净`)
+}
+
+/**
+ * 把某种定时任务的到点时刻改到过去，好让下一次 alarm 就轮到它。
+ *
+ * 空房超时排在十分钟后，测试等不起；直接改那一行比等真实时间可靠，
+ * 而且走的仍然是生产代码那条判定路径（alarm 响 → 看谁到点 → 各自检查条件）。
+ */
+export async function expireAlarm(code: string, kind: 'quiz' | 'idle'): Promise<void> {
+  await runInDurableObject(env.MATCH_ROOM.getByName(code), (_instance, state) => {
+    const rows = state.storage.sql
+      .exec<{ value: string }>("SELECT value FROM kv WHERE key = 'deadlines'")
+      .toArray()
+    const deadlines = JSON.parse(rows[0]?.value ?? '{}') as Record<string, number>
+    deadlines[kind] = 1
+    state.storage.sql.exec(
+      "INSERT INTO kv (key, value) VALUES ('deadlines', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      JSON.stringify(deadlines),
+    )
+  })
 }
 
 /** 连接关掉时的关闭码和原因。 */
@@ -100,9 +153,23 @@ export class Client {
     })
   }
 
-  /** 带一张 token 连上去，子协议照 `subprotocolsFor` 拼。 */
+  /** 带一张 token 连房间，子协议照 `subprotocolsFor` 拼。 */
   static connect(code: string, token: string): Promise<Client> {
     return Client.connectRaw(code, subprotocolsFor(token).join(', '))
+  }
+
+  /** 带一张 token 连大厅。路径里不带名字：全局只有一个大厅。 */
+  static connectLobby(token: string): Promise<Client> {
+    return Client.open('/lobby', subprotocolsFor(token).join(', '))
+  }
+
+  /** 连大厅、打完招呼、确认 welcome 说的是大厅，一步到位。 */
+  static async openLobby(userId: string): Promise<Client> {
+    const client = await Client.connectLobby(await signToken(userId))
+    client.send(HELLO)
+    const welcome = await client.expect('session:welcome')
+    if (welcome.place.kind !== 'lobby') throw new Error(`${userId} 连的不是大厅`)
+    return client
   }
 
   /**
@@ -111,10 +178,14 @@ export class Client {
    * 作弊测试要摆出「只提 ai-duel 不带 jwt.」和「什么都不提」这两种，
    * 它们和「带了一张坏 token」是三条不同的路。
    */
-  static async connectRaw(code: string, protocols: string | null): Promise<Client> {
+  static connectRaw(code: string, protocols: string | null): Promise<Client> {
+    return Client.open(`/match/${code}`, protocols)
+  }
+
+  private static async open(path: string, protocols: string | null): Promise<Client> {
     const headers: Record<string, string> = { Upgrade: 'websocket' }
     if (protocols !== null) headers['Sec-WebSocket-Protocol'] = protocols
-    const response = await SELF.fetch(`https://duel.test/match/${code}`, { headers })
+    const response = await SELF.fetch(`https://duel.test${path}`, { headers })
     const ws = response.webSocket
     if (!ws) throw new Error(`没拿到 WebSocket，状态码是 ${response.status}`)
     ws.accept()

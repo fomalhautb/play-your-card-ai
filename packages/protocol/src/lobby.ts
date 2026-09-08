@@ -66,8 +66,11 @@ export const lobbyRoomSchema = z.object({
  * - `'room-not-found'` / `'room-full'`：`lobby:join` 用的码不对，或者那房间已经两个人了。
  * - `'already-queued'` / `'not-queued'`：重复入队、没排队却发取消。多半是界面状态和服务端错开了，
  *   客户端收到它应该以服务端为准把按钮改回去，而不是重试。
- * - `'no-room-code'`：连摇十次房间码都撞车（旧转发器同款上限，见 packages/server 的 `createRoom`）。
- *   这一条可以重试。
+ * - `'no-room-code'`：**没有可用的房间码**。两种情况：服务端连摇十次都撞车
+ *   （旧转发器同款上限，见 packages/server 的 `createRoom`），这一条可以重试；
+ *   或者客户端发上来的 `lobby:join` 根本没带码、码的形状不对（schema 那一关就没过），
+ *   那是界面的问题，重试没有用。大厅这一层只有这五个 reason，没有「你发的东西我没看懂」，
+ *   所以形状不对的 `lobby:join` 也归到这一条——对玩家来说两种都是「没有码就进不去」。
  */
 export const lobbyErrorReasonSchema = z.enum([
   'room-not-found',

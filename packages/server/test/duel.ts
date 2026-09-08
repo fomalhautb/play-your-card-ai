@@ -20,16 +20,8 @@
 import { BALANCED_DECK } from '@ai-duel/content'
 import type { GameEvent, HeroId, PlayerId, PlayerView } from '@ai-duel/core'
 import { getCard } from '@ai-duel/core'
-import type { ClientMessage } from '@ai-duel/protocol'
-import { attachCatalog, PROTOCOL_VERSION } from '@ai-duel/protocol'
-import { autoAnswer, Client, setupRoom, signToken } from './helpers'
-
-/** 一条能用的 `session:hello`。 */
-export const HELLO: ClientMessage = {
-  type: 'session:hello',
-  protocolVersion: PROTOCOL_VERSION,
-  clientVersion: '0.0.0-test',
-}
+import { attachCatalog } from '@ai-duel/protocol'
+import { Client, fireRoomAlarm, HELLO, setupRoom, signToken } from './helpers'
 
 /** 一方在这一局里的连接、最新视图和收到过的一切。 */
 interface Side {
@@ -71,9 +63,21 @@ async function joinSeat(code: string, userId: string, seat: PlayerId): Promise<S
  */
 export async function openDuel(code: string, hero: HeroId | null = null): Promise<Duel> {
   await setupRoom(code, ['alice', 'bob'])
-  const alice = await joinSeat(code, 'alice', 0)
-  const bob = await joinSeat(code, 'bob', 1)
-  const sides: [Side, Side] = [alice, bob]
+  return enterDuel(code, ['alice', 'bob'], hero)
+}
+
+/**
+ * 同上，但**房间已经建好了**：大厅那几条路（排队配对、私人开房）建的房走这一个，
+ * 座位上是谁由建房的那一步定，这里只负责把两个人连进去打完开局流程。
+ */
+export async function enterDuel(
+  code: string,
+  players: [string, string],
+  hero: HeroId | null = null,
+): Promise<Duel> {
+  const first = await joinSeat(code, players[0], 0)
+  const second = await joinSeat(code, players[1], 1)
+  const sides: [Side, Side] = [first, second]
 
   for (const side of sides) {
     side.client.send({ type: 'room:loadout', deck: [...BALANCED_DECK], hero })
@@ -111,6 +115,26 @@ function playableAi(view: PlayerView): string | null {
   return null
 }
 
+/** 出牌阶段或结算阶段走一步。答题阶段不归它管——那一步是服务端自己走的。 */
+async function playStep(duel: Duel): Promise<void> {
+  const view = duel.sides[0].view
+  const seat = view.phase === 'settle' ? (view.settleConfirmed[0] ? 1 : 0) : view.activePlayer
+  const side = duel.sides[seat]
+  if (view.phase === 'settle') {
+    side.client.send({ type: 'match:command', command: { type: 'CONFIRM_ROUND', player: seat } })
+  } else {
+    const instanceId = playableAi(side.view)
+    side.client.send({
+      type: 'match:command',
+      command:
+        instanceId === null
+          ? { type: 'END_PLAY', player: seat }
+          : { type: 'PLAY_CARD', player: seat, instanceId },
+    })
+  }
+  await settle(duel)
+}
+
 /**
  * 把这一局打到终局。返回走了多少步，步数封顶是防死循环用的
  *（题库只有 8 道，正常几十步就完），走到顶还没完就说明规则或驱动器出问题了。
@@ -120,26 +144,28 @@ export async function playToEnd(duel: Duel, maxSteps = 400): Promise<number> {
     const view = duel.sides[0].view
     if (view.phase === 'finished') return step
     if (view.phase === 'quiz') {
-      // 答题指令只有服务端能发（见 MatchRoom.submitAnswers），所以这一步走 RPC 不走电线。
-      await autoAnswer(duel.code)
+      // 答题指令只有服务端能发，到点由房间的 alarm 自己发（见 src/room/autopilot.ts）。
+      // 测试不真等那 2.5 秒，直接把 alarm 叫醒。
+      await fireRoomAlarm(duel.code)
       await settle(duel)
       continue
     }
-    const seat = view.phase === 'settle' ? (view.settleConfirmed[0] ? 1 : 0) : view.activePlayer
-    const side = duel.sides[seat]
-    if (view.phase === 'settle') {
-      side.client.send({ type: 'match:command', command: { type: 'CONFIRM_ROUND', player: seat } })
-    } else {
-      const instanceId = playableAi(side.view)
-      side.client.send({
-        type: 'match:command',
-        command:
-          instanceId === null
-            ? { type: 'END_PLAY', player: seat }
-            : { type: 'PLAY_CARD', player: seat, instanceId },
-      })
-    }
-    await settle(duel)
+    await playStep(duel)
   }
   throw new Error(`${maxSteps} 步还没打完，八成是驱动器或规则出问题了`)
+}
+
+/**
+ * 打到进答题阶段就停：题目已经揭晓、alarm 已经排上，但还没交卷。
+ *
+ * 自动答题那几条测试要的正是这一刻的房间——再往前一步就被服务端自己推走了。
+ */
+export async function playUntilQuiz(duel: Duel, maxSteps = 400): Promise<void> {
+  for (let step = 1; step <= maxSteps; step += 1) {
+    const view = duel.sides[0].view
+    if (view.phase === 'quiz') return
+    if (view.phase === 'finished') throw new Error('这一局没走到答题阶段就结束了')
+    await playStep(duel)
+  }
+  throw new Error(`${maxSteps} 步还没进答题阶段，八成是驱动器或规则出问题了`)
 }

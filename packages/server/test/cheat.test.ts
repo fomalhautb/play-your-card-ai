@@ -12,8 +12,8 @@
 import { BALANCED_DECK } from '@ai-duel/content'
 import { CLOSE_ROOM_FULL, CLOSE_SUPERSEDED } from '@ai-duel/protocol'
 import { describe, expect, it } from 'vitest'
-import { HELLO, openDuel } from './duel'
-import { authoritativeState, Client, setupRoom, signToken } from './helpers'
+import { openDuel } from './duel'
+import { authoritativeState, Client, HELLO, setupRoom, signToken } from './helpers'
 
 describe('作弊', () => {
   it('拿对方座位号发指令，被拒且局面不变', async () => {

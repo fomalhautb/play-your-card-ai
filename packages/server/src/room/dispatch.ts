@@ -1,8 +1,8 @@
 import type { GameEvent, GameState, PlayerId } from '@ai-duel/core'
 import { filterEvent, viewFor } from '@ai-duel/core'
-import type { RoomClosedReason } from '@ai-duel/protocol'
 import { stripCatalog } from '@ai-duel/protocol'
-import { SEATS, seatTag, send, sendToSeat } from './session'
+import { send } from '../net/session'
+import { SEATS, sendToSeat } from './session'
 import type { RoomRecord } from './state'
 
 /**
@@ -98,26 +98,4 @@ export function sendSnapshot(
   seat: PlayerId,
 ): void {
   send(ws, { type: 'match:snapshot', seq: record.seq[seat], view: viewFor(state, seat) })
-}
-
-/**
- * 房间收摊：两边发一条 `room:closed`，然后把连接都关掉。
- *
- * `closed` 写进记录是为了挡住重连：协议说收到 `room:closed` 就别再重连，
- * 但那是客户端的规矩，服务端这边得自己有一份，不然一个不守规矩的客户端能一直连回来。
- *
- * 关闭码用 1000（正常关闭）：这不是拒绝，是这局打完了，
- * 4000 区间那几个码都是「你进不来」的意思，用在这里会让客户端误判。
- */
-export function closeRoom(
-  ctx: DurableObjectState,
-  record: RoomRecord,
-  reason: RoomClosedReason,
-  notice: string,
-): void {
-  record.closed = reason
-  for (const seat of SEATS) sendToSeat(ctx, seat, { type: 'room:closed', reason, notice })
-  for (const seat of SEATS) {
-    for (const ws of ctx.getWebSockets(seatTag(seat))) ws.close(1000, reason)
-  }
 }

@@ -9,8 +9,8 @@
 import type { PlayerId } from '@ai-duel/core'
 import { viewFor } from '@ai-duel/core'
 import { describe, expect, it } from 'vitest'
-import { HELLO, openDuel, playToEnd } from './duel'
-import { authoritativeState, Client, setupRoom, signToken } from './helpers'
+import { openDuel, playToEnd } from './duel'
+import { authoritativeState, Client, HELLO, setupRoom, signToken } from './helpers'
 
 describe('一局打到底', () => {
   it('两个客户端从装载打到 GAME_OVER，序号各自连续', async () => {

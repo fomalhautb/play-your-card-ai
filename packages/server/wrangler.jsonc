@@ -24,8 +24,9 @@
     // /room/* 既是 WebSocket 端点又是前端路由，两种请求都会进 Worker，
     // 不是升级请求时 Worker 会调 env.ASSETS.fetch() 把 index.html 发回去。
     // 代价是每次打开对局页面多算一次 Worker 调用，免费档每天 10 万次请求，可以忽略。
-    // /match/* 是新房间对象的 WebSocket 端点（src/room/MatchRoom.ts），同样必须列出来。
-    "run_worker_first": ["/api/*", "/room/*", "/match/*"]
+    // /match/* 是新房间对象的 WebSocket 端点（src/room/MatchRoom.ts），
+    // /lobby 是大厅对象的（src/lobby/Lobby.ts），同样必须列出来。
+    "run_worker_first": ["/api/*", "/room/*", "/match/*", "/lobby"]
   },
 
   // 正式域名。两条都是 Workers Custom Domain：域名的 zone 就在上面那个账号下，
@@ -41,11 +42,13 @@
 
   // ROOM 是黑客松那版转发器的房间（src/legacy/room.ts），线上还在用，绑定名和类名都不能改——
   // Durable Object 是按类名找实例的，改名等于把正在打的房间全丢了。
-  // MATCH_ROOM 是新的权威房间（src/room/MatchRoom.ts），并排新加，和上面那个互不相干。
+  // MATCH_ROOM 是新的权威房间（src/room/MatchRoom.ts），LOBBY 是做匹配的大厅
+  // （src/lobby/Lobby.ts，全局单实例）。两个都是并排新加的，和上面那个互不相干。
   "durable_objects": {
     "bindings": [
       { "name": "ROOM", "class_name": "Room" },
-      { "name": "MATCH_ROOM", "class_name": "MatchRoom" }
+      { "name": "MATCH_ROOM", "class_name": "MatchRoom" },
+      { "name": "LOBBY", "class_name": "Lobby" }
     ]
   },
 
@@ -53,6 +56,7 @@
   // 免费档只支持 SQLite 后端的 Durable Object，storage 必须是 "sqlite"。
   "exports": {
     "Room": { "type": "durable-object", "storage": "sqlite" },
-    "MatchRoom": { "type": "durable-object", "storage": "sqlite" }
+    "MatchRoom": { "type": "durable-object", "storage": "sqlite" },
+    "Lobby": { "type": "durable-object", "storage": "sqlite" }
   }
 }
