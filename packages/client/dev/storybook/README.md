@@ -187,6 +187,11 @@ gh run list --workflow=catalog-baselines.yml --limit 1
 # 3. 下载覆盖到 linux 基线目录（在仓库根目录跑）
 gh run download <run-id> -n catalog-baselines-linux -D packages/client/dev/storybook/baselines/linux
 
+> 注意：`gh workflow run` 只认**默认分支（main）上已有**的工作流文件，`catalog-baselines.yml`
+> 合进 main 之前在分支上调它会得到 404。这段时间的替代做法：让 CI 快档红一次，从它上传的
+> `catalog-diff` artifact 里取 `<条目 id>-actual.png`，去掉 `-actual` 后缀放进 `baselines/linux/`
+> 提交即可——那就是 Linux 上实拍的图，和工作流生成的一模一样。
+
 # 4. git status 看一遍，确认变的和 darwin 那趟是同一批条目，然后提交
 ```
 
