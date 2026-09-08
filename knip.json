@@ -27,9 +27,6 @@
      * 全部删完这一整段也就没了。别反过来——发现 knip 报某个依赖没用就往这儿加，
      * 那才是把这条检查废掉。
      */
-    "packages/protocol": {
-      "ignoreDependencies": ["@ai-duel/core"]
-    },
     "packages/canvas": {
       // 组件目录页的条目也是入口：story 文件没人 import，Storybook 是按文件名扫进来的
       // （见 packages/client/dev/storybook/main.ts 的 stories）。
