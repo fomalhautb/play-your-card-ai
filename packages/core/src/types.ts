@@ -33,9 +33,9 @@ export interface Question {
    */
   keywords: string[]
   /**
-   * 正确答案，答题阶段直接摊给玩家看。
-   * 本项目不防作弊（见 docs/architecture.md 4.1），所以整份题库连答案一起放在
-   * GameState 里发给双方，不做"只在结算时下发"这种服务器权威式的遮挡。
+   * 正确答案。**它是隐藏信息**：整份题库连答案一起放在服务端权威的 `GameState` 里，
+   * 但发给某一方之前必须过一遍 view.ts 的 `viewFor` / `filterEvent`，
+   * 本轮结算（`ROUND_SCORED`）之后才轮到它公开（《正式版架构》需求第 6 条）。
    *
    * 写成短语而不是整句：结算界面把它当大字标题排版，长句会挤成两三行。
    * 说明的部分放到 explanation 里。
@@ -46,6 +46,20 @@ export interface Question {
    * 和 answer 分开是排版需要：一行大字 + 一行小字，两者不能揉进同一个字段。
    */
   explanation: string
+}
+
+/**
+ * 题面已经揭晓、本轮还没结算时能看到的那半道题：答案和解析仍然遮着。
+ *
+ * 字段一个个写出来而不是 `Omit<Question, 'answer' | 'explanation'>`：
+ * 以后往 `Question` 上加字段时 Omit 会把新字段自动算进"公开的这一半"，
+ * 而"新字段该不该公开"是每次都要重新决定一次的事，不该被类型工具替我们决定。
+ */
+export interface PublicQuestion {
+  id: string
+  category: QuestionCategory
+  text: string
+  keywords: string[]
 }
 
 interface CardBase {
@@ -211,7 +225,7 @@ export type Card = HandCard | HeroCard
  * - 一局开始那一刻的卡面数值被冻住，中途上线的平衡改动不会把打到一半的对局改掉。
  *
  * 装的是**整个公开卡池**，不只是双方牌组里那些牌：卡池本来就是公开信息，
- * 裁剪视图（迁移第 13 条的 viewFor）不用为它单独操心，界面也能直接从状态里查到任意一张卡的卡面。
+ * 裁剪视图（view.ts 的 viewFor）原样带上它，界面也能直接从视图里查到任意一张卡的卡面。
  * 题目不在这里——本局题序连答案已经在 `GameState.questions` 里，再放一份只会多一处要遮挡的地方。
  *
  * 和状态里别的东西一样必须可 JSON 序列化：只放纯数据，别塞函数。
@@ -449,7 +463,12 @@ export interface GameState {
    */
   activePlayer: PlayerId
   phase: GamePhase
-  /** 本局的题目序列（开局洗好），questions[round - 1] 是本轮的题。 */
+  /**
+   * 本局的题目序列（开局洗好），questions[round - 1] 是本轮的题。
+   *
+   * 整份题序连答案和解析都在这儿，这是**服务端权威的那一份**，不能原样发给客户端：
+   * 哪一轮的题揭晓到哪一步由 view.ts 的 `viewFor` 决定。
+   */
   questions: Question[]
   players: [PlayerState, PlayerState]
   /**
@@ -471,8 +490,10 @@ export interface GameState {
    *
    * 用法：`mersenne(rngSeed)` 起一把生成器，取完要用的值再把下一个种子写回这里。
    * 随机数生成器本身进不了状态（它不可 JSON 序列化），种子可以。
-   * 这样"同一份状态 + 同一条指令 = 同一个结果"仍然成立：房主广播完快照，
-   * 客人手上那份状态里的种子和房主的是同一个，重放也不会分叉。
+   * 这样"同一份状态 + 同一条指令 = 同一个结果"仍然成立，服务端重放也不会分叉。
+   *
+   * **它是隐藏信息**：拿着这颗种子能提前算出「内存紧缺」会保留哪一半场上单位，
+   * 所以裁剪视图里没有它（见 view.ts）。
    */
   rngSeed: number
   /**
@@ -481,6 +502,97 @@ export interface GameState {
    * 所以这个计数器必须留在状态里，才能跟着状态一起被拷贝和发给客人。
    */
   seq: number
+}
+
+/**
+ * 裁剪视图里的一道题，按揭晓到哪一步分三档（完整口径见 view.ts 的文件头）。
+ *
+ * - `'keywords'`：本轮还在出牌阶段。只有类别和关键词——题面等双方出完牌才揭晓
+ *   （见 `Question.keywords`）。连 `id` 都不给：题库是随包发布的公开数据，
+ *   而 id 是「q-dante」这种指得回原题的名字，这一档给出去等于提前泄题。
+ * - `'text'`：本轮已经进答题阶段（`QUESTION_REVEALED`），题面公开，答案和解析还遮着。
+ * - `'answer'`：本轮已经结算（`ROUND_SCORED`），以及所有已经打过的轮次——整题公开。
+ *
+ * 用 `reveal` 当判别标签而不是一堆可选字段：界面必须为这三档各写一套排版
+ *（牌匾只写类别、全屏题面、结算大字答案），可选字段会让"还没揭晓"和"忘了填"长得一样。
+ */
+export type QuestionView =
+  | { reveal: 'keywords'; category: QuestionCategory; keywords: string[] }
+  | ({ reveal: 'text' } & PublicQuestion)
+  | ({ reveal: 'answer' } & Question)
+
+/**
+ * 视图里一方**双方都看得见**的那部分，自己和对手共用。
+ *
+ * 场上单位、弃牌堆、分数、Token 这些界面上本来就两边都显示，一个字段都不用遮；
+ * 真正分自己和对手的只有手牌那一项，所以差别放在下面两个接口里。
+ */
+export interface PlayerSideView {
+  id: PlayerId
+  name: string
+  score: number
+  shielded?: true
+  costReduction: number
+  tokens: number
+  spentThisRound: number
+  tokenMax: number
+  /**
+   * 牌堆张数。**内容和顺序一律不给，自己的也不给**：下一张抽到什么是悬念，
+   * 客户端不该有能力提前知道（见 view.ts 的文件头）。
+   */
+  deckCount: number
+  board: AiInstance[]
+  discard: CardInstance[]
+  hero: HeroId | null
+  heroSkillUsed: boolean
+}
+
+/** 视图里自己这一方：手牌完整给出。 */
+export interface SelfView extends PlayerSideView {
+  hand: CardInstance[]
+}
+
+/** 视图里对手那一方：手牌只给张数，连实例 id 都不给（为什么见 view.ts 的文件头）。 */
+export interface OpponentView extends PlayerSideView {
+  handCount: number
+}
+
+/**
+ * 裁剪后发给某一方的局面快照，`viewFor(state, player)` 的产物。
+ *
+ * 和 `GameState` 平行，但把隐藏字段换成了公开的形态：对手手牌变张数、双方牌堆变张数、
+ * 题序按揭晓程度裁剪、`rngSeed` 和 `seq` 整个不给。
+ *
+ * 双方不是对称的，所以这里写成 `self` / `opponent` 而不是照 `GameState` 那样按座位号排成
+ * 一个二元组：二元组会逼出一个"这一格到底是自己还是对手"的联合类型，每处读手牌都要先收窄一次；
+ * 拆成两个字段之后，"对手手牌"这个字段压根不存在，泄漏在类型上就无处安放。
+ * 谁是几号座位由 `self.id` / `opponent.id` 交代，按座位号排的那几项
+ *（`settleConfirmed`、事件里的 `gains` / `scores`）仍然照座位号读。
+ */
+export interface PlayerView {
+  /** 这份视图是给谁看的，等于 `self.id`。 */
+  viewer: PlayerId
+  /** 公开卡池，原样带上（见 Catalog）。 */
+  catalog: Catalog
+  round: number
+  /**
+   * 最多能打几轮。以后轮次的题一个字都不给，所以这个数就是对手方唯一能知道的
+   *「还剩几轮」的依据。
+   */
+  totalRounds: number
+  firstPlayer: PlayerId
+  activePlayer: PlayerId
+  phase: GamePhase
+  /**
+   * 已经开始过的轮次的题，`questions[i]` 是第 i + 1 轮那道，长度等于 `round`。
+   * 还没轮到的题连关键词都不在里面（见 QuestionView）。
+   */
+  questions: QuestionView[]
+  self: SelfView
+  opponent: OpponentView
+  winner: PlayerId | 'draw' | null
+  /** 按座位号排，和 `GameState.settleConfirmed` 一样。 */
+  settleConfirmed: [boolean, boolean]
 }
 
 /** 玩家能对引擎发出的全部指令。 */
@@ -525,9 +637,9 @@ export type Command =
    * 重复发会被拒，所以界面按下之后要把按钮置灰等对方。
    */
   | { type: 'CONFIRM_ROUND'; player: PlayerId }
-  // 下面四条是 dev 测试房专用的调试指令，走的是和正常指令一样的 execute 路径，
-  // 所以联机时客人发给房主也照样会被执行。本项目不防作弊（见 docs/architecture.md 4.1），
-  // 客户端只在测试房里给出入口，引擎这一层不做任何身份或来源限制。
+  // 下面四条是 dev 测试房专用的调试指令，走的是和正常指令一样的 execute 路径。
+  // 引擎这一层不做任何身份或来源限制——挡住它们是**服务端**的事：房间对象先核对座位身份，
+  // 再决定收不收这几条（《正式版架构》5.2、6.7 的作弊测试）。引擎自己只管"这条指令合不合规则"。
   /** 给某位玩家加一张手牌：不带 cardId 从他牌堆抽一张，带 cardId 则凭空造一张新实例（不消耗牌堆）。 */
   | { type: 'DEBUG_ADD_CARD'; player: PlayerId; cardId?: CardId }
   /** 弃掉某位玩家的一张手牌：不带 instanceId 移最后一张，带则移指定那张；被移的牌进弃牌堆。 */
@@ -549,7 +661,14 @@ export type Command =
 export type GameEvent =
   /** 开局抛硬币的结果，客户端拿它播全场硬币动画。 */
   | { type: 'GAME_STARTED'; firstPlayer: PlayerId }
-  | { type: 'CARD_DRAWN'; player: PlayerId; card: CardInstance }
+  /**
+   * 有人手上多了一张牌（抽牌，或者调试指令凭空造一张）。
+   *
+   * `card` 可选是**裁剪后**才会出现的形态：`filterEvent` 发给对手的那一份只留 `player`，
+   * 因为对手的手牌连实例 id 都是隐藏信息（见 view.ts 的文件头）。
+   * 引擎自己发出来的那一份永远带着 `card`——不带的时候客户端只知道"那边多了一张背面朝上的牌"。
+   */
+  | { type: 'CARD_DRAWN'; player: PlayerId; card?: CardInstance }
   /**
    * 一张手牌被直接弃掉（不是打出去的：打出去走 AI_DEPLOYED / SKILL_PLAYED）。
    * 两个来源：调试指令 DEBUG_REMOVE_CARD，以及「模型蒸馏」弃掉的那张 AI 牌。
@@ -627,8 +746,14 @@ export type GameEvent =
       toCardId: CardId
       direction: 'upgrade' | 'downgrade'
     }
-  /** 进入答题阶段，全屏揭晓题目和正确答案。 */
-  | { type: 'QUESTION_REVEALED'; question: Question }
+  /**
+   * 进入答题阶段，全屏揭晓题面。
+   *
+   * 引擎发出来的那一份运行时带着整道题（含答案和解析），但类型上只暴露公开的那一半：
+   * 答案要等本轮结算才公开，谁都不该从这条事件上读它。真正把答案摘掉的是
+   * `filterEvent`，所以下发前必须过一遍（见 view.ts）。
+   */
+  | { type: 'QUESTION_REVEALED'; question: Question | PublicQuestion }
   | {
       type: 'AI_ANSWERED'
       instanceId: InstanceId
@@ -709,7 +834,10 @@ export type GameEvent =
   | { type: 'GAME_OVER'; winner: PlayerId | 'draw' }
   /**
    * 非法指令。状态保持不变，只回这一条事件。
-   * 房主模式下房主可以只把它回给发指令的人，不必广播。
+   *
+   * 它是**对某一条指令的回执**，不是"局面上发生了什么"，所以不进广播：
+   * `filterEvent` 对它一律返回 null，服务端把这一条直接回给发指令的那条连接
+   *（见 view.ts）。这样 filterEvent 不必知道是谁发的指令，事件本身也不用多带一个字段。
    */
   | { type: 'COMMAND_REJECTED'; reason: string }
 

@@ -1,14 +1,9 @@
-import {
-  AI_MODEL_CARD_IDS,
-  AI_MODEL_CARDS,
-  AI_UPGRADE_CHAINS,
-  createCatalog,
-} from '@ai-duel/content'
+import type { CardId } from '@ai-duel/core'
+import { downgradeTargetOf, upgradeTargetOf } from '@ai-duel/core'
 import { describe, expect, it } from 'vitest'
-import type { CardId } from '../src/index'
-import { downgradeTargetOf, upgradeTargetOf } from '../src/index'
+import { AI_MODEL_CARD_IDS, AI_MODEL_CARDS, AI_UPGRADE_CHAINS, createCatalog } from '../src/index'
 
-/** 升降级是规则，读的是一局的内容目录（见 src/catalog.ts）。 */
+/** 升降级是规则，读的是一局的内容目录（见 core 的 src/catalog.ts）。 */
 const CATALOG = createCatalog()
 
 const EXPECTED_SKILLS = {
@@ -47,7 +42,7 @@ describe('AI 专属技能文案', () => {
 })
 
 /**
- * 同系列升级链（content 的 src/aiModels.ts）的数据约束。
+ * 同系列升级链（src/aiModels.ts）的数据约束。
  *
  * 升降级技能就是照着这张表把场上单位的 cardId 换掉，所以链本身写错就会当场变成对局里的怪事：
  * 指向不存在的卡会让答题剧本查表抛错，同一张卡出现在两条链上则"下一代是谁"没有唯一答案。

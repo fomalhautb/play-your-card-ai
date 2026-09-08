@@ -1,9 +1,9 @@
-import { CARDS, SKILL_DESIGN_CARD_IDS, SKILL_DESIGN_CARDS } from '@ai-duel/content'
+import type { SkillCard } from '@ai-duel/core'
 import { describe, expect, it } from 'vitest'
-import type { SkillCard } from '../src/index'
+import { CARDS, SKILL_DESIGN_CARD_IDS, SKILL_DESIGN_CARDS } from '../src/index'
 
 /**
- * 24 张技能卡（content 的 src/skillCards.ts）的形状约束。
+ * 24 张技能卡（src/skillCards.ts）的形状约束。
  *
  * 这批牌进了卡池、玩家能选进牌组、能真的打出来，其中 10 张接了引擎、14 张还是占位。
  * 下面几条守的就是这条分界线在数据上不出岔子：占位牌一旦被填上 `target`，

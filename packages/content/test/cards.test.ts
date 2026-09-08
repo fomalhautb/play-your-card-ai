@@ -93,7 +93,7 @@ describe('AI 牌', () => {
   })
 
   it('进化链就是这四条，链尾不再指向别人', () => {
-    // 链条本身（顺着 evolvesTo 串出来的那份）在 core 的 aiModels.test.ts 里逐级核对过，
+    // 链条本身（顺着 evolvesTo 串出来的那份）在 aiModels.test.ts 里逐级核对过，
     // 这里锁的是"哪几张在链上、谁接谁"这个设计决定。
     for (const chain of CHAINS) {
       for (let i = 0; i < chain.length - 1; i++) {

@@ -19,7 +19,8 @@ import { HEROES, OPEN_SKILL_CARD_IDS, PLAYABLE_AI_CARD_IDS } from '../src/index'
  */
 
 const TEST_DIRS = [
-  // 引擎测试用的是真实卡牌，多数牌的"点名"都出自这里。
+  // 引擎测试打的也是真实卡牌，一部分牌只在那边被点过名（比如只有引擎会结算的那几张技能牌），
+  // 所以两个目录都要扫。core 的测试目录挪了位置，这一行也得跟着改。
   fileURLToPath(new URL('../../core/test', import.meta.url)),
   fileURLToPath(new URL('.', import.meta.url)),
 ]

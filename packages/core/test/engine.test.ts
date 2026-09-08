@@ -1559,7 +1559,8 @@ describe('结束出牌', () => {
 
     const second = execute(first.state, { type: 'END_PLAY', player: 1 })
     expect(second.state.phase).toBe('quiz')
-    // 揭晓的是本轮那道题，正确答案一起给出去（本项目不防作弊）。
+    // 引擎发的是完整的那道题（含答案）；下发给客户端前答案由 filterEvent 摘掉，
+    // 那一步在 view.test.ts 里守着。
     expect(second.events).toEqual([
       { type: 'QUESTION_REVEALED', question: game.state.questions[0] },
     ])

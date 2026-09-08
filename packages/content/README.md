@@ -80,6 +80,9 @@ JSON 数据在**模块加载时** parse 一次（`src/questions.ts`、`src/scrip
 
 - `schema.test.ts` — 所有数据过 schema。
 - `cards.test.ts` — 逐张卡的费用、国产标签、进化链形状；`createCatalog()` 的形状。
+- `aiModels.test.ts` — 每张 AI 牌的技能名和技能文案；四条升级链逐级对得上。
+- `skillCards.test.ts` — 24 张技能牌里"接了引擎的 10 张"和"还是占位的 14 张"这条分界线。
+- `collection.test.ts` — 卡池、初始收藏、三副预设牌组、开包抽卡。
 - `pregenAnswers.test.ts` — **答案表完整**：每题 × 每张能上场的 AI × 每个变体都有值，
   多余的格子也报；查表的三条路径（正常、调不到模型的兜底、缺数据抛错）。
 - `assets.test.ts` — **资源引用存在**：每张牌和每位英雄的原画文件真的在。
