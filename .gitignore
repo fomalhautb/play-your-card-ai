@@ -4,6 +4,15 @@ build/
 coverage/
 *.tsbuildinfo
 
+# 卡面图集（`pnpm assets:build` 的产物）。源头是 public/cards 下的原画，随时能重打，
+# 而图集本身有几兆，进仓库只会把每次改原画都变成一次大 diff。
+# assets/dist/ 已经被上面的 dist/ 覆盖，这两条是脚本分发过去的副本。
+apps/web/public/atlas/
+packages/bench/public/atlas/
+
+# AssetPack 的增量缓存目录，在哪儿跑就落在哪儿。
+.assetpack/
+
 # wrangler dev 的本地状态：构建缓存，以及 miniflare 给 Durable Object 建的 SQLite 库。
 # 纯本地产物，每台机器都不一样，删掉下次 `wrangler dev` 会重新生成。
 .wrangler/
@@ -24,3 +33,11 @@ pnpm-debug.log*
 tmp/
 output/
 scripts/out/pregen-smoke.json
+
+# 性能剧本的产物（迁移第 2 条）。
+# results/ 是每台机器各跑各的数字，提交进来只会天天冲突；
+# public/atlas/ 是图集脚本从别处复制过来的，源头在美术资源那边不在这里；
+# test-results/ 和 playwright-report/ 是 Playwright 失败时留的现场。
+packages/bench/results/
+packages/bench/test-results/
+packages/bench/playwright-report/

@@ -6,5 +6,7 @@
     // 跑批和出报告的那一层是 Node 脚本（node）。所以这是唯一一个两种全局类型都带的包。
     "types": ["node"]
   },
-  "include": ["src"]
+  // test/ 是 vitest 的单元测试，tests/ 是 Playwright 的用例，两边都要一起类型检查——
+  // 跑批脚本写错类型和产品代码写错一样会浪费一整轮 CI。
+  "include": ["src", "test", "tests", "*.config.ts"]
 }

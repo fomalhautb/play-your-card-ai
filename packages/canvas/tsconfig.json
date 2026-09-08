@@ -7,5 +7,5 @@
     // 误用 process、fs 这类 Node 全局要在编译期就拦下来。
     "types": []
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }

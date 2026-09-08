@@ -4,8 +4,12 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     // 装配层最终跑在浏览器 / WebView / Electron 渲染进程里，所以要 DOM 全局类型，
-    // 屏幕组件是 JSX。不加 "node"：误用 process、fs 这类 Node 全局要在编译期就拦下来。
-    "types": []
+    // 屏幕组件是 JSX。
+    //
+    // 只加 vite/client 这一份：它带来 import.meta.env（开发页靠 DEV 这个标志在生产构建里被剔除）
+    // 和 `import './x.css'` 的模块声明。刻意不加 "node"——
+    // 误用 process、fs 这类 Node 全局要在编译期就拦下来。
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }
