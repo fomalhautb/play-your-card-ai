@@ -28,6 +28,10 @@ const config: StorybookConfig = {
    * 把 web 壳的 public 原样当静态根：卡面图集在 `apps/web/public/atlas/` 下
    * （`pnpm assets:build` 的产物，进了 .gitignore），story 里的加载路径因此和开发页
    * 完全一样是 `/atlas/xxx.json`——两边共用 src/dev/cardAtlas.ts 那一份加载代码。
+   *
+   * 这个目录必须在 git 里存在（apps/web/public/.gitkeep）：Storybook 启动时会检查
+   * staticDirs 里的每个目录，不存在就直接退出。图集本身是 gitignore 的构建产物，
+   * 全新检出（比如 CI）只有目录没有图集，图集由截图回归的 globalSetup 现打。
    */
   staticDirs: [resolve(REPO_ROOT, 'apps/web/public')],
   addons: [],
