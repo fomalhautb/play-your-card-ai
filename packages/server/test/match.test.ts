@@ -135,4 +135,28 @@ describe('一局打到底', () => {
     alice.close()
     bob.close()
   })
+
+  // 喊话表在 content 里（urgeLines.ts），服务端照它认 id。转发和拒收各走一遍：
+  // 拒收那条是唯一挡住「借协议往对方屏幕上打任意东西」的关卡。
+  it('催一催：认得的 id 转给对面，认不得的回 unknown-urge 且不转发', async () => {
+    await setupRoom('2008', ['alice', 'bob'])
+    const alice = await Client.connect('2008', await tokenFor('alice'))
+    alice.send(HELLO)
+    await alice.expect('session:welcome')
+    const bob = await Client.connect('2008', await tokenFor('bob'))
+    bob.send(HELLO)
+    await bob.expect('session:welcome')
+
+    alice.send({ type: 'room:urge', id: 'hurryUp' })
+    expect(await bob.until('room:urged')).toMatchObject({ from: 0, id: 'hurryUp' })
+
+    alice.send({ type: 'room:urge', id: '我自己编的一句' })
+    expect(await alice.until('room:error')).toMatchObject({ reason: 'unknown-urge' })
+    // 紧跟一条合法的：bob 下一条 room:urged 必须是这一条，说明上面那条真的没转出去。
+    alice.send({ type: 'room:urge', id: 'comeOn' })
+    expect(await bob.until('room:urged')).toMatchObject({ from: 0, id: 'comeOn' })
+
+    alice.close()
+    bob.close()
+  })
 })

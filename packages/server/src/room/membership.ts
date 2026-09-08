@@ -7,8 +7,8 @@
  * 座位是怎么占上的（大厅那三条路）在下面 `setupRoom` / `reserveRoom` / `joinRoom` 三个函数里。
  */
 
-import { CARD_POOL, createCatalog, DECK_SIZE, HEROES, QUESTION_POOL } from '@ai-duel/content'
-import type { CardId, PlayerId } from '@ai-duel/core'
+import { createCatalog, HEROES, isLegalDeck, isUrgeId, QUESTION_POOL } from '@ai-duel/content'
+import type { PlayerId } from '@ai-duel/core'
 import { createGame, other } from '@ai-duel/core'
 import type { ClientMessage } from '@ai-duel/protocol'
 import { dispatchStarted, sendSnapshot } from './dispatch'
@@ -21,33 +21,18 @@ import { seatOf } from './state'
 type LoadoutMessage = Extract<ClientMessage, { type: 'room:loadout' }>
 
 /**
- * 同名卡最多几张。数字抄自旧客户端牌组构筑页的 `MAX_COPIES`。
- *
- * 为什么写在服务端而不是从 content 里读：content 现在没有导出这条构筑规则
- * （`DECK_SIZE` 有，份数上限没有）。等牌组编辑迁过来（迁移第 28 条）应该有一份共用的
- * 「这副牌合不合法」，那时把这里换成调它。
- */
-const MAX_COPIES_PER_CARD = 3
-
-const POOL = new Set<CardId>(CARD_POOL)
-
-/**
  * 这副牌组和英雄能不能上桌。能就返回规范化之后的装载，不能返回 null。
  *
  * protocol 那边只挡了「一条消息塞十万张牌」这种形状问题（见 `roomLoadoutSchema`），
- * 真正的构筑规则要查内容表，只有服务端做得了：
- * 张数不对、同名超量、牌不在卡池里、英雄还没实装，都不让开局。
+ * 真正的构筑规则要查内容表：张数不对、同名超量、牌不在卡池里、英雄还没实装，都不让开局。
  * 放过去的话引擎会拿到一副打不动的牌，或者玩家能带上一张设计稿都没实装的英雄。
+ *
+ * 牌组那半调 content 的 `isLegalDeck`，和客户端构筑页放行的是同一条规则——
+ * 两边各写一份的话，客户端能编出来、服务端不让开局的牌组迟早会出现。
+ * 英雄这半留在这儿：它不进牌组，规则也只有「实装了没有」一条。
  */
 function validateLoadout(loadout: LoadoutMessage): SeatLoadout | null {
-  if (loadout.deck.length !== DECK_SIZE) return null
-  const copies = new Map<CardId, number>()
-  for (const cardId of loadout.deck) {
-    if (!POOL.has(cardId)) return null
-    const count = (copies.get(cardId) ?? 0) + 1
-    if (count > MAX_COPIES_PER_CARD) return null
-    copies.set(cardId, count)
-  }
+  if (!isLegalDeck(loadout.deck)) return null
   // hero 为 null 是「这一方不带英雄」，是合法的（见 core 的 PlayerSetup）。
   if (loadout.hero !== null && HEROES[loadout.hero].comingSoon === true) return null
   return { deck: [...loadout.deck], hero: loadout.hero }
@@ -187,11 +172,14 @@ export function handleResync(
  * `room:urge`：催一催，转给对面。
  *
  * 只带 id 不带文字（见 `roomUrgeSchema`），所以没人能借它往对方屏幕上打任意文字。
- * 协议要求「id 查不到就回 `unknown-urge`」，但那张喊话表现在还在 legacy-client 里
- * （迁移第 33 条才搬进 content），够不着，所以眼下只转不查。
- * 表搬过来之后在这里补一条查表，别忘了。
+ * 认不出的 id 回 `unknown-urge` 不转发：对面拿它查不到文字，只会得到一个静默的空气泡，
+ * 与其让它到对面去落空，不如在这里就告诉发送方。
  */
-export function handleUrge(room: RoomContext, seat: PlayerId, id: string): void {
+export function handleUrge(room: RoomContext, ws: WebSocket, seat: PlayerId, id: string): void {
+  if (!isUrgeId(id)) {
+    sendRoomError(ws, 'unknown-urge', '这句喊话不认识')
+    return
+  }
   sendToSeat(room.ctx, other(seat), { type: 'room:urged', from: seat, id })
 }
 
