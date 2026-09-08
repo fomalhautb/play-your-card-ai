@@ -1,0 +1,284 @@
+/**
+ * 结算层里的一张作答结果卡（需求单面板 K）：左边一张迷你卡面，右边模型名、回答和理由，
+ * 判定块（徽章 H）盖上来，答完之前先摆三个跳动的点（条 E）。
+ *
+ * **打字机是用遮罩做的，不是一个字一个字换文字**。旧版靠 GSAP 的 TextPlugin 改 innerHTML，
+ * 那在画布上等价于「每多一个字就烤一张新纹理」——一句十个字的答案要烤十张，
+ * 3.5 那条（文字只创建一次并缓存）当场破功。这里改成整句先烤一张，
+ * 再用一张白色精灵当遮罩、把它的 `scale.x` 从 0 补到 1，缓动用 `steps(字数)`：
+ * 看到的仍然是一个字一个字蹦出来，而全程只有一张纹理、每帧只改一个 transform（3.10）。
+ *
+ * 卡由调用方建也由调用方销毁——这张迷你卡面就是那个 AI 上场时的那张牌。
+ */
+
+import { tokens } from '@ai-duel/design'
+import { Container, Graphics, Sprite, Texture } from 'pixi.js'
+import { SETTLE_LOADER_FADE_MS, SETTLE_STAMP_MS } from '../director/timings'
+import { CARD_WIDTH } from '../layout/fanMath'
+import type { Animator } from '../runtime/animator'
+import type { TextTextureCache } from '../runtime/textCache'
+import type { CardSprite } from './CardSprite'
+import { Label } from './Label'
+
+/**
+ * 这张卡自己的几何和字号（px）。组件私有，理由见 design 的 README。
+ * 来源：需求单面板 K（444×154、padding 14、头像 77×116、回答 30px/700、模型名 18px）
+ * 和徽章 H（判定块 172×110、字 20px/700）。
+ */
+const BOX = { width: 444, height: 154, pad: 14, avatarWidth: 77, gap: 14 } as const
+const TYPE = {
+  name: { fontSize: 18, letterSpacing: 0 },
+  answer: { fontSize: 30, letterSpacing: 0, weight: '700' },
+  reasoning: { fontSize: tokens.font.size.base, letterSpacing: 0 },
+  verdict: { fontSize: 20, letterSpacing: 1.2, weight: '700' },
+  safe: { fontSize: tokens.font.size.md, letterSpacing: 1.2 },
+} as const
+/** 判定块的尺寸和它盖下来时的起始缩放 / 倾角。抄旧版 `.settle-card__verdict` 和 `VERDICT_TILT_DEG`。 */
+const VERDICT = { width: 172, height: 110, fromScale: 1.6, tiltDeg: -6 } as const
+/** 三个等待点的直径、间距和跳多高。 */
+const LOADER = { dot: 7, gap: 7, rise: 6, dur: 0.45 } as const
+
+export interface SettleRowDeps {
+  text: TextTextureCache
+  animator: Animator
+}
+
+export class SettleRow extends Container {
+  readonly rowId: string
+  readonly boxWidth = BOX.width
+  readonly boxHeight = BOX.height
+
+  private readonly deps: SettleRowDeps
+  private readonly loader = new Container()
+  private readonly answerSlot = new Container()
+  private readonly reasoningSlot = new Container()
+  private readonly verdictSlot = new Container()
+  private readonly safeSlot = new Container()
+
+  constructor(rowId: string, name: string, card: CardSprite, deps: SettleRowDeps) {
+    super()
+    this.rowId = rowId
+    this.deps = deps
+    this.label = `settle-row:${rowId}`
+    this.eventMode = 'none'
+
+    this.addChild(this.buildPlate())
+    this.addChild(this.mountAvatar(card))
+    const bodyX = BOX.pad + BOX.avatarWidth + BOX.gap
+    const nameLabel = new Label(
+      name,
+      { ...TYPE.name, align: 'left', maxWidth: BOX.width - bodyX - BOX.pad },
+      deps,
+      tokens.color.battle.inkMuted,
+    )
+    nameLabel.position.set(bodyX, BOX.pad + 10)
+    this.answerSlot.position.set(bodyX, BOX.pad + 48)
+    this.reasoningSlot.position.set(bodyX, BOX.pad + 84)
+    this.buildLoader(bodyX)
+    this.addChild(
+      nameLabel,
+      this.answerSlot,
+      this.reasoningSlot,
+      this.loader,
+      this.verdictSlot,
+      this.safeSlot,
+    )
+    // 建出来是藏着的：一张结果卡是跟着 `settle-row` cue 一条条淡入的，不是一上来就都在。
+    this.alpha = 0
+  }
+
+  /** 淡入。返回时长（毫秒）由调用方从 `SETTLE_ROW_IN_MS` 取——这里只管演。 */
+  appear(durationMs: number): void {
+    this.deps.animator.fromTo(
+      this,
+      { alpha: 0 },
+      { alpha: 1, duration: durationMs / 1000, ease: 'power2.out', overwrite: 'auto' },
+    )
+  }
+
+  /**
+   * 开口作答：转圈淡出 → 大字答案打字 → 小字推理打字。
+   *
+   * `durationMs` 是这一整段的时长（编排层按字数算好的，见 `settle-typing` cue）。
+   * 两段字各分多少由字数按比例摊：答案每字 0.045 秒、推理每字 0.02 秒且整段封顶 1.2 秒，
+   * 这个比例关系在 timings 里，编排层已经按它算过总长，这里只要照同一个比例分回去，
+   * 两边就不会走岔。
+   */
+  startTyping(answer: string, reasoning: string, durationMs: number): void {
+    this.fadeLoader()
+    const answerWeight = answer.length * 0.045
+    const reasoningWeight = Math.min(reasoning.length * 0.02, 1.2)
+    const totalWeight = Math.max(answerWeight + reasoningWeight, 0.001)
+    const usable = Math.max(0, durationMs / 1000 - SETTLE_LOADER_FADE_MS / 1000)
+    const answerDur = usable * (answerWeight / totalWeight)
+
+    const startAt = SETTLE_LOADER_FADE_MS / 1000
+    this.typeInto(this.answerSlot, answer, TYPE.answer, tokens.color.battle.ink, answerDur, startAt)
+    this.typeInto(
+      this.reasoningSlot,
+      reasoning,
+      TYPE.reasoning,
+      tokens.color.battle.inkMuted,
+      usable - answerDur,
+      startAt + answerDur,
+    )
+  }
+
+  /**
+   * 盖判定章。`safePassed` 为真时紧接着还要补一枚「保送留场」。
+   * 返回时长（毫秒），和 `settle-stamp` cue 的 `durationMs` 一致。
+   */
+  stamp(correct: boolean, safePassed: boolean): number {
+    this.fadeLoader()
+    const block = this.buildVerdict(correct)
+    this.verdictSlot.addChild(block)
+    const duration = SETTLE_STAMP_MS / 1000
+    block.scale.set(VERDICT.fromScale)
+    block.alpha = 0
+    // 从大缩到原大 + 淡入，就是"盖章"那一下：章是从上方压下来的，先大后小才有距离感。
+    this.deps.animator.tween(block, { alpha: 1, duration, ease: 'power2.out' })
+    this.deps.animator.tween(block.scale, { x: 1, y: 1, duration, ease: 'back.out(1.4)' })
+    if (safePassed) this.addSafeBadge(duration)
+    return SETTLE_STAMP_MS
+  }
+
+  /** 底板：一块圆角纸，一圈细边。 */
+  private buildPlate(): Graphics {
+    return new Graphics()
+      .roundRect(0, 0, BOX.width, BOX.height, tokens.radius.lg)
+      .fill({ color: tokens.color.battle.paper })
+      .stroke({ width: 1, color: tokens.color.battle.line })
+  }
+
+  /** 左边那张迷你卡面。整张卡缩到 77 宽，字和插画跟着一起变小。 */
+  private mountAvatar(card: CardSprite): Container {
+    const holder = new Container()
+    const scale = BOX.avatarWidth / CARD_WIDTH
+    card.scale.set(scale)
+    // 卡的原点在底边中点，所以摆的是卡脚的位置。
+    card.position.set(BOX.pad + BOX.avatarWidth / 2, BOX.height - BOX.pad)
+    holder.addChild(card)
+    return holder
+  }
+
+  /** 三个跳动的点。答完就淡出（见 fadeLoader）。 */
+  private buildLoader(x: number): void {
+    for (let i = 0; i < 3; i += 1) {
+      const dot = new Graphics()
+        .circle(0, 0, LOADER.dot / 2)
+        .fill({ color: tokens.color.battle.inkMuted })
+      dot.position.set(x + i * (LOADER.dot + LOADER.gap), BOX.height / 2)
+      this.loader.addChild(dot)
+      this.deps.animator.tween(dot, {
+        y: dot.y - LOADER.rise,
+        duration: LOADER.dur,
+        delay: i * (LOADER.dur / 3),
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+      })
+    }
+  }
+
+  /**
+   * 收掉那三个点。
+   *
+   * 必须把补间也停掉：它们是 `repeat: -1` 的，自己永远不会结束，
+   * 留着帧循环就一直认为「还有东西在动」，停不下来（3.6）。
+   */
+  private fadeLoader(): void {
+    if (!this.loader.visible) return
+    for (const dot of this.loader.children) this.deps.animator.killTweensOf(dot)
+    this.deps.animator.tween(this.loader, {
+      alpha: 0,
+      duration: SETTLE_LOADER_FADE_MS / 1000,
+      ease: 'power2.in',
+      onComplete: () => {
+        this.loader.visible = false
+      },
+    })
+  }
+
+  /**
+   * 把一段字「打」进某个位置：整段先烤一张纹理，再用遮罩逐字露出来。
+   *
+   * 遮罩是一张白色精灵，动的只有它的 `scale.x`；缓动用 `steps(字数)`，
+   * 于是它不是平滑滑过去而是一格一格跳，一格正好一个字。
+   * 空串直接不建——`steps(0)` 在 GSAP 里是非法的。
+   */
+  private typeInto(
+    slot: Container,
+    content: string,
+    style: { fontSize: number; letterSpacing: number; weight?: '400' | '600' | '700' },
+    color: string,
+    duration: number,
+    delay: number,
+  ): void {
+    if (content.length === 0) return
+    const label = new Label(
+      content,
+      {
+        fontSize: style.fontSize,
+        letterSpacing: style.letterSpacing,
+        weight: style.weight,
+        align: 'left',
+        maxWidth: BOX.width - slot.x - BOX.pad,
+      },
+      this.deps,
+      color,
+    )
+    slot.addChild(label)
+
+    const mask = new Sprite(Texture.WHITE)
+    mask.anchor.set(0, 0.5)
+    // 遮罩要比字高一点：字形的上下沿会探出纹理的中线一截，贴着切会削掉笔画。
+    mask.setSize(label.textWidth, label.textHeight * 1.6)
+    mask.scale.x = 0
+    slot.addChild(mask)
+    label.mask = mask
+
+    this.deps.animator.tween(mask.scale, {
+      x: 1,
+      duration: Math.max(duration, 0.001),
+      delay,
+      ease: `steps(${content.length})`,
+    })
+  }
+
+  /** 判定块：一块深色圆角牌，上面「✓ 正确 / ✗ 错误」。 */
+  private buildVerdict(correct: boolean): Container {
+    const block = new Container()
+    const fill = correct ? tokens.color.theme.forest : tokens.color.theme.brick
+    block.addChild(
+      new Graphics()
+        .roundRect(
+          -VERDICT.width / 2,
+          -VERDICT.height / 2,
+          VERDICT.width,
+          VERDICT.height,
+          tokens.radius.sm,
+        )
+        .fill({ color: fill }),
+    )
+    block.addChild(
+      new Label(correct ? '✓ 正确' : '✗ 错误', TYPE.verdict, this.deps, tokens.color.battle.paper),
+    )
+    block.position.set(BOX.width - VERDICT.width / 2 - BOX.pad, BOX.height / 2)
+    block.rotation = (VERDICT.tiltDeg * Math.PI) / 180
+    return block
+  }
+
+  /** 「保送留场」那枚小标，跟在判定块之后补上来。 */
+  private addSafeBadge(delay: number): void {
+    const badge = new Label('保送留场', TYPE.safe, this.deps, tokens.color.theme.forest)
+    badge.position.set(BOX.width - BOX.pad - 40, BOX.height - BOX.pad)
+    badge.alpha = 0
+    this.safeSlot.addChild(badge)
+    this.deps.animator.tween(badge, {
+      alpha: 1,
+      duration: SETTLE_STAMP_MS / 1000,
+      delay,
+      ease: 'power2.out',
+    })
+  }
+}

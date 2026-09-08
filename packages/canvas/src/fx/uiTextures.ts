@@ -21,6 +21,7 @@ import {
   drawSealDisc,
   drawSealRing,
 } from './badgeShapes'
+import { drawCoinFace, drawCoinRim, drawTokenStar } from './battleShapes'
 import {
   drawFrameCornerInner,
   drawFrameCornerOuter,
@@ -91,6 +92,12 @@ const MOLDS = {
   nameplate: drawNameplate,
   /** 费用圆章的盘底和外圈。 */
   costBadge: costBadgeMold,
+  /** Token 细条里那颗四芒星。 */
+  tokenStar: drawTokenStar,
+  /** 抛硬币过场那枚币的盘面。 */
+  coinFace: drawCoinFace,
+  /** 抛硬币那枚币的两圈边。 */
+  coinRim: drawCoinRim,
 } satisfies Record<string, () => Mold>
 
 export type UiTextureKey = keyof typeof MOLDS

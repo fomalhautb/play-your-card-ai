@@ -1,0 +1,423 @@
+/**
+ * 回合结算全屏层（需求单面板 I）：题目 + 标准答案 + 双方 AI 的作答 + 本轮计分 + 确认按钮。
+ *
+ * 上半截（顶栏和题目那一行）在 `SettleChrome`，一张结果卡在 `SettleRow`，
+ * 拆开只是因为单文件 400 行那条卡着——三个文件合起来才是这一层。
+ *
+ * **一段演出一个方法，和 cue 一一对应**：`open` / `addRow` / `revealAnswer` / `typeRow` /
+ * `stamp` / `showCounts` / `showScore` / `enableConfirm` / `exit` 依次对上
+ * `settle-open` / `settle-row` / `settle-answer` / `settle-typing` / `settle-stamp` /
+ * `settle-counts` / `settle-score` / `settle-confirm` / `settle-exit`。
+ * 组件自己**不排期**：什么时候调哪一个由编排层的虚拟时钟说了算（`director/settleTimeline.ts`
+ * 已经把整条线排好了），这里每个方法只管演自己那一段，并返回它演多久。
+ *
+ * 上下是**对方在上、我方在下**：自己那块贴着底栏的结论和确认按钮，
+ * 视线从对面扫到自己、再落到「这一分算给了谁」，一路往下不用回头。
+ */
+
+import { tokens } from '@ai-duel/design'
+import type { Platform, SoundSpec } from '@ai-duel/platform'
+import { Container, Graphics } from 'pixi.js'
+import {
+  SETTLE_CONFIRM_MS,
+  SETTLE_COUNTS_MS,
+  SETTLE_EXIT_MS,
+  SETTLE_OPEN_MS,
+  SETTLE_ROW_IN_MS,
+  SETTLE_SCORE_MS,
+} from '../director/timings'
+import type { UiTextures } from '../fx/uiTextures'
+import type { Animator } from '../runtime/animator'
+import type { TextTextureCache } from '../runtime/textCache'
+import type { CardSprite } from './CardSprite'
+import { Label } from './Label'
+import { PLAQUE_NAVY, PlaqueButton } from './PlaqueButton'
+import { SettleChrome, type SettleChromeDeps } from './SettleChrome'
+import { SettleRow } from './SettleRow'
+
+/** 哪一侧。和 cue 里 `settle-row` 的 `mine` 是同一件事，换成有名字的写法。 */
+export type SettleSide = 'mine' | 'theirs'
+
+/**
+ * 底栏和结果卡区自己的几何、字号（px）。组件私有，理由见 design 的 README。
+ * 来源：styles.css 的 `.settle__bottom`（96 高）、`.settle__squad-tab`（5.2 宽）等。
+ */
+const BOTTOM = { height: 96, padX: 28 } as const
+const SQUAD = { tabWidth: 6, gap: 18, headHeight: 26 } as const
+const TYPE = {
+  head: { fontSize: tokens.font.size.lg, letterSpacing: 1.68 },
+  lead: { fontSize: tokens.font.size.md, letterSpacing: 1.2 },
+  spend: { fontSize: tokens.font.size.lg, letterSpacing: 0.78 },
+  verdict: { fontSize: 22, letterSpacing: 1.32, weight: '600' },
+} as const
+/** 领先徽章的内边距。抄需求单徽章 G（45×13、padding 2/10）。 */
+const LEAD_PAD = { x: 10, y: 2 } as const
+/** 比分脉冲涨到多大、一趟多久（秒）。抄旧版 `scale 1.25`、0.175 来回。 */
+const PULSE = { scale: 1.25, dur: 0.175 } as const
+/** 整层退场缩到多小。抄旧版退场那段的 `scale 0.96`。 */
+const EXIT_SCALE = 0.96
+
+export interface SettleLayerDeps extends SettleChromeDeps {
+  ui: UiTextures
+  text: TextTextureCache
+  animator: Animator
+  /** 确认按钮是一颗匾额按钮，它按下时要叫触感和音效，所以这两项要一路透下来。 */
+  platform: Platform
+  clickSound: SoundSpec | null
+}
+
+export class SettleLayer extends Container {
+  private readonly deps: SettleLayerDeps
+  private readonly paper = new Graphics()
+  private readonly chrome: SettleChrome
+  private readonly squads: Record<SettleSide, Container> = {
+    theirs: new Container(),
+    mine: new Container(),
+  }
+  private readonly heads: Record<SettleSide, Container> = {
+    theirs: new Container(),
+    mine: new Container(),
+  }
+  private readonly bottom = new Container()
+  private readonly confirmSlot = new Container()
+  private readonly rows = new Map<string, SettleRow>()
+  private readonly boxWidth: number
+  private readonly boxHeight: number
+  /**
+   * 这一轮是第几轮。
+   *
+   * 记着它是因为顶栏那块「轮次 + 比分」是一整块重建的（比分一变就要换纹理），
+   * 而 `showScore` 只拿得到比分——重画时轮次得从这儿取，不然会掉回默认值。
+   */
+  private round = 1
+
+  constructor(width: number, height: number, deps: SettleLayerDeps) {
+    super()
+    this.deps = deps
+    this.boxWidth = width
+    this.boxHeight = height
+    this.label = 'settle-layer'
+    // 整层吃指针事件：结算期间战场点不动，只有确认按钮能点。
+    this.eventMode = 'static'
+    this.chrome = new SettleChrome(width, deps)
+    this.addChild(
+      this.paper,
+      this.chrome,
+      this.squads.theirs,
+      this.squads.mine,
+      this.heads.theirs,
+      this.heads.mine,
+      this.bottom,
+      this.confirmSlot,
+    )
+    this.drawPaper()
+    this.visible = false
+    this.alpha = 0
+  }
+
+  /**
+   * 整层立起来：题面亮出、双方的结果卡位摆好。
+   * 返回时长（毫秒），和 `settle-open` cue 的 `durationMs` 一致。
+   */
+  open(
+    question: { category: string; text: string },
+    round: number,
+    scoresBefore: { mine: number; theirs: number },
+  ): number {
+    this.clearRows()
+    this.round = round
+    this.chrome.setMeta(round, scoresBefore.mine, scoresBefore.theirs)
+    this.chrome.setStep(0)
+    this.chrome.setQuestion(question.category, question.text)
+    this.buildSquadHeads()
+    this.buildBottom(null)
+    for (const child of this.confirmSlot.removeChildren()) child.destroy({ children: true })
+    this.layoutSquads()
+
+    this.visible = true
+    const duration = SETTLE_OPEN_MS / 1000
+    this.deps.animator.fromTo(
+      this,
+      { alpha: 0 },
+      { alpha: 1, duration, ease: 'power2.out', overwrite: 'auto' },
+    )
+    this.deps.animator.fromTo(
+      this.chrome,
+      { y: -16 },
+      { y: 0, duration, ease: 'power2.out', overwrite: 'auto' },
+    )
+    return SETTLE_OPEN_MS
+  }
+
+  /**
+   * 新增一张结果卡（一条 `AI_ANSWERED` 一张），先只有卡名和「作答中」转圈。
+   * 返回淡入时长（毫秒），和 `settle-row` cue 的 `durationMs` 一致。
+   */
+  addRow(rowId: string, name: string, card: CardSprite, side: SettleSide): number {
+    if (this.rows.has(rowId)) return 0
+    const row = new SettleRow(rowId, name, card, this.deps)
+    this.rows.set(rowId, row)
+    this.squads[side].addChild(row)
+    this.layoutSquads()
+    row.appear(SETTLE_ROW_IN_MS)
+    return SETTLE_ROW_IN_MS
+  }
+
+  /** 标准答案从左往右擦出来。答案在本轮结算之后才公开，所以这一步不在 `open` 里。 */
+  revealAnswer(answer: string, explanation: string): number {
+    this.chrome.setStep(1)
+    return this.chrome.revealAnswer(answer, explanation)
+  }
+
+  /** 一张结果卡开口作答：转圈淡出 → 大字答案打字 → 小字推理打字。 */
+  typeRow(rowId: string, answer: string, reasoning: string, durationMs: number): number {
+    this.rows.get(rowId)?.startTyping(answer, reasoning, durationMs)
+    return durationMs
+  }
+
+  /** 一张结果卡盖判定章。 */
+  stamp(rowId: string, correct: boolean, safePassed: boolean): number {
+    return this.rows.get(rowId)?.stamp(correct, safePassed) ?? 0
+  }
+
+  /**
+   * 两侧标头的「正确 x / N」淡入，「本轮领先」徽章弹一下。
+   * 返回时长（毫秒），和 `settle-counts` cue 的 `durationMs` 一致。
+   */
+  showCounts(mine: number, theirs: number, leader: SettleSide | null): number {
+    this.chrome.setStep(2)
+    this.buildSquadHeads({ mine, theirs }, leader)
+    const duration = SETTLE_COUNTS_MS / 1000
+    for (const side of ['mine', 'theirs'] as const) {
+      this.deps.animator.fromTo(
+        this.heads[side],
+        { alpha: 0 },
+        { alpha: 1, duration, ease: 'power2.out', overwrite: 'auto' },
+      )
+    }
+    return SETTLE_COUNTS_MS
+  }
+
+  /**
+   * 底栏：先交代消耗，再落下结论，最后顶栏比分才跳。
+   * 三段首尾相接，加起来就是 `SETTLE_SCORE_MS`（那条常量的注释写着同一个算法）。
+   */
+  showScore(
+    totals: { mine: number; theirs: number },
+    spent: { mine: number; theirs: number },
+    verdict: string,
+  ): number {
+    this.buildBottom({ spent, verdict })
+    const total = SETTLE_SCORE_MS / 1000
+    const [spendLine, verdictLine] = this.bottom.children as Container[]
+    const timeline = this.deps.animator.timeline()
+    if (spendLine !== undefined) {
+      timeline.fromTo(spendLine, { alpha: 0 }, { alpha: 1, duration: total * 0.29 }, 0)
+    }
+    if (verdictLine !== undefined) {
+      timeline.fromTo(verdictLine, { alpha: 0 }, { alpha: 1, duration: total * 0.38 }, total * 0.29)
+    }
+    // 比分那一跳排在最后：先说清楚发生了什么，再让数字动，玩家才跟得上因果。
+    timeline.call(
+      () => {
+        this.chrome.setMeta(this.round, totals.mine, totals.theirs)
+        this.pulseScore()
+      },
+      undefined,
+      total * 0.67,
+    )
+    return SETTLE_SCORE_MS
+  }
+
+  /**
+   * 确认按钮淡入。落地那一刻才可点——按钮先出来再变成能点的，玩家不会误以为卡住了。
+   * 返回时长（毫秒），和 `settle-confirm` cue 的 `durationMs` 一致。
+   */
+  enableConfirm(onConfirm: () => void): number {
+    for (const child of this.confirmSlot.removeChildren()) child.destroy({ children: true })
+    const button = new PlaqueButton(
+      { variant: PLAQUE_NAVY, caption: '确认', disabled: true, onActivate: onConfirm },
+      this.deps,
+    )
+    button.position.set(
+      (this.boxWidth - button.boxWidth) / 2,
+      this.boxHeight - BOTTOM.height / 2 - button.boxHeight / 2,
+    )
+    button.alpha = 0
+    this.confirmSlot.addChild(button)
+    const duration = SETTLE_CONFIRM_MS / 1000
+    this.deps.animator.fromTo(
+      button,
+      { alpha: 0 },
+      {
+        alpha: 1,
+        duration,
+        ease: 'power2.out',
+        onComplete: () => button.setDisabled(false),
+      },
+    )
+    return SETTLE_CONFIRM_MS
+  }
+
+  /** 整层退场：淡出并微微缩小，战场重新露出来。 */
+  exit(): number {
+    const duration = SETTLE_EXIT_MS / 1000
+    this.deps.animator.tween(this, {
+      alpha: 0,
+      duration,
+      ease: 'power2.in',
+      overwrite: 'auto',
+      onComplete: () => {
+        this.visible = false
+        this.scale.set(1)
+      },
+    })
+    this.pivot.set(this.boxWidth / 2, this.boxHeight / 2)
+    this.position.set(this.boxWidth / 2, this.boxHeight / 2)
+    this.deps.animator.tween(this.scale, {
+      x: EXIT_SCALE,
+      y: EXIT_SCALE,
+      duration,
+      ease: 'power2.in',
+      overwrite: 'auto',
+    })
+    return SETTLE_EXIT_MS
+  }
+
+  /** 当场收掉（对局中断时的 `clear-overlays`）。 */
+  clear(): void {
+    this.deps.animator.killTweensOf(this)
+    this.deps.animator.killTweensOf(this.scale)
+    this.visible = false
+    this.alpha = 0
+    this.clearRows()
+  }
+
+  /** 底纸：铺满整块舞台的一张纸，四周一圈深色细边收口。 */
+  private drawPaper(): void {
+    this.paper
+      .rect(0, 0, this.boxWidth, this.boxHeight)
+      .fill({ color: tokens.color.battle.paper })
+      .stroke({ width: 1, color: tokens.color.battle.lineDark })
+  }
+
+  private clearRows(): void {
+    for (const row of this.rows.values()) row.destroy({ children: true })
+    this.rows.clear()
+  }
+
+  /**
+   * 两侧的标头：阵营侧条（标签页 D）、「我方 / 对方」、「正确 x / N」和领先徽章（徽章 G）。
+   * counts 给 null 就只画名字那一半——`open` 那会儿还没人答题。
+   */
+  private buildSquadHeads(
+    counts: { mine: number; theirs: number } | null = null,
+    leader: SettleSide | null = null,
+  ): void {
+    for (const side of ['theirs', 'mine'] as const) {
+      const head = this.heads[side]
+      for (const child of head.removeChildren()) child.destroy({ children: true })
+      const accent = side === 'mine' ? tokens.color.theme.life : tokens.color.battle.lineDark
+      const title = new Label(
+        side === 'mine' ? '我方' : '对方',
+        TYPE.head,
+        this.deps,
+        tokens.color.battle.ink,
+      )
+      title.position.set(SQUAD.tabWidth + 12 + title.textWidth / 2, SQUAD.headHeight / 2)
+      head.addChild(title)
+      if (counts !== null) {
+        const total = this.squads[side].children.length
+        const correct = counts[side]
+        const note = new Label(
+          `正确 ${correct} / ${total}`,
+          TYPE.head,
+          this.deps,
+          tokens.color.battle.inkMuted,
+        )
+        note.position.set(
+          title.x + title.textWidth / 2 + 16 + note.textWidth / 2,
+          SQUAD.headHeight / 2,
+        )
+        head.addChild(note)
+        if (leader === side) head.addChild(this.buildLead(note.x + note.textWidth / 2 + 14))
+      }
+      // 阵营侧条：贴在结果卡纵列外侧的一条竖色带。
+      head.addChild(
+        new Graphics().rect(0, 0, SQUAD.tabWidth, SQUAD.headHeight).fill({ color: accent }),
+      )
+    }
+  }
+
+  /** 「本轮领先」徽章：绿底白字的一小块。 */
+  private buildLead(x: number): Container {
+    const box = new Container()
+    const label = new Label('本轮领先', TYPE.lead, this.deps, tokens.color.battle.paper)
+    const width = Math.round(label.textWidth) + LEAD_PAD.x * 2
+    const height = Math.round(label.textHeight) + LEAD_PAD.y * 2
+    box.addChild(
+      new Graphics()
+        .roundRect(0, 0, width, height, tokens.radius.sm)
+        .fill({ color: tokens.color.theme.forest }),
+    )
+    label.position.set(width / 2, height / 2)
+    box.addChild(label)
+    box.position.set(x, (SQUAD.headHeight - height) / 2)
+    return box
+  }
+
+  /** 底栏那两行：消耗和结论。传 null 就只占位不写字（`open` 那会儿还没算分）。 */
+  private buildBottom(
+    data: { spent: { mine: number; theirs: number }; verdict: string } | null,
+  ): void {
+    for (const child of this.bottom.removeChildren()) child.destroy({ children: true })
+    const top = this.boxHeight - BOTTOM.height
+    const spend = new Label(
+      data === null
+        ? '本轮消耗: —'
+        : `本轮消耗: 我方 ${data.spent.mine} · 对方 ${data.spent.theirs}`,
+      TYPE.spend,
+      this.deps,
+      tokens.color.battle.inkMuted,
+    )
+    spend.position.set(BOTTOM.padX + spend.textWidth / 2, top + 26)
+    const verdict = new Label(data?.verdict ?? '', TYPE.verdict, this.deps, tokens.color.battle.ink)
+    verdict.position.set(BOTTOM.padX + verdict.textWidth / 2, top + 58)
+    this.bottom.addChild(spend, verdict)
+  }
+
+  /** 顶栏比分跳一下。改的是 chrome 那一层的 scale，属于 transform（3.10）。 */
+  private pulseScore(): void {
+    const timeline = this.deps.animator.timeline()
+    timeline.to(this.chrome.scale, { x: PULSE.scale, y: PULSE.scale, duration: PULSE.dur })
+    timeline.to(this.chrome.scale, { x: 1, y: 1, duration: PULSE.dur })
+  }
+
+  /** 结果卡两列：对方在上、我方在下，各自居中，列内从上往下排。 */
+  private layoutSquads(): void {
+    const top = this.chrome.rowBottom
+    const available = this.boxHeight - BOTTOM.height - top
+    const half = available / 2
+    for (const [index, side] of (['theirs', 'mine'] as const).entries()) {
+      const column = this.squads[side]
+      const rows = column.children as SettleRow[]
+      const blockTop = top + index * half
+      this.heads[side].position.set(BOTTOM.padX, blockTop)
+      // 一列里的卡从上往下排；排不下就压边，同战场那两排的处理。
+      const step =
+        rows.length <= 1
+          ? 0
+          : Math.min(
+              rows[0]!.boxHeight + SQUAD.gap,
+              (half - SQUAD.headHeight - rows[0]!.boxHeight) / (rows.length - 1),
+            )
+      rows.forEach((row, i) => {
+        row.position.set(
+          (this.boxWidth - row.boxWidth) / 2,
+          blockTop + SQUAD.headHeight + 8 + i * step,
+        )
+      })
+      column.position.set(0, 0)
+    }
+  }
+}
