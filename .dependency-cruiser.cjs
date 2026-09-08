@@ -27,7 +27,8 @@ const ALLOWED = {
   protocol: ['core'],
   design: [],
   platform: [],
-  canvas: ['design', 'platform'],
+  // canvas 多一个 core：演出编排层（src/director）要读引擎的事件和视图类型。
+  canvas: ['core', 'design', 'platform'],
   ui: ['design', 'platform'],
   client: ['core', 'content', 'protocol', 'design', 'platform', 'canvas', 'ui'],
   server: ['core', 'content', 'protocol'],
@@ -108,6 +109,31 @@ module.exports = {
         '碰了 node:fs 这类内建模块就只剩 Node 一种。见《正式版架构》6.2。',
       from: { path: `${packagesGroup(['core', 'content', 'protocol', 'design'])}src/` },
       to: { dependencyTypes: ['core'] },
+    },
+
+    {
+      /*
+       * 6.5 / 迁移第 16 条：演出编排是一台纯 TS 的时间驱动状态机，
+       * 输入是事件批和玩家操作，输出是演出指令，渲染怎么放是渲染器的事。
+       * 碰了 platform 就意味着它开始认识真实时间、真实设备或真实网络，假时钟测试立刻失效；
+       * canvas 里别的目录（Pixi 组件、场景）同样不该被它 import——那是反过来的方向。
+       *
+       * 「不许 import pixi.js / gsap」那半条**不在这里**，在 biome.jsonc 的 noRestrictedImports：
+       * 这份配置的 options.exclude 把 node_modules 整个摘掉了（见下面那段注释），
+       * 指向第三方的边根本不在这张图里，写在这儿的规则一条都不会触发。
+       * 两边分工本来就是这样：包与包之间的方向在这里，包内禁止的 import 在 Biome。
+       */
+      name: '边界-director-只许依赖-core-和-design',
+      severity: 'error',
+      comment:
+        'packages/canvas/src/director 是纯 TS 的演出编排层，只能依赖 @ai-duel/core（事件和视图的类型）' +
+        '和 @ai-duel/design（时长令牌），不许碰 @ai-duel/platform，也不许 import canvas 自己的 Pixi 部分。' +
+        '见《正式版架构》6.5。',
+      from: { path: '^packages/canvas/src/director/' },
+      to: {
+        path: '^packages/',
+        pathNot: '^packages/(core|design)/|^packages/canvas/src/(director/|runtime/rng\\.ts$)',
+      },
     },
 
     {

@@ -1,0 +1,11 @@
+{
+  // 测试单独一份配置，只为了给它们 Node 的全局类型（写法照抄 core 那边）：
+  // 演出编排的快照测试要读 packages/core/test/golden/ 下那几局（node:fs、node:path），
+  // 而 src 跑在浏览器 / WebView / Electron 渲染进程里，不能把 node 类型开给它
+  //（开了就没人拦着谁在场景代码里写 process.env）。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["test"]
+}
