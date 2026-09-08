@@ -12,8 +12,9 @@
 import { BALANCED_DECK } from '@ai-duel/content'
 import { CLOSE_ROOM_FULL, CLOSE_SUPERSEDED } from '@ai-duel/protocol'
 import { describe, expect, it } from 'vitest'
+import { tokenFor } from './accounts'
 import { openDuel } from './duel'
-import { authoritativeState, Client, HELLO, setupRoom, signToken } from './helpers'
+import { authoritativeState, Client, HELLO, setupRoom } from './helpers'
 
 describe('作弊', () => {
   it('拿对方座位号发指令，被拒且局面不变', async () => {
@@ -109,12 +110,12 @@ describe('作弊', () => {
     expect((await duel.sides[1].client.until('room:peer')).online).toBe(false)
 
     // 外人拿自己的 token 想补上空出来的座位。
-    const carol = await Client.connect('3005', await signToken('carol'))
+    const carol = await Client.connect('3005', await tokenFor('carol'))
     expect((await carol.expect('session:rejected')).reason).toBe('room-full')
     expect((await carol.waitClosed()).code).toBe(CLOSE_ROOM_FULL)
 
     // 房里的另一个人也抢不到空座位：座位是建房时按账号定死的。
-    const bobAgain = await Client.connect('3005', await signToken('bob'))
+    const bobAgain = await Client.connect('3005', await tokenFor('bob'))
     bobAgain.send(HELLO)
     expect((await bobAgain.expect('session:welcome')).place).toEqual({
       kind: 'room',
@@ -128,7 +129,7 @@ describe('作弊', () => {
 
   it('不合法的牌组开不了局', async () => {
     await setupRoom('3006', ['alice', 'bob'])
-    const alice = await Client.connect('3006', await signToken('alice'))
+    const alice = await Client.connect('3006', await tokenFor('alice'))
     alice.send(HELLO)
     await alice.expect('session:welcome')
     await alice.expect('room:peer')
@@ -163,7 +164,7 @@ describe('作弊', () => {
 
   it('对局还没开始就发指令，回 not-in-match', async () => {
     await setupRoom('3008', ['alice', 'bob'])
-    const alice = await Client.connect('3008', await signToken('alice'))
+    const alice = await Client.connect('3008', await tokenFor('alice'))
     alice.send(HELLO)
     await alice.expect('session:welcome')
     await alice.expect('room:peer')

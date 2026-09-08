@@ -21,7 +21,8 @@ import { BALANCED_DECK } from '@ai-duel/content'
 import type { GameEvent, HeroId, PlayerId, PlayerView } from '@ai-duel/core'
 import { getCard } from '@ai-duel/core'
 import { attachCatalog } from '@ai-duel/protocol'
-import { Client, fireRoomAlarm, HELLO, setupRoom, signToken } from './helpers'
+import { tokenFor } from './accounts'
+import { Client, fireRoomAlarm, HELLO, setupRoom } from './helpers'
 
 /** 一方在这一局里的连接、最新视图和收到过的一切。 */
 interface Side {
@@ -40,13 +41,13 @@ export interface Duel {
   sides: [Side, Side]
 }
 
-/** 连上、打招呼、把开局前那串 `room:peer` 读掉。 */
-async function joinSeat(code: string, userId: string, seat: PlayerId): Promise<Side> {
-  const client = await Client.connect(code, await signToken(userId))
+/** 连上、打招呼、把开局前那串 `room:peer` 读掉。`label` 是账号的标签，见 accounts.ts。 */
+async function joinSeat(code: string, label: string, seat: PlayerId): Promise<Side> {
+  const client = await Client.connect(code, await tokenFor(label))
   client.send(HELLO)
   const welcome = await client.expect('session:welcome')
   if (welcome.place.kind !== 'room' || welcome.place.seat !== seat) {
-    throw new Error(`${userId} 没坐到 ${seat} 号座`)
+    throw new Error(`${label} 没坐到 ${seat} 号座`)
   }
   // view 先放一份占位，`match:started` 到了才是真的。
   return { client, seat, view: undefined as unknown as PlayerView, seqs: [], events: [] }

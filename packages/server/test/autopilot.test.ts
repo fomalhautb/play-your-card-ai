@@ -9,6 +9,7 @@
 
 import { CLOSE_ROOM_NOT_FOUND } from '@ai-duel/protocol'
 import { describe, expect, it } from 'vitest'
+import { tokenFor } from './accounts'
 import { openDuel, playUntilQuiz } from './duel'
 import {
   authoritativeState,
@@ -17,7 +18,6 @@ import {
   fireRoomAlarm,
   HELLO,
   setupRoom,
-  signToken,
   waitRoomEmpty,
 } from './helpers'
 
@@ -99,7 +99,7 @@ describe('空房超时', () => {
     expect(await fireRoomAlarm('4010')).toBe(false)
 
     // 关了的房间谁都进不去，和「房间不存在」是同一条路。
-    const late = await Client.connect('4010', await signToken('alice'))
+    const late = await Client.connect('4010', await tokenFor('alice'))
     const rejected = await late.expect('session:rejected')
     expect(rejected.reason).toBe('room-not-found')
     expect((await late.waitClosed()).code).toBe(CLOSE_ROOM_NOT_FOUND)
@@ -107,7 +107,7 @@ describe('空房超时', () => {
 
   it('房里有人连着就不算空房，检查完再续一轮', async () => {
     await setupRoom('4011', ['alice', 'bob'])
-    const alice = await Client.connect('4011', await signToken('alice'))
+    const alice = await Client.connect('4011', await tokenFor('alice'))
     alice.send(HELLO)
     await alice.expect('session:welcome')
     await alice.expect('room:peer')
@@ -131,7 +131,7 @@ describe('空房超时', () => {
     expect(await fireRoomAlarm('4012')).toBe(false)
 
     // 重连也进不来了：收摊过的房间和不存在的房间对客户端是同一回事。
-    const back = await Client.connect('4012', await signToken('alice'))
+    const back = await Client.connect('4012', await tokenFor('alice'))
     expect((await back.expect('session:rejected')).reason).toBe('room-not-found')
   })
 })

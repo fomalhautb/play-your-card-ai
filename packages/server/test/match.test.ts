@@ -9,8 +9,9 @@
 import type { PlayerId } from '@ai-duel/core'
 import { viewFor } from '@ai-duel/core'
 import { describe, expect, it } from 'vitest'
+import { tokenFor } from './accounts'
 import { openDuel, playToEnd } from './duel'
-import { authoritativeState, Client, HELLO, setupRoom, signToken } from './helpers'
+import { authoritativeState, Client, HELLO, setupRoom } from './helpers'
 
 describe('一局打到底', () => {
   it('两个客户端从装载打到 GAME_OVER，序号各自连续', async () => {
@@ -101,7 +102,7 @@ describe('一局打到底', () => {
     // 对手会看到掉线，收到之后再重连，免得和下面那条 room:peer 撞在一起。
     expect((await duel.sides[1].client.until('room:peer')).online).toBe(false)
 
-    const again = await Client.connect('2006', await signToken('alice'))
+    const again = await Client.connect('2006', await tokenFor('alice'))
     again.send(HELLO)
     const welcome = await again.expect('session:welcome')
     expect(welcome.place).toEqual({ kind: 'room', code: '2006', seat: 0 })
@@ -116,7 +117,7 @@ describe('一局打到底', () => {
 
   it('对手在线/装载/就绪每一步都全量报一次', async () => {
     await setupRoom('2007', ['alice', 'bob'])
-    const alice = await Client.connect('2007', await signToken('alice'))
+    const alice = await Client.connect('2007', await tokenFor('alice'))
     alice.send(HELLO)
     await alice.expect('session:welcome')
     // 此刻 bob 还没连上。
@@ -127,7 +128,7 @@ describe('一局打到底', () => {
       ready: false,
     })
 
-    const bob = await Client.connect('2007', await signToken('bob'))
+    const bob = await Client.connect('2007', await tokenFor('bob'))
     bob.send(HELLO)
     await bob.expect('session:welcome')
     expect(await alice.expect('room:peer')).toMatchObject({ seat: 1, online: true, loaded: false })

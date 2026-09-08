@@ -1,17 +1,20 @@
 /**
- * 房间测试共用的那点脚手架：签一张 JWT、连一条 WebSocket、按顺序取消息。
+ * 房间测试共用的那点脚手架：连一条 WebSocket、按顺序取消息、翻权威局面。
  *
  * 测试全部走**真的连接**（`SELF.fetch` 拿 101 再 `accept()`），不直接调内部函数：
  * 这一层要验的正是握手、座位、下发这些只有过一遍电线才成立的东西。
  * 例外只有两处，它们本来就没有客户端消息：建房走的是大厅调的那几个 RPC，
  * 答题走的是 Durable Object 的 alarm。
+ *
+ * 账号和 token 那一摊在 accounts.ts：测试里说的 'alice'、'bob' 是**标签**，
+ * 背后是 better-auth 真开的游客账号，id 由它随机生成。
  */
 
 import { env, runDurableObjectAlarm, runInDurableObject, SELF } from 'cloudflare:test'
 import type { GameState } from '@ai-duel/core'
 import type { ClientMessage, ServerMessage } from '@ai-duel/protocol'
 import { PROTOCOL_VERSION, parseServerMessage, subprotocolsFor } from '@ai-duel/protocol'
-import { SignJWT } from 'jose'
+import { accountId, TEST_ORIGIN, tokenFor } from './accounts'
 
 /** 一条能用的 `session:hello`。大厅和房间的第一条消息是同一条。 */
 export const HELLO: ClientMessage = {
@@ -20,34 +23,17 @@ export const HELLO: ClientMessage = {
   clientVersion: '0.0.0-test',
 }
 
-/** 和 vitest.config.ts 里那份绑定必须一模一样，不然签出来的 token 验不过。 */
-const JWT_SECRET = new TextEncoder().encode('test-jwt-secret')
-
 /** 等一条消息的上限。workerd 里一切都在本机内存里，毫秒级就该到，给足余量。 */
 const TIMEOUT_MS = 5000
 
-/** 签一张能用的 token。`expiresIn` 传 `'-1s'` 就是一张已经过期的（作弊测试用）。 */
-export async function signToken(userId: string, expiresIn = '5m'): Promise<string> {
-  return new SignJWT({})
-    .setProtectedHeader({ alg: 'HS256' })
-    .setSubject(userId)
-    .setIssuedAt()
-    .setExpirationTime(expiresIn)
-    .sign(JWT_SECRET)
-}
-
-/** 用别的密钥签一张，签名对不上——伪造 JWT 那条作弊测试用。 */
-export async function signForgedToken(userId: string): Promise<string> {
-  return new SignJWT({})
-    .setProtectedHeader({ alg: 'HS256' })
-    .setSubject(userId)
-    .setExpirationTime('5m')
-    .sign(new TextEncoder().encode('another-secret-entirely'))
-}
-
-/** 建一个房间，两个座位分别是这两个账号（大厅配对成功时调的就是这个 RPC）。 */
+/**
+ * 建一个房间，两个座位分别是这两个标签对应的账号（大厅配对成功时调的就是这个 RPC）。
+ *
+ * 传标签而不是账号 id：账号 id 是 better-auth 随机生成的，测试写不出来。
+ */
 export async function setupRoom(code: string, players: [string, string]): Promise<void> {
-  await env.MATCH_ROOM.getByName(code).setup({ players })
+  const seated: [string, string] = [await accountId(players[0]), await accountId(players[1])]
+  await env.MATCH_ROOM.getByName(code).setup({ players: seated })
 }
 
 /**
@@ -164,11 +150,11 @@ export class Client {
   }
 
   /** 连大厅、打完招呼、确认 welcome 说的是大厅，一步到位。 */
-  static async openLobby(userId: string): Promise<Client> {
-    const client = await Client.connectLobby(await signToken(userId))
+  static async openLobby(label: string): Promise<Client> {
+    const client = await Client.connectLobby(await tokenFor(label))
     client.send(HELLO)
     const welcome = await client.expect('session:welcome')
-    if (welcome.place.kind !== 'lobby') throw new Error(`${userId} 连的不是大厅`)
+    if (welcome.place.kind !== 'lobby') throw new Error(`${label} 连的不是大厅`)
     return client
   }
 
@@ -185,7 +171,7 @@ export class Client {
   private static async open(path: string, protocols: string | null): Promise<Client> {
     const headers: Record<string, string> = { Upgrade: 'websocket' }
     if (protocols !== null) headers['Sec-WebSocket-Protocol'] = protocols
-    const response = await SELF.fetch(`https://duel.test${path}`, { headers })
+    const response = await SELF.fetch(`${TEST_ORIGIN}${path}`, { headers })
     const ws = response.webSocket
     if (!ws) throw new Error(`没拿到 WebSocket，状态码是 ${response.status}`)
     ws.accept()

@@ -6,8 +6,9 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { accountId, tokenFor } from './accounts'
 import { enterDuel, playToEnd } from './duel'
-import { Client, expireAlarm, fireRoomAlarm, HELLO, signToken } from './helpers'
+import { Client, expireAlarm, fireRoomAlarm, HELLO } from './helpers'
 
 /** 排队并拿到配对结果。`lobby:queued` 是入队回执，`lobby:room` 是配上之后才来的。 */
 async function queueUp(client: Client): Promise<void> {
@@ -17,10 +18,10 @@ async function queueUp(client: Client): Promise<void> {
 
 describe('大厅握手', () => {
   it('welcome 说的是大厅，没有座位号', async () => {
-    const client = await Client.connectLobby(await signToken('lucy'))
+    const client = await Client.connectLobby(await tokenFor('lucy'))
     client.send(HELLO)
     const welcome = await client.expect('session:welcome')
-    expect(welcome.userId).toBe('lucy')
+    expect(welcome.userId).toBe(await accountId('lucy'))
     expect(welcome.place).toEqual({ kind: 'lobby' })
     client.close()
   })
