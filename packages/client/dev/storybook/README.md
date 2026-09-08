@@ -153,30 +153,57 @@ pnpm --filter @ai-duel/client catalog:update    # 重新生成基线
 
 1. 本机跑 `catalog:test`，看差异图确认改动是想要的（失败时 Playwright 会在
    `packages/client/test-results/` 下留「拍到的」「期望的」「差异图」三张）；
-2. 确认没问题就跑 `catalog:update` 重新生成，把 `baselines/darwin/` 下变了的图一起提交。
+2. 确认没问题就按下面「更新基线」把两个平台的基线都重新生成，一起提交。
 
-### 平台和 CI
+**两个平台的基线要一起更新**：只提交 darwin 那份的话，本机绿了 CI 照样红——
+CI 跑在 Linux 上，比的是 `baselines/linux/`。
+
+### 更新基线
 
 基线按平台分目录：`baselines/darwin/`、`baselines/linux/`。
 必须分——字体光栅化在 macOS 和 Linux 上不一样，卡面铭牌和令牌页上的字每个像素都对不齐，
-一份基线两个平台一定比不过。
+一份基线两个平台一定比不过。所以更新也得分两趟。
 
-**现在仓库里只有 `darwin/`。** 拍板时本机的 Docker 守护进程没跑起来，
-没法用官方的 `mcr.microsoft.com/playwright` 镜像现场生成一份 linux 基线。
-所以 CI 快档那一步是这么写的（见 `.github/workflows/ci.yml`）：
+**darwin**：本机（macOS）跑一条命令，改动的 png 会直接落在 `baselines/darwin/` 下。
 
-- 有 `baselines/linux/`：正常比对，对不上整步红。
-- 没有：只生成不比对，把生成的基线传成名叫 `catalog-baselines-linux` 的 artifact，
-  同时打一条 warning 注解，步骤本身不红。
+```bash
+pnpm --filter @ai-duel/client catalog:update
+git status   # 确认只有该变的那几张变了
+```
 
-**怎么补上 linux 基线**（做完之后 CI 就开始真的比对）：
+变的图比预期多说明**引入了不确定性**（真实时钟、没定种子的随机、字体没加载完），
+先去查那个，别当成"顺手一起更新了"提交上去。
 
-1. 在 GitHub 上打开这个 PR 的 CI 快档那次运行，从底部的 Artifacts 里下载 `catalog-baselines-linux`；
-2. 解压，把里面的 png 全部放到 `packages/client/dev/storybook/baselines/linux/`；
-3. 提交。下一次 CI 就会走比对那条路。
+**linux**：本机没有 Linux 机器，靠一条手动触发的工作流去跑，跑完把基线传成 artifact
+（见 `.github/workflows/catalog-baselines.yml`；它不往仓库里写，图要人看过再提交）。
 
-有 Linux 机器或者 Docker 的话也可以本机生成，命令是同一条：
-`pnpm --filter @ai-duel/client catalog:update`（在 Linux 上跑就落到 `baselines/linux/`）。
+```bash
+# 1. 触发（也可以在 GitHub 的 Actions 页面点「Run workflow」）
+gh workflow run catalog-baselines.yml --ref <你的分支>
+
+# 2. 等它跑完，拿到这次运行的 id
+gh run list --workflow=catalog-baselines.yml --limit 1
+
+# 3. 下载覆盖到 linux 基线目录（在仓库根目录跑）
+gh run download <run-id> -n catalog-baselines-linux -D packages/client/dev/storybook/baselines/linux
+
+# 4. git status 看一遍，确认变的和 darwin 那趟是同一批条目，然后提交
+```
+
+第 4 步那句"同一批条目"是这趟唯一的检查手段：两个平台拍的是同一份代码同一帧，
+变的条目**必须**对得上。linux 那边多变了几张，说明有条目在 Linux 上另外有问题
+（十有八九是字体），别闷头提交。
+
+### 平台和 CI
+
+CI 快档（`.github/workflows/ci.yml`）那一步分两种走法：
+
+- 有 `baselines/linux/`：正常比对，对不上整步红，同时把「拍到的」和「差异图」
+  传成名叫 `catalog-diff` 的 artifact。
+- 没有：只生成不比对，把生成的基线传成 `catalog-baselines-linux`，
+  再打一条 warning 注解，步骤本身不红。
+
+这个分支是仓库里还没有 linux 基线时留的兜底，现在两份基线都在，走的一直是第一条。
 
 ## 已知局限
 

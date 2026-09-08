@@ -316,7 +316,7 @@ export const tokens = {
       width: 150,
       /** 卡面基准高，和宽保持 2:3。来源：styles.css 的 :root --card-h（和 fanMath.ts 的 CARD_HEIGHT 同值）。 */
       height: 225,
-      /** 卡面圆角，按卡宽 150 配。不放进 radius 阶梯里：那一组是全站通用的圆角档位（按 styles.css 的取值统计出来的），而这一个是卡牌自己的几何，和 width / height 一样要按比例缩放——图集里 512 宽的原画烤的是 512 × 10 / 150 ≈ 34 的圆角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-card 和 .paper-back。用它的有两处：assets/build-atlas.mjs（把圆角烤进原画和牌背的 alpha）和 canvas 的 fx/bakedTextures.ts（代码画的边框铭牌）。 */
+      /** 卡面圆角，按卡宽 150 配。不放进 radius 阶梯里：那一组是全站通用的圆角档位（按 styles.css 的取值统计出来的），而这一个是卡牌自己的几何，和 width / height 一样要按比例缩放——图集里 512 宽的原画烤的是 512 × 10 / 150 ≈ 34 的圆角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-card 和 .paper-back。凡是画到卡角的地方都必须用它，用它的那几处列在 canvas 的 layout/fanMath.ts 的 CARD_RADIUS 上（加一处就往那儿补一条，别在这里再抄一份）。 */
       radius: 10,
       /** 战场上小卡的宽。来源：styles.css 的 :root --tile-w。 */
       tileWidth: 110,

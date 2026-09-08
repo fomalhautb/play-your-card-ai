@@ -71,11 +71,15 @@ jobs:
       # 所以这里不用单独跑。
       #
       # 基线图按平台分目录（macOS 和 Linux 的字体光栅化不一样，一份基线两边比不过）。
-      # 仓库里现在只有 darwin 那份——生成 linux 基线要一台 Linux 机器或者一个能跑的 Docker，
-      # 拍板时两样都没有。所以这一步分两种走法：
+      # 两份基线现在都在仓库里，所以这一步走的一直是"正常比对"那条；
+      # 下面那个分支是当初还没有 linux 基线时留的兜底，没删是因为哪天整批基线被清掉时它还管用：
       #   有 linux/ 基线：正常比对，对不上整步红。
       #   没有：只生成不比对，把生成的基线传成 artifact，步骤本身不红（下面那步会传）。
-      # 怎么把 artifact 里的基线提交进来，见 packages/client/dev/storybook/README.md。
+      #
+      # 改了组件之后 linux 基线怎么刷新：手动触发 catalog-baselines.yml，把它传出来的
+      # artifact 下载覆盖到 baselines/linux/ 再提交。命令见
+      # packages/client/dev/storybook/README.md 的「更新基线」。**别指望这一步帮你生成**——
+      # 有基线的时候它只比对不生成，红了只会给你一份 catalog-diff。
       - name: 组件目录页截图回归
         id: catalog
         run: |
