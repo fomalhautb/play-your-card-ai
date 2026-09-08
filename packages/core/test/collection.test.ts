@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest'
 import {
   AI_MODEL_CARD_IDS,
   AI_MODEL_CARDS,
@@ -17,7 +16,8 @@ import {
   PRESET_DECKS,
   SKILL_DESIGN_CARD_IDS,
   UNAVAILABLE_AI_CARD_IDS,
-} from '../src/index'
+} from '@ai-duel/content'
+import { describe, expect, it } from 'vitest'
 import type { AiCard, CardId, SkillCard } from '../src/types'
 
 /** 一张卡在某副牌组里带了几份。 */

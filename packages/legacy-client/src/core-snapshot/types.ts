@@ -77,7 +77,7 @@ export interface AiCard extends CardBase {
    * 答题时去 OpenRouter 调的那个模型 id，`null` 表示 OpenRouter 上根本没有这个模型。
    *
    * 写成必填的 `string | null` 而不是可选字段：漏填会被静默当成"调不到"，
-   * 而"调不到"是要把整张牌挡在卡池外的（见 content 的 PLAYABLE_AI_CARD_IDS），
+   * 而"调不到"是要把整张牌挡在卡池外的（见 aiModels.ts 的 PLAYABLE_AI_CARD_IDS），
    * 代价太大，宁可让类型检查在漏填的那一刻就报错。
    */
   openrouter: string | null
@@ -94,11 +94,11 @@ export interface AiCard extends CardBase {
   /**
    * 进化链的下一级卡（「鸡犬升天」把场上单位换成它）。
    *
-   * 不填 = 这张卡不可进化：每条链最新的那一代，以及没有前后代的单张，都不填。
+   * 不填 = 这张卡不可进化：链尾（如 ChatGPT 5.6 Sol）和没有前后代的单张都不填。
    * 进化链写在卡牌定义上而不是引擎里，再补一条链只要改这里。
    *
-   * 链头可能是一张调不到模型、进不了卡池的牌，链条本身照样成立：牌组里带不了它，
-   * 但它经调试指令上场后仍然能进化成下一代，所以这种链不要跟着删。
+   * 链头 GPT-2 调不到模型、进不了卡池，链条本身照样成立：牌组里带不了它，
+   * 但它经调试指令上场后仍然能进化成 GPT-3.5，所以这条链不要跟着删。
    */
   evolvesTo?: CardId
 }
@@ -109,7 +109,7 @@ export type InterferenceCardId = 'fixed-answer' | 'black-white-reversal'
 /**
  * 技能牌：打出即效果结算、随后进弃牌堆，效果可以持续到本轮结束。
  *
- * 24 张里有 10 张接进了引擎（名单和各自的结算见 content 的 skillCards.ts 文件头注释），
+ * 24 张里有 10 张接进了引擎（名单和各自的结算见 skillCards.ts 的文件头注释），
  * 其余 14 张还带着 `plannedEffect` 走占位路径：打出后亮个相就进弃牌堆，什么都不发生。
  */
 export interface SkillCard extends CardBase {
@@ -140,7 +140,7 @@ export interface SkillCard extends CardBase {
 
 /**
  * 英雄 id。英雄总共就这 7 位、不会随版本增删，直接用字面量联合，写错名字当场就是类型错误。
- * 这里的排列顺序不代表展示顺序——展示顺序由 content 的 HEROES 键序决定。
+ * 这里的排列顺序不代表展示顺序——展示顺序由 heroes.ts 里 HEROES 的键序决定。
  */
 export type HeroId =
   | 'fei-fei-li'
@@ -159,7 +159,7 @@ export type HeroId =
  * **它刻意不进 HandCard 联合，也不进 CARDS / CARD_POOL / 预设牌组**：
  * 英雄技能不占 20 张牌的牌组空间（见 docs/AI卡牌对战游戏_游戏机制与流程_V0.3.md 第 4 节），
  * 混进卡池还会连累存档过滤、抽卡和牌组洗牌——那几处都是"遍历卡池"的写法，
- * 多出一张抽不到也打不出的卡只会变成脏数据。英雄的表在 content 的 heroes.ts，查表走 catalog.ts 的 getHero。
+ * 多出一张抽不到也打不出的卡只会变成脏数据。英雄的表在 heroes.ts，查表走 getHero。
  */
 export interface HeroCard {
   kind: 'hero'
@@ -199,30 +199,6 @@ export type HandCard = AiCard | SkillCard
  * 一切和牌组沾边的地方一律用 HandCard，英雄牌进不去。
  */
 export type Card = HandCard | HeroCard
-
-/**
- * 一局用到的全部内容定义（卡面、英雄），开局时整份存进 `GameState.catalog`。
- *
- * core 自己不带任何数据，卡表和英雄表都在 `content` 包里；`createGame` 收下一份目录，
- * 之后 `execute` 一律从状态里查（`getCard` / `getHero` / `upgradeTargetOf`，见 catalog.ts）。
- * 这么做换来三件事：
- * - `execute(state, command)` 的签名不用多带一个参数，状态自己就是完整的输入；
- * - 状态自包含，回放、快照、服务端把它存进 SQLite 都不必另外配一份目录；
- * - 一局开始那一刻的卡面数值被冻住，中途上线的平衡改动不会把打到一半的对局改掉。
- *
- * 装的是**整个公开卡池**，不只是双方牌组里那些牌：卡池本来就是公开信息，
- * 裁剪视图（迁移第 13 条的 viewFor）不用为它单独操心，界面也能直接从状态里查到任意一张卡的卡面。
- * 题目不在这里——本局题序连答案已经在 `GameState.questions` 里，再放一份只会多一处要遮挡的地方。
- *
- * 和状态里别的东西一样必须可 JSON 序列化：只放纯数据，别塞函数。
- * 引擎从不改它，所以同一份目录对象可以被多局共用（`content` 的 `createCatalog()` 返回的就是同一份）。
- */
-export interface Catalog {
-  /** 全部卡牌定义，按卡牌 id 查。 */
-  cards: Record<CardId, HandCard>
-  /** 全部英雄定义，按英雄 id 查。 */
-  heroes: Record<HeroId, HeroCard>
-}
 
 /** 牌堆/手牌/弃牌堆里的一张牌。 */
 export interface CardInstance {
@@ -270,10 +246,10 @@ export interface AiInstance {
   /**
    * 被哪张干扰类技能命中了。
    *
-   * 干扰的本体是"往这个 AI 的 prompt 里注入一句话"（注入文案见 content 的 script.ts 的
+   * 干扰的本体是"往这个 AI 的 prompt 里注入一句话"（注入文案见 script.ts 的
    * `INTERFERENCE_PROMPTS`）。那两句是提示词不是开关，模型完全可以不理——复读机那句
    * 尤其是编出来骗它的，上不上钩由模型自己权衡。这两句已经离线跑过一遍了：答题时按这个字段
-   * 去查对应那一档的**真实模型回答**（见 content 的 script.ts），所以同一张牌打在不同模型身上结果不一样。
+   * 去查对应那一档的**真实模型回答**（见 script.ts），所以同一张牌打在不同模型身上结果不一样。
    *
    * 记的是种类而不是一个布尔，因为下游要分三处用：答案生成层按种类选变体、
    * 玉净瓶按"身上有没有它"挑目标、战场小卡按种类显示不同角标。
@@ -290,7 +266,7 @@ export interface AiInstance {
    * 净升降级次数：每被升一级 +1、降一级 -1。
    *
    * **纯粹给 UI 画角标用**（战场小卡上那个「↑1」之类的标记）。
-   * 能力变化不靠它：升降级当场就把 `cardId` 换成了同系列的另一张卡（见 content 的升级链），
+   * 能力变化不靠它：升降级当场就把 `cardId` 换成了同系列的另一张卡（见 aiModels.ts 的升级链），
    * 费用、卡面、答题表现全部跟着新卡走，引擎不会再去读这个数。
    * 同样写成可选字段，没被升降过的单位不带这一项。
    * 一方升、另一方又降回去的话这里会留下一个 0（字段不删），界面把 0 当作"没有角标"处理。
@@ -418,19 +394,14 @@ export interface PlayerState {
    * 将来有"每若干轮一次"的技能时再换成记轮次的字段。
    * 一个 GameState 的生命周期就是一局，createGame 重新建状态时它天然回到 false。
    *
-   * 被动技能（grace-hopper 的 Debug）由引擎自己在触发时置上，主动技能
-   * （danqi-chen、melanie-perkins）由玩家发 USE_HERO_SKILL 置上。
-   * ada-lovelace 的 Token 上限加成是开局就算进数值的，不占这个标志。
+   * 被动技能（格蕾丝·霍珀的 Debug）由引擎自己在触发时置上，主动技能
+   * （陈丹琦、梅拉妮·珀金斯）由玩家发 USE_HERO_SKILL 置上。
+   * 阿达·洛芙莱斯的 Token 上限加成是开局就算进数值的，不占这个标志。
    */
   heroSkillUsed: boolean
 }
 
 export interface GameState {
-  /**
-   * 本局的卡牌和英雄定义（见 Catalog）。开局写进来之后引擎只读不改，
-   * 场上单位、手牌里的 cardId 都靠它查回卡面。
-   */
-  catalog: Catalog
   /** 轮次序号，从 1 开始。一轮 = 双方各出一次牌 + 一次答题结算。 */
   round: number
   /**
@@ -507,9 +478,9 @@ export type Command =
   /**
    * 发动主动英雄技能，指定场上一个 AI 单位。
    *
-   * 只有"每局一次、指定一个目标"的那两位能发：danqi-chen 把**己方**一个 AI 升一级、
-   * melanie-perkins 把**对方**一个 AI 降一级（目标在哪一侧由英雄决定，指令本身不带方向）。
-   * 其余英雄发这条一律被拒——grace-hopper 是被动、剩下三位还没实装。
+   * 只有"每局一次、指定一个目标"的那两位能发：陈丹琦把**己方**一个 AI 升一级、
+   * 梅拉妮·珀金斯把**对方**一个 AI 降一级（目标在哪一侧由英雄决定，指令本身不带方向）。
+   * 其余英雄发这条一律被拒——霍珀是被动、剩下三位还没实装。
    *
    * 只能在自己的出牌轮发动，但**完全免费**：不扣 Token，也不结束出牌轮，发动完还能接着出牌。
    */
@@ -517,7 +488,7 @@ export type Command =
   /**
    * 提交本轮全场 AI 的答题结果。
    * 玩家不发这条指令，由房主/本地 driver 在进入答题阶段后自动生成并发出
-   * （结果来自 content 的 script.ts 查的那份离线预生成的真实模型回答）。
+   * （结果来自 script.ts 查的那份离线预生成的真实模型回答）。
    */
   | { type: 'SUBMIT_ANSWERS'; results: AnswerResult[] }
   /**

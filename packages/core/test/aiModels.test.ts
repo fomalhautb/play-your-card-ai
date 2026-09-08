@@ -1,12 +1,15 @@
-import { describe, expect, it } from 'vitest'
-import type { CardId } from '../src/index'
 import {
   AI_MODEL_CARD_IDS,
   AI_MODEL_CARDS,
   AI_UPGRADE_CHAINS,
-  downgradeTargetOf,
-  upgradeTargetOf,
-} from '../src/index'
+  createCatalog,
+} from '@ai-duel/content'
+import { describe, expect, it } from 'vitest'
+import type { CardId } from '../src/index'
+import { downgradeTargetOf, upgradeTargetOf } from '../src/index'
+
+/** 升降级是规则，读的是一局的内容目录（见 src/catalog.ts）。 */
+const CATALOG = createCatalog()
 
 const EXPECTED_SKILLS = {
   'gpt-2': ['开天辟地', '若本轮没有任何技能牌作用于自己，Agent 消耗 -2 Token'],
@@ -44,7 +47,7 @@ describe('AI 专属技能文案', () => {
 })
 
 /**
- * 同系列升级链（src/aiModels.ts）的数据约束。
+ * 同系列升级链（content 的 src/aiModels.ts）的数据约束。
  *
  * 升降级技能就是照着这张表把场上单位的 cardId 换掉，所以链本身写错就会当场变成对局里的怪事：
  * 指向不存在的卡会让答题剧本查表抛错，同一张卡出现在两条链上则"下一代是谁"没有唯一答案。
@@ -66,11 +69,11 @@ describe('AI 卡升级链', () => {
 
   it('升级和降级互为逆操作，走到两端就是 null', () => {
     for (const chain of AI_UPGRADE_CHAINS) {
-      expect(downgradeTargetOf(chain[0]!)).toBeNull()
-      expect(upgradeTargetOf(chain.at(-1)!)).toBeNull()
+      expect(downgradeTargetOf(CATALOG, chain[0]!)).toBeNull()
+      expect(upgradeTargetOf(CATALOG, chain.at(-1)!)).toBeNull()
       for (let i = 0; i < chain.length - 1; i++) {
-        expect(upgradeTargetOf(chain[i]!)).toBe(chain[i + 1])
-        expect(downgradeTargetOf(chain[i + 1]!)).toBe(chain[i])
+        expect(upgradeTargetOf(CATALOG, chain[i]!)).toBe(chain[i + 1])
+        expect(downgradeTargetOf(CATALOG, chain[i + 1]!)).toBe(chain[i])
       }
     }
   })
@@ -83,7 +86,7 @@ describe('AI 卡升级链', () => {
         // 有环的话第二次踩到同一张卡就在这里失败，不会真的死循环。
         expect(seen).not.toContain(current)
         seen.push(current)
-        current = upgradeTargetOf(current)
+        current = upgradeTargetOf(CATALOG, current)
       }
     }
   })
@@ -94,8 +97,8 @@ describe('AI 卡升级链', () => {
     // 18 张卡里 10 张进了四条链，剩下 8 张在卡池里各自只有一代。
     expect(loners).toHaveLength(8)
     for (const cardId of loners) {
-      expect(upgradeTargetOf(cardId)).toBeNull()
-      expect(downgradeTargetOf(cardId)).toBeNull()
+      expect(upgradeTargetOf(CATALOG, cardId)).toBeNull()
+      expect(downgradeTargetOf(CATALOG, cardId)).toBeNull()
     }
   })
 })
