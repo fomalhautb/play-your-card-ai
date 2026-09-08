@@ -7,7 +7,7 @@
  *   按下    不适用
  *   禁用    不适用
  *   加载    不适用。战场排的是已经建好的卡
- * 另外三条拍演出：角标、选目标的橙圈、进化那一下停在关键帧。
+ * 另外四条拍演出：角标、选目标的橙圈、进化和简易进场那两下停在关键帧。
  *
  * 「进化中」那条停在 300ms：绿光已经亮到最实（0.21 秒淡入完），浮字升到一半，
  * 弹跳刚回到原大——三样同时看得见。停在末尾的话绿光和浮字都淡没了，等于什么都没拍到。
@@ -25,6 +25,14 @@ const SIZE = { width: 820, height: 460 }
 const SETTLE_MS = 350
 /** 进化那条停在哪一帧，理由见文件头。60fps 下 300 除得尽（18 步）。 */
 const EVOLVE_SETTLE_MS = 300
+/**
+ * 简易进场停在 100ms（整段 400ms 的四分之一）。
+ *
+ * 回弹那档缓动（`back.out(1.7)`）冲得很快：走到一半时它已经越过原大了，
+ * 拍出来和落定的样子几乎没差别。停在四分之一处卡才刚涨到九成、淡入也才走过八成，
+ * 和旁边那张落定的一比就看得出它是刚出现的。
+ */
+const POP_IN_SETTLE_MS = 100
 
 /** 一条条目的那一档。 */
 interface Variant {
@@ -33,6 +41,7 @@ interface Variant {
   marks?: boolean
   targets?: boolean
   evolve?: boolean
+  popIn?: boolean
 }
 
 function mount(ctx: StoryStage, variant: Variant) {
@@ -62,6 +71,7 @@ function mount(ctx: StoryStage, variant: Variant) {
   }
   if (variant.targets === true) grid.highlightTargets(ids.slice(0, 2))
   if (variant.evolve === true) grid.transform(ids[0] ?? '', storyCard(ctx, deps, index))?.destroy()
+  if (variant.popIn === true) grid.popIn(ids[0] ?? '')
   return () => deps.dispose()
 }
 
@@ -106,4 +116,10 @@ export const Targeting = {
 export const Evolving = {
   name: '进化中',
   parameters: spec({ counts: { opponent: 2, self: 2 }, evolve: true }, EVOLVE_SETTLE_MS),
+}
+
+/** 简易进场：上排第一格正从六成大小弹起来、淡入还没走完（理由见文件头）。 */
+export const PoppingIn = {
+  name: '简易进场',
+  parameters: spec({ counts: { opponent: 2, self: 2 }, popIn: true }, POP_IN_SETTLE_MS),
 }

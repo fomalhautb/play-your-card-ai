@@ -13,7 +13,13 @@
 
 import { tokens } from '@ai-duel/design'
 import { Container, Graphics, Sprite, Texture } from 'pixi.js'
-import { SETTLE_LOADER_FADE_MS, SETTLE_STAMP_MS } from '../director/timings'
+import {
+  SETTLE_ANSWER_CHAR_MS,
+  SETTLE_LOADER_FADE_MS,
+  SETTLE_REASONING_CHAR_MS,
+  SETTLE_REASONING_MAX_MS,
+  SETTLE_STAMP_MS,
+} from '../director/timings'
 import type { UiTextures } from '../fx/uiTextures'
 import { CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
@@ -109,15 +115,19 @@ export class SettleRow extends Container {
    * 开口作答：转圈淡出 → 大字答案打字 → 小字推理打字。
    *
    * `durationMs` 是这一整段的时长（编排层按字数算好的，见 `settle-typing` cue）。
-   * 两段字各分多少由字数按比例摊：答案每字 0.045 秒、推理每字 0.02 秒且整段封顶 1.2 秒，
-   * 这个比例关系在 timings 里，编排层已经按它算过总长，这里只要照同一个比例分回去，
-   * 两边就不会走岔。
+   * 两段字各分多少由字数按比例摊，用的是编排层算总长时的那三个常量本身——
+   * 抄一份数字过来的话，改了 timings 而忘了改这里，两边就会走岔：编排层排好的那一格
+   * 还是那么长，格子里两段字的分界却挪了位。
    */
   startTyping(answer: string, reasoning: string, durationMs: number): void {
     this.fadeLoader()
-    const answerWeight = answer.length * 0.045
-    const reasoningWeight = Math.min(reasoning.length * 0.02, 1.2)
-    const totalWeight = Math.max(answerWeight + reasoningWeight, 0.001)
+    const answerWeight = answer.length * SETTLE_ANSWER_CHAR_MS
+    const reasoningWeight = Math.min(
+      reasoning.length * SETTLE_REASONING_CHAR_MS,
+      SETTLE_REASONING_MAX_MS,
+    )
+    // 两段都是空串时分母会是 0，垫一个挡住除零；那种情况下两段的时长本来也都是 0。
+    const totalWeight = Math.max(answerWeight + reasoningWeight, 1)
     const usable = Math.max(0, durationMs / 1000 - SETTLE_LOADER_FADE_MS / 1000)
     const answerDur = usable * (answerWeight / totalWeight)
 

@@ -11,15 +11,15 @@
  * 所以这里也不设上限，靠压边扛住。一局里题库五道题、Token 上限最多十来点，
  * 实际不会超过七八张——压边的余量很宽裕。
  *
- * 三段特效的时长全部 import `director/timings.ts`，不在这里抄第二份数字：
- * 罚下（`removal-fx`）、进化（`evolve-fx`）、以及同批进化之间的错开量。
+ * 几段特效的时长全部 import `director/timings.ts`，不在这里抄第二份数字：
+ * 罚下（`removal-fx`）、进化（`evolve-fx`）、简易进场（`pop-in`），以及同批进化之间的错开量。
  * 上场落地（`summon-fx`）和技能命中（`hit-fx`）不在这里——那两段归 fx/HitFx，
  * 这里只用 `tileAt` 把落点交出去。
  */
 
 import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
-import { EVOLVE_FX_MS, EVOLVE_STAGGER_MS, REMOVAL_FX_MS } from '../director/timings'
+import { EVOLVE_FX_MS, EVOLVE_STAGGER_MS, POP_IN_MS, REMOVAL_FX_MS } from '../director/timings'
 import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
 import type { TextTextureCache } from '../runtime/textCache'
@@ -43,6 +43,8 @@ const MIDLINE_MARGIN = 5
 const EVOLVE = { popScale: 1.16, popDur: 0.42, glowDur: 0.7, labelRise: 34 } as const
 /** 罚下时那张卡往下沉多少。抄 playSummonFx.ts 的 `REMOVAL_DROP`。 */
 const REMOVAL_DROP = 26
+/** 简易进场从多小弹起来、用哪档回弹。抄旧版 MatchStage.tsx:2322-2328 的那条 fromTo。 */
+const POP_IN = { fromScale: 0.6, ease: 'back.out(1.7)' } as const
 /** 进化浮字的字号（px）。组件私有，理由见 design 的 README。 */
 const EVOLVE_LABEL = { fontSize: 20, letterSpacing: 2, weight: '600' } as const
 
@@ -178,6 +180,33 @@ export class BoardGrid extends Container {
       this.playEvolveLabel(at, tile.boxHeight, delay)
     }
     return previous
+  }
+
+  /**
+   * 简易进场（`pop-in`）：那张卡从六成大小弹到原大，同时淡入。
+   *
+   * 只有强制展示受理不了时才走这一条——那时对手的牌没有"从手里飞出来"的过程，
+   * 是凭空出现在格子里的，弹一下是为了让人看出这一格是刚多出来的。
+   * 格子的原点在自己中心（见 BoardTile），所以缩放是从中间涨开而不是往一角塌。
+   * 返回时长（毫秒），和 cue 里的 `durationMs` 是同一个数。
+   */
+  popIn(instanceId: string): number {
+    const entry = this.tiles.get(instanceId)
+    if (entry === undefined) return 0
+    const { tile } = entry
+    const duration = POP_IN_MS / 1000
+    const { animator } = this.deps
+    animator.fromTo(
+      tile,
+      { alpha: 0 },
+      { alpha: 1, duration, ease: POP_IN.ease, overwrite: 'auto' },
+    )
+    animator.fromTo(
+      tile.scale,
+      { x: POP_IN.fromScale, y: POP_IN.fromScale },
+      { x: 1, y: 1, duration, ease: POP_IN.ease, overwrite: 'auto' },
+    )
+    return POP_IN_MS
   }
 
   /** 挂哪几枚状态角标。文案表归场景查（旧版在 ui/tileMarks.ts），这里只管画。 */
