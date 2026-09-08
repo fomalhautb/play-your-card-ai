@@ -160,8 +160,10 @@
        * 碰了就等于把「什么时候演」和「怎么演」重新粘回一起——旧版 MatchStage 正是这么长到
        * 3950 行、一条测试都写不了的。而且 GSAP 的时间线自带真实时钟，假时钟测试立刻失效。
        *
-       * 这条为什么在 Biome 不在 dependency-cruiser：那边的 options.exclude 把 node_modules
-       * 整个摘掉了，指向第三方的边不在它的图里，写过去不会触发。
+       * 这条为什么在 Biome 不在 dependency-cruiser：分工是「包与包之间的方向在那边，
+       * 包内禁止的 import 在这边」。dependency-cruiser 现在也看得见第三方的边了
+       * （node_modules 从 exclude 挪成了 doNotFollow），所以那边**能**写这条，
+       * 只是没必要写两遍，就留在这里。
        * 编排层不许依赖别的**包**（platform 等）那半条仍在 dependency-cruiser，
        * 分工见那份配置里「边界-director-只许依赖-core-和-design」的注释。
        *

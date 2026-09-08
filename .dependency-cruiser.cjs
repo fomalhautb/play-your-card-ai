@@ -118,10 +118,10 @@ module.exports = {
        * 碰了 platform 就意味着它开始认识真实时间、真实设备或真实网络，假时钟测试立刻失效；
        * canvas 里别的目录（Pixi 组件、场景）同样不该被它 import——那是反过来的方向。
        *
-       * 「不许 import pixi.js / gsap」那半条**不在这里**，在 biome.jsonc 的 noRestrictedImports：
-       * 这份配置的 options.exclude 把 node_modules 整个摘掉了（见下面那段注释），
-       * 指向第三方的边根本不在这张图里，写在这儿的规则一条都不会触发。
-       * 两边分工本来就是这样：包与包之间的方向在这里，包内禁止的 import 在 Biome。
+       * 「不许 import pixi.js / gsap」那半条**不在这里**，在 biome.jsonc 的 noRestrictedImports。
+       * 分工是：包与包之间的方向在这里，包内禁止的 import 在 Biome。
+       * 下面这条规则只写 `^packages/`，所以它管不到第三方——真要在这里也拦一道，
+       * 得照「边界-canvas-不碰-react」那样另写一条按 node_modules 路径匹配的。
        */
       name: '边界-director-只许依赖-core-和-design',
       severity: 'error',
@@ -191,17 +191,7 @@ module.exports = {
         '骨架阶段它们还只有一句 export {}，那是预期状态不是问题。',
       from: {
         orphan: true,
-        pathNot: [
-          '^packages/[^/]+/src/index\\.ts$',
-          '^apps/[^/]+/src/main\\.tsx$',
-          '\\.d\\.ts$',
-          /*
-           * Playwright 的用例文件也不算。它们没有上游（跑批器按文件名收），
-           * 而下游往往只有 @playwright/test 一个——node_modules 被下面的 exclude 整个摘掉了，
-           * 于是在这张图里它们看着"两头都没有"。
-           */
-          '\\.spec\\.ts$',
-        ],
+        pathNot: ['^packages/[^/]+/src/index\\.ts$', '^apps/[^/]+/src/main\\.tsx$', '\\.d\\.ts$'],
       },
       to: {},
     },
@@ -215,7 +205,11 @@ module.exports = {
     exclude: {
       path: [
         '^packages/legacy-client/',
-        '(^|/)node_modules/',
+        /*
+         * node_modules **不在**这里。以前它被整个摘掉，结果是「指向第三方的边根本不在图里」，
+         * 于是 core 只许 pure-rand、canvas 不碰 react、ui 不碰 pixi 这三条一次都没触发过，
+         * 输出照样是绿的。第三方靠下面的 doNotFollow 收：进图当叶子，但不往里追。
+         */
         '(^|/)dist/',
         // 组件目录页的静态产物（`build-storybook` 打的），进了 .gitignore 但磁盘上有。
         '^packages/client/storybook-static/',
@@ -224,8 +218,15 @@ module.exports = {
         '\\.config\\.(ts|js|cjs|mjs)$',
       ],
     },
-    // 进了 node_modules 就不再往里追：第三方内部长什么样和依赖方向无关，
-    // 只要知道「依赖到了这个包」就够了。不加这条扫一次要几十秒。
+    /*
+     * 第三方进图，但不往里追：第三方内部长什么样和依赖方向无关，
+     * 知道「谁依赖到了它」就够了。不加这条扫一次要几十秒。
+     *
+     * 这条和上面 exclude 里那段是配套的：**别**再把 node_modules 塞回 exclude。
+     * exclude 是「当这个文件不存在」，边一起没了；doNotFollow 是「到此为止」，边还在。
+     * 认第三方的那几条规则（core 只许 pure-rand、canvas 不碰 react、ui 不碰 pixi）
+     * 全靠这些边，改成 exclude 它们会一声不响地全部失效，输出还是绿的。
+     */
     doNotFollow: { path: '(^|/)node_modules/' },
     /*
      * 让它按 TypeScript 的规则解析。tsconfig.base.json 里 moduleResolution 是 Bundler，
