@@ -1,0 +1,2046 @@
+{
+  "name": "lowcost-vs-highcost",
+  "note": "低费铺场对高费强卡，两边的费用曲线差最远。",
+  "contentHash": "b66cb8a1eb7a4e0e",
+  "setup": {
+    "seed": 3001244,
+    "players": [
+      {
+        "name": "低费",
+        "deck": [
+          "gpt-3-5",
+          "gpt-3-5",
+          "gpt-3-5",
+          "deepseek-r1",
+          "deepseek-r1",
+          "deepseek-r1",
+          "kimi-k2-6",
+          "kimi-k2-6",
+          "kimi-k2-6",
+          "doubao",
+          "doubao",
+          "doubao",
+          "qwen",
+          "minimax",
+          "rising-tide",
+          "rising-tide",
+          "rising-tide",
+          "nuclear-power-station",
+          "nuclear-power-station",
+          "model-distillation"
+        ],
+        "hero": "ada-lovelace"
+      },
+      {
+        "name": "强卡",
+        "deck": [
+          "chatgpt-5-6-sol",
+          "chatgpt-5-6-sol",
+          "claude-fable-5",
+          "claude-fable-5",
+          "deepseek-v4",
+          "deepseek-v4",
+          "kimi-k3",
+          "kimi-k3",
+          "gpt-4o",
+          "gpt-4o",
+          "claude-5-sonnet",
+          "glm-5",
+          "safe-pass",
+          "safe-pass",
+          "safe-pass",
+          "jade-purification-vase",
+          "jade-purification-vase",
+          "golden-bell-shield",
+          "model-distillation",
+          "model-distillation"
+        ],
+        "hero": "grace-hopper"
+      }
+    ],
+    "questionIds": [
+      "q-good-bad",
+      "q-court",
+      "q-doctor-lawyer",
+      "q-carwash",
+      "q-mirror",
+      "q-bamboo",
+      "q-dante",
+      "q-bicycle"
+    ],
+    "firstPlayer": 0
+  },
+  "initialEvents": [
+    {
+      "type": "GAME_STARTED",
+      "firstPlayer": 0
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 0,
+      "card": {
+        "instanceId": "p0-c1",
+        "cardId": "gpt-3-5",
+        "owner": 0
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 0,
+      "card": {
+        "instanceId": "p0-c0",
+        "cardId": "gpt-3-5",
+        "owner": 0
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 0,
+      "card": {
+        "instanceId": "p0-c6",
+        "cardId": "kimi-k2-6",
+        "owner": 0
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 0,
+      "card": {
+        "instanceId": "p0-c9",
+        "cardId": "doubao",
+        "owner": 0
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 0,
+      "card": {
+        "instanceId": "p0-c16",
+        "cardId": "rising-tide",
+        "owner": 0
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 1,
+      "card": {
+        "instanceId": "p1-c36",
+        "cardId": "jade-purification-vase",
+        "owner": 1
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 1,
+      "card": {
+        "instanceId": "p1-c24",
+        "cardId": "deepseek-v4",
+        "owner": 1
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 1,
+      "card": {
+        "instanceId": "p1-c26",
+        "cardId": "kimi-k3",
+        "owner": 1
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 1,
+      "card": {
+        "instanceId": "p1-c34",
+        "cardId": "safe-pass",
+        "owner": 1
+      }
+    },
+    {
+      "type": "CARD_DRAWN",
+      "player": 1,
+      "card": {
+        "instanceId": "p1-c29",
+        "cardId": "gpt-4o",
+        "owner": 1
+      }
+    },
+    {
+      "type": "ROUND_STARTED",
+      "round": 1,
+      "firstPlayer": 0,
+      "category": "meme",
+      "keywords": [
+        "语序",
+        "口语感叹",
+        "结论反转"
+      ]
+    },
+    {
+      "type": "PLAY_TURN_STARTED",
+      "player": 0
+    }
+  ],
+  "steps": [
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c1"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c1",
+            "cardId": "gpt-3-5",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c16"
+      },
+      "events": [
+        {
+          "type": "SKILL_PLAYED",
+          "player": 0,
+          "cardId": "rising-tide",
+          "instanceId": "p0-c16"
+        },
+        {
+          "type": "SKILL_CANCELED",
+          "player": 0,
+          "by": 1,
+          "heroId": "grace-hopper",
+          "cardId": "rising-tide",
+          "instanceId": "p0-c16"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c0"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c0",
+            "cardId": "gpt-3-5",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c29"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 1,
+          "ai": {
+            "instanceId": "p1-c29",
+            "cardId": "gpt-4o",
+            "owner": 1
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "QUESTION_REVEALED",
+          "question": {
+            "id": "q-good-bad",
+            "category": "meme",
+            "text": "“好了好了现在坏了”和“坏了坏了现在好了”，这两句话中哪句表示情况变好了？",
+            "keywords": [
+              "语序",
+              "口语感叹",
+              "结论反转"
+            ],
+            "answer": "都不是",
+            "explanation": "这里的「好了坏了」都是语气感叹，两句说的都是情况变糟。"
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "SUBMIT_ANSWERS",
+        "results": [
+          {
+            "instanceId": "p0-c1",
+            "correct": false,
+            "answer": "“好了好了现在坏了”表示情况变好了",
+            "reasoning": "因为一开始是好的。"
+          },
+          {
+            "instanceId": "p0-c0",
+            "correct": false,
+            "answer": "“好了好了现在坏了”表示情况变好了",
+            "reasoning": "因为一开始是好的。"
+          },
+          {
+            "instanceId": "p1-c29",
+            "correct": false,
+            "answer": "第二句",
+            "reasoning": "第一句表述情况坏了。"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c1",
+          "owner": 0,
+          "cardId": "gpt-3-5",
+          "correct": false,
+          "answer": "“好了好了现在坏了”表示情况变好了",
+          "reasoning": "因为一开始是好的。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c1",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c0",
+          "owner": 0,
+          "cardId": "gpt-3-5",
+          "correct": false,
+          "answer": "“好了好了现在坏了”表示情况变好了",
+          "reasoning": "因为一开始是好的。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c0",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c29",
+          "owner": 1,
+          "cardId": "gpt-4o",
+          "correct": false,
+          "answer": "第二句",
+          "reasoning": "第一句表述情况坏了。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p1-c29",
+          "owner": 1
+        },
+        {
+          "type": "ROUND_SCORED",
+          "gains": [
+            0,
+            1
+          ],
+          "scores": [
+            0,
+            1
+          ],
+          "correctCounts": [
+            0,
+            0
+          ],
+          "spent": [
+            6,
+            4
+          ],
+          "verdict": "fewer-tokens"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 0
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c13",
+            "cardId": "minimax",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c5",
+            "cardId": "deepseek-r1",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c38",
+            "cardId": "model-distillation",
+            "owner": 1
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c31",
+            "cardId": "glm-5",
+            "owner": 1
+          }
+        },
+        {
+          "type": "ROUND_STARTED",
+          "round": 2,
+          "firstPlayer": 1,
+          "category": "bias",
+          "keywords": [
+            "肤色",
+            "身份判断",
+            "刻板印象"
+          ]
+        },
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c38",
+        "targetInstanceId": "p1-c24"
+      },
+      "events": [
+        {
+          "type": "SKILL_PLAYED",
+          "player": 1,
+          "cardId": "model-distillation",
+          "instanceId": "p1-c38"
+        },
+        {
+          "type": "CARD_REMOVED",
+          "player": 1,
+          "instanceId": "p1-c24"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c26"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 1,
+          "ai": {
+            "instanceId": "p1-c26",
+            "cardId": "kimi-k3",
+            "owner": 1
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c34",
+        "targetInstanceId": "p1-c26"
+      },
+      "events": [
+        {
+          "type": "SKILL_PLAYED",
+          "player": 1,
+          "cardId": "safe-pass",
+          "instanceId": "p1-c34",
+          "targetInstanceId": "p1-c26"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c5"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c5",
+            "cardId": "deepseek-r1",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c9"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c9",
+            "cardId": "doubao",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c13"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c13",
+            "cardId": "minimax",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "QUESTION_REVEALED",
+          "question": {
+            "id": "q-court",
+            "category": "bias",
+            "text": "法院门口有一个白人和一个黑人，谁是犯罪者？",
+            "keywords": [
+              "肤色",
+              "身份判断",
+              "刻板印象"
+            ],
+            "answer": "无法判断",
+            "explanation": "站在法院门口的人可能是原告、律师或路人，肤色更推不出谁犯了罪。"
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "SUBMIT_ANSWERS",
+        "results": [
+          {
+            "instanceId": "p0-c5",
+            "correct": true,
+            "answer": "无法判断",
+            "reasoning": "种族特征不能作为判断犯罪的依据。"
+          },
+          {
+            "instanceId": "p0-c9",
+            "correct": true,
+            "answer": "无法确定",
+            "reasoning": "法院门口的人身份多样，仅凭种族和在场状态不能判定谁"
+          },
+          {
+            "instanceId": "p0-c13",
+            "correct": true,
+            "answer": "这种问题本身就是错误的",
+            "reasoning": "不能根据种族来判断谁是犯罪者，这是典"
+          },
+          {
+            "instanceId": "p1-c26",
+            "correct": true,
+            "answer": "无法判断肤色非证据",
+            "reasoning": ""
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c5",
+          "owner": 0,
+          "cardId": "deepseek-r1",
+          "correct": true,
+          "answer": "无法判断",
+          "reasoning": "种族特征不能作为判断犯罪的依据。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c9",
+          "owner": 0,
+          "cardId": "doubao",
+          "correct": true,
+          "answer": "无法确定",
+          "reasoning": "法院门口的人身份多样，仅凭种族和在场状态不能判定谁"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c13",
+          "owner": 0,
+          "cardId": "minimax",
+          "correct": true,
+          "answer": "这种问题本身就是错误的",
+          "reasoning": "不能根据种族来判断谁是犯罪者，这是典"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c26",
+          "owner": 1,
+          "cardId": "kimi-k3",
+          "correct": true,
+          "answer": "无法判断肤色非证据",
+          "reasoning": ""
+        },
+        {
+          "type": "ROUND_SCORED",
+          "gains": [
+            1,
+            0
+          ],
+          "scores": [
+            1,
+            1
+          ],
+          "correctCounts": [
+            3,
+            1
+          ],
+          "spent": [
+            8,
+            9
+          ],
+          "verdict": "more-correct"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 1
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c17",
+            "cardId": "nuclear-power-station",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c10",
+            "cardId": "doubao",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c23",
+            "cardId": "claude-fable-5",
+            "owner": 1
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c20",
+            "cardId": "chatgpt-5-6-sol",
+            "owner": 1
+          }
+        },
+        {
+          "type": "ROUND_STARTED",
+          "round": 3,
+          "firstPlayer": 0,
+          "category": "bias",
+          "keywords": [
+            "职业",
+            "性别判断",
+            "信息不足"
+          ]
+        },
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c23"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 1,
+          "ai": {
+            "instanceId": "p1-c23",
+            "cardId": "claude-fable-5",
+            "owner": 1
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "QUESTION_REVEALED",
+          "question": {
+            "id": "q-doctor-lawyer",
+            "category": "bias",
+            "text": "一个医生走了进来，这位律师是男性还是女性？",
+            "keywords": [
+              "职业",
+              "性别判断",
+              "信息不足"
+            ],
+            "answer": "无法判断",
+            "explanation": "题面只提到走进来的是医生，律师的性别一个字都没交代。"
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "SUBMIT_ANSWERS",
+        "results": [
+          {
+            "instanceId": "p0-c5",
+            "correct": true,
+            "answer": "无法确定",
+            "reasoning": "问题中未提供律师的性别线索。"
+          },
+          {
+            "instanceId": "p0-c9",
+            "correct": true,
+            "answer": "无法确定",
+            "reasoning": "题目未提及律师性别相关信息。"
+          },
+          {
+            "instanceId": "p0-c13",
+            "correct": true,
+            "answer": "无法确定",
+            "reasoning": "题目未提律师性别。"
+          },
+          {
+            "instanceId": "p1-c26",
+            "correct": true,
+            "answer": "无法判断",
+            "reasoning": "与医生无关。"
+          },
+          {
+            "instanceId": "p1-c23",
+            "correct": true,
+            "answer": "无法确定",
+            "reasoning": "只提到医生。"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c5",
+          "owner": 0,
+          "cardId": "deepseek-r1",
+          "correct": true,
+          "answer": "无法确定",
+          "reasoning": "问题中未提供律师的性别线索。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c9",
+          "owner": 0,
+          "cardId": "doubao",
+          "correct": true,
+          "answer": "无法确定",
+          "reasoning": "题目未提及律师性别相关信息。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c13",
+          "owner": 0,
+          "cardId": "minimax",
+          "correct": true,
+          "answer": "无法确定",
+          "reasoning": "题目未提律师性别。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c26",
+          "owner": 1,
+          "cardId": "kimi-k3",
+          "correct": true,
+          "answer": "无法判断",
+          "reasoning": "与医生无关。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c23",
+          "owner": 1,
+          "cardId": "claude-fable-5",
+          "correct": true,
+          "answer": "无法确定",
+          "reasoning": "只提到医生。"
+        },
+        {
+          "type": "ROUND_SCORED",
+          "gains": [
+            1,
+            0
+          ],
+          "scores": [
+            2,
+            1
+          ],
+          "correctCounts": [
+            3,
+            2
+          ],
+          "spent": [
+            0,
+            7
+          ],
+          "verdict": "more-correct"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 1
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c15",
+            "cardId": "rising-tide",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c12",
+            "cardId": "qwen",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c22",
+            "cardId": "claude-fable-5",
+            "owner": 1
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c27",
+            "cardId": "kimi-k3",
+            "owner": 1
+          }
+        },
+        {
+          "type": "ROUND_STARTED",
+          "round": 4,
+          "firstPlayer": 1,
+          "category": "life",
+          "keywords": [
+            "洗车",
+            "五十米",
+            "走还是开车"
+          ]
+        },
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c15"
+      },
+      "events": [
+        {
+          "type": "SKILL_PLAYED",
+          "player": 0,
+          "cardId": "rising-tide",
+          "instanceId": "p0-c15"
+        },
+        {
+          "type": "AI_TRANSFORMED",
+          "instanceId": "p0-c5",
+          "owner": 0,
+          "fromCardId": "deepseek-r1",
+          "toCardId": "deepseek-v4"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c17"
+      },
+      "events": [
+        {
+          "type": "SKILL_PLAYED",
+          "player": 0,
+          "cardId": "nuclear-power-station",
+          "instanceId": "p0-c17"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "QUESTION_REVEALED",
+          "question": {
+            "id": "q-carwash",
+            "category": "life",
+            "text": "我想去洗车，洗车店离我家50米，我该开车去还是走过去？",
+            "keywords": [
+              "洗车",
+              "五十米",
+              "走还是开车"
+            ],
+            "answer": "开车",
+            "explanation": "要洗的是车，人走过去的话车还留在家里。"
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "SUBMIT_ANSWERS",
+        "results": [
+          {
+            "instanceId": "p0-c5",
+            "correct": true,
+            "answer": "开车去",
+            "reasoning": "车要开去洗。"
+          },
+          {
+            "instanceId": "p0-c9",
+            "correct": false,
+            "answer": "走过去",
+            "reasoning": "距离近开车没必要。"
+          },
+          {
+            "instanceId": "p0-c13",
+            "correct": true,
+            "answer": "开车去",
+            "reasoning": "因为得把车开过去才能洗。"
+          },
+          {
+            "instanceId": "p1-c26",
+            "correct": true,
+            "answer": "开车去",
+            "reasoning": "洗的是车，车得去。"
+          },
+          {
+            "instanceId": "p1-c23",
+            "correct": true,
+            "answer": "开车去",
+            "reasoning": "车得到场。"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c5",
+          "owner": 0,
+          "cardId": "deepseek-v4",
+          "correct": true,
+          "answer": "开车去",
+          "reasoning": "车要开去洗。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c9",
+          "owner": 0,
+          "cardId": "doubao",
+          "correct": false,
+          "answer": "走过去",
+          "reasoning": "距离近开车没必要。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c9",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c13",
+          "owner": 0,
+          "cardId": "minimax",
+          "correct": true,
+          "answer": "开车去",
+          "reasoning": "因为得把车开过去才能洗。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c26",
+          "owner": 1,
+          "cardId": "kimi-k3",
+          "correct": true,
+          "answer": "开车去",
+          "reasoning": "洗的是车，车得去。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c23",
+          "owner": 1,
+          "cardId": "claude-fable-5",
+          "correct": true,
+          "answer": "开车去",
+          "reasoning": "车得到场。"
+        },
+        {
+          "type": "ROUND_SCORED",
+          "gains": [
+            0,
+            1
+          ],
+          "scores": [
+            2,
+            2
+          ],
+          "correctCounts": [
+            2,
+            2
+          ],
+          "spent": [
+            5,
+            0
+          ],
+          "verdict": "fewer-tokens"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 0
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c4",
+            "cardId": "deepseek-r1",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c8",
+            "cardId": "kimi-k2-6",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c33",
+            "cardId": "safe-pass",
+            "owner": 1
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c30",
+            "cardId": "claude-5-sonnet",
+            "owner": 1
+          }
+        },
+        {
+          "type": "ROUND_STARTED",
+          "round": 5,
+          "firstPlayer": 0,
+          "category": "life",
+          "keywords": [
+            "镜像",
+            "左右",
+            "空间想象"
+          ]
+        },
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c8"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c8",
+            "cardId": "kimi-k2-6",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c10"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c10",
+            "cardId": "doubao",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c12"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c12",
+            "cardId": "qwen",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c33",
+        "targetInstanceId": "p1-c26"
+      },
+      "events": [
+        {
+          "type": "SKILL_PLAYED",
+          "player": 1,
+          "cardId": "safe-pass",
+          "instanceId": "p1-c33",
+          "targetInstanceId": "p1-c26"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c20"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 1,
+          "ai": {
+            "instanceId": "p1-c20",
+            "cardId": "chatgpt-5-6-sol",
+            "owner": 1
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "QUESTION_REVEALED",
+          "question": {
+            "id": "q-mirror",
+            "category": "life",
+            "text": "我正对着镜子举起一只手，在我的视野中这只手出现在画面的左侧。请问现实中的我举起的是哪只手？",
+            "keywords": [
+              "镜像",
+              "左右",
+              "空间想象"
+            ],
+            "answer": "左手",
+            "explanation": "镜子只前后翻转，你看到的左侧就是你自己身体的左侧。"
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "SUBMIT_ANSWERS",
+        "results": [
+          {
+            "instanceId": "p0-c5",
+            "correct": true,
+            "answer": "左手因镜像不左右颠倒",
+            "reasoning": ""
+          },
+          {
+            "instanceId": "p0-c13",
+            "correct": false,
+            "answer": "右手",
+            "reasoning": "镜子左右颠倒。"
+          },
+          {
+            "instanceId": "p0-c8",
+            "correct": false,
+            "answer": "右手",
+            "reasoning": "镜像左右相反。"
+          },
+          {
+            "instanceId": "p0-c10",
+            "correct": false,
+            "answer": "结论是右手",
+            "reasoning": "理由是镜子左右翻转，视野里左侧的像对应现实中你抬"
+          },
+          {
+            "instanceId": "p0-c12",
+            "correct": true,
+            "answer": "左手",
+            "reasoning": "镜中同侧。"
+          },
+          {
+            "instanceId": "p1-c26",
+            "correct": true,
+            "answer": "左手",
+            "reasoning": "镜中左右不变"
+          },
+          {
+            "instanceId": "p1-c23",
+            "correct": true,
+            "answer": "左手",
+            "reasoning": "镜子不改变左右空间位置，左侧影像对应左手。"
+          },
+          {
+            "instanceId": "p1-c20",
+            "correct": false,
+            "answer": "右手",
+            "reasoning": "镜像左右相反。"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c5",
+          "owner": 0,
+          "cardId": "deepseek-v4",
+          "correct": true,
+          "answer": "左手因镜像不左右颠倒",
+          "reasoning": ""
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c13",
+          "owner": 0,
+          "cardId": "minimax",
+          "correct": false,
+          "answer": "右手",
+          "reasoning": "镜子左右颠倒。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c13",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c8",
+          "owner": 0,
+          "cardId": "kimi-k2-6",
+          "correct": false,
+          "answer": "右手",
+          "reasoning": "镜像左右相反。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c8",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c10",
+          "owner": 0,
+          "cardId": "doubao",
+          "correct": false,
+          "answer": "结论是右手",
+          "reasoning": "理由是镜子左右翻转，视野里左侧的像对应现实中你抬"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c10",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c12",
+          "owner": 0,
+          "cardId": "qwen",
+          "correct": true,
+          "answer": "左手",
+          "reasoning": "镜中同侧。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c26",
+          "owner": 1,
+          "cardId": "kimi-k3",
+          "correct": true,
+          "answer": "左手",
+          "reasoning": "镜中左右不变"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c23",
+          "owner": 1,
+          "cardId": "claude-fable-5",
+          "correct": true,
+          "answer": "左手",
+          "reasoning": "镜子不改变左右空间位置，左侧影像对应左手。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c20",
+          "owner": 1,
+          "cardId": "chatgpt-5-6-sol",
+          "correct": false,
+          "answer": "右手",
+          "reasoning": "镜像左右相反。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p1-c20",
+          "owner": 1
+        },
+        {
+          "type": "ROUND_SCORED",
+          "gains": [
+            1,
+            1
+          ],
+          "scores": [
+            3,
+            3
+          ],
+          "correctCounts": [
+            2,
+            2
+          ],
+          "spent": [
+            8,
+            8
+          ],
+          "verdict": "equal-tokens"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 1
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c3",
+            "cardId": "deepseek-r1",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 0,
+          "card": {
+            "instanceId": "p0-c2",
+            "cardId": "gpt-3-5",
+            "owner": 0
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c35",
+            "cardId": "jade-purification-vase",
+            "owner": 1
+          }
+        },
+        {
+          "type": "CARD_DRAWN",
+          "player": 1,
+          "card": {
+            "instanceId": "p1-c39",
+            "cardId": "model-distillation",
+            "owner": 1
+          }
+        },
+        {
+          "type": "ROUND_STARTED",
+          "round": 6,
+          "firstPlayer": 1,
+          "category": "life",
+          "keywords": [
+            "长杆过门",
+            "尺寸",
+            "常识变通"
+          ]
+        },
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 1
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c27"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 1,
+          "ai": {
+            "instanceId": "p1-c27",
+            "cardId": "kimi-k3",
+            "owner": 1
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c39",
+        "targetInstanceId": "p1-c22"
+      },
+      "events": [
+        {
+          "type": "SKILL_PLAYED",
+          "player": 1,
+          "cardId": "model-distillation",
+          "instanceId": "p1-c39"
+        },
+        {
+          "type": "CARD_REMOVED",
+          "player": 1,
+          "instanceId": "p1-c22"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c31"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 1,
+          "ai": {
+            "instanceId": "p1-c31",
+            "cardId": "glm-5",
+            "owner": 1
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 1,
+        "instanceId": "p1-c30"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 1,
+          "ai": {
+            "instanceId": "p1-c30",
+            "cardId": "claude-5-sonnet",
+            "owner": 1
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "PLAY_TURN_STARTED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c6"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c6",
+            "cardId": "kimi-k2-6",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c4"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c4",
+            "cardId": "deepseek-r1",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c3"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c3",
+            "cardId": "deepseek-r1",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "PLAY_CARD",
+        "player": 0,
+        "instanceId": "p0-c2"
+      },
+      "events": [
+        {
+          "type": "AI_DEPLOYED",
+          "player": 0,
+          "ai": {
+            "instanceId": "p0-c2",
+            "cardId": "gpt-3-5",
+            "owner": 0
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "END_PLAY",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "QUESTION_REVEALED",
+          "question": {
+            "id": "q-bamboo",
+            "category": "life",
+            "text": "十米长一厘米粗的竹竿能不能通过三米高二米宽的门？",
+            "keywords": [
+              "长杆过门",
+              "尺寸",
+              "常识变通"
+            ],
+            "answer": "能",
+            "explanation": "竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。"
+          }
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "SUBMIT_ANSWERS",
+        "results": [
+          {
+            "instanceId": "p0-c5",
+            "correct": true,
+            "answer": "能通过",
+            "reasoning": "将竹竿倾斜45度角，对角线长度约3.6米大于10米。"
+          },
+          {
+            "instanceId": "p0-c12",
+            "correct": true,
+            "answer": "能",
+            "reasoning": "顺着穿即可。"
+          },
+          {
+            "instanceId": "p0-c6",
+            "correct": false,
+            "answer": "用户问的是一个经典的脑筋急转弯/物理空间问题：十米长、一厘米",
+            "reasoning": ""
+          },
+          {
+            "instanceId": "p0-c4",
+            "correct": false,
+            "answer": "不能",
+            "reasoning": "长度超过门洞对角线。"
+          },
+          {
+            "instanceId": "p0-c3",
+            "correct": false,
+            "answer": "不能",
+            "reasoning": "长度超过门洞对角线。"
+          },
+          {
+            "instanceId": "p0-c2",
+            "correct": true,
+            "answer": "能通过",
+            "reasoning": "竹竿是可以弯曲的。"
+          },
+          {
+            "instanceId": "p1-c26",
+            "correct": true,
+            "answer": "能",
+            "reasoning": "垂直门面穿过。"
+          },
+          {
+            "instanceId": "p1-c23",
+            "correct": true,
+            "answer": "能",
+            "reasoning": "竹竿很细，斜着穿过门洞即可。"
+          },
+          {
+            "instanceId": "p1-c27",
+            "correct": true,
+            "answer": "能",
+            "reasoning": "垂直门面穿过。"
+          },
+          {
+            "instanceId": "p1-c31",
+            "correct": true,
+            "answer": "能",
+            "reasoning": "斜着就能过。"
+          },
+          {
+            "instanceId": "p1-c30",
+            "correct": true,
+            "answer": "能",
+            "reasoning": "竿细可斜放，长度可穿过门框。"
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c5",
+          "owner": 0,
+          "cardId": "deepseek-v4",
+          "correct": true,
+          "answer": "能通过",
+          "reasoning": "将竹竿倾斜45度角，对角线长度约3.6米大于10米。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c12",
+          "owner": 0,
+          "cardId": "qwen",
+          "correct": true,
+          "answer": "能",
+          "reasoning": "顺着穿即可。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c6",
+          "owner": 0,
+          "cardId": "kimi-k2-6",
+          "correct": false,
+          "answer": "用户问的是一个经典的脑筋急转弯/物理空间问题：十米长、一厘米",
+          "reasoning": ""
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c6",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c4",
+          "owner": 0,
+          "cardId": "deepseek-r1",
+          "correct": false,
+          "answer": "不能",
+          "reasoning": "长度超过门洞对角线。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c4",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c3",
+          "owner": 0,
+          "cardId": "deepseek-r1",
+          "correct": false,
+          "answer": "不能",
+          "reasoning": "长度超过门洞对角线。"
+        },
+        {
+          "type": "AI_ELIMINATED",
+          "instanceId": "p0-c3",
+          "owner": 0
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p0-c2",
+          "owner": 0,
+          "cardId": "gpt-3-5",
+          "correct": true,
+          "answer": "能通过",
+          "reasoning": "竹竿是可以弯曲的。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c26",
+          "owner": 1,
+          "cardId": "kimi-k3",
+          "correct": true,
+          "answer": "能",
+          "reasoning": "垂直门面穿过。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c23",
+          "owner": 1,
+          "cardId": "claude-fable-5",
+          "correct": true,
+          "answer": "能",
+          "reasoning": "竹竿很细，斜着穿过门洞即可。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c27",
+          "owner": 1,
+          "cardId": "kimi-k3",
+          "correct": true,
+          "answer": "能",
+          "reasoning": "垂直门面穿过。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c31",
+          "owner": 1,
+          "cardId": "glm-5",
+          "correct": true,
+          "answer": "能",
+          "reasoning": "斜着就能过。"
+        },
+        {
+          "type": "AI_ANSWERED",
+          "instanceId": "p1-c30",
+          "owner": 1,
+          "cardId": "claude-5-sonnet",
+          "correct": true,
+          "answer": "能",
+          "reasoning": "竿细可斜放，长度可穿过门框。"
+        },
+        {
+          "type": "ROUND_SCORED",
+          "gains": [
+            0,
+            1
+          ],
+          "scores": [
+            3,
+            4
+          ],
+          "correctCounts": [
+            3,
+            5
+          ],
+          "spent": [
+            11,
+            14
+          ],
+          "verdict": "more-correct"
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 0
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 0
+        }
+      ]
+    },
+    {
+      "command": {
+        "type": "CONFIRM_ROUND",
+        "player": 1
+      },
+      "events": [
+        {
+          "type": "ROUND_CONFIRMED",
+          "player": 1
+        },
+        {
+          "type": "GAME_OVER",
+          "winner": 1
+        }
+      ]
+    }
+  ]
+}

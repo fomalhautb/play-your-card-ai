@@ -53,7 +53,8 @@ jobs:
       - name: 设计令牌产物与源一致
         run: pnpm --filter @ai-duel/design check
 
-      # `pnpm -r test` 只进有 test 脚本的包，现在是 core、design、bench 和 legacy-client。
+      # `pnpm -r test` 只进有 test 脚本的包，现在是 core、content、protocol、design、platform、
+      # canvas、bench 和 legacy-client。
       # bench 的 test 脚本只跑 Node 侧纯逻辑的 vitest，不开浏览器——
       # 性能剧本本身要拉起 Chromium，属于慢档，等迁移第 20 条再接进来。
       # 骨架包没有 test 脚本，会被直接跳过——别为了"看着整齐"给它们加空脚本，

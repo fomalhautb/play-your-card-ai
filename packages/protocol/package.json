@@ -7,13 +7,19 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "//": "devDependencies 里的 @ai-duel/content 是测试专用：protocol 的运行时只依赖 core 和 zod（《正式版架构》7.2 第 1 条），src/ 里一行都没 import 它。但测试要拿真实的裁剪视图和事件流当消息载荷（test/helpers/sampleGame.ts 现开一局），那得有一份真实的内容目录。dependency-cruiser 只扫 src/，所以依赖方向没有被破坏。",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@ai-duel/core": "workspace:*"
+    "@ai-duel/core": "workspace:*",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "@ai-duel/content": "workspace:*",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }

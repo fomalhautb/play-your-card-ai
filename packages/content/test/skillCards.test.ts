@@ -1,5 +1,5 @@
+import type { SkillCard } from '@ai-duel/core'
 import { describe, expect, it } from 'vitest'
-import type { SkillCard } from '../src/index'
 import { CARDS, SKILL_DESIGN_CARD_IDS, SKILL_DESIGN_CARDS } from '../src/index'
 
 /**

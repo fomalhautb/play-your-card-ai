@@ -6,15 +6,13 @@ import { uniformInt } from 'pure-rand/distribution/uniformInt'
 // mersenne 的种子扩散做得干净，连续种子的首个输出实测就是均匀且互不相关的。
 import { mersenne } from 'pure-rand/generator/mersenne'
 import type { RandomGenerator } from 'pure-rand/types/RandomGenerator'
-import { downgradeTargetOf, upgradeTargetOf } from './aiModels'
-import { CARDS, getCard } from './cards'
-import { QUESTION_POOL } from './questions'
+import { downgradeTargetOf, getAiCard, getCard, getHero, upgradeTargetOf } from './catalog'
 import type {
-  AiCard,
   AiInstance,
   AnswerResult,
   CardId,
   CardInstance,
+  Catalog,
   Command,
   ExecuteResult,
   GameEvent,
@@ -36,7 +34,7 @@ export const STARTING_HAND_SIZE = 5
  * 第 2 轮起每轮开始双方各补几张。
  *
  * 一张时手牌只出不进，打到后面双方常常无牌可打、只能干等着答题；两张才够一轮出一两张的消耗。
- * 一局最多摸 5 + 4 轮 × 2 = 13 张，预设牌组各 20 张（见 cards.ts 的 PRESET_DECKS）管得住，
+ * 一局最多摸 5 + 4 轮 × 2 = 13 张，预设牌组各 20 张（见 content 的 PRESET_DECKS）管得住，
  * 不会中途抽空。改大到摸得空牌堆也不会出错（drawCards 抽不到就算了），只是画面上会一直显示 0。
  */
 export const ROUND_DRAW_SIZE = 2
@@ -44,8 +42,8 @@ export const ROUND_DRAW_SIZE = 2
 /**
  * 第 1 轮的 Token 上限。
  *
- * 5 点买得起最便宜的两三张 AI 牌（费用区间是 1~7，见 aiModels.ts），
- * 又买不起 ChatGPT 5.6 Sol 那种 7 点的顶配，开局就得做取舍。
+ * 5 点买得起最便宜的两三张 AI 牌（费用区间是 1~7，见 content 的 aiModels.ts），
+ * 又买不起 7 点的顶配，开局就得做取舍。
  * 一轮里 AI 牌和技能牌都不限张数，Token 就是唯一的额度，
  * 而且省着花本身有意义——答对数量相同时比的就是本轮消耗（见 submitAnswers）。
  */
@@ -71,7 +69,7 @@ export const TOKEN_MAX_GROWTH = 1
 export const WIN_TARGET = 3
 
 /**
- * 阿达·洛芙莱斯的「第一算法」给自己加多少 Token 上限。
+ * ada-lovelace 的「第一算法」给自己加多少 Token 上限。
  *
  * 只在开局加这一次就够贯穿整局：confirmRound 走的是 `tokenMax += TOKEN_MAX_GROWTH` 的增量逻辑，
  * 加高的起点会一路带下去（第 1 轮 7、第 2 轮 8、第 3 轮 9……恒比对手多 2）。
@@ -123,9 +121,22 @@ export interface PlayerSetup {
 export interface GameSetup {
   /** 洗牌种子。同一个种子 + 同一串指令 = 同一场对局，先手也由它掷出。 */
   seed: number
+  /**
+   * 本局的卡牌和英雄定义（`content` 的 `createCatalog()`）。
+   * core 自己不带数据，这份目录原样存进 `GameState.catalog`，之后引擎只从状态里查
+   *（为什么这么放见 types.ts 的 Catalog）。
+   */
+  catalog: Catalog
   players: [PlayerSetup, PlayerSetup]
   /**
-   * 指定本局的题序，不填就把整个题库洗一遍（noShuffle 时按题库原序）。
+   * 本局题库，开局洗一遍当题序用（noShuffle 时按原序）。题目和卡牌一样在 `content` 里。
+   *
+   * 和下面的 questions 是两个口子：这个是"整份题库，交给引擎洗"，
+   * 那个是"我已经排好了，照这个顺序来"。两个都给时以 questions 为准。
+   */
+  questionPool: Question[]
+  /**
+   * 指定本局的题序，不填就把 questionPool 洗一遍（noShuffle 时按原序）。
    * 留这个口子是给测试、调试和教程用的：只塞一两道题，一两轮就能打到 GAME_OVER，
    * 不必为了看结算界面把整局走完。传进来的顺序原样使用，不再洗。
    */
@@ -174,13 +185,16 @@ export function createGame(setup: GameSetup): ExecuteResult {
     // 用 === undefined 而不是 ??：null 是"这一方明确不带英雄"，不能被默认值盖掉。
     // 英雄初始化不碰 rng，所以加了它也不影响下面抛硬币/洗牌那串随机数的顺序。
     const hero = config.hero === undefined ? DEFAULT_HERO : config.hero
-    // 阿达·洛芙莱斯的「第一算法」是开局就算进数值的被动，不占 heroSkillUsed 那个标志。
+    // 目录里没有这位英雄说明调用方传了张不存在的牌，属于数据错误而不是玩家操作能触发的情况，
+    // 和 getCard 一样当场抛错，别等到界面查卡面时才炸。
+    if (hero !== null) getHero(setup.catalog, hero)
+    // ada-lovelace 的「第一算法」是开局就算进数值的被动，不占 heroSkillUsed 那个标志。
     const tokenMax = INITIAL_TOKEN_MAX + (hero === 'ada-lovelace' ? ADA_TOKEN_MAX_BONUS : 0)
     return {
       id,
       name: config.name,
       score: 0,
-      // 开局就是满的：第 1 轮双方各 INITIAL_TOKEN_MAX 点（阿达再加 ADA_TOKEN_MAX_BONUS），
+      // 开局就是满的：第 1 轮双方各 INITIAL_TOKEN_MAX 点（ada-lovelace 再加 ADA_TOKEN_MAX_BONUS），
       // 之后每轮补满并涨 TOKEN_MAX_GROWTH（见 confirmRound 那段）。
       tokens: tokenMax,
       tokenMax,
@@ -212,10 +226,11 @@ export function createGame(setup: GameSetup): ExecuteResult {
   const questions = setup.questions
     ? setup.questions.slice()
     : setup.noShuffle === true
-      ? QUESTION_POOL.slice()
-      : shuffle(QUESTION_POOL, rng)
+      ? setup.questionPool.slice()
+      : shuffle(setup.questionPool, rng)
 
   const state: GameState = {
+    catalog: setup.catalog,
     round: 1,
     totalRounds: questions.length,
     firstPlayer,
@@ -305,7 +320,7 @@ function playCard(
   if (handIndex < 0) return reject(state, '手牌里没有这张卡')
 
   const instance = player.hand[handIndex]!
-  const card = getCard(instance.cardId)
+  const card = getCard(next.catalog, instance.cardId)
   const cost = effectivePlayCost(player, card)
 
   // 费用排在选目标之前：Token 不够的话这张牌根本不该进"指定目标"那一步，
@@ -353,7 +368,7 @@ function playCard(
     events.push({ type: 'AI_DEPLOYED', player: playerId, ai })
   } else {
     player.discard.push(instance)
-    // 格蕾丝·霍珀的 Debug：抵消对方本局打出的第一张技能牌。
+    // grace-hopper 的 Debug：抵消对方本局打出的第一张技能牌。
     // 牌本身照常打出、照常进弃牌堆，作废的只是**效果**，所以要赶在结算之前先问一句
     // 「这张会不会被抵消」——被抵消的干扰技能不能给目标盖上 interference，
     // 否则玩家会看到"技能被抵消了，那个 AI 却再也不能被干扰"这种自相矛盾的局面。
@@ -430,7 +445,7 @@ function denyReason(
   if (card.target === 'own-hand-ai') {
     const inHand = player.hand.find((c) => c.instanceId === targetInstanceId)
     // 技能牌自己也在手牌里，但它不是 AI 牌，所以这一条顺带挡住了"拿自己当目标"。
-    if (inHand === undefined || getCard(inHand.cardId).kind !== 'ai') {
+    if (inHand === undefined || getCard(state.catalog, inHand.cardId).kind !== 'ai') {
       return '目标必须是你手牌里的一张 AI 牌'
     }
     return null
@@ -474,7 +489,7 @@ function applySkillEffect(
   const player = state.players[playerId]
   switch (card.id) {
     // 干扰两张：记下是被哪张打中的，答题时按这个种类去查对应那一档的预生成回答
-    // （见 script.ts；写字面量而不是 card.id 是为了对上 InterferenceCardId 的类型）。
+    // （见 content 的 script.ts；写字面量而不是 card.id 是为了对上 InterferenceCardId 的类型）。
     // 这个函数只在没被英雄技能抵消时才被调用，所以被抵消的那一下目标身上什么都不会留。
     case 'fixed-answer':
       target!.interference = 'fixed-answer'
@@ -513,7 +528,7 @@ function applySkillEffect(
       // 用印刷费用而不是 effectivePlayCost：核电站减的是自己"打出去要花多少"，
       // 不该连带把回收价也压下去。
       // 换来的 Token 可能顶破 tokenMax，这是有意允许的——多出来的部分在下一轮补满时被覆盖。
-      player.tokens += getCard(removed.cardId).tokenCost
+      player.tokens += getCard(state.catalog, removed.cardId).tokenCost
       events.push({ type: 'CARD_REMOVED', player: playerId, instanceId: removed.instanceId })
       return
     }
@@ -539,14 +554,19 @@ function applySkillEffect(
     case 'domestic-substitution':
       for (const side of state.players) {
         if (side.shielded === true) continue
-        removeFromBoard(side, (ai) => boardCard(ai).domestic !== true, card.id, events)
+        removeFromBoard(
+          side,
+          (ai) => getAiCard(state.catalog, ai.cardId).domestic !== true,
+          card.id,
+          events,
+        )
       }
       return
     case 'rising-tide':
       for (const side of state.players) {
         if (side.shielded === true) continue
         for (const ai of side.board) {
-          const toCardId = boardCard(ai).evolvesTo
+          const toCardId = getAiCard(state.catalog, ai.cardId).evolvesTo
           if (toCardId === undefined) continue
           const fromCardId = ai.cardId
           // 只换卡面身份：instanceId 不变，interference / safePassed 也跟着这个单位留下，
@@ -568,7 +588,7 @@ function applySkillEffect(
       }
       return
     default:
-      // 其余 14 张还是占位牌：打出即进弃牌堆，什么都不发生（名单见 skillCards.ts）。
+      // 其余 14 张还是占位牌：打出即进弃牌堆，什么都不发生（名单见 content 的 skillCards.ts）。
       return
   }
 }
@@ -626,17 +646,6 @@ function removeFromBoard(
 }
 
 /**
- * 场上单位的卡面定义。
- * board 里只可能站着 AI 牌，查出别的说明有人把技能牌塞进了场上，属于数据错误而不是
- * 玩家操作能触发的情况，所以和 getCard 一样直接抛错。
- */
-function boardCard(ai: AiInstance): AiCard {
-  const card = getCard(ai.cardId)
-  if (card.kind !== 'ai') throw new Error(`场上出现了非 AI 牌：${ai.cardId}`)
-  return card
-}
-
-/**
  * 用状态里的种子跑一次随机，跑完把下一颗种子写回状态。
  *
  * 这样引擎既保持"同一份状态 + 同一条指令 = 同一个结果"，又不用把生成器本身
@@ -653,7 +662,7 @@ function withRng<T>(state: GameState, use: (rng: RandomGenerator) => T): T {
  * 发动主动英雄技能：把场上一个 AI 换成同系列的上一代或下一代。
  *
  * 两位英雄共用这一条路径，升还是降、目标该在哪一侧，全由英雄自己决定，指令里不带方向：
- * 陈丹琦「精准检索」升**己方**一个，梅拉妮·珀金斯「化繁为简」降**对方**一个。
+ * danqi-chen 的「精准检索」升**己方**一个，melanie-perkins 的「化繁为简」降**对方**一个。
  *
  * 完全免费：不扣 tokens、不记 spentThisRound，也不结束出牌轮——发动完照样接着出牌或 END_PLAY。
  * 不记消耗这一点会影响胜负：答对数量相同时比的就是本轮 spentThisRound（见 submitAnswers），
@@ -668,8 +677,8 @@ function useHeroSkill(
   const next = clone(state)
   const player = next.players[playerId]
   const hero = player.hero
-  // 只有这两位的技能是"指定一个 AI 升/降级"。霍珀的 Debug 是被动（在 playCard 里触发），
-  // 其余几位还没实装（见 heroes.ts 的 comingSoon），发这条指令一律拒绝。
+  // 只有这两位的技能是"指定一个 AI 升/降级"。grace-hopper 的 Debug 是被动（在 playCard 里触发），
+  // 其余几位还没实装（见 content 的 HeroCard.comingSoon），发这条指令一律拒绝。
   // hero === null 这半边是给类型收窄用的：没英雄时 direction 本来就是 null。
   const direction: 'upgrade' | 'downgrade' | null =
     hero === 'danqi-chen' ? 'upgrade' : hero === 'melanie-perkins' ? 'downgrade' : null
@@ -689,8 +698,10 @@ function useHeroSkill(
 
   const fromCardId = target.cardId
   const toCardId =
-    direction === 'upgrade' ? upgradeTargetOf(fromCardId) : downgradeTargetOf(fromCardId)
-  // 链顶、链底，以及压根不在任何升级链上的那 8 张，都到头了（见 aiModels.ts 的 AI_UPGRADE_CHAINS）。
+    direction === 'upgrade'
+      ? upgradeTargetOf(next.catalog, fromCardId)
+      : downgradeTargetOf(next.catalog, fromCardId)
+  // 链顶、链底，以及压根不在任何升级链上的那几张，都到头了（见 content 的 AI_UPGRADE_CHAINS）。
   if (toCardId === null) {
     return reject(
       state,
@@ -703,7 +714,7 @@ function useHeroSkill(
   // 被保送和升降级是三码事，同一个单位身上互不影响：升完仍按新卡查被干扰那一档的回答，
   // 也照样答错不罚下。英雄技能自己不往 affectedBy 里记（那份只记技能牌），
   // 它留下的是永久的 levelShift 角标。
-  // 降到链底可能降出 GPT-2 这种没跑过预生成的卡，那一档由 script.ts 兜底，不会缺格抛错。
+  // 降到链底可能降出没跑过预生成的那种卡，那一档由 content 的 script.ts 兜底，不会缺格抛错。
   // 金钟罩同理管不着这里：它挡的是技能牌，而英雄技能不是技能牌（见 types.ts 的 shielded）。
   target.cardId = toCardId
   target.levelShift = (target.levelShift ?? 0) + (direction === 'upgrade' ? 1 : -1)
@@ -949,9 +960,9 @@ function debugAddCard(state: GameState, playerId: PlayerId, cardId?: CardId): Ex
     return { state: next, events }
   }
 
-  // 这里直接查表而不用 getCard：cardId 是客户端传来的，写错很正常，
+  // 这里直接查目录而不用 getCard：cardId 是客户端传来的，写错很正常，
   // 得退一条 COMMAND_REJECTED 回去，不能让 getCard 抛的异常把房主的引擎打断。
-  if (!CARDS[cardId]) return reject(state, `未知卡牌：${cardId}`)
+  if (!next.catalog.cards[cardId]) return reject(state, `未知卡牌：${cardId}`)
   const card: CardInstance = {
     // 凭空造的牌不属于任何一副牌组，用 dbg- 前缀跟发牌时的 p0-c3 这类 id 区分开。
     instanceId: `dbg-${next.seq++}`,
@@ -1001,8 +1012,12 @@ export function other(playerId: PlayerId): PlayerId {
  * 慢，但顺带把"GameState 必须可序列化"这条约束钉死了：
  * 一旦有人往状态里塞函数或 Map，拷贝会立刻丢数据暴露问题。
  */
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T
+function clone(state: GameState): GameState {
+  // 目录被摘出来单独接回去：它是只读的内容快照（几十张卡的卡面文案），引擎一个字都不改，
+  // 跟着深拷贝走一遍纯属每条指令白拷几十 KB。摘出来之后新旧状态共用同一份目录对象，
+  // 这也正是 content 的 createCatalog() 本来的用法——所有对局共用那一份表。
+  const { catalog, ...rest } = state
+  return { ...(JSON.parse(JSON.stringify(rest)) as Omit<GameState, 'catalog'>), catalog }
 }
 
 /** Fisher-Yates 洗牌。rng 会被就地推进，所以用同一个生成器连洗两副牌不会得到相同顺序。 */

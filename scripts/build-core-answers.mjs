@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-// 把离线跑出来的模型回答，压成对局运行时直接查的那份表 packages/core/src/pregenAnswers.json。
+// 把离线跑出来的模型回答，压成对局运行时直接查的那份表
+// packages/content/src/data/pregenAnswers.json。
 //
 // 为什么要这一步：pregen-answers.mjs 的输出是一维结果列表（还带 usage、延迟、思维链这些
 // 排查用的字段），判卷结果又在另一个文件里（verdicts-run4.json，由 judge-answers.mjs 产出）。
 // 对局里只需要「这道题这张卡这一档答了什么、对不对」，所以在这里合成一张三级表，
-// core 的 script.ts 直接 import 它查表，运行时不做任何拼装。
+// content 的 script.ts 直接 import 它查表，运行时不做任何拼装。
+//
+// 题目和注入词也来自 content（见 pregen-data.mjs 的 import），所以这个脚本的输入输出
+// 现在都指着同一个包：改了那边的 JSON，重跑一次这里就能把答案表对齐。
 //
 // 用法：node scripts/build-core-answers.mjs
 
@@ -16,7 +20,7 @@ import { MODELS, QUESTIONS, VARIANTS } from './pregen-data.mjs'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = join(SCRIPT_DIR, 'out')
-const TARGET = join(SCRIPT_DIR, '..', 'packages', 'core', 'src', 'pregenAnswers.json')
+const TARGET = join(SCRIPT_DIR, '..', 'packages', 'content', 'src', 'data', 'pregenAnswers.json')
 
 // 结果文件按顺序读，后面文件里的条目按 (variant, questionId, modelId) 覆盖前面的同一格。
 // -fix.json 是「补跑失败格子」用的，整轮没翻车时可以不存在，读不到就跳过。

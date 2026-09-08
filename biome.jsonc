@@ -30,6 +30,10 @@
       // 格式由生成器定，手改也会被下次 build 覆盖，所以格式化和 lint 都不看它；
       // 400 行那条上限同理——它管的是「人写的文件别长到没人读」，而令牌只会越加越多。
       "!packages/design/src/generated",
+      // 回放测试的 golden，由 packages/core/test/golden/record.ts 生成（迁移第 15 条）。
+      // 格式由生成器定（JSON.stringify 的两格缩进），手改或让 Biome 重排都会被下次重录覆盖；
+      // 400 行那条上限同理——它管的是「人写的文件别长到没人读」，而 golden 是一局对局的流水。
+      "!packages/core/test/golden/*.json",
       // 一次性脚本的输出，是数据不是代码。
       "!scripts/out",
       "!pnpm-lock.yaml",
@@ -154,8 +158,11 @@
       //
       // 到期条款：第三阶段（迁移第 12-15 条）重做 core 时把它们拆掉，
       // 顺手删掉这段 override。在那之前它们不许再长——新代码请开新文件。
-      //   engine.ts       规则引擎主体，第 12-13 条把内容数据和视图裁剪拆出去之后会瘦下来
-      //   types.ts        类型定义，第 12、14 条会把内容和协议的类型分别搬到 content、protocol
+      //   engine.ts       规则引擎主体。第 12 条把卡牌、题库、答题剧本搬去 content 之后它并没有变短：
+      //                   引擎本来就不存数据，只是把 import 数据换成了查状态里的目录（GameState.catalog）。
+      //                   真要瘦下来得把技能牌结算和答题结算拆成单独文件。
+      //   types.ts        类型定义。卡牌、英雄、题目的类型**留在这里不搬**：content 依赖 core 拿类型，
+      //                   反过来就把依赖方向拧了（第 12 条定的）。第 14 条会把协议相关的搬去 protocol。
       //   engine.test.ts  跟着 engine.ts 一起拆
       "includes": [
         "packages/core/src/engine.ts",

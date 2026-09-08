@@ -1,0 +1,11 @@
+{
+  // 测试单独一份配置，只为了给它们 Node 的全局类型（写法照抄 content 那边）：
+  // 回放测试和 golden 录制脚本要读写 test/golden/ 下的文件（node:fs），还要算内容哈希（node:crypto），
+  // 而 src 必须能在浏览器和 workerd 里原样跑，不能把 node 类型开给它
+  // （开了就没人拦着谁在规则引擎里写 process.env）。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["test"]
+}

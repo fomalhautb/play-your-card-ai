@@ -6,7 +6,7 @@
  *
  * 三档共同的底线：**任何一档都不挂 Filter**。3.1 只要求移动端不挂，
  * 但同一个效果分两套实现就等于两套要维护、两套会跑偏，所以高档也走同一条路——
- * 发光、追光都是预烤纹理加叠加混合，不走离屏渲染。
+ * 烟尘是预烤纹理，落地亮环是自己写的着色器，都不走离屏渲染。
  */
 
 export type EffectTier = 'low' | 'mid' | 'high'
@@ -14,7 +14,7 @@ export type EffectTier = 'low' | 'mid' | 'high'
 export interface TierConfig {
   /** 落地扬起的烟尘团数。旧版 DOM 那套固定 5 团，这里按档拉开。 */
   smokeCount: number
-  /** 卡牌边缘那圈金色追光。 */
+  /** 卡牌落地时绕边跑一圈的那圈金色亮环（见 fx/edgeRing.ts）。 */
   edgeLight: boolean
   /** 落地时整屏抖一下。 */
   screenShake: boolean

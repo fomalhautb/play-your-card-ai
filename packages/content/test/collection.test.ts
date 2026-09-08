@@ -1,3 +1,4 @@
+import type { AiCard, CardId, SkillCard } from '@ai-duel/core'
 import { describe, expect, it } from 'vitest'
 import {
   AI_MODEL_CARD_IDS,
@@ -18,7 +19,6 @@ import {
   SKILL_DESIGN_CARD_IDS,
   UNAVAILABLE_AI_CARD_IDS,
 } from '../src/index'
-import type { AiCard, CardId, SkillCard } from '../src/types'
 
 /** 一张卡在某副牌组里带了几份。 */
 function copies(deck: readonly CardId[], cardId: CardId): number {

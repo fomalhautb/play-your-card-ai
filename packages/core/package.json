@@ -3,19 +3,25 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "//": "devDependencies 里的 @ai-duel/content 是测试专用：core 的运行时不依赖任何包（《正式版架构》7.2 第 1 条），src/ 里一行都没有 import 它。但现有测试打的是真实卡牌，要一份真实的内容目录（createCatalog()）。dependency-cruiser 只扫 src/，所以依赖方向没有被破坏。工作区里 core 和 content 互指是一个 dev 环，pnpm 处理得了。",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "golden:record": "tsx test/golden/record.ts"
   },
   "dependencies": {
     "pure-rand": "^8.4.2"
   },
   "devDependencies": {
+    "@ai-duel/content": "workspace:*",
+    "@types/node": "^26.4.0",
+    "fast-check": "^4.9.0",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }

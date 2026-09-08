@@ -23,7 +23,7 @@ export const CARD_HEIGHT = tokens.size.card.height
  * 画到卡角的四处必须都用它，缺一处卡角就对不齐：原画和牌背的圆角在构建期烤进图集的 alpha
  * （assets/build-atlas.mjs 按同一个令牌等比放大到 512 那一档），代码画的边框铭牌见
  * fx/bakedTextures.ts，跟着指针跑的反光在着色器里做圆角裁剪见 fx/cardGlare.ts，
- * 落地追光绕边跑的那条路径见 fx/edgePath.ts。
+ * 落地那圈亮环的圆角轮廓见 fx/edgeRing.ts。
  */
 export const CARD_RADIUS = tokens.size.card.radius
 

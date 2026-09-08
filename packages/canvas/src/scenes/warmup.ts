@@ -9,14 +9,16 @@
  *
  * 做法是把牌库里每个贴图名各建一张卡，正面画一遍、翻到背面再画一遍，然后拆掉。
  * 正面那遍带上全部卡面图集页和烤出来的边框圆章，背面那遍带上牌背图集页。
- * 正面那遍还顺手把反光点亮一次：它带自己的着色器（见 fx/cardGlare.ts），
- * 着色器是第一次真的画到才编译的，不在这里编译掉的话，玩家第一次 hover 会卡一帧，
- * 剧本里也会在计数窗口内多出一次编译（6.9 要求预热后为 0）。
+ * 正面那遍还顺手把两样带自己着色器的东西各画一次：卡面反光（fx/cardGlare.ts）和落地亮环
+ * （fx/edgeRing.ts）。着色器是第一次真的画到才编译的，不在这里编译掉的话，玩家第一次 hover
+ * 或第一次出牌会卡一帧，剧本里也会在计数窗口内多出一次编译（6.9 要求预热后为 0）。
  * 建出来的卡是一次性的：文字纹理留在缓存里（那正是要的结果），卡本身画完就销毁。
  */
 
 import type { Container, Renderer } from 'pixi.js'
 import { CardSprite, type CardSpriteDeps } from '../components/CardSprite'
+import type { EdgeRing } from '../fx/edgeRing'
+import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import { cardVisualOf } from './deckCards'
 import type { CardTextures } from './duelContract'
 
@@ -34,6 +36,11 @@ export interface WarmupOptions {
   deck: readonly string[]
   textures: CardTextures
   deps: CardSpriteDeps
+  /**
+   * 落地那圈亮环（见 fx/HitFx.ts 的 ring）。只为了逼它的着色器提前编译，预热完原样藏回去。
+   * 低档位不建这一圈，那时传 null，这里就没什么可预热的。
+   */
+  ring: EdgeRing | null
   /** 视口尺寸，用来把预热卡摆在画得到的地方。 */
   width: number
   height: number
@@ -64,7 +71,22 @@ export function warmupScene(opts: WarmupOptions): void {
     cards.push(card)
   })
 
+  // 亮环平时是藏着、且完全透明的，那样不会被真的画到、着色器也就编译不了，所以手动点亮。
+  // 量的是战场上小卡的大小，摆在视口正中：只要求真的有片元被画到，摆哪儿不影响结果。
+  const ring = opts.ring
+  if (ring !== null) {
+    ring.setCard(CARD_WIDTH * CARD_SCALE, CARD_HEIGHT * CARD_SCALE)
+    ring.position.set(opts.width / 2, opts.height / 2)
+    ring.setTurn(0)
+    ring.visible = true
+    ring.alpha = 1
+  }
+
   opts.renderer.render(opts.stage)
+  if (ring !== null) {
+    ring.visible = false
+    ring.alpha = 0
+  }
   // 翻到背面再画一遍：牌背是另一张图集，不翻过来它那一页要等到剧本里第一次翻牌才传。
   for (const card of cards) {
     if (card.glare !== null) {

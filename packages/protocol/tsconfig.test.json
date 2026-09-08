@@ -1,0 +1,6 @@
+{
+  // 测试单独一份配置，只为了把 test/ 也纳入类型检查（写法照抄 core 和 content 那边）。
+  // 这里不像它们那样多开 node 类型：协议的测试只喂 JS 对象，不读文件、不算哈希。
+  "extends": "./tsconfig.json",
+  "include": ["test"]
+}

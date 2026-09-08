@@ -1,3 +1,14 @@
+import {
+  BALANCED_DECK,
+  createCatalog,
+  INTERFERENCE_PROMPTS,
+  PLAYABLE_AI_CARD_IDS,
+  // 直接读数据表对账：断言"取到了表里哪一档"，不依赖各档答案长什么样。
+  PREGEN_ANSWERS,
+  QUESTION_POOL,
+  scriptedAnswers,
+  UNAVAILABLE_AI_CARD_IDS,
+} from '@ai-duel/content'
 import { describe, expect, it } from 'vitest'
 import type {
   AnswerResult,
@@ -13,26 +24,24 @@ import type {
 } from '../src/index'
 import {
   ADA_TOKEN_MAX_BONUS,
-  BALANCED_DECK,
   createGame,
   effectivePlayCost,
   execute,
   getCard,
   INITIAL_TOKEN_MAX,
-  INTERFERENCE_PROMPTS,
   other,
-  PLAYABLE_AI_CARD_IDS,
-  QUESTION_POOL,
   ROUND_DRAW_SIZE,
   STARTING_HAND_SIZE,
-  scriptedAnswers,
   TOKEN_MAX_GROWTH,
-  UNAVAILABLE_AI_CARD_IDS,
   upgradeTargetOf,
   WIN_TARGET,
 } from '../src/index'
-// 直接读数据文件对账：断言"取到了表里哪一档"，不依赖各档答案长什么样。
-import pregenAnswers from '../src/pregenAnswers.json'
+
+/**
+ * 这一整套测试打的都是真实卡牌，所以要一份真实目录（core 自己不带数据，见 src/types.ts 的
+ * Catalog）。目录是只读的，一份全局共用就够，不必每局新建。
+ */
+const CATALOG = createCatalog()
 
 /**
  * 先手是抛硬币掷出来的，测试里要能指定谁先手，这两个种子就是查出来的现成答案。
@@ -64,6 +73,8 @@ interface NewGameOptions {
 function newGame(options: NewGameOptions = {}) {
   return createGame({
     seed: options.seed ?? SEED_FIRST_0,
+    catalog: CATALOG,
+    questionPool: QUESTION_POOL,
     players: [
       // hero 只在显式传了的时候才带上：不传才走 createGame 里的默认英雄，
       // 而这条默认路径正是联机和测试房实际走的那条。
@@ -1027,9 +1038,9 @@ describe('金钟罩', () => {
     // 12 - 3（金钟罩）- 2（蒸馏）+ 4（gpt-4o 的印刷费用）= 11
     expect(result.state.players[0].tokens).toBe(
       SKILL_TEST_TOKENS -
-        getCard('golden-bell-shield').tokenCost -
-        getCard('model-distillation').tokenCost +
-        getCard('gpt-4o').tokenCost,
+        getCard(CATALOG, 'golden-bell-shield').tokenCost -
+        getCard(CATALOG, 'model-distillation').tokenCost +
+        getCard(CATALOG, 'gpt-4o').tokenCost,
     )
     expect(result.state.players[0].hand.some((c) => c.instanceId === withAi.instanceId)).toBe(false)
   })
@@ -1042,7 +1053,7 @@ describe('金钟罩', () => {
     const rich = playSkill(fodder.state, 0, 'model-distillation', fodder.instanceId).state
     const shielded = playSkill(rich, 0, 'golden-bell-shield').state
     expect(shielded.players[0].tokens).toBeGreaterThanOrEqual(
-      getCard('golden-bell-shield').tokenCost,
+      getCard(CATALOG, 'golden-bell-shield').tokenCost,
     )
     expect(rejection(playSkill(shielded, 0, 'golden-bell-shield'))).toBe('本轮已经有金钟罩了')
   })
@@ -1062,14 +1073,14 @@ describe('金钟罩', () => {
     const state = playSkill(skillGame(), 0, 'nuclear-power-station').state
     const shielded = playSkill(state, 0, 'golden-bell-shield').state
     expect(shielded.players[0].costReduction).toBe(1)
-    expect(effectivePlayCost(shielded.players[0], getCard('gpt-4o'))).toBe(
-      getCard('gpt-4o').tokenCost - 1,
+    expect(effectivePlayCost(shielded.players[0], getCard(CATALOG, 'gpt-4o'))).toBe(
+      getCard(CATALOG, 'gpt-4o').tokenCost - 1,
     )
     // 核电站自己那一张按原价付，之后的金钟罩才吃到减价。
     expect(shielded.players[0].tokens).toBe(
       SKILL_TEST_TOKENS -
-        getCard('nuclear-power-station').tokenCost -
-        (getCard('golden-bell-shield').tokenCost - 1),
+        getCard(CATALOG, 'nuclear-power-station').tokenCost -
+        (getCard(CATALOG, 'golden-bell-shield').tokenCost - 1),
     )
   })
 
@@ -1096,16 +1107,18 @@ describe('核电站', () => {
     const state = playSkill(skillGame(), 0, 'nuclear-power-station').state
     expect(state.players[0].costReduction).toBe(1)
     expect(state.players[1].costReduction).toBe(0)
-    expect(effectivePlayCost(state.players[0], getCard('gpt-4o'))).toBe(3)
-    expect(effectivePlayCost(state.players[1], getCard('gpt-4o'))).toBe(4)
+    expect(effectivePlayCost(state.players[0], getCard(CATALOG, 'gpt-4o'))).toBe(3)
+    expect(effectivePlayCost(state.players[1], getCard(CATALOG, 'gpt-4o'))).toBe(4)
 
     // 打出方自己后面的牌按减价扣；记账的两处用的是同一个实际费用，
     // 所以结算时的"本轮消耗"也跟着便宜。
     const mine = deploy(state, 0, ['gpt-4o'])
     expect(mine.players[0].tokens).toBe(
-      SKILL_TEST_TOKENS - getCard('nuclear-power-station').tokenCost - 3,
+      SKILL_TEST_TOKENS - getCard(CATALOG, 'nuclear-power-station').tokenCost - 3,
     )
-    expect(mine.players[0].spentThisRound).toBe(getCard('nuclear-power-station').tokenCost + 3)
+    expect(mine.players[0].spentThisRound).toBe(
+      getCard(CATALOG, 'nuclear-power-station').tokenCost + 3,
+    )
 
     // 对手一点便宜都占不到。
     const foe = deploy(state, 1, ['gpt-4o'])
@@ -1118,7 +1131,7 @@ describe('核电站', () => {
     const second = playSkill(first, 0, 'nuclear-power-station').state
 
     expect(second.players[0].costReduction).toBe(2)
-    expect(effectivePlayCost(second.players[0], getCard('gpt-4o'))).toBe(2)
+    expect(effectivePlayCost(second.players[0], getCard(CATALOG, 'gpt-4o'))).toBe(2)
     // 第二张自己也吃了第一张的减免：3 点的牌先花 3 再花 2。
     expect(second.players[0].tokens).toBe(SKILL_TEST_TOKENS - 3 - 2)
   })
@@ -1131,7 +1144,7 @@ describe('核电站', () => {
     ).state
     expect(state.players[0].costReduction).toBe(2)
     // GPT-2 卡面就 1 点，减 2 也还是 1，不会变成 0 或负数。
-    expect(effectivePlayCost(state.players[0], getCard('gpt-2'))).toBe(1)
+    expect(effectivePlayCost(state.players[0], getCard(CATALOG, 'gpt-2'))).toBe(1)
     const played = deploy(state, 0, ['gpt-2'])
     expect(played.players[0].tokens).toBe(state.players[0].tokens - 1)
   })
@@ -1143,7 +1156,7 @@ describe('核电站', () => {
     const next = confirmBoth(settle).state
 
     expect(next.players[0].costReduction).toBe(0)
-    expect(effectivePlayCost(next.players[0], getCard('gpt-4o'))).toBe(4)
+    expect(effectivePlayCost(next.players[0], getCard(CATALOG, 'gpt-4o'))).toBe(4)
   })
 })
 
@@ -1159,8 +1172,8 @@ describe('模型蒸馏', () => {
     // SKILL_TEST_TOKENS - 2（这张技能牌）+ 5。换来的按印刷费用算，不吃核电站的减费。
     expect(player.tokens).toBe(
       SKILL_TEST_TOKENS -
-        getCard('model-distillation').tokenCost +
-        getCard('chatgpt-5-6-sol').tokenCost,
+        getCard(CATALOG, 'model-distillation').tokenCost +
+        getCard(CATALOG, 'chatgpt-5-6-sol').tokenCost,
     )
     // 打向手牌的牌不带 targetInstanceId：客户端拿它去战场上找格子会扑空。
     expect(result.events).toEqual([
@@ -1380,7 +1393,9 @@ describe('Token', () => {
       instanceId: card.instanceId,
     })
 
-    expect(result.state.players[0].tokens).toBe(INITIAL_TOKEN_MAX - getCard('gpt-3-5').tokenCost)
+    expect(result.state.players[0].tokens).toBe(
+      INITIAL_TOKEN_MAX - getCard(CATALOG, 'gpt-3-5').tokenCost,
+    )
     expect(result.state.players[0].tokenMax).toBe(INITIAL_TOKEN_MAX)
     // 对方的额度一点没动。
     expect(result.state.players[1].tokens).toBe(INITIAL_TOKEN_MAX)
@@ -1423,7 +1438,7 @@ describe('Token', () => {
       player: 0,
       instanceId: handCard(added, 0, 'gpt-4o').instanceId,
     }).state
-    expect(drained.players[0].tokens).toBe(INITIAL_TOKEN_MAX - getCard('gpt-4o').tokenCost)
+    expect(drained.players[0].tokens).toBe(INITIAL_TOKEN_MAX - getCard(CATALOG, 'gpt-4o').tokenCost)
 
     // 这一张连目标都没给，但报的是费用不够——费用那道闸排在前面。
     const skill = handCard(drained, 0, 'fixed-answer')
@@ -1444,7 +1459,7 @@ describe('Token', () => {
     const quiz = toQuiz(played)
     const settle = execute(quiz, { type: 'SUBMIT_ANSWERS', results: answersFor(quiz) }).state
     // 结算期间额度保持本轮的样子，界面靠它显示"本轮消耗"。
-    expect(settle.players[0].tokens).toBe(INITIAL_TOKEN_MAX - getCard('gpt-3-5').tokenCost)
+    expect(settle.players[0].tokens).toBe(INITIAL_TOKEN_MAX - getCard(CATALOG, 'gpt-3-5').tokenCost)
     const next = confirmBoth(settle).state
 
     expect(next.round).toBe(2)
@@ -1507,7 +1522,7 @@ describe('本轮 Token 消耗（spentThisRound）', () => {
     }).state
     expect(withSkill.players[0].spentThisRound).toBe(5)
     // 两边各记各的：乙只打了那张 1 点的 GPT-2，不受甲花了多少影响。
-    expect(withSkill.players[1].spentThisRound).toBe(getCard('gpt-2').tokenCost)
+    expect(withSkill.players[1].spentThisRound).toBe(getCard(CATALOG, 'gpt-2').tokenCost)
 
     // 下一轮从头算。
     const round2 = nextRound(withSkill)
@@ -1525,9 +1540,11 @@ describe('本轮 Token 消耗（spentThisRound）', () => {
     })
 
     expect(result.events.some((e) => e.type === 'SKILL_CANCELED')).toBe(true)
-    expect(result.state.players[0].spentThisRound).toBe(getCard('one-sentence-answer').tokenCost)
+    expect(result.state.players[0].spentThisRound).toBe(
+      getCard(CATALOG, 'one-sentence-answer').tokenCost,
+    )
     expect(result.state.players[0].tokens).toBe(
-      INITIAL_TOKEN_MAX - getCard('one-sentence-answer').tokenCost,
+      INITIAL_TOKEN_MAX - getCard(CATALOG, 'one-sentence-answer').tokenCost,
     )
   })
 })
@@ -1542,7 +1559,8 @@ describe('结束出牌', () => {
 
     const second = execute(first.state, { type: 'END_PLAY', player: 1 })
     expect(second.state.phase).toBe('quiz')
-    // 揭晓的是本轮那道题，正确答案一起给出去（本项目不防作弊）。
+    // 引擎发的是完整的那道题（含答案）；下发给客户端前答案由 filterEvent 摘掉，
+    // 那一步在 view.test.ts 里守着。
     expect(second.events).toEqual([
       { type: 'QUESTION_REVEALED', question: game.state.questions[0] },
     ])
@@ -2165,7 +2183,7 @@ describe('胜负', () => {
         for (const card of [...state.players[seat].hand]) {
           // 要选目标的技能牌得照客户端那样挑一个对方还没被干扰的 AI。
           // 挑不到就跳过这张牌：硬打会被引擎拒掉，而这个用例要求整局一条 COMMAND_REJECTED 都没有。
-          const definition = getCard(card.cardId)
+          const definition = getCard(CATALOG, card.cardId)
           // Token 不够的牌跳过：硬打会被拒。客户端那边这些牌是画成灰的、根本拖不动。
           if (definition.tokenCost > state.players[seat].tokens) continue
           const target =
@@ -2783,7 +2801,7 @@ describe('英雄技能：升降级（陈丹琦 / 梅拉妮·珀金斯）', () =>
     }).state
 
     // 升成 GPT-3.5 之后链上还有下一代，所以这次被拒只可能是因为技能已经用过了。
-    expect(upgradeTargetOf(board(once, 0)[0]!.cardId)).toBe('gpt-4o')
+    expect(upgradeTargetOf(CATALOG, board(once, 0)[0]!.cardId)).toBe('gpt-4o')
     const result = execute(once, {
       type: 'USE_HERO_SKILL',
       player: 0,
@@ -2947,7 +2965,7 @@ describe('题库与预生成回答', () => {
 
   /**
    * 只守「能上场的那 16 张」：GPT-2 和文心一言在 OpenRouter 上调不到，
-   * 既进不了卡池也没跑过预生成，答案表里本来就没有它们的格子（见 aiModels 的 PLAYABLE_AI_CARD_IDS）。
+   * 既进不了卡池也没跑过预生成，答案表里本来就没有它们的格子（见 content 的 PLAYABLE_AI_CARD_IDS）。
    * 三个变体都要查一遍：干扰牌会把 AI 切到另一档回答上，缺哪一档都是对局中途抛错。
    */
   it('预生成回答覆盖全部题目 × 全部可上场 AI 牌 × 三档干扰', () => {
@@ -2996,24 +3014,18 @@ describe('题库与预生成回答', () => {
           ...(by === undefined ? {} : { interference: by }),
         },
       ])[0]!
-    // JSON 模块的推断类型是照文件当前内容长出来的字面量类型，用变量当 key 索引不了，
-    // 所以先放宽成「三级字符串表」再查。
-    const data = pregenAnswers as Record<
-      string,
-      Record<string, Record<string, { answer: string; reasoning: string; correct: boolean }>>
-    >
-    const table = data[question.id]![CARD]!
+    const table = PREGEN_ANSWERS[question.id]![CARD]!
 
     expect(read('fixed-answer').answer).toBe(table['banana-bribe']!.answer)
     expect(read('black-white-reversal').answer).toBe(table['black-white-reversal']!.answer)
     expect(read().answer).toBe(table.baseline!.answer)
     // 「还有没有第三种干扰」不用在这里守：interference 的类型就是 InterferenceCardId，
-    // 多一张干扰牌的那天，script.ts 的变体映射表会当场少一个键、编译不过。
+    // 多一张干扰牌的那天，content 里 script.ts 的变体映射表会当场少一个键、编译不过。
   })
 
   /**
    * GPT-2 和文心一言调不到模型、没跑过预生成，但「化繁为简」把 GPT-3.5 降一代就能把
-   * GPT-2 送上场（见 aiModels 的升级链）。那一下不能让对局抛错。
+   * GPT-2 送上场（见 content 的升级链）。那一下不能让对局抛错。
    */
   it('调不到模型的那两张给一句固定的答不出来，判错，不缺格抛错', () => {
     for (const cardId of UNAVAILABLE_AI_CARD_IDS) {
@@ -3044,8 +3056,8 @@ describe('题库与预生成回答', () => {
   it('两种干扰各有一句注入 prompt', () => {
     // 只守"两种干扰各配一句、都不为空"。句子本身是文案，会随设计改口吻
     //（复读机那句是利诱而不是命令，见 script.ts 的说明），断言原文只会挡住改文案。
-    // 真正要盯的是"这两句和 scripts/pregen-data.mjs 的注入词一字不差"，
-    // 但那份脚本不在 core 的依赖里（node 脚本、要读 .env），只能靠 script.ts 上的注释约束。
+    // "这两句和 scripts/pregen-data.mjs 的注入词一字不差"已经不用测了：
+    // 脚本现在直接 import content 的 data/interferencePrompts.json，两边本来就是同一份。
     expect(Object.keys(INTERFERENCE_PROMPTS).sort()).toEqual([
       'black-white-reversal',
       'fixed-answer',

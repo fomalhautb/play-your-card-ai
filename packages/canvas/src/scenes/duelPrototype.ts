@@ -184,6 +184,7 @@ class DuelScene {
       deck: this.opts.deck,
       textures: this.opts.textures,
       deps: this.cardDeps,
+      ring: this.hitFx.ring,
       width: this.layout.width,
       height: this.layout.height,
     })
