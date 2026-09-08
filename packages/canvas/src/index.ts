@@ -12,7 +12,9 @@
  * 基础件（匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字）和拿它们拼出来的复合件
  *（顶栏、侧栏、玩家面板、Token 细条、战场、对手手牌、横幅、抛硬币、抵消层、展示层、
  * 选目标层、结算层）。复合件都是**哑的**：只提供「摆好、播一段、改状态」的方法，
- * 不认识引擎事件，也不认识 director——把哪条 cue 映射到哪个方法是场景的活（迁移第 18 条）。
+ * 不认识引擎事件，也不认识 director——把哪条 cue 映射到哪个方法是场景的活。
+ * 复合件拆出来的内部件（结算层的顶栏 / 一侧 / 一行、战场的一格）**不导出**：
+ * 它们只对自己的父组件负责，拆文件是被 400 行那条上限逼的，不是多了四个可以单独用的组件。
  * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）。
  *
  * 目录：
@@ -50,7 +52,6 @@ export {
   type BoardGridOptions,
   type BoardSide,
 } from './components/BoardGrid'
-export { BoardTile, type BoardTileDeps, type TileMark } from './components/BoardTile'
 export {
   BUBBLE_ERROR,
   BUBBLE_SHOUT,
@@ -112,7 +113,6 @@ export {
   type RevealPoint,
 } from './components/RevealOverlay'
 export { SettleLayer, type SettleLayerDeps, type SettleSide } from './components/SettleLayer'
-export { SettleRow, type SettleRowDeps } from './components/SettleRow'
 export { SideBar, type SideBarDeps, type SideBarOptions } from './components/SideBar'
 export { type SkillCancelDeps, SkillCancelLayer } from './components/SkillCancelLayer'
 export {

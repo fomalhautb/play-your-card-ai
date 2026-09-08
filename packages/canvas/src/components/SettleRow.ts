@@ -48,8 +48,11 @@ const TYPE = {
 const VERDICT = { padX: 18, padY: 8, inset: 8, fromScale: 1.6, tiltDeg: -6 } as const
 /** 「保送留场」那条小签离卡上沿多远。抄旧样式 `.settle-card__safe` 的 `top: 52px`。 */
 const SAFE_TOP = 52
-/** 三个等待点的直径、间距和跳多高。 */
-const LOADER = { dot: 7, gap: 7, rise: 6, dur: 0.45 } as const
+/**
+ * 三个等待点的直径、间距和跳多高。跳一次多久走令牌——它是「有人在想」这件事的节奏，
+ * 和展示层的浮动、选目标的压暗同属一档环境动画，一起改才不会有一处快一处慢。
+ */
+const LOADER = { dot: 7, gap: 7, rise: 6, dur: tokens.duration.settle.dots } as const
 
 export interface SettleRowDeps {
   /** 「保送留场」那枚小签走 Badge D，它要预烤的药丸纹理。 */

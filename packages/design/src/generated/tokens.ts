@@ -337,6 +337,22 @@ export const tokens = {
       /** 按钮悬停换色的过渡。旧样式里多处都是 0.16~0.18s 这一档，取最长的那档。来源：styles.css 的 .plaque-button::before background-color 180ms。 */
       hover: 0.18,
     },
+    reveal: {
+      /** 展示层里那张卡上下浮一趟的时长。强制观看的 1.5 秒停留期间它一直浮着，所以这个数决定「停住的那张牌看起来活不活」。来源：ui/MatchStage.tsx 强制展示那段停留里的 yoyo 补间。 */
+      float: 1.15,
+      /** 展示层卡底下那行字幕淡入的时长。来源：ui/MatchStage.tsx:2568-2577 的字幕补间。 */
+      caption: 0.28,
+    },
+    targeting: {
+      /** 选目标层压暗淡入淡出的时长，进出同一个数。旧版这一层是 CSS 直接切的，Pixi 这边给一小段过渡观感更连贯，取的是 styles.css 里那一档最常见的过渡时长。 */
+      in: 0.18,
+    },
+    settle: {
+      /** 结算层结果卡上「作答中」那三个点跳一次的周期。来源：styles.css 的 .settle__loader-dot 动画。 */
+      dots: 0.45,
+      /** 结算层顶栏比分跳动那一下的单程时长（来回各一趟，合起来 0.35 秒，正好是 SETTLE_SCORE_MS 的最后一段）。来源：ui/RoundSettleLayer.tsx:591-635 的比分脉冲。 */
+      scorePulse: 0.175,
+    },
     bubble: {
       /** 气泡淡入。来源：styles.css 的 battle-urge-bubble-in。 */
       in: 0.24,

@@ -34,11 +34,11 @@ import { Label } from './Label'
 /** 字幕的字号和字距（px），以及它离卡底多远。组件私有，理由见 design 的 README。 */
 const CAPTION = { fontSize: 20, letterSpacing: 4 } as const
 const CAPTION_GAP = 28
-/** 停留期间那条上下浮动：往上浮多少、一趟多久（秒）。抄 MatchStage.tsx:2447-2454。 */
+/** 停留期间那条上下浮动往上浮多少。一趟多久走令牌（MatchStage.tsx:2447-2454）。 */
 const FLOAT_RISE = 8
-const FLOAT_DUR = 1.15
-/** 字幕淡入多久、起跑排在进场的百分之多少处。抄 MatchStage.tsx:2568-2577 的 `delay = 进场 × 0.6`。 */
-const CAPTION_IN = 0.28
+const FLOAT_DUR = tokens.duration.reveal.float
+/** 字幕淡入多久走令牌；起跑排在进场的百分之多少处抄 MatchStage.tsx:2568-2577 的 `delay = 进场 × 0.6`。 */
+const CAPTION_IN = tokens.duration.reveal.caption
 const CAPTION_DELAY_RATIO = 0.6
 
 /** 卡从哪儿飞来 / 飞到哪儿去：位置加当时的缩放。 */
