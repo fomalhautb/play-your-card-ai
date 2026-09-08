@@ -83,8 +83,13 @@ export class LobbyStore {
    * 等下一次有人进来时再试，而不是被无声地踢出队列。真正的出队由 `dequeue` 做。
    */
   firstTwo(): [string, string] | null {
+    // 同一毫秒入队的按 `rowid`（SQLite 的插入顺序）排，不能按 userId——
+    // 那样等于按账号 id 的字典序决定谁先配上，而账号 id 是随机的。
+    //
+    // 同一毫秒不是罕见情况：Durable Object 里的 `Date.now()` 只在做过 I/O 之后才往前走，
+    // 而处理入队全程只碰同步的 SQLite，所以背靠背进来的两个人拿到的时间戳常常一模一样。
     const rows = this.sql
-      .exec<{ userId: string }>('SELECT userId FROM queue ORDER BY joinedAt, userId LIMIT 2')
+      .exec<{ userId: string }>('SELECT userId FROM queue ORDER BY joinedAt, rowid LIMIT 2')
       .toArray()
     const [first, second] = rows
     if (first === undefined || second === undefined) return null
