@@ -35,6 +35,55 @@ const SEED = 20260905
  */
 const SAMPLE_MS = 500
 
+/**
+ * 算帧率时最多留几个采样窗口的历史。
+ * 只在最新窗口跑得太短、要往回借时间摊平噪声时才会用到更早的那几个（见 frameRate）。
+ */
+const FPS_WINDOW_SAMPLES = 3
+
+/**
+ * 算一次帧率至少要攒够多少毫秒的「循环在跑」的时间，不够就往回再借一个窗口。
+ * 一个窗口里只跑了两三帧时分子分母都是个位数，差一帧数字就能跳好几十。
+ */
+const MIN_ACTIVE_MS = 100
+
+/** 面板的初始值，也是场景还没起来／已经拆掉时的兜底。 */
+const ZERO_COUNTERS = { textCreated: 0, renders: 0, frameRequests: 0, activeMs: 0 }
+
+/** 一个采样窗口里的增量。 */
+interface FpsSample {
+  renders: number
+  activeMs: number
+}
+
+/**
+ * 从最近几个采样窗口算每秒渲染帧数；返回 null 表示帧循环这段时间根本没跑（显示「空闲」）。
+ *
+ * 分母是帧循环**真正在跑**的时间（activeMs），不是墙钟时间。没有动画时循环会整个停下
+ * （纪律 3.6），拿墙钟当分母的话，窗口里只要夹着一段空闲，帧率就被摊薄——
+ * 动画刚停下的那个窗口会显示十几帧，而它渲染的那两百毫秒其实是满帧，越空闲数字越难看，
+ * 和直觉正好相反。
+ *
+ * 「在不在跑」只看最新那个窗口，「跑多快」才允许往回借时间：
+ * 借来的只是分母里的运行时间（空闲那段本来就不在 activeMs 里），摊平的是短窗口的噪声，
+ * 不会让一个已经停下的循环继续报帧率。
+ */
+function frameRate(history: FpsSample[]): number | null {
+  const latest = history[history.length - 1]
+  // 最新窗口里循环一帧都没跑：现在就是空闲。不去翻更早的窗口硬凑一个数字出来——
+  // 「没动画就停掉帧循环」（3.6）得在画面上看得见。
+  if (latest === undefined || latest.activeMs <= 0) return null
+  let renders = latest.renders
+  let activeMs = latest.activeMs
+  for (let i = history.length - 2; i >= 0 && activeMs < MIN_ACTIVE_MS; i -= 1) {
+    const sample = history[i]
+    if (sample === undefined) break
+    renders += sample.renders
+    activeMs += sample.activeMs
+  }
+  return Math.round((renders * 1000) / activeMs)
+}
+
 const TIERS: EffectTier[] = ['low', 'mid', 'high']
 
 export function HandFanDev() {
@@ -43,9 +92,9 @@ export function HandFanDev() {
   const sceneRef = useRef<DuelPrototype | null>(null)
   const [tier, setTier] = useState<EffectTier>('mid')
   const [status, setStatus] = useState('正在加载图集…')
-  const [counters, setCounters] = useState({ textCreated: 0, renders: 0, frameRequests: 0 })
-  /** 最近一个采样窗口里的每秒渲染帧数。空闲（帧循环已经停）时是 0。 */
-  const [fps, setFps] = useState(0)
+  const [counters, setCounters] = useState(ZERO_COUNTERS)
+  /** 最近几个采样窗口里的每秒渲染帧数；null 表示帧循环已经停了，显示成「空闲」。 */
+  const [fps, setFps] = useState<number | null>(null)
 
   useEffect(() => {
     const host = hostRef.current
@@ -116,37 +165,37 @@ export function HandFanDev() {
    * 帧率也从这里算，而不是页面自己开一个 rAF 去数：
    * 页面开了 rAF 就等于给自己上了一个永不停的帧循环，「没动画时停掉帧循环」（3.6）
    * 这条从此在画面上看不出来了——真停了还是没停，帧率都照样显示六十几。
-   * 现在数的是场景自己的渲染次数（renders），场景不画帧率就是 0，一眼就能看出它停了。
+   * 现在数的是场景自己的渲染次数（renders），除以场景自己记的运行时间（activeMs），
+   * 场景不画就显示「空闲」，一眼看得出它停了；而它在画的时候数字是真实帧率，
+   * 不会被同一个窗口里的空闲拖低（见 frameRate）。
    */
   useEffect(() => {
-    /** 上一次采样是在哪个场景上取的。换档位会换一个新场景，它的 renders 从头数，不能跨着相减。 */
+    /** 上一次采样是在哪个场景上取的。换档位会换一个新场景，计数器从头数，不能跨着相减。 */
     let sampled: DuelPrototype | null = null
-    let lastRenders = 0
-    let lastAt = performance.now()
+    let last = ZERO_COUNTERS
+    /** 最近几个窗口的增量，最新的在末尾。只留 FPS_WINDOW_SAMPLES 个。 */
+    const history: FpsSample[] = []
     const timer = window.setInterval(() => {
       const scene = sceneRef.current
-      const now = performance.now()
       if (scene === null || scene !== sampled) {
-        // 场景没了或者换了一个：这一档只把窗口对齐到现在，不报帧率（跨场景相减没有意义）。
+        // 场景没了或者换了一个：把基线对到现在，历史清掉（跨场景相减没有意义）。
         sampled = scene
-        const fresh = scene?.counters() ?? { textCreated: 0, renders: 0, frameRequests: 0 }
-        lastRenders = fresh.renders
-        lastAt = now
+        const fresh = scene?.counters() ?? ZERO_COUNTERS
+        last = fresh
+        history.length = 0
         setCounters(fresh)
-        setFps(0)
+        setFps(null)
         return
       }
       const next = scene.counters()
-      /*
-       * 用真实经过的时间除，不用 SAMPLE_MS：setInterval 在卡顿时会被推迟，
-       * 按名义间隔算出来的帧率反而在卡的时候更高，正好把要看的问题盖掉。
-       */
-      const elapsed = now - lastAt
-      const frames = next.renders - lastRenders
-      setFps(elapsed <= 0 ? 0 : Math.round((frames * 1000) / elapsed))
+      history.push({
+        renders: next.renders - last.renders,
+        activeMs: next.activeMs - last.activeMs,
+      })
+      if (history.length > FPS_WINDOW_SAMPLES) history.shift()
+      last = next
       setCounters(next)
-      lastRenders = next.renders
-      lastAt = now
+      setFps(frameRate(history))
     }, SAMPLE_MS)
     return () => window.clearInterval(timer)
   }, [])
@@ -167,7 +216,7 @@ export function HandFanDev() {
         */}
         <canvas key={tier} ref={canvasRef} />
         {/* 帧率贴在画布左上角。半透明小字，盖不住手牌那片。 */}
-        <span className="hand-fan-dev__fps">{fps === 0 ? '空闲' : `${fps} fps`}</span>
+        <span className="hand-fan-dev__fps">{fps === null ? '空闲' : `${fps} fps`}</span>
       </div>
       <div className="hand-fan-dev__panel">
         <button type="button" onClick={() => run((s) => void s.deal(1))}>
