@@ -7,5 +7,5 @@
     // 在这里误用 process、fs 要在编译期就拦下来。
     "types": []
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }

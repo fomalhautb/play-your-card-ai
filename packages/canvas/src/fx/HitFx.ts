@@ -4,7 +4,9 @@
  *
  * 三样都不挂 Filter（3.1）：
  * - 烟尘是一批共用同一张柔光纹理的精灵，全部合进同一个绘制批（3.9）；
- * - 追光不是 conic-gradient 而是一颗沿边框跑的光点，同样用那张柔光纹理，叠加混合；
+ * - 追光不是 conic-gradient 而是一颗沿边框跑的光点，同样用那张柔光纹理，叠加混合。
+ *   旧版那圈 conic-gradient 是拿圆角矩形的 mask 裁出来的，路径天生跟着 border-radius；
+ *   这边光点的路径要自己走一遍圆角（见 edgePath.ts），不然转角处会跑到卡的圆角外面去；
  * - 震屏只改一个容器的 x / y。
  * 全程只动 transform、alpha、tint，不碰文字、纹理尺寸和遮罩（3.10）。
  *
@@ -18,6 +20,7 @@ import { type Container, Sprite } from 'pixi.js'
 import type { Animator } from '../runtime/animator'
 import type { Rng } from '../runtime/rng'
 import type { BakedTextures } from './bakedTextures'
+import { type EdgePath, type EdgePoint, edgePointAt, setEdgePath } from './edgePath'
 import { type EffectTier, TIER_CONFIG } from './effectTier'
 
 /** 震屏里每一小段位移的时长。五段拼成一次抖动，末段翻倍收尾，全程约 0.3 秒。 */
@@ -46,7 +49,10 @@ export interface HitFxTarget {
   /** 落点中心（特效层坐标）。 */
   x: number
   y: number
-  /** 落地那张卡的尺寸，追光绕着它的边跑。 */
+  /**
+   * 落地那张卡的尺寸，追光绕着它的圆角边跑。
+   * 圆角半径不用传：按 width 相对卡面基准宽的比例从令牌算（见 edgePath.ts 的 setEdgePath）。
+   */
   width: number
   height: number
 }
@@ -56,6 +62,24 @@ export class HitFx {
   /** 烟尘精灵池，按最高档的团数预先建好，低档只用前面几个。 */
   private readonly smoke: Sprite[] = []
   private readonly comet: Sprite
+  /**
+   * 追光的路径和当前落点，两个都是**复用的**可变对象。
+   *
+   * 路径每次落地重算一遍（卡的尺寸可能变），落点每帧覆写。
+   * 都提到实例上是为了稳态每帧零堆分配那条（3.10）：追光一帧一次、一圈跑 30 帧，
+   * 每帧新建一个 { x, y, angle } 就是每次出牌多三十来个短命对象。
+   */
+  private readonly edgePath: EdgePath = {
+    halfW: 0,
+    halfH: 0,
+    radius: 0,
+    straightH: 0,
+    straightV: 0,
+    arc: 0,
+    perimeter: 0,
+    start: 0,
+  }
+  private readonly edgePoint: EdgePoint = { x: 0, y: 0, angle: 0 }
 
   constructor(options: HitFxOptions) {
     this.options = options
@@ -174,6 +198,7 @@ export class HitFx {
     const comet = this.comet
     comet.setSize(EDGE_COMET.long, EDGE_COMET.short)
     comet.visible = true
+    setEdgePath(this.edgePath, target.width, target.height)
 
     const timeline = animator.timeline({
       onComplete: () => {
@@ -188,7 +213,8 @@ export class HitFx {
         duration: EDGE_DUR,
         ease: 'none',
         onUpdate: () => {
-          const point = perimeterPoint(progress.t, target.width, target.height)
+          const point = this.edgePoint
+          edgePointAt(this.edgePath, progress.t, point)
           comet.position.set(target.x + point.x, target.y + point.y)
           comet.rotation = point.angle
         },
@@ -198,23 +224,4 @@ export class HitFx {
     timeline.fromTo(comet, { alpha: 0 }, { alpha: 1, duration: EDGE_IN, ease: 'power2.out' }, 0)
     timeline.to(comet, { alpha: 0, duration: EDGE_OUT, ease: 'power2.in' }, EDGE_DUR - EDGE_OUT)
   }
-}
-
-/**
- * 沿一个以原点为中心、宽 w 高 h 的矩形边缘走到 t（0~1）处的位置和切线方向。
- *
- * 圆角忽略不计：光点自己是一团 46×14 的软光，比任何圆角都糊，走直角还是圆角看不出来。
- * 起点在上边中点，顺时针走。
- */
-function perimeterPoint(t: number, w: number, h: number): { x: number; y: number; angle: number } {
-  const half = { w: w / 2, h: h / 2 }
-  const perimeter = 2 * (w + h)
-  // 从上边中点起跑：这样一圈的开头和结尾都落在卡的正上方，看着最自然。
-  const d = (((t % 1) + 1) % 1) * perimeter + w / 2
-  const p = d % perimeter
-
-  if (p < w) return { x: -half.w + p, y: -half.h, angle: 0 }
-  if (p < w + h) return { x: half.w, y: -half.h + (p - w), angle: Math.PI / 2 }
-  if (p < 2 * w + h) return { x: half.w - (p - w - h), y: half.h, angle: Math.PI }
-  return { x: -half.w, y: half.h - (p - 2 * w - h), angle: -Math.PI / 2 }
 }

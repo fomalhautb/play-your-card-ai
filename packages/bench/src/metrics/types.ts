@@ -57,6 +57,16 @@ export interface GlCounters {
   syncCalls: number
 }
 
+/**
+ * 逐帧记录里场景那部分的增量。
+ *
+ * 刻意把契约里的 `activeMs` 排掉：它是墙钟时间（帧循环真正跑了多少毫秒），
+ * 同一段剧本每次跑都不一样。放进来的话它会顺着 summarize 漏进
+ * 「同一台机器跑两遍必须完全一致」那条断言，把一条硬断言变成随机失败。
+ * 它只服务开发页现场算帧率，bench 这边不需要（手动时钟下它本来也恒为 0）。
+ */
+export type SceneDelta = Omit<DuelPrototypeCounters, 'activeMs'>
+
 /** 一帧的记录。`gl` 和 `scene` 都是这一帧的增量，`textureBytes` 除外（见 GlCounters）。 */
 export interface FrameRecord {
   /** 在本段剧本里的帧序号，从 0 开始。 */
@@ -64,7 +74,7 @@ export interface FrameRecord {
   /** 'action' 是剧本动作期间，'idle' 是动作跑完之后的空转帧。 */
   phase: 'action' | 'idle'
   gl: GlCounters
-  scene: DuelPrototypeCounters
+  scene: SceneDelta
   /** 这一帧里 requestAnimationFrame 被调用的次数。手动时钟下应当恒为 0。 */
   rafRequests: number
 }

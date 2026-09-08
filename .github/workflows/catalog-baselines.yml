@@ -1,0 +1,52 @@
+# 手动重新生成组件目录页的 linux 截图基线。
+#
+# 为什么要单开一条：基线按平台分目录，darwin 那份本机跑 `catalog:update` 就有了，
+# linux 那份得有台 Linux 机器。改了组件之后 linux 基线一定过期，而 CI 快档（ci.yml）
+# 只会拿它比对、比不过就红——它不生成新的。没有这条工作流的话，唯一的拿法是
+# 等 CI 红了再从 catalog-diff 那个 artifact 里把 actual 图一张张扒出来。
+#
+# 只生成不比对，也不往仓库里写：跑完把整个 baselines/linux 传成 artifact，
+# 人下载下来看过再提交（怎么提交见 packages/client/dev/storybook/README.md）。
+# 让工作流直接推提交的话，一次误触就把基线洗成了当时那一版的样子，谁都没看过。
+name: 目录页 linux 基线
+
+on:
+  workflow_dispatch:
+
+jobs:
+  baselines:
+    runs-on: ubuntu-latest
+    # 只跑截图那一步，比快档还短。留 15 分钟是因为这里没有别的步骤帮忙暖依赖缓存。
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      # 顺序不能反：setup-node 的 cache: pnpm 要先能找到 pnpm 才知道去哪儿找 store。
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 和 ci.yml 一样只装 Chromium：目录页的比对本来就只跑这一个浏览器。
+      # --with-deps 装的是无头浏览器要的那些系统库，ubuntu 镜像里默认没有。
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 卡面图集是构建产物、不进仓库，截图那步的 globalSetup 会自己打一份。
+      # --update-snapshots 会把 baselines/linux 下的图全部重写一遍（platform 取自 process.platform）。
+      - name: 重新生成 linux 基线
+        run: pnpm --filter @ai-duel/client catalog:update
+
+      - name: 上传 linux 基线
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-baselines-linux
+          path: packages/client/dev/storybook/baselines/linux

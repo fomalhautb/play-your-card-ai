@@ -1,0 +1,2 @@
+# 这个目录要留在 git 里：Storybook 的 staticDirs 指向它（packages/client/dev/storybook/main.ts），
+# 目录不存在 Storybook 启动会直接报错。图集 atlas/ 是构建产物，仍在 .gitignore 里。

@@ -29,6 +29,7 @@ export type {
   FrameRecord,
   GlCounters,
   OverdrawResult,
+  SceneDelta,
   SegmentSummary,
 } from './metrics/types'
 export type { LeakVerdict, Observed, Violation } from './node/checkLimits'

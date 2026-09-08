@@ -46,6 +46,17 @@ export interface FrameLoopCounters {
    * 手动时钟下恒为 0——那正是"没注册任何真实时间源"的证据（对应 6.9 的「空闲时帧循环」）。
    */
   frameRequests: number
+  /**
+   * 帧循环真正在跑的累计毫秒数：相邻两次真实时钟帧回调之间的间隔之和。
+   *
+   * 拿它当帧率的分母。没有动画时循环会整个停下（3.6），墙钟时间照走而渲染次数不涨，
+   * 用墙钟当分母算出来的帧率会被空闲摊薄——动画刚停那一下显示十几而不是六十。
+   * 这个数把空闲那段排掉：循环停下再醒来时从新的第一帧重新开始计间隔。
+   *
+   * 每一轮的第一帧不计（没有上一帧，间隔无从算起）。
+   * 手动时钟（step()）下恒为 0：那边的时间是调用方定的，墙钟对它没有意义。
+   */
+  activeMs: number
 }
 
 export interface FrameLoopOptions {
@@ -77,6 +88,12 @@ export class FrameLoop {
   private dirty = true
   private rafId: number | null = null
   private lastStamp = 0
+  /**
+   * 上一次真实时钟帧回调的时间戳。null 表示这一轮还没有上一帧——
+   * 刚 wake() 起来或者循环刚停下，此时不该往 activeMs 里加任何东西。
+   */
+  private lastActiveStamp: number | null = null
+  private activeMs = 0
   private renders = 0
   private frameRequests = 0
   private destroyed = false
@@ -118,7 +135,11 @@ export class FrameLoop {
   }
 
   counters(): FrameLoopCounters {
-    return { renders: this.renders, frameRequests: this.frameRequests }
+    return {
+      renders: this.renders,
+      frameRequests: this.frameRequests,
+      activeMs: this.activeMs,
+    }
   }
 
   destroy(): void {
@@ -132,12 +153,28 @@ export class FrameLoop {
     this.rafId = null
     this.frameRequests += 1
     const delta = Math.min(MAX_FRAME_MS, Math.max(0, stamp - this.lastStamp))
+    /*
+     * activeMs 记的是"循环在跑"的墙钟时间，所以只累计真正的帧间隔，
+     * 而且和 renders 在同一个回调里更新——两个数错位一帧，算出来的帧率就是错的。
+     * 这里不夹 MAX_FRAME_MS：卡了三百毫秒就是真卡了三百毫秒，
+     * 夹一刀等于把卡顿从帧率里抹掉，而帧率正是用来看卡顿的。
+     */
+    if (this.lastActiveStamp !== null) {
+      this.activeMs += Math.max(0, stamp - this.lastActiveStamp)
+    }
+    this.lastActiveStamp = stamp
     this.lastStamp = stamp
     this.advance(delta)
-    // 这一帧演完还有东西在动才继续排下一帧；没有就停在这儿，直到下一次 wake()。
-    if (!this.destroyed && this.options.isBusy()) {
+    /*
+     * 这一帧演完还有东西在动才继续排下一帧；没有就停在这儿，直到下一次 wake()。
+     * 先看 rafId：advance 里的补间回调可能建了新补间并顺手 wake() 过，下一帧已经排好了，
+     * 再排一次就会有两条 rAF 链，同一时刻跑两遍回调（帧间隔 0、渲染 +1，帧率虚高）。
+     */
+    if (!this.destroyed && this.rafId === null && this.options.isBusy()) {
       this.rafId = requestAnimationFrame(this.tick)
     }
+    // 循环在这一帧停下了：下次醒来重新开始计间隔，中间那段空闲不进 activeMs。
+    if (this.rafId === null) this.lastActiveStamp = null
   }
 
   private advance(deltaMs: number): void {
@@ -157,6 +194,7 @@ export class FrameLoop {
   }
 
   private stop(): void {
+    this.lastActiveStamp = null
     if (this.rafId === null) return
     cancelAnimationFrame(this.rafId)
     this.rafId = null

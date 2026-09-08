@@ -60,3 +60,48 @@ jobs:
       # 那样一个空跑的绿色会盖住"这个包其实一条测试都没有"。
       - name: 测试
         run: pnpm test
+
+      # 组件目录页的截图回归（迁移第 10 条，对应 6.6 和 6.8 里那两条「拿目录页当输入」）。
+      # 只装 Chromium：快档就一个浏览器，三浏览器一致性是慢档的事（第 34 条）。
+      # --with-deps 装的是无头浏览器要的那些系统库，ubuntu 镜像里默认没有。
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 卡面图集是 `pnpm assets:build` 的产物、不进仓库，截图回归的 globalSetup 会自己打一份，
+      # 所以这里不用单独跑。
+      #
+      # 基线图按平台分目录（macOS 和 Linux 的字体光栅化不一样，一份基线两边比不过）。
+      # 两份基线现在都在仓库里，所以这一步走的一直是"正常比对"那条；
+      # 下面那个分支是当初还没有 linux 基线时留的兜底，没删是因为哪天整批基线被清掉时它还管用：
+      #   有 linux/ 基线：正常比对，对不上整步红。
+      #   没有：只生成不比对，把生成的基线传成 artifact，步骤本身不红（下面那步会传）。
+      #
+      # 改了组件之后 linux 基线怎么刷新：手动触发 catalog-baselines.yml，把它传出来的
+      # artifact 下载覆盖到 baselines/linux/ 再提交。命令见
+      # packages/client/dev/storybook/README.md 的「更新基线」。**别指望这一步帮你生成**——
+      # 有基线的时候它只比对不生成，红了只会给你一份 catalog-diff。
+      - name: 组件目录页截图回归
+        id: catalog
+        run: |
+          if [ -d packages/client/dev/storybook/baselines/linux ]; then
+            pnpm --filter @ai-duel/client catalog:test
+          else
+            echo "::warning::仓库里还没有 linux 基线，本次只生成不比对。把 catalog-baselines-linux 这个 artifact 里的图提交到 packages/client/dev/storybook/baselines/linux/ 之后，这一步就会开始真的比对。"
+            pnpm --filter @ai-duel/client catalog:update
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 上传新生成的 linux 基线
+        if: steps.catalog.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-baselines-linux
+          path: packages/client/dev/storybook/baselines/linux
+
+      # 对不上的时候把「拍到的」和「差异图」带出来，不然只知道数字对不上、看不见差在哪。
+      - name: 上传截图差异
+        if: failure() && steps.catalog.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-diff
+          path: packages/client/test-results

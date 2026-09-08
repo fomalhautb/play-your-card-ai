@@ -31,6 +31,18 @@
       ],
       "port": 8787,
       "autoPort": false
+    },
+    {
+      "name": "storybook",
+      "note": "组件目录页（迁移第 10 条）：Storybook 配置在 packages/client/dev/storybook，条目跟着 canvas 和 ui 的组件走。需要先 pnpm assets:build 打图集。",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@ai-duel/client",
+        "storybook"
+      ],
+      "port": 6006,
+      "autoPort": false
     }
   ]
 }

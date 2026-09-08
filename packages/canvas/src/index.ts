@@ -16,6 +16,7 @@
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
  *   scenes/        场景装配（对局原型、版式）
+ *   storyStage.ts  组件目录页那边的约定（本包的 *.stories.ts 和装配层的舞台按它对接）
  */
 
 export { CardSprite, type CardSpriteDeps, type CardVisual } from './components/CardSprite'
@@ -85,3 +86,4 @@ export type {
 } from './scenes/duelContract'
 export { computeLayout, type DuelLayout } from './scenes/duelLayout'
 export { createDuelPrototype } from './scenes/duelPrototype'
+export type { StoryStage, StoryTeardown } from './storyStage'

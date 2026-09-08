@@ -338,6 +338,9 @@ class StubScene implements DuelPrototype {
       textCreated: this.textCreated,
       renders: this.renders,
       frameRequests: this.frameRequests,
+      // 帧循环在跑的墙钟时间，只有开发页的帧率显示要用。桩场景恒给 0：
+      // 它就是给手动时钟的剧本当固定物的，多一个每次都不一样的数只会污染确定性。
+      activeMs: 0,
     }
   }
 

@@ -6,7 +6,7 @@
  */
 
 import type { DuelPrototypeCounters } from '../scene/contract'
-import type { FrameRecord, GlCounters, SegmentSummary } from './types'
+import type { FrameRecord, GlCounters, SceneDelta, SegmentSummary } from './types'
 
 /** 全零的计数器，安装计数器和 reset 时都用它当起点。 */
 export function zeroCounters(): GlCounters {
@@ -54,11 +54,14 @@ export function diffCounters(before: GlCounters, after: GlCounters): GlCounters 
   return out
 }
 
-/** 场景自己那三个计数器的差。它们都是累计值，直接减。 */
-export function diffScene(
-  before: DuelPrototypeCounters,
-  after: DuelPrototypeCounters,
-): DuelPrototypeCounters {
+/**
+ * 场景自己那几个计数器的差。它们都是累计值，直接减。
+ *
+ * 契约里的 `activeMs` 在这里被丢掉（返回类型 SceneDelta 就是「去掉它之后的样子」）：
+ * 它是墙钟时间，两遍跑不可能一样，而 FrameRecord 里的每个数最后都要进
+ * 「两遍完全一致」那条断言。丢在这里而不是在汇总那步，是因为这是它唯一的入口。
+ */
+export function diffScene(before: DuelPrototypeCounters, after: DuelPrototypeCounters): SceneDelta {
   return {
     textCreated: after.textCreated - before.textCreated,
     renders: after.renders - before.renders,

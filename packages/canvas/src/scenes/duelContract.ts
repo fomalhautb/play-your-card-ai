@@ -40,6 +40,16 @@ export interface DuelPrototypeCounters {
   renders: number
   /** 帧循环回调次数（空闲时应为 0）。 */
   frameRequests: number
+  /**
+   * 帧循环真正在跑的累计毫秒数：相邻两次真实时钟帧回调之间的间隔之和，
+   * 循环停下的那段空闲不算在内。开发页拿它当帧率的分母
+   * （帧率 = renders 增量 ÷ activeMs 增量 × 1000），这样动画刚停下的那一瞬间
+   * 显示的仍是渲染时的真实帧率，而不是被空闲摊薄后的数字。
+   *
+   * 手动时钟（manualClock）下恒为 0：那边一帧推多久由调用方决定，墙钟时间对它没有意义，
+   * 而且它是墙钟量、每次跑都不一样，绝不能进 bench「两遍完全一致」那条断言。
+   */
+  activeMs: number
 }
 
 export interface DuelPrototype {

@@ -1,0 +1,17 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    // 目录页这一摊两头都要碰：main.ts / playwright.config.ts / ensureAtlas.ts 跑在 Node 里，
+    // preview.tsx 和 pixiStory.tsx 跑在浏览器里。所以这里两种全局类型都带上。
+    //
+    // 单独一份 tsconfig，就是为了不把 "node" 加进 packages/client 那份——
+    // 产品代码里误用 process、fs 仍然要在编译期被拦下来（见 ../../tsconfig.json 的说明）。
+    //
+    // vite/client 带来 `import './x.css'` 的模块声明：目录页要引一份令牌 CSS 变量。
+    "types": ["node", "vite/client"]
+  },
+  // 目录页自己这几个文件；被它们 import 的（比如 ../../src/dev/cardAtlas.ts）会自动跟进来。
+  "include": ["."]
+}

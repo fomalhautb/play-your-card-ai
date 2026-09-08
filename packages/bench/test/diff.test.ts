@@ -45,10 +45,20 @@ describe('diffCounters', () => {
 describe('diffScene', () => {
   it('三个计数器都是累计值，直接减', () => {
     const delta = diffScene(
-      { textCreated: 3, renders: 100, frameRequests: 90 },
-      { textCreated: 3, renders: 101, frameRequests: 92 },
+      { textCreated: 3, renders: 100, frameRequests: 90, activeMs: 1500 },
+      { textCreated: 3, renders: 101, frameRequests: 92, activeMs: 1516.7 },
     )
     expect(delta).toEqual({ textCreated: 0, renders: 1, frameRequests: 2 })
+  })
+
+  it('墙钟时间 activeMs 不进逐帧记录', () => {
+    // 它是「帧循环真正跑了多久」，两遍跑不可能一样，进了 FrameRecord 就会顺着
+    // summarize 漏进「两遍完全一致」那条断言，把硬断言变成随机失败。
+    const delta = diffScene(
+      { textCreated: 0, renders: 0, frameRequests: 0, activeMs: 0 },
+      { textCreated: 0, renders: 1, frameRequests: 1, activeMs: 16.7 },
+    )
+    expect(Object.keys(delta)).not.toContain('activeMs')
   })
 })
 
