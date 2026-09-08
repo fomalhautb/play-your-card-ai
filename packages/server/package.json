@@ -16,6 +16,7 @@
     "@ai-duel/content": "workspace:*",
     "@ai-duel/core": "workspace:*",
     "@ai-duel/protocol": "workspace:*",
+    "better-auth": "^1.7.3",
     "jose": "^6.2.12",
     "nanoid": "^6.0.1"
   },

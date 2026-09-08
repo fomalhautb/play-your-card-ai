@@ -1,4 +1,11 @@
-# 本地开发用的密钥。复制成同目录的 .dev.vars（那个文件不进仓库）再改成随便什么长串。
-# 线上不走这个文件，走 `wrangler secret put JWT_SECRET`。
-# 迁移第 25 条接上 better-auth 之后这里会换成 better-auth 那套配置。
-JWT_SECRET=本地开发用的随便一串够长的密钥
+# 本地开发用的密钥。复制成同目录的 .dev.vars（那个文件不进仓库）再换成自己的随机串：
+#
+#   cp packages/server/.dev.vars.example packages/server/.dev.vars
+#   openssl rand -base64 32     # 拿它的输出替换下面那一行
+#
+# 线上不走这个文件，走 `wrangler secret put BETTER_AUTH_SECRET`。
+#
+# 这一条是 better-auth 的主密钥：签会话 cookie，以及加密存在 D1 里的 JWT 私钥。
+# 换掉它，本地那个 D1 库里已经生成的私钥就解不开了，得把 jwks 表清掉重来
+# （本地库在 packages/server/.wrangler/ 下面，直接删掉整个目录也行）。
+BETTER_AUTH_SECRET=本地开发用的随便一串够长的密钥

@@ -4,6 +4,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-27",
 
+  // better-auth 要 `node:async_hooks`（它用 AsyncLocalStorage 传请求上下文），
+  // 没有这个标志部署上去一调 /api/auth/* 就报模块找不到。
+  // 只是多给运行时补上 Node 的那几个内置模块，旧转发器和房间对象的行为不受影响。
+  "compatibility_flags": ["nodejs_compat"],
+
   // 账户 ID 是标识符不是凭据——没有 API token 它什么也做不了，Cloudflare 官方示例
   // 也是直接写在配置里的。写死在这里，CI 就只需要 CLOUDFLARE_API_TOKEN 一个 secret。
   "account_id": "bc5fd400f5d0e8eb68fd03f019727972",
@@ -26,6 +31,7 @@
     // 代价是每次打开对局页面多算一次 Worker 调用，免费档每天 10 万次请求，可以忽略。
     // /match/* 是新房间对象的 WebSocket 端点（src/room/MatchRoom.ts），
     // /lobby 是大厅对象的（src/lobby/Lobby.ts），同样必须列出来。
+    // 账号系统的 /api/auth/* 已经被 "/api/*" 这条盖住了，不用单列。
     "run_worker_first": ["/api/*", "/room/*", "/match/*", "/lobby"]
   },
 
@@ -51,6 +57,24 @@
       { "name": "LOBBY", "class_name": "Lobby" }
     ]
   },
+
+  // 账号库（better-auth，见 src/auth/）。用 D1 而不是再开一个 Durable Object：
+  // 账号数据是全局要查的关系型数据（按 id 找人、将来按邮箱找人），
+  // 而 DO 的 SQLite 是一个实例一份，天然做不了跨实例查询。
+  //
+  // database_id 是**用户自己建库之后才有的**，仓库里放不了真值：
+  //   wrangler d1 create ai-duel-auth      # 输出里的 database_id 填到下面
+  //   wrangler d1 migrations apply AUTH_DB --remote
+  // 详见 docs/deploy.md「账号库」一节。测试和 `wrangler dev` 不看这个 id，
+  // miniflare 按绑定名在本地现建一个库。
+  "d1_databases": [
+    {
+      "binding": "AUTH_DB",
+      "database_name": "ai-duel-auth",
+      "database_id": "<待用户 wrangler d1 create 后填写>",
+      "migrations_dir": "migrations"
+    }
+  ],
 
   // 新写法，取代已经是 legacy 的 migrations 数组。
   // 免费档只支持 SQLite 后端的 Durable Object，storage 必须是 "sqlite"。
