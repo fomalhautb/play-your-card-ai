@@ -14,16 +14,18 @@
 import { tokens } from '@ai-duel/design'
 import { Container, Graphics, Sprite, Texture } from 'pixi.js'
 import { SETTLE_LOADER_FADE_MS, SETTLE_STAMP_MS } from '../director/timings'
+import type { UiTextures } from '../fx/uiTextures'
 import { CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
 import type { TextTextureCache } from '../runtime/textCache'
+import { Badge } from './Badge'
 import type { CardSprite } from './CardSprite'
 import { Label } from './Label'
 
 /**
  * 这张卡自己的几何和字号（px）。组件私有，理由见 design 的 README。
  * 来源：需求单面板 K（444×154、padding 14、头像 77×116、回答 30px/700、模型名 18px）
- * 和徽章 H（判定块 172×110、字 20px/700）。
+ * 和徽章 H 的字号（20px/700）。徽章 H 那条上量到的 172×110 没有采用，理由见 VERDICT。
  */
 const BOX = { width: 444, height: 154, pad: 14, avatarWidth: 77, gap: 14 } as const
 const TYPE = {
@@ -31,14 +33,21 @@ const TYPE = {
   answer: { fontSize: 30, letterSpacing: 0, weight: '700' },
   reasoning: { fontSize: tokens.font.size.base, letterSpacing: 0 },
   verdict: { fontSize: 20, letterSpacing: 1.2, weight: '700' },
-  safe: { fontSize: tokens.font.size.md, letterSpacing: 1.2 },
 } as const
-/** 判定块的尺寸和它盖下来时的起始缩放 / 倾角。抄旧版 `.settle-card__verdict` 和 `VERDICT_TILT_DEG`。 */
-const VERDICT = { width: 172, height: 110, fromScale: 1.6, tiltDeg: -6 } as const
+/**
+ * 判定块的内边距、离卡角多远、盖下来时的起始缩放和倾角。
+ * 抄旧样式 `.settle-card__verdict`（padding 8px 18px、top/right 8、rotate −6deg）
+ * 和 `VERDICT_TILT_DEG`。宽高不写死，跟着字走——理由见 buildVerdict。
+ */
+const VERDICT = { padX: 18, padY: 8, inset: 8, fromScale: 1.6, tiltDeg: -6 } as const
+/** 「保送留场」那条小签离卡上沿多远。抄旧样式 `.settle-card__safe` 的 `top: 52px`。 */
+const SAFE_TOP = 52
 /** 三个等待点的直径、间距和跳多高。 */
 const LOADER = { dot: 7, gap: 7, rise: 6, dur: 0.45 } as const
 
 export interface SettleRowDeps {
+  /** 「保送留场」那枚小签走 Badge D，它要预烤的药丸纹理。 */
+  ui: UiTextures
   text: TextTextureCache
   animator: Animator
 }
@@ -233,45 +242,62 @@ export class SettleRow extends Container {
     mask.anchor.set(0, 0.5)
     // 遮罩要比字高一点：字形的上下沿会探出纹理的中线一截，贴着切会削掉笔画。
     mask.setSize(label.textWidth, label.textHeight * 1.6)
+    /*
+     * 白色纹理是 1×1 的，「铺满这段字」本身就是靠 scale 做到的：setSize 之后 scale.x
+     * 等于字的像素宽，不是 1。补间的终点得取这个数——写死 1 的话打完字只露出一个像素。
+     */
+    const full = mask.scale.x
     mask.scale.x = 0
     slot.addChild(mask)
     label.mask = mask
 
     this.deps.animator.tween(mask.scale, {
-      x: 1,
+      x: full,
       duration: Math.max(duration, 0.001),
       delay,
       ease: `steps(${content.length})`,
     })
   }
 
-  /** 判定块：一块深色圆角牌，上面「✓ 正确 / ✗ 错误」。 */
+  /**
+   * 判定块：一块深色圆角牌，上面「✓ 正确 / ✗ 错误」，歪 6° 压在卡的右上角。
+   *
+   * 尺寸跟着字走（左右各留 18、上下各留 8），不写死宽高：需求单上量到的 172×110
+   * 是连影子和周围留白一起量的，照它画出来那枚章能盖住半张卡，把答案和推理全糊掉。
+   * 旧样式 `.settle-card__verdict` 才是准的——它本来就是一块「文字 + 内边距」的牌子。
+   */
   private buildVerdict(correct: boolean): Container {
     const block = new Container()
     const fill = correct ? tokens.color.theme.forest : tokens.color.theme.brick
+    const label = new Label(
+      correct ? '✓ 正确' : '✗ 错误',
+      TYPE.verdict,
+      this.deps,
+      tokens.color.battle.paper,
+    )
+    const width = Math.round(label.textWidth) + VERDICT.padX * 2
+    const height = Math.round(label.textHeight) + VERDICT.padY * 2
     block.addChild(
       new Graphics()
-        .roundRect(
-          -VERDICT.width / 2,
-          -VERDICT.height / 2,
-          VERDICT.width,
-          VERDICT.height,
-          tokens.radius.sm,
-        )
+        .roundRect(-width / 2, -height / 2, width, height, tokens.radius.sm)
         .fill({ color: fill }),
+      label,
     )
-    block.addChild(
-      new Label(correct ? '✓ 正确' : '✗ 错误', TYPE.verdict, this.deps, tokens.color.battle.paper),
-    )
-    block.position.set(BOX.width - VERDICT.width / 2 - BOX.pad, BOX.height / 2)
+    block.position.set(BOX.width - VERDICT.inset - width / 2, VERDICT.inset + height / 2)
     block.rotation = (VERDICT.tiltDeg * Math.PI) / 180
     return block
   }
 
-  /** 「保送留场」那枚小标，跟在判定块之后补上来。 */
+  /**
+   * 「保送留场」那枚小标，跟在判定块之后补上来，贴在它正下方。
+   *
+   * 做得比判定块小一号、也不歪：判定仍然是「错」，这条只是补一句「但它留下了」，
+   * 抢过那枚章的话玩家会以为这张卡答对了。配色直接用战场小卡角标那档青色（徽章 D 的 safe），
+   * 旧样式里这两处本来就是同一组值。
+   */
   private addSafeBadge(delay: number): void {
-    const badge = new Label('保送留场', TYPE.safe, this.deps, tokens.color.theme.forest)
-    badge.position.set(BOX.width - BOX.pad - 40, BOX.height - BOX.pad)
+    const badge = new Badge({ variant: 'D', text: '保送留场', tone: 'safe' }, this.deps)
+    badge.position.set(BOX.width - VERDICT.inset - badge.boxWidth, SAFE_TOP)
     badge.alpha = 0
     this.safeSlot.addChild(badge)
     this.deps.animator.tween(badge, {

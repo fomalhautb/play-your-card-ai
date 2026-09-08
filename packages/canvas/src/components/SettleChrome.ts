@@ -83,6 +83,23 @@ export class SettleChrome extends Container {
   }
 
   /**
+   * 顶栏右端那块「轮次 + 比分」跳一下。
+   *
+   * 轴放在这块自己的中心：pivot 留在左上角的话，跳起来会像整块往右下角甩出去。
+   * 跳的是 scale，属于 transform（3.10）。
+   */
+  pulseMeta(animator: Animator, scale: number, duration: number): void {
+    const bounds = this.metaSlot.getLocalBounds()
+    const centerX = bounds.x + bounds.width / 2
+    const centerY = bounds.y + bounds.height / 2
+    this.metaSlot.pivot.set(centerX, centerY)
+    this.metaSlot.position.set(centerX, centerY)
+    const timeline = animator.timeline()
+    timeline.to(this.metaSlot.scale, { x: scale, y: scale, duration, ease: 'power2.out' })
+    timeline.to(this.metaSlot.scale, { x: 1, y: 1, duration, ease: 'power2.in' })
+  }
+
+  /**
    * 三步进度条走到第几步（0 起）。
    * 已完成的画实心勾、进行中的画实心点、还没到的画空圈——三档由这里的配色区分。
    */
@@ -95,8 +112,14 @@ export class SettleChrome extends Container {
       const active = index === current
       const mark = new Graphics()
       const color = done || active ? tokens.color.theme.forest : tokens.color.battle.line
+      /*
+       * 三档要一眼分得开：已完成是整颗实心，进行中是空心圈里一颗小点，还没到的只有空圈。
+       * 旧版已完成那档画的是一个勾（内联 SVG），这里用实心圆代替——在这个尺寸下
+       *（圈直径 14）一个勾只有五六个像素，比实心圆更难认。
+       */
       mark.circle(0, 0, STEP.mark / 2).stroke({ width: 1, color })
-      if (done || active) mark.circle(0, 0, STEP.mark / 2 - 3.5).fill({ color })
+      if (done) mark.circle(0, 0, STEP.mark / 2 - 1).fill({ color })
+      else if (active) mark.circle(0, 0, STEP.mark / 2 - 4.5).fill({ color })
       mark.position.set(x + STEP.mark / 2, BAR.height / 2)
       const label = new Label(
         text,
@@ -173,12 +196,18 @@ export class SettleChrome extends Container {
     note.position.set(ANSWER_PANEL.width / 2, ANSWER_PANEL.pad + 104)
     this.answerBody.addChild(tag, main, note)
 
+    /*
+     * 遮罩是一张 1×1 的白色纹理拉出来的，所以「铺满答案框」这件事本身就是靠 scale 做到的：
+     * setSize 之后 scale.x 是 362 而不是 1。补间的终点必须取这个数——写死 1 的话，
+     * 擦到最后只露出 1 个像素宽。这一步容易看漏，所以先把满格的倍数记下来再动。
+     */
     this.answerMask.setSize(ANSWER_PANEL.width, ANSWER_PANEL.height)
+    const full = this.answerMask.scale.x
     this.answerMask.scale.x = 0
     this.answerSlot.addChild(this.answerBody, this.answerMask)
     this.answerBody.mask = this.answerMask
     this.deps.animator.tween(this.answerMask.scale, {
-      x: 1,
+      x: full,
       duration: SETTLE_ANSWER_MS / 1000,
       ease: 'power2.out',
       overwrite: 'auto',

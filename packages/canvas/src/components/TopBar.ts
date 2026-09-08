@@ -52,6 +52,8 @@ const TYPE = {
 const GROUP_GAP = 28
 /** 比分那一块内部，数字和标签之间留多宽。抄 `.battle-topbar__score-num` 的 `margin: 0 7px`。 */
 const SCORE_GAP = 7
+/** 「第 N 轮」那三段之间留多宽。旧版靠字距自然撑开，这里三段各是一张纹理，得自己补。 */
+const WORD_GAP = 4
 /** 中间那颗装饰菱形的边长。抄 `.battle-topbar__diamond` 的 11px。 */
 const DIAMOND_SIZE = 11
 /** 右端那两颗图标钮之间的间隔，以及整簇离右缘多远。抄 `.battle-actions` 的 gap 14 / right 26。 */
@@ -184,9 +186,16 @@ export class TopBar extends Container {
   /** 「第 N 轮 ◆ 我方 x : y 对方」。 */
   private buildStatusRow(score: { mine: number; theirs: number }): void {
     const muted = tokens.color.battle.inkMuted
+    /*
+     * 「第 N 轮」拆成三段是因为中间那个数字大一档、颜色也不一样（旧版同样拆成三个 span）。
+     * 拆开之后段与段之间要自己补空隙——一段文字纹理是贴着字形烤的，两段挨在一起就顶死了。
+     */
     this.addPiece(new Label('第', TYPE.round, this.deps, muted))
-    this.addPiece(new Label(String(this.round), TYPE.roundNum, this.deps, tokens.color.battle.ink))
-    this.addPiece(new Label('轮', TYPE.round, this.deps, muted))
+    this.addPiece(
+      new Label(String(this.round), TYPE.roundNum, this.deps, tokens.color.battle.ink),
+      WORD_GAP,
+    )
+    this.addPiece(new Label('轮', TYPE.round, this.deps, muted), WORD_GAP)
     this.addPiece(this.diamond(), GROUP_GAP)
     this.addPiece(new Label('我方', TYPE.scoreSide, this.deps, muted), GROUP_GAP)
     this.addPiece(this.scoreNum(score.mine), SCORE_GAP)

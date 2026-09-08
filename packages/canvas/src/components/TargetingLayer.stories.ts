@@ -16,15 +16,23 @@ import { BoardGrid } from './BoardGrid'
 import { TargetingLayer } from './TargetingLayer'
 
 /** 画布尺寸。要装得下两排小卡加顶边那条提示。 */
-const SIZE = { width: 820, height: 460 }
+const SIZE = { width: 820, height: 500 }
+/**
+ * 战场往下让出多少给顶边那条提示。
+ *
+ * 提示条吊在视口顶边（离边 16），而被选中的格子要浮到压暗层**之上**才点得动——
+ * 于是格子会盖住提示。真对局里让位的是对手那排手牌（战场本来就从顶栏下方起算），
+ * 目录页这里没有手牌，直接把战场整个往下挪同样一截。
+ */
+const BOARD_TOP = 70
 /** 淡入 0.18 秒，橙圈呼吸取一个固定相位，350ms 两样都停在同一处。 */
 const SETTLE_MS = 350
 
 function mount(ctx: StoryStage, withBoard: boolean) {
   const deps = storyDeps(ctx)
   if (withBoard) {
-    const grid = new BoardGrid({ width: ctx.width - 40, height: ctx.height - 40 }, deps)
-    grid.position.set(20, 20)
+    const grid = new BoardGrid({ width: ctx.width - 40, height: ctx.height - BOARD_TOP - 20 }, deps)
+    grid.position.set(20, BOARD_TOP)
     ctx.stage.addChild(grid)
     const ids: string[] = []
     for (let i = 0; i < 3; i += 1) {
@@ -39,10 +47,17 @@ function mount(ctx: StoryStage, withBoard: boolean) {
     ctx.stage.addChild(layer)
     layer.begin(storyCardName(ctx, 9))
     grid.highlightTargets(ids.slice(0, 2))
-    // 亮着的那两格要浮到压暗层之上才点得动，这一步在真场景里也归调用方做。
+    /*
+     * 亮着的那两格要浮到压暗层之上才点得动，这一步在真场景里也归调用方做。
+     * 换了父节点位置就要跟着换算：格子的坐标是相对它那一排的，而那一排又相对战场，
+     * 战场自己还挪了 20px。`tileAt` 已经把前两级算好了，只差战场那一层的偏移。
+     */
     for (const id of ids.slice(0, 2)) {
       const tile = grid.tile(id)
-      if (tile !== null) ctx.stage.addChild(tile)
+      const at = grid.tileAt(id)
+      if (tile === null || at === null) continue
+      ctx.stage.addChild(tile)
+      tile.position.set(grid.x + at.x, grid.y + at.y)
     }
     return () => deps.dispose()
   }

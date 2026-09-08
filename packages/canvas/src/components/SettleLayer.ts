@@ -52,6 +52,15 @@ const TYPE = {
 } as const
 /** 领先徽章的内边距。抄需求单徽章 G（45×13、padding 2/10）。 */
 const LEAD_PAD = { x: 10, y: 2 } as const
+/**
+ * 这一层的设计尺寸，也是旧版那块舞台的大小。
+ *
+ * 内容一律按它摆，再整块缩放到实际视口（见 resize）。需求单里结算层那批尺寸
+ *（结果卡 444×154、答案框 362×166、顶栏 84、底栏 96）都是在这个尺寸下量的，
+ * 换个基准就得把那一批全部重算。
+ */
+const DESIGN = { width: 1672, height: 941 } as const
+
 /** 比分脉冲涨到多大、一趟多久（秒）。抄旧版 `scale 1.25`、0.175 来回。 */
 const PULSE = { scale: 1.25, dur: 0.175 } as const
 /** 整层退场缩到多小。抄旧版退场那段的 `scale 0.96`。 */
@@ -68,6 +77,8 @@ export interface SettleLayerDeps extends SettleChromeDeps {
 
 export class SettleLayer extends Container {
   private readonly deps: SettleLayerDeps
+  /** 内容全部按设计尺寸摆，整块再缩放到调用方给的大小（见 resize）。 */
+  private readonly content = new Container()
   private readonly paper = new Graphics()
   private readonly chrome: SettleChrome
   private readonly squads: Record<SettleSide, Container> = {
@@ -81,8 +92,8 @@ export class SettleLayer extends Container {
   private readonly bottom = new Container()
   private readonly confirmSlot = new Container()
   private readonly rows = new Map<string, SettleRow>()
-  private readonly boxWidth: number
-  private readonly boxHeight: number
+  private readonly boxWidth = DESIGN.width
+  private readonly boxHeight = DESIGN.height
   /**
    * 这一轮是第几轮。
    *
@@ -90,17 +101,18 @@ export class SettleLayer extends Container {
    * 而 `showScore` 只拿得到比分——重画时轮次得从这儿取，不然会掉回默认值。
    */
   private round = 1
+  /** 视口有多大。退场时要按它把缩放的轴放到正中，见 exit。 */
+  private viewWidth: number = DESIGN.width
+  private viewHeight: number = DESIGN.height
 
   constructor(width: number, height: number, deps: SettleLayerDeps) {
     super()
     this.deps = deps
-    this.boxWidth = width
-    this.boxHeight = height
     this.label = 'settle-layer'
     // 整层吃指针事件：结算期间战场点不动，只有确认按钮能点。
     this.eventMode = 'static'
-    this.chrome = new SettleChrome(width, deps)
-    this.addChild(
+    this.chrome = new SettleChrome(DESIGN.width, deps)
+    this.content.addChild(
       this.paper,
       this.chrome,
       this.squads.theirs,
@@ -110,9 +122,33 @@ export class SettleLayer extends Container {
       this.bottom,
       this.confirmSlot,
     )
+    this.addChild(this.content)
     this.drawPaper()
+    this.resize(width, height)
     this.visible = false
     this.alpha = 0
+  }
+
+  /**
+   * 整层缩放到给定的视口大小。
+   *
+   * 这一层和别的组件不一样：它不按新尺寸重排，而是**照设计尺寸排好再整块缩**。
+   * 旧版也是这么做的（`RoundSettleLayer` 里那句「尺寸全是设计稿上的死数，
+   * 再由 .battle-scaler 整体缩放」）。理由是这一层的内容互相咬得很死——
+   * 题面栏、答案框、结果卡、底栏四块的高度加起来正好用完一屏，任何一块按比例重排
+   * 都会让别的块的余量算错。缩放只是写一个 scale，属于 transform（3.10）。
+   *
+   * 等比缩放之后短边会有留白，所以整块还要在视口里居中。
+   */
+  resize(width: number, height: number): void {
+    this.viewWidth = width
+    this.viewHeight = height
+    const scale = Math.min(width / DESIGN.width, height / DESIGN.height)
+    this.content.scale.set(scale)
+    this.content.position.set(
+      (width - DESIGN.width * scale) / 2,
+      (height - DESIGN.height * scale) / 2,
+    )
   }
 
   /**
@@ -259,9 +295,17 @@ export class SettleLayer extends Container {
     return SETTLE_CONFIRM_MS
   }
 
-  /** 整层退场：淡出并微微缩小，战场重新露出来。 */
+  /**
+   * 整层退场：淡出并微微缩小，战场重新露出来。
+   *
+   * 缩的是**外层**而不是 `content`：那一层的 scale 归 `resize` 管（把设计尺寸缩到视口），
+   * 两处写同一个属性的话，退场一跑就把版式的缩放冲掉了。外层平时的 scale 是 1，
+   * 退场用完再还原成 1。轴放在视口正中，整层才是"向内收"而不是"往左上角缩"。
+   */
   exit(): number {
     const duration = SETTLE_EXIT_MS / 1000
+    this.pivot.set(this.viewWidth / 2, this.viewHeight / 2)
+    this.position.set(this.viewWidth / 2, this.viewHeight / 2)
     this.deps.animator.tween(this, {
       alpha: 0,
       duration,
@@ -272,8 +316,6 @@ export class SettleLayer extends Container {
         this.scale.set(1)
       },
     })
-    this.pivot.set(this.boxWidth / 2, this.boxHeight / 2)
-    this.position.set(this.boxWidth / 2, this.boxHeight / 2)
     this.deps.animator.tween(this.scale, {
       x: EXIT_SCALE,
       y: EXIT_SCALE,
@@ -386,38 +428,40 @@ export class SettleLayer extends Container {
     this.bottom.addChild(spend, verdict)
   }
 
-  /** 顶栏比分跳一下。改的是 chrome 那一层的 scale，属于 transform（3.10）。 */
+  /** 顶栏比分跳一下。只跳「轮次 + 比分」那一小块，别的地方不动。 */
   private pulseScore(): void {
-    const timeline = this.deps.animator.timeline()
-    timeline.to(this.chrome.scale, { x: PULSE.scale, y: PULSE.scale, duration: PULSE.dur })
-    timeline.to(this.chrome.scale, { x: 1, y: 1, duration: PULSE.dur })
+    this.chrome.pulseMeta(this.deps.animator, PULSE.scale, PULSE.dur)
   }
 
   /** 结果卡两列：对方在上、我方在下，各自居中，列内从上往下排。 */
   private layoutSquads(): void {
     const top = this.chrome.rowBottom
-    const available = this.boxHeight - BOTTOM.height - top
-    const half = available / 2
+    const half = (this.boxHeight - BOTTOM.height - top) / 2
     for (const [index, side] of (['theirs', 'mine'] as const).entries()) {
       const column = this.squads[side]
       const rows = column.children as SettleRow[]
       const blockTop = top + index * half
       this.heads[side].position.set(BOTTOM.padX, blockTop)
-      // 一列里的卡从上往下排；排不下就压边，同战场那两排的处理。
-      const step =
-        rows.length <= 1
-          ? 0
-          : Math.min(
-              rows[0]!.boxHeight + SQUAD.gap,
-              (half - SQUAD.headHeight - rows[0]!.boxHeight) / (rows.length - 1),
-            )
-      rows.forEach((row, i) => {
-        row.position.set(
-          (this.boxWidth - row.boxWidth) / 2,
-          blockTop + SQUAD.headHeight + 8 + i * step,
-        )
-      })
       column.position.set(0, 0)
+      if (rows.length === 0) continue
+      /*
+       * 一侧的卡**横着排**，不是叠成一列。
+       *
+       * 这一层的高度是死的，一侧分到的那半格只装得下一张卡的高度；竖着排的话第二张
+       * 就掉到另一侧的地盘里去了。旧版同理，它是靠 `--settle-cols` 按张数现算列数的。
+       * 张数多到一行摆不下时压边（同战场那两排的处理），每张至少露出 `SQUAD.gap` 那么宽。
+       */
+      const cardWidth = rows[0]!.boxWidth
+      const usable = this.boxWidth - BOTTOM.padX * 2
+      const ideal = cardWidth + SQUAD.gap
+      const fit = rows.length <= 1 ? ideal : (usable - cardWidth) / (rows.length - 1)
+      const step = Math.max(SQUAD.gap, Math.min(ideal, fit))
+      const rowY = blockTop + SQUAD.headHeight + 8
+      const totalWidth = cardWidth + step * (rows.length - 1)
+      const left = (this.boxWidth - totalWidth) / 2
+      rows.forEach((row, i) => {
+        row.position.set(left + i * step, rowY)
+      })
     }
   }
 }

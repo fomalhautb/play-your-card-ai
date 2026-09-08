@@ -12,7 +12,7 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import { storyCard, storyCardName, storyDeps } from '../storyCards'
+import { storyCard, storyDeps } from '../storyCards'
 import type { StoryStage } from '../storyStage'
 import { SideBar } from './SideBar'
 
@@ -30,13 +30,14 @@ function mount(ctx: StoryStage, width: number, filled: boolean) {
   if (filled) {
     bar.setNextCategory('历史掌故')
     bar.theirs.setHero(storyCard(ctx, deps, 1))
-    bar.theirs.setName(storyCardName(ctx, 1))
     bar.mine.setHero(storyCard(ctx, deps, 0))
-    bar.mine.setName(storyCardName(ctx, 0))
     bar.mine.setTokens(4, 7)
   } else {
     bar.setNextCategory('待定')
   }
+  // 铭牌写的是玩家名，它盖住的是卡面自带那条卡名铭牌（见 PlayerPanel 的 layout）。
+  bar.theirs.setName('对方')
+  bar.mine.setName('我方')
   return () => deps.dispose()
 }
 

@@ -12,7 +12,7 @@
  * 命名和 title 用英文的理由见 CardSprite.stories.ts 的文件头。
  */
 
-import { storyCard, storyCardName, storyDeps } from '../storyCards'
+import { storyCard, storyDeps } from '../storyCards'
 import type { StoryStage } from '../storyStage'
 import { PlayerPanel } from './PlayerPanel'
 
@@ -37,12 +37,12 @@ function mount(ctx: StoryStage, variant: Variant) {
   panel.position.set(20, 20)
   ctx.stage.addChild(panel)
 
-  if (variant.hero !== false) {
-    panel.setHero(storyCard(ctx, deps, 0))
-    panel.setName(storyCardName(ctx, 0))
-  } else {
-    panel.setName('还没选英雄')
-  }
+  /*
+   * 铭牌写的是**玩家**的名字，不是卡名——它盖住的正是卡面自带的那条卡名铭牌
+   *（见 PlayerPanel 的 layout）。所以这里给的是一个玩家昵称。
+   */
+  panel.setName(variant.tokens === true ? '我方' : '对方')
+  if (variant.hero !== false) panel.setHero(storyCard(ctx, deps, 0))
   if (variant.tokens === true) panel.setTokens(4, 7)
   if (variant.held === true) panel.setHeroHeld(true)
   return () => deps.dispose()

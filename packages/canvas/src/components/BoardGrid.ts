@@ -168,8 +168,15 @@ export class BoardGrid extends Container {
         ease: 'power2.out',
       },
     )
-    this.playEvolveGlow(tile, delay)
-    this.playEvolveLabel(tile, delay)
+    /*
+     * 特效画在 fxLayer 上，而那一层是战场的直接子节点；格子的坐标却是相对**它那一排**的。
+     * 所以要过一次换算再摆——`tileAt` 已经把排的偏移算进去了。
+     */
+    const at = this.tileAt(instanceId)
+    if (at !== null) {
+      this.playEvolveGlow(at, tile.boxWidth, tile.boxHeight, delay)
+      this.playEvolveLabel(at, tile.boxHeight, delay)
+    }
     return previous
   }
 
@@ -227,11 +234,17 @@ export class BoardGrid extends Container {
     return badge === undefined ? 0 : badge.width + MIDLINE_MARGIN * 4
   }
 
-  /** 两排各占一半高，中线压在正中。 */
+  /**
+   * 两排各占一半高，中线压在正中。
+   *
+   * 两排的原点都放在**战场横向的正中**：格子是按「离中心多远」排的（见 layoutRow），
+   * 原点留在左上角的话整排会往左跑出去一半。
+   */
   private layout(): void {
     const half = this.boxHeight / 2
-    this.rows.opponent.position.set(0, half / 2 - MIDLINE_MARGIN)
-    this.rows.self.position.set(0, half + half / 2 + MIDLINE_MARGIN)
+    const centerX = this.boxWidth / 2
+    this.rows.opponent.position.set(centerX, half / 2 - MIDLINE_MARGIN)
+    this.rows.self.position.set(centerX, half + half / 2 + MIDLINE_MARGIN)
     this.midline.position.set(0, half)
     this.badgeSlot.y = half
     this.layoutRow('opponent')
@@ -265,17 +278,22 @@ export class BoardGrid extends Container {
    * 前者 3.1 不许，后者要为每种格子尺寸各烤一张。三圈递减的描边是同一种「越往外越淡」的读法，
    * 而且只画一次几何、之后只改 alpha（3.10）。
    */
-  private playEvolveGlow(tile: BoardTile, delay: number): void {
+  private playEvolveGlow(
+    at: { x: number; y: number },
+    width: number,
+    height: number,
+    delay: number,
+  ): void {
     const glow = new Graphics()
     for (let ring = 0; ring < 3; ring += 1) {
       const spread = 2 + ring * 4
-      const w = tile.boxWidth + spread * 2
-      const h = tile.boxHeight + spread * 2
+      const w = width + spread * 2
+      const h = height + spread * 2
       glow
         .roundRect(-w / 2, -h / 2, w, h, tokens.radius.md + spread)
         .stroke({ width: 3, color: tokens.color.mark.up.line, alpha: 0.5 - ring * 0.15 })
     }
-    glow.position.set(tile.x, tile.y)
+    glow.position.set(at.x, at.y)
     glow.alpha = 0
     this.fxLayer.addChild(glow)
     this.deps.animator
@@ -288,10 +306,10 @@ export class BoardGrid extends Container {
    * 「↑ 升级」浮字：从格子上沿升起 34px，边升边淡出。
    * 它是这一批里最长的一样（0.9 秒），所以整段进化的时长就按它算，见 EVOLVE_FX_MS。
    */
-  private playEvolveLabel(tile: BoardTile, delay: number): void {
+  private playEvolveLabel(at: { x: number; y: number }, height: number, delay: number): void {
     const label = new Label('↑ 升级', EVOLVE_LABEL, this.deps, tokens.color.mark.up.ink)
-    const startY = tile.y - tile.boxHeight / 2
-    label.position.set(tile.x, startY)
+    const startY = at.y - height / 2
+    label.position.set(at.x, startY)
     label.alpha = 0
     this.fxLayer.addChild(label)
     const total = EVOLVE_FX_MS / 1000

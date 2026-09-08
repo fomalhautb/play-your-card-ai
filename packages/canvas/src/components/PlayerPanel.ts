@@ -20,7 +20,7 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
 import type { UiTextures } from '../fx/uiTextures'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
@@ -39,8 +39,12 @@ const TYPE = { score: { fontSize: 30, letterSpacing: 0 } } as const
 
 /** 英雄牌四周离雕花框留多宽。旧版是面板内边距 18，这里连框宽一起算。 */
 const CARD_INSET = 22
-/** 铭牌压在英雄牌下沿往上多少。旧版铭牌是卡面的一部分，这里单独一块，压在牌脚上。 */
-const PLATE_LIFT = 10
+/**
+ * 卡面上那条铭牌离卡底多远（卡面基准尺寸下的像素）。
+ * 和 CardSprite 摆自己那条铭牌用的是同一个数（那边写的是 `-6 - 高度/2`），
+ * 这块面板的铭牌要正好盖住它，两处必须一致。
+ */
+const NAMEPLATE_PAD = 6
 /** 细条离面板右缘多远。贴着框内侧摆。 */
 const RAIL_INSET = 6
 
@@ -118,14 +122,26 @@ export class PlayerPanel extends Container {
     return { x: this.boxWidth / 2, y: this.heroSlot.y - (CARD_HEIGHT * this.heroScale()) / 2 }
   }
 
-  /** 铭牌上那行名字。传 null 就不画（桌面档旧版本来就不画）。 */
+  /**
+   * 铭牌上那行名字。写的是**玩家**的名字，不是卡名。传 null 就不画。
+   *
+   * 铭牌自己带 6% 的透明度（见 fx/badgeShapes.ts 的 drawNameplateBand），
+   * 直接压在英雄牌那条铭牌上会透出底下的卡名，两行字叠在一起谁也读不出来。
+   * 所以先垫一层不透明的纸底再摆铭牌——垫的这块和铭牌一样大，看不出多了一层。
+   */
   setName(name: string | null): void {
     if (this.heroName === name) return
     this.heroName = name
     for (const child of this.plateSlot.removeChildren()) child.destroy({ children: true })
     if (name !== null) {
       // 字面量 'C' 就是 BADGE_NAMEPLATE（卡面铭牌），写字面量的理由同 BoardGrid。
-      this.plateSlot.addChild(new Badge({ variant: 'C', name }, this.deps))
+      const badge = new Badge({ variant: 'C', name }, this.deps)
+      const backing = new Graphics()
+        .rect(0, 0, badge.boxWidth, badge.boxHeight)
+        .fill({ color: tokens.color.battle.paper })
+      const plate = new Container()
+      plate.addChild(backing, badge)
+      this.plateSlot.addChild(plate)
     }
     this.layout()
   }
@@ -169,9 +185,23 @@ export class PlayerPanel extends Container {
     this.heroSlot.position.set(cardCenterX, cardBottom)
     this.hero?.scale.set(scale)
 
+    /*
+     * 铭牌盖在英雄牌自己那条铭牌上，位置和大小都跟着卡缩放走。
+     *
+     * 盖住而不是另找地方摆：卡面下部本来就有一条铭牌（写的是卡名），这一块要写的是
+     * **玩家**的名字。两条并排会让人不知道该读哪一条，正好盖上去换掉它。
+     * 铭牌本身和卡面上那条是同一份形状（fx/badgeShapes.ts 的 drawNameplateBand），
+     * 所以只要跟着卡一起缩、再让开同样的下边距，两条就严丝合缝地对上。
+     */
     const plate = this.plateSlot.children[0]
-    if (plate !== undefined)
-      plate.position.set(cardCenterX - plate.width / 2, cardBottom - PLATE_LIFT - plate.height)
+    const badge = plate?.children[1] as Badge | undefined
+    if (plate !== undefined && badge !== undefined) {
+      plate.scale.set(scale)
+      plate.position.set(
+        cardCenterX - (badge.boxWidth / 2) * scale,
+        cardBottom - (NAMEPLATE_PAD + badge.boxHeight) * scale,
+      )
+    }
 
     const label = this.scoreSlot.children[0]
     if (label !== undefined) label.position.set(cardCenterX, CARD_INSET)
