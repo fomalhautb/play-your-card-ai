@@ -1,0 +1,188 @@
+/**
+ * 房间成员这一层：装载牌组、就绪、离开、重同步、催一催，以及「双方都就绪」之后开局。
+ *
+ * 和 commands.ts 的分工按协议的两个前缀切：`room:` 是成员关系（开局前后都要用），
+ * `match:` 是对局本身（只有开局之后才有意义）。
+ */
+
+import { CARD_POOL, createCatalog, DECK_SIZE, HEROES, QUESTION_POOL } from '@ai-duel/content'
+import type { CardId, PlayerId } from '@ai-duel/core'
+import { createGame, other } from '@ai-duel/core'
+import type { ClientMessage } from '@ai-duel/protocol'
+import type { RoomContext } from './commands'
+import { closeRoom, dispatchStarted, sendSnapshot } from './dispatch'
+import { SEATS, seatOnline, sendRoomError, sendToSeat } from './session'
+import type { SeatLoadout } from './state'
+
+/** 客户端发上来的那条 `room:loadout`。protocol 只导出了 schema，类型从消息联合里挑出来。 */
+type LoadoutMessage = Extract<ClientMessage, { type: 'room:loadout' }>
+
+/**
+ * 同名卡最多几张。数字抄自旧客户端牌组构筑页的 `MAX_COPIES`。
+ *
+ * 为什么写在服务端而不是从 content 里读：content 现在没有导出这条构筑规则
+ * （`DECK_SIZE` 有，份数上限没有）。等牌组编辑迁过来（迁移第 28 条）应该有一份共用的
+ * 「这副牌合不合法」，那时把这里换成调它。
+ */
+const MAX_COPIES_PER_CARD = 3
+
+const POOL = new Set<CardId>(CARD_POOL)
+
+/**
+ * 这副牌组和英雄能不能上桌。能就返回规范化之后的装载，不能返回 null。
+ *
+ * protocol 那边只挡了「一条消息塞十万张牌」这种形状问题（见 `roomLoadoutSchema`），
+ * 真正的构筑规则要查内容表，只有服务端做得了：
+ * 张数不对、同名超量、牌不在卡池里、英雄还没实装，都不让开局。
+ * 放过去的话引擎会拿到一副打不动的牌，或者玩家能带上一张设计稿都没实装的英雄。
+ */
+function validateLoadout(loadout: LoadoutMessage): SeatLoadout | null {
+  if (loadout.deck.length !== DECK_SIZE) return null
+  const copies = new Map<CardId, number>()
+  for (const cardId of loadout.deck) {
+    if (!POOL.has(cardId)) return null
+    const count = (copies.get(cardId) ?? 0) + 1
+    if (count > MAX_COPIES_PER_CARD) return null
+    copies.set(cardId, count)
+  }
+  // hero 为 null 是「这一方不带英雄」，是合法的（见 core 的 PlayerSetup）。
+  if (loadout.hero !== null && HEROES[loadout.hero].comingSoon === true) return null
+  return { deck: [...loadout.deck], hero: loadout.hero }
+}
+
+/**
+ * 把对手此刻的状态发给双方，每次都是完整的三项。
+ *
+ * 每次发全量而不是发变化，是协议定的（见 `roomPeerSchema`）：
+ * 客户端要的是当前全貌，全量就不用管消息顺序，也不会漏掉某一次变化。
+ * 连上、断开、装载、就绪之后都要调一次。`exclude` 见 session.ts 的 `seatOnline`。
+ */
+export function broadcastPeer(room: RoomContext, exclude: WebSocket | null = null): void {
+  for (const seat of SEATS) {
+    const peer = other(seat)
+    sendToSeat(room.ctx, seat, {
+      type: 'room:peer',
+      seat: peer,
+      online: seatOnline(room.ctx, peer, exclude),
+      loaded: room.record.loadout[peer] !== null,
+      ready: room.record.ready[peer],
+    })
+  }
+}
+
+/** 洗牌种子。用 `crypto.getRandomValues` 而不是 `Math.random`：牌序是隐藏信息，别让人猜得出来。 */
+function newSeed(): number {
+  return crypto.getRandomValues(new Uint32Array(1))[0]!
+}
+
+/**
+ * 双方都装载完、都就绪了就开局，否则什么都不做。
+ *
+ * 牌序、题序、先手全由服务端掷（`seed` 在这儿生成），客户端一个字都插不上手——
+ * 让客户端报顺序等于让它决定自己下一张摸什么（见 `roomLoadoutSchema`）。
+ *
+ * `name` 暂时直接用账号 id：显示名要等第 25 条接上 better-auth 才有地方取
+ * （协议说得很清楚，显示名从账号来，客户端说了不算）。
+ */
+function startIfReady(room: RoomContext): void {
+  const { record } = room
+  const [first, second] = record.loadout
+  if (first === null || second === null) return
+  if (!record.ready[0] || !record.ready[1]) return
+  if (room.store.game() !== null) return
+
+  const result = createGame({
+    seed: newSeed(),
+    catalog: createCatalog(),
+    questionPool: QUESTION_POOL,
+    players: [
+      { name: record.players[0], deck: first.deck, hero: first.hero },
+      { name: record.players[1], deck: second.deck, hero: second.hero },
+    ],
+  })
+  room.store.saveGame(result.state)
+  dispatchStarted(room.ctx, record, result.state, result.events)
+  room.store.saveRoom(record)
+}
+
+/** `room:loadout`。重复装载直接拒，不让人开局前反复改牌组把状态搅乱。 */
+export function handleLoadout(
+  room: RoomContext,
+  ws: WebSocket,
+  seat: PlayerId,
+  message: LoadoutMessage,
+): void {
+  if (room.record.loadout[seat] !== null) {
+    sendRoomError(ws, 'already-loaded', '你已经装载过牌组了')
+    return
+  }
+  const loadout = validateLoadout(message)
+  if (loadout === null) {
+    sendRoomError(ws, 'bad-loadout', '这副牌组不合法')
+    return
+  }
+  room.record.loadout[seat] = loadout
+  room.store.saveRoom(room.record)
+  broadcastPeer(room)
+  startIfReady(room)
+}
+
+/** `room:ready`。没装载就就绪要拒：不然开局时拿不到牌组。 */
+export function handleReady(room: RoomContext, ws: WebSocket, seat: PlayerId): void {
+  if (room.record.ready[seat]) {
+    sendRoomError(ws, 'already-ready', '你已经就绪了')
+    return
+  }
+  if (room.record.loadout[seat] === null) {
+    sendRoomError(ws, 'bad-loadout', '先装载牌组再就绪')
+    return
+  }
+  room.record.ready[seat] = true
+  room.store.saveRoom(room.record)
+  broadcastPeer(room)
+  startIfReady(room)
+}
+
+/**
+ * `room:leave`：我不打了。
+ *
+ * 和掉线不是一回事——掉线只是暂时的，对手会看到 `room:peer` 的 online 变 false 然后等重连；
+ * 这条是明确退出，房间当场收摊。
+ */
+export function handleLeave(room: RoomContext): void {
+  closeRoom(room.ctx, room.record, 'peer-left', '对手离开了房间')
+  room.store.saveRoom(room.record)
+}
+
+/**
+ * `room:resync`：要一份快照。重连之后发，或者发现漏包时发。
+ *
+ * `haveSeq` 不拿来分支，一律回完整快照（协议 README 第 5 条），
+ * 它只是给日志用的——漏了多少、断了多久只有客户端知道。
+ */
+export function handleResync(
+  room: RoomContext,
+  ws: WebSocket,
+  seat: PlayerId,
+  haveSeq: number,
+): void {
+  const state = room.store.game()
+  if (state === null) {
+    sendRoomError(ws, 'not-in-match', '对局还没开始')
+    return
+  }
+  console.log(`房间重同步：座位 ${seat} 手上是 ${haveSeq}，服务端在 ${room.record.seq[seat]}`)
+  sendSnapshot(ws, room.record, state, seat)
+}
+
+/**
+ * `room:urge`：催一催，转给对面。
+ *
+ * 只带 id 不带文字（见 `roomUrgeSchema`），所以没人能借它往对方屏幕上打任意文字。
+ * 协议要求「id 查不到就回 `unknown-urge`」，但那张喊话表现在还在 legacy-client 里
+ * （迁移第 33 条才搬进 content），够不着，所以眼下只转不查。
+ * 表搬过来之后在这里补一条查表，别忘了。
+ */
+export function handleUrge(room: RoomContext, seat: PlayerId, id: string): void {
+  sendToSeat(room.ctx, other(seat), { type: 'room:urged', from: seat, id })
+}

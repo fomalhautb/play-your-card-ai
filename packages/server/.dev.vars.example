@@ -1,0 +1,4 @@
+# 本地开发用的密钥。复制成同目录的 .dev.vars（那个文件不进仓库）再改成随便什么长串。
+# 线上不走这个文件，走 `wrangler secret put JWT_SECRET`。
+# 迁移第 25 条接上 better-auth 之后这里会换成 better-auth 那套配置。
+JWT_SECRET=本地开发用的随便一串够长的密钥

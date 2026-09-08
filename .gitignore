@@ -29,6 +29,9 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# wrangler 的本地密钥（packages/server 的 JWT_SECRET）。样例在同目录的 .dev.vars.example。
+.dev.vars
+
 .pnpm-store/
 tmp/
 output/
