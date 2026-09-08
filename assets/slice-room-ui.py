@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-把 /room 匹配房的整张 UI 素材图切成一张张独立的元素图，输出到
-packages/legacy-client/public/room/，供 RoomScreen.tsx / room.css 直接当 <img> 用。
+把 /room 匹配房的整张 UI 素材图切成一张张独立的元素图，输出到素材源目录
+assets/source/room/，供旧客户端的 RoomScreen.tsx / room.css 直接当 <img> 用
+（旧客户端的 public/ 是指向 assets/source 的符号链接，见 assets/README.md）。
 
 素材图 assets/room-ui-sheet.png 是 3344x1882（去掉了背景和文字），正好是页面
 1672x941 舞台的 2 倍，且每个元素都画在它在页面上应处的位置。所以切片的包围盒
@@ -27,7 +28,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 SHEET = ROOT / "assets" / "room-ui-sheet.png"
-OUT_DIR = ROOT / "packages" / "legacy-client" / "public" / "room"
+OUT_DIR = ROOT / "assets" / "source" / "room"
 
 # 素材图相对舞台的倍率，以及舞台尺寸。折算落位全靠这三个数。
 SCALE = 2

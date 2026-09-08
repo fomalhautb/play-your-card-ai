@@ -36,6 +36,10 @@
       "!packages/core/test/golden/*.json",
       // 一次性脚本的输出，是数据不是代码。
       "!scripts/out",
+      // 美术和音频的源目录（迁移第 33 条从 legacy-client 的 public 搬过来的）。
+      // 里面的 svg 是站点图标，是美术资源不是界面代码——a11y 那条「svg 要有 title」
+      // 说的是页面里的图形，图标文件加个 title 只会被下次导出覆盖。
+      "!assets/source",
       "!pnpm-lock.yaml",
       // Claude Code 自己会重写这个目录里的 json，格式化它只会让 CI 三天两头变红。
       "!.claude"

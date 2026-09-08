@@ -76,7 +76,7 @@ AI 牌的 Token 费用、技能名和技能效果都在 core 的 `aiModels.ts` �
   `pregenAnswers.json`，由 `scripts/build-core-answers.mjs` 生成；加卡就要重跑生成，有测试守着）。
 - `packages/legacy-client/src/ui/aiModelArt.ts`：卡牌 id → 原画路径；查不到才退回占位图（`ui/cardArt.ts`）。
 - `packages/legacy-client/src/ui/AiCardBack.tsx`：AI 技能详情背面的统一结构。
-- `packages/legacy-client/public/cards/models/`：原画资源。
+- `assets/source/cards/models/`：原画资源（迁移第 33 条从 legacy-client 的 public 搬过来的）。
 
 原始 PNG 来自用户提供的素材目录，未改动源文件。用 [Sharp 的 WebP 输出](https://sharp.pixelplumbing.com/api-output/#webp)
 （quality 90、effort 6）转成 1024×1536 的 WebP，18 张合计约 10.3 MB。

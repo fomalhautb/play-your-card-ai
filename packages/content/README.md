@@ -36,14 +36,14 @@ src/
 ## 怎么改一张牌
 
 1. 改 `src/aiModels.ts` 或 `src/skillCards.ts` 里那张卡。**id 就是原画的文件名**
-   （`packages/legacy-client/public/cards/{models,skills}/<id>.webp`），改 id 要连图一起改，
+   （`assets/source/cards/{models,skills}/<id>.webp`），改 id 要连图一起改，
    否则卡面会悄悄退回占位插画——`test/assets.test.ts` 会红。
 2. 改了费用或 `domestic` 标签，`test/cards.test.ts` 里那张平衡表要跟着改。那是故意的：
    平衡数值不该被顺手改掉。
 3. 新增一张能上场的 AI 牌，还要重新生成预生成答案表（下一节），否则它一上场查表就抛错。
 4. 新增或删除卡牌后跑 `pnpm --filter @ai-duel/content test`：卡池、预设牌组、覆盖率几条都在这儿守着。
 
-英雄同理，表在 `src/heroes.ts`，原画在 `packages/legacy-client/public/hero/card-<id>.webp`。
+英雄同理，表在 `src/heroes.ts`，原画在 `assets/source/hero/card-<id>.webp`。
 但英雄技能的**效果**在 core 的引擎里（按 id 分派），加一位带技能的英雄不是改数据就够了。
 
 ## 怎么重新生成回答表
@@ -86,7 +86,8 @@ JSON 数据在**模块加载时** parse 一次（`src/questions.ts`、`src/scrip
 - `pregenAnswers.test.ts` — **答案表完整**：每题 × 每张能上场的 AI × 每个变体都有值，
   多余的格子也报；查表的三条路径（正常、调不到模型的兜底、缺数据抛错）。
 - `assets.test.ts` — **资源引用存在**：每张牌和每位英雄的原画文件真的在。
-  美术资源现在还住在 `packages/legacy-client/public/`（迁移第 33 条才搬），到时改那个常量。
+  查的是素材源目录 `assets/source/`，不是哪个包的 public——产物目录本机可能还没打出来
+  （见 `assets/README.md`）。
 - `coverage.test.ts` — **内容覆盖**：每张已启用的牌和每位已启用的英雄，至少被 `core/test`
   或本包 `test/` 里的某一行代码点名。挂了要补一条有意义的断言，不是放宽这条检查。
 
