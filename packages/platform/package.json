@@ -8,9 +8,18 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "@types/howler": "^2.2.13",
+    "happy-dom": "^20.14.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "howler": "^2.2.4",
+    "partysocket": "^1.3.0"
   }
 }
