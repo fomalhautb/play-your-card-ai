@@ -9,15 +9,19 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "golden:record": "tsx test/golden/record.ts"
   },
   "dependencies": {
     "pure-rand": "^8.4.2"
   },
   "devDependencies": {
     "@ai-duel/content": "workspace:*",
+    "@types/node": "^26.4.0",
+    "fast-check": "^4.9.0",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }

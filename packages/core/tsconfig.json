@@ -6,5 +6,6 @@
     // 误用 DOM 或 Node API 时会直接编译报错。
     "types": []
   },
-  "include": ["src", "test"]
+  // 测试单独走 tsconfig.test.json：那份多开一个 node 类型，给回放和 golden 录制读写文件用。
+  "include": ["src"]
 }

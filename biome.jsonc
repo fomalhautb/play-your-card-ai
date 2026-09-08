@@ -30,6 +30,10 @@
       // 格式由生成器定，手改也会被下次 build 覆盖，所以格式化和 lint 都不看它；
       // 400 行那条上限同理——它管的是「人写的文件别长到没人读」，而令牌只会越加越多。
       "!packages/design/src/generated",
+      // 回放测试的 golden，由 packages/core/test/golden/record.ts 生成（迁移第 15 条）。
+      // 格式由生成器定（JSON.stringify 的两格缩进），手改或让 Biome 重排都会被下次重录覆盖；
+      // 400 行那条上限同理——它管的是「人写的文件别长到没人读」，而 golden 是一局对局的流水。
+      "!packages/core/test/golden/*.json",
       // 一次性脚本的输出，是数据不是代码。
       "!scripts/out",
       "!pnpm-lock.yaml",
