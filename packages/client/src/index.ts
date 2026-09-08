@@ -9,13 +9,27 @@
  * - `match/`：对局驱动（本地和联机两种），屏幕只认它这一个接口；
  * - `net/`：大厅和房间的 WebSocket 客户端、会话；
  * - `save/`：本机存档（收藏和胜场、牌组），走 `platform.storage`；
+ * - `audio/`：音效表、背景音乐、静音开关，走 `platform.audio`；
  * - `dev/`：开发专用页面（组件目录页、调试场景），生产构建剔除。
  *
- * 这几个模块一律不直接碰 `localStorage` 这类浏览器全局——平台差异全在 `platform` 里，
+ * 这几个模块一律不直接碰 `localStorage`、`Audio` 这类浏览器全局——平台差异全在 `platform` 里，
  * 也只有这样才测得了（测试里换成 `createFakePlatform()`）。
  */
 
 export { App } from './App'
+export type { MusicTrack } from './audio/music'
+export { currentTrack, MUSIC_TRACKS, onTrackReplay, playTrack, stopMusic } from './audio/music'
+export { restoreMuted, setMuted, toggleMuted, useMuted } from './audio/mute'
+export type { SoundId } from './audio/sounds'
+export {
+  HOME_INTRO_DELAY_MS,
+  playButtonClick,
+  playHomeIntro,
+  playSkillTargeting,
+  playUrge,
+  preloadSounds,
+  SOUNDS,
+} from './audio/sounds'
 export type {
   MatchDriver,
   MatchEventBatch,
