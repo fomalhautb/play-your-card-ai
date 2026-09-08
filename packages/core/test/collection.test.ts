@@ -2,21 +2,21 @@ import { describe, expect, it } from 'vitest'
 import {
   AI_MODEL_CARD_IDS,
   AI_MODEL_CARDS,
+  BALANCED_DECK,
   CARD_POOL,
   CARDS,
   COMING_SOON_SKILL_CARD_IDS,
+  DECK_SIZE,
   drawNewCard,
   HEROES,
+  HIGH_COST_DECK,
   INITIAL_COLLECTION,
+  LOW_COST_DECK,
   OPEN_SKILL_CARD_IDS,
   PLAYABLE_AI_CARD_IDS,
-  UNAVAILABLE_AI_CARD_IDS,
-  SKILL_DESIGN_CARD_IDS,
-  BALANCED_DECK,
-  LOW_COST_DECK,
-  HIGH_COST_DECK,
   PRESET_DECKS,
-  DECK_SIZE,
+  SKILL_DESIGN_CARD_IDS,
+  UNAVAILABLE_AI_CARD_IDS,
 } from '../src/index'
 import type { AiCard, CardId, SkillCard } from '../src/types'
 
@@ -35,7 +35,7 @@ function skillCardsIn(deck: readonly CardId[]): SkillCard[] {
   return deck.map((id) => CARDS[id]).filter((card): card is SkillCard => card?.kind === 'skill')
 }
 
-/** 构筑页的同名卡上限（client 的 deckStore.MAX_COPIES）：预设不该出现玩家自己编不出来的牌组。 */
+/** 构筑页的同名卡上限（legacy-client 的 deckStore.MAX_COPIES）：预设不该出现玩家自己编不出来的牌组。 */
 const MAX_COPIES = 3
 
 describe('卡池与初始收藏', () => {
@@ -63,7 +63,7 @@ describe('卡池与初始收藏', () => {
   })
 
   it('三套预设各 20 张、同名卡不超过 3 份、没有一张是卡池外的牌', () => {
-    // 三套预设会被直接播成玩家最初的三套牌组（见 client 的 deckStore），
+    // 三套预设会被直接播成玩家最初的三套牌组（见 legacy-client 的 deckStore），
     // 混进一张卡池外的牌，读档时会被当脏数据剔掉，玩家一进构筑页就看到一副缺张的牌；
     // 带满 4 份则是玩家自己在构筑页编不出来的牌组。
     expect(PRESET_DECKS).toHaveLength(3)
@@ -233,7 +233,9 @@ describe('AI 牌身上给技能牌读的两个标签', () => {
   const aiCards = Object.values(CARDS).filter((card) => card.kind === 'ai')
 
   it('国产标签正好挂在这 10 张上（「国产替代」按它清场）', () => {
-    expect(new Set(aiCards.filter((card) => card.domestic === true).map((card) => card.id))).toEqual(
+    expect(
+      new Set(aiCards.filter((card) => card.domestic === true).map((card) => card.id)),
+    ).toEqual(
       new Set([
         'deepseek-r1',
         'deepseek-v4',
@@ -268,7 +270,16 @@ describe('AI 牌身上给技能牌读的两个标签', () => {
       'kimi-k3': undefined,
     })
     // 没有前后代的单张一律不可进化，「鸡犬升天」扫到它们时原地不动。
-    for (const id of ['gemini', 'qwen', 'doubao', 'glm-5', 'minimax', 'yuanbao', 'grok', 'wenxin-yiyan']) {
+    for (const id of [
+      'gemini',
+      'qwen',
+      'doubao',
+      'glm-5',
+      'minimax',
+      'yuanbao',
+      'grok',
+      'wenxin-yiyan',
+    ]) {
       expect(nextOf[id]).toBeUndefined()
     }
   })

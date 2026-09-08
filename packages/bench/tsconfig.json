@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // 性能剧本两头都要碰：剧本本身在浏览器里驱动 Pixi 场景、读 WebGL 计数器（DOM），
+    // 跑批和出报告的那一层是 Node 脚本（node）。所以这是唯一一个两种全局类型都带的包。
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

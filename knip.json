@@ -1,0 +1,79 @@
+{
+  // 未使用的导出和未使用的依赖，对应《正式版架构》6.2 最后一条。
+  // 格式化和通用 lint 在 biome.jsonc，包之间的依赖方向在 .dependency-cruiser.cjs。
+  //
+  // 文件叫 .json 但写着注释：knip 用 JSONC 解析自己的配置。
+  // Biome 认的是扩展名，所以 biome.jsonc 里给这个文件单独开了 allowComments。
+  "$schema": "./node_modules/knip/schema.json",
+
+  // 旧客户端已冻结，排除在 lint 之外（迁移第 7 条）。
+  // 它的 typecheck 和测试照常在 CI 里跑。
+  "ignoreWorkspaces": ["packages/legacy-client"],
+
+  "workspaces": {
+    // 仓库根目录本身不是一个包，只有 scripts/ 下几个一次性脚本。
+    // 它们是各自独立的入口（命令行直接 node 跑），不写进来会被当成没人要的死文件。
+    ".": {
+      "entry": ["scripts/*.mjs"],
+      "project": ["scripts/*.mjs"]
+    },
+
+    /*
+     * 下面这些 ignoreDependencies 全是同一件事：包还是空的（src/index.ts 只有一句 export {}），
+     * 但 package.json 里已经按《正式版架构》7.2 第 1 条把允许的依赖方向声明好了。
+     * 这是骨架阶段的预期状态，不是"忘了删的依赖"。
+     *
+     * 到期条款：哪个包开始写代码、真的 import 了这些东西，就把它自己这条删掉。
+     * 全部删完这一整段也就没了。别反过来——发现 knip 报某个依赖没用就往这儿加，
+     * 那才是把这条检查废掉。
+     */
+    "packages/content": {
+      "ignoreDependencies": ["@ai-duel/core"]
+    },
+    "packages/protocol": {
+      "ignoreDependencies": ["@ai-duel/core"]
+    },
+    "packages/canvas": {
+      "ignoreDependencies": ["@ai-duel/design", "@ai-duel/platform"]
+    },
+    "packages/ui": {
+      "ignoreDependencies": [
+        "@ai-duel/design",
+        "@ai-duel/platform",
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ]
+    },
+    "packages/bench": {
+      "ignoreDependencies": ["@ai-duel/canvas", "@ai-duel/design", "@ai-duel/platform"]
+    },
+    "packages/client": {
+      "ignoreDependencies": [
+        "@ai-duel/canvas",
+        "@ai-duel/content",
+        "@ai-duel/core",
+        "@ai-duel/design",
+        "@ai-duel/platform",
+        "@ai-duel/protocol",
+        "@ai-duel/ui",
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ]
+    },
+    "packages/server": {
+      "ignoreDependencies": [
+        // cloudflare:workers 是 Workers 运行时的内建模块，不是 npm 包。
+        // knip 按冒号前面那段当包名找，所以看着像"用了没装"。
+        "cloudflare",
+        // 服务端重写（迁移第 22 条）之后才会真正用上这三个，现在还是纯转发器。
+        "@ai-duel/content",
+        "@ai-duel/core",
+        "@ai-duel/protocol"
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    // 设计令牌是一堆常量，Pixi（画布）和 React（DOM）两边都要用，不能绑定任何运行时。
+    // 这里清空全局类型，误用 DOM 或 Node API 时会直接编译报错。
+    "types": []
+  },
+  "include": ["src", "test"]
+}

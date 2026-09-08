@@ -45,11 +45,11 @@ jobs:
         if: steps.credentials.outputs.ready == 'true'
         run: pnpm install --frozen-lockfile
 
-      # 必须先构建：wrangler.jsonc 里 assets.directory 指向 packages/client/dist，
+      # 必须先构建：wrangler.jsonc 里 assets.directory 指向 packages/legacy-client/dist，
       # 这个目录是 gitignore 掉的，仓库里没有。
       - name: 构建前端
         if: steps.credentials.outputs.ready == 'true'
-        run: pnpm --filter @ai-duel/client build
+        run: pnpm --filter @ai-duel/legacy-client build
 
       - name: 部署 Worker
         if: steps.credentials.outputs.ready == 'true'

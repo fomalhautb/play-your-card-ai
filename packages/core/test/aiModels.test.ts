@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { CardId } from '../src/index'
 import {
   AI_MODEL_CARD_IDS,
   AI_MODEL_CARDS,
@@ -6,7 +7,6 @@ import {
   downgradeTargetOf,
   upgradeTargetOf,
 } from '../src/index'
-import type { CardId } from '../src/index'
 
 const EXPECTED_SKILLS = {
   'gpt-2': ['开天辟地', '若本轮没有任何技能牌作用于自己，Agent 消耗 -2 Token'],
@@ -20,22 +20,13 @@ const EXPECTED_SKILLS = {
   ],
   'deepseek-r1': ['链式推理', '如果第一次回答错误，可以额外进行一次回答'],
   'deepseek-v4': ['深海求索', '若本轮双方答题结果相同，则结算时本 Agent 消耗 -1 Token'],
-  gemini: [
-    '多模融合',
-    '回答图片题时，第一次回答错误可以重新观察图片并再次回答；每局最多触发一次',
-  ],
+  gemini: ['多模融合', '回答图片题时，第一次回答错误可以重新观察图片并再次回答；每局最多触发一次'],
   qwen: ['万语通晓', '每局一次，可以忽略对方技能牌向题目中添加的一条额外指令，只执行原题要求'],
   'kimi-k2-6': ['长卷寻踪', '第一次使用此 Agent，可以对对方使用一次上下文洪水干扰'],
   'kimi-k3': ['群星协作', '使对方回答额外消耗 1 Token，每局最多触发一次'],
-  doubao: [
-    '灵感相伴',
-    '若本轮没有任何技能牌作用于自己且回答正确，返还 1 Token；每局最多触发一次',
-  ],
+  doubao: ['灵感相伴', '若本轮没有任何技能牌作用于自己且回答正确，返还 1 Token；每局最多触发一次'],
   'glm-5': ['知行合一', '每局一次，若双方 Agent 都答错，本轮直接视为 GLM-5 获胜，不再比较 Token'],
-  minimax: [
-    '声影共鸣',
-    '同一问题内部生成两条相互独立的候选答案；若答案不同，再执行一次最终裁决',
-  ],
+  minimax: ['声影共鸣', '同一问题内部生成两条相互独立的候选答案；若答案不同，再执行一次最终裁决'],
   yuanbao: ['博览集智', '每局一次，可以将一张技能牌以手牌中另一张技能牌的 Token 结算'],
   grok: ['破界直言', '回答问题前先检查一下题目是否有「坑」'],
   'wenxin-yiyan': ['文心妙笔', '回答文字题目时，免疫对方干扰类型技能'],

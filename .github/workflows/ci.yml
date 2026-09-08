@@ -1,0 +1,60 @@
+# 《正式版架构》6.1 的「快档」：每个 PR 都跑，时限 10 分钟。
+# 慢档（三浏览器一致性、端到端、四端构建、性能的时间指标）还没建，见 6.1 的表。
+#
+# 部署是另一条流水线（deploy.yml），这里只做检查，不碰线上。
+name: CI 快档
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# 同一个分支上连着推几次时，把还在跑的旧任务掐掉——PR 上只有最新一版的结论有意义。
+# main 上的推送也一样：紧跟着的下一次推送已经包含了前一次的内容。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # 6.1 给快档定的时限就是 10 分钟。超了不是"再等等"，是这档该瘦身或者挪进慢档。
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      # 顺序不能反：setup-node 的 cache: pnpm 要先能找到 pnpm 才知道去哪儿找 store。
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --frozen-lockfile：锁文件和 package.json 对不上就直接失败，
+      # 而不是悄悄改锁文件、用一套和本地不同的依赖跑完全绿。
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 类型检查
+        run: pnpm typecheck
+
+      # biome、dependency-cruiser、knip 依次跑，任何一个红整步就红。
+      # 冻结的 legacy-client 三个工具都不看，但它上面的 typecheck 和测试照跑——它还是线上那一版。
+      - name: Lint
+        run: pnpm lint
+
+      # 设计令牌的 TS / CSS 产物是提交进仓库的（迁移第 8 条）：Pixi 和 React 两边直接读，
+      # 谁也不用先跑一遍生成器。代价是产物可能和 tokens/*.json 走岔，所以这里当场重新生成一遍比对。
+      # 红了就是「改了令牌没重新生成」或者「手改了产物」，按提示跑 build 再提交。
+      - name: 设计令牌产物与源一致
+        run: pnpm --filter @ai-duel/design check
+
+      # `pnpm -r test` 只进有 test 脚本的包，现在是 core、design 和 legacy-client。
+      # 骨架包没有 test 脚本，会被直接跳过——别为了"看着整齐"给它们加空脚本，
+      # 那样一个空跑的绿色会盖住"这个包其实一条测试都没有"。
+      - name: 测试
+        run: pnpm test

@@ -23,9 +23,9 @@
 
 import { spawn } from 'node:child_process'
 import { mkdir } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -251,7 +251,7 @@ async function startDevServer() {
   return startProcess({
     label: 'dev server',
     port: DEV_PORT,
-    cwd: path.join(REPO_ROOT, 'packages', 'client'),
+    cwd: path.join(REPO_ROOT, 'packages', 'legacy-client'),
     argv: ['exec', 'vite', '--port', String(DEV_PORT), '--strictPort'],
     env: { ...process.env, VITE_SERVER_URL: `http://127.0.0.1:${RELAY_PORT}` },
     probePath: '/',
@@ -267,7 +267,7 @@ async function startDevServer() {
 async function startRelay() {
   // wrangler 启动时会校验静态资源目录存不存在，客户端没 build 过它就直接报错退出。
   // 截图的页面是 vite 提供的，走不到这个目录，所以空目录就够它过这一关。
-  await mkdir(path.join(REPO_ROOT, 'packages', 'client', 'dist'), { recursive: true })
+  await mkdir(path.join(REPO_ROOT, 'packages', 'legacy-client', 'dist'), { recursive: true })
 
   return startProcess({
     label: '转发器',

@@ -1,0 +1,370 @@
+{
+  "color": {
+    "page": {
+      "foreground": {
+        "$value": "#e5e7eb",
+        "$type": "color",
+        "$description": "页面默认前景色。来源：legacy-client/src/styles.css 的 :root color。真正的界面文字都被各自的面板改过颜色，这一档只在没人管的地方露出来。"
+      },
+      "background": {
+        "$value": "#0d1117",
+        "$type": "color",
+        "$description": "页面底色，舞台之外露出来的那一圈。来源：legacy-client/src/styles.css 的 :root background。"
+      }
+    },
+    "paper": {
+      "base": {
+        "$value": "#f0ecdf",
+        "$type": "color",
+        "$description": "纸张底色，纸面组件的默认面。来源：legacy-client/src/ui/paper/paper.css 的 --paper。"
+      },
+      "shade": {
+        "$value": "#e4ddc9",
+        "$type": "color",
+        "$description": "纸面暗部，用在凹槽和次一级的底。来源：paper.css 的 --paper-shade。"
+      },
+      "line": {
+        "$value": "#b9b19e",
+        "$type": "color",
+        "$description": "常规细线和内框。来源：paper.css 的 --line。"
+      },
+      "lineDark": {
+        "$value": "#8a8270",
+        "$type": "color",
+        "$description": "外框，需要咬住视线的那种线。来源：paper.css 的 --paper-line-dark（--line-dark 只是它的别名）。"
+      },
+      "ink": {
+        "$value": "#2e2e38",
+        "$type": "color",
+        "$description": "纸上的正文字色。来源：paper.css 的 --paper-ink（--ink 只是它的别名）。深色面板会就地翻成浅色，但画在纸上的东西始终读这一档。"
+      },
+      "inkMuted": {
+        "$value": "#6b6a5f",
+        "$type": "color",
+        "$description": "次级文字和说明文字。来源：paper.css 的 --ink-2。"
+      },
+      "night": {
+        "$value": "#323d57",
+        "$type": "color",
+        "$description": "深色面：战场底、头像框里的星空。来源：paper.css 的 --night。"
+      },
+      "navy": {
+        "$value": "#232f4b",
+        "$type": "color",
+        "$description": "墨蓝：卡背和按钮。来源：paper.css 的 --navy。"
+      }
+    },
+    "theme": {
+      "green": {
+        "$value": "#8a9a78",
+        "$type": "color",
+        "$description": "低饱和水彩感的主题色之一。来源：paper.css 的 --c-green。"
+      },
+      "rust": {
+        "$value": "#c07a52",
+        "$type": "color",
+        "$description": "低饱和水彩感的主题色之一。来源：paper.css 的 --c-rust。"
+      },
+      "blue": {
+        "$value": "#5a72a0",
+        "$type": "color",
+        "$description": "低饱和水彩感的主题色之一，也是纸面组件 --accent 没被指定时的兜底。来源：paper.css 的 --c-blue。"
+      },
+      "purple": {
+        "$value": "#9186bd",
+        "$type": "color",
+        "$description": "低饱和水彩感的主题色之一。来源：paper.css 的 --c-purple。"
+      },
+      "gold": {
+        "$value": "#d9a441",
+        "$type": "color",
+        "$description": "低饱和水彩感的主题色之一。来源：paper.css 的 --c-gold。"
+      },
+      "life": {
+        "$value": "#b23f33",
+        "$type": "color",
+        "$description": "生命值那一档红。来源：paper.css 的 --c-life。"
+      }
+    },
+    "battle": {
+      "paper": {
+        "$value": "#eee9dc",
+        "$type": "color",
+        "$description": "对局界面自己的一套纸色，比全局纸张略暖一点。来源：styles.css 的 .battle --battle-paper。"
+      },
+      "paperShade": {
+        "$value": "#e2dbc8",
+        "$type": "color",
+        "$description": "对局纸色的暗部，也是纸白匾额按钮的底。来源：styles.css 的 .battle --battle-paper-shade。"
+      },
+      "line": {
+        "$value": "#aaa391",
+        "$type": "color",
+        "$description": "对局界面的细线。来源：styles.css 的 .battle --battle-line。"
+      },
+      "lineDark": {
+        "$value": "#777465",
+        "$type": "color",
+        "$description": "对局界面的外框线。来源：styles.css 的 .battle --battle-line-dark。"
+      },
+      "ink": {
+        "$value": "#30313b",
+        "$type": "color",
+        "$description": "对局界面的正文字色。来源：styles.css 的 .battle --battle-ink。"
+      },
+      "inkMuted": {
+        "$value": "#6d6b61",
+        "$type": "color",
+        "$description": "对局界面的次级文字。来源：styles.css 的 .battle --battle-ink-muted。"
+      },
+      "navy": {
+        "$value": "#253149",
+        "$type": "color",
+        "$description": "对局界面的墨蓝，纸白匾额上的字用它。来源：styles.css 的 .battle --battle-navy。"
+      }
+    },
+    "home": {
+      "ink": {
+        "$value": "#e8c69f",
+        "$type": "color",
+        "$description": "首页画面上所有米色字的颜色，从设计稿里取的。来源：styles.css 的 .home --home-ink。"
+      },
+      "inkLit": {
+        "$value": "#fbe6c4",
+        "$type": "color",
+        "$description": "首页米色字被点亮的那一档（高亮标题、悬停态）。来源：styles.css 的 .home --home-ink-lit。"
+      },
+      "flourish": {
+        "$value": "{color.home.ink}",
+        "$type": "color",
+        "$description": "首页花饰（细线两端淡出、中间嵌一颗四角星）的颜色，和首页墨色是同一个值，只是各处带不同透明度（见 opacity.home.flourishStar / flourishLine）。来源：styles.css 的 .home__flourish-line / .home__cast-panel-rule。"
+      }
+    },
+    "accent": {
+      "ai": {
+        "$value": "#7fd1ff",
+        "$type": "color",
+        "$description": "AI 牌的标识色。来源：styles.css 的 .card-face--ai --accent。三种卡在对局侧栏里会同时出现，卡面底部那行标识的颜色是唯一的区分。"
+      },
+      "skill": {
+        "$value": "#ffc158",
+        "$type": "color",
+        "$description": "技能牌的标识色。来源：styles.css 的 .card-face--skill --accent。"
+      },
+      "hero": {
+        "$value": "#c9a6ff",
+        "$type": "color",
+        "$description": "英雄牌的标识色。挑紫是为了和 AI 牌的蓝、技能牌的橙都拉开距离。来源：styles.css 的 .card-face--hero --accent。"
+      }
+    },
+    "card": {
+      "edgeTint": {
+        "$value": "#f4ebd6",
+        "$type": "color",
+        "$description": "卡面边缘那圈米黄：边框、羽化带和卡面底色都是它，三者一致才没有硬接缝。来源：styles.css 的 .card-face --card-edge-tint（原值是 rgb 分量 244 235 214）。"
+      },
+      "loaderLine": {
+        "$value": "#ddcab7",
+        "$type": "color",
+        "$description": "卡片加载动画的线框色。来源：styles.css 的 .card-loader --cl-color。"
+      }
+    },
+    "plaque": {
+      "navy": {
+        "default": {
+          "fill": {
+            "$value": "#253149",
+            "$type": "color",
+            "$description": "八角匾额按钮默认变体（墨蓝）的板面。来源：styles.css 的 .plaque-button --plaque-fill。"
+          },
+          "edge": {
+            "$value": "#77766f",
+            "$type": "color",
+            "$description": "墨蓝匾额的外框描边。来源：styles.css 的 .plaque-button --plaque-edge。"
+          },
+          "line": {
+            "$value": "#aea897",
+            "$type": "color",
+            "$description": "墨蓝匾额的内框细线，实际使用带透明度（见 opacity.plaqueLine.navy.default）。来源：styles.css 的 .plaque-button --plaque-line。"
+          }
+        },
+        "hover": {
+          "fill": {
+            "$value": "#2c3953",
+            "$type": "color",
+            "$description": "墨蓝匾额悬停时的板面。来源：styles.css 的 .plaque-button:hover。"
+          },
+          "edge": {
+            "$value": "{color.plaque.navy.default.edge}",
+            "$type": "color",
+            "$description": "墨蓝匾额悬停时外框不变，沿用默认态那一档（旧样式的 :hover 没有覆盖 --plaque-edge）。"
+          },
+          "line": {
+            "$value": "#cb9d7b",
+            "$type": "color",
+            "$description": "墨蓝匾额悬停时的内框细线，偏暖。来源：styles.css 的 .plaque-button:hover --plaque-line。"
+          }
+        },
+        "disabled": {
+          "fill": {
+            "$value": "#676965",
+            "$type": "color",
+            "$description": "墨蓝匾额禁用时的板面，掉饱和度。来源：styles.css 的 .plaque-button:disabled。"
+          },
+          "edge": {
+            "$value": "#9b988d",
+            "$type": "color",
+            "$description": "墨蓝匾额禁用时的外框。来源：styles.css 的 .plaque-button:disabled。"
+          },
+          "line": {
+            "$value": "#e0dccf",
+            "$type": "color",
+            "$description": "墨蓝匾额禁用时的内框细线。来源：styles.css 的 .plaque-button:disabled --plaque-line。"
+          }
+        }
+      },
+      "paper": {
+        "default": {
+          "fill": {
+            "$value": "{color.battle.paperShade}",
+            "$type": "color",
+            "$description": "纸白匾额变体的板面，对局里那几块悬浮 UI（结束出牌、触屏的打出键）用它。来源：styles.css 的 .battle__end-turn .plaque-button 与 .hand-fan .hand-fan__play。"
+          },
+          "edge": {
+            "$value": "{color.battle.lineDark}",
+            "$type": "color",
+            "$description": "纸白匾额的外框描边。来源同上。"
+          },
+          "line": {
+            "$value": "#786442",
+            "$type": "color",
+            "$description": "纸白匾额的内框细线（暖褐），实际使用带透明度。来源：styles.css 的 --plaque-line: rgb(120 100 66 / 55%)。"
+          }
+        },
+        "hover": {
+          "fill": {
+            "$value": "#f2ead7",
+            "$type": "color",
+            "$description": "纸白匾额悬停时的板面：纸面上要更亮才读得出是活的。来源：styles.css 的 .battle__end-turn .plaque-button:hover。"
+          },
+          "edge": {
+            "$value": "{color.plaque.paper.default.edge}",
+            "$type": "color",
+            "$description": "纸白匾额悬停时外框不变，沿用默认态那一档。"
+          },
+          "line": {
+            "$value": "{color.plaque.paper.default.line}",
+            "$type": "color",
+            "$description": "纸白匾额悬停时内框色不变，只把透明度提到 78%（见 opacity.plaqueLine.paper.hover）。"
+          }
+        },
+        "disabled": {
+          "fill": {
+            "$value": "#ded9cd",
+            "$type": "color",
+            "$description": "纸白匾额禁用时的板面：留在纸白系但褪到发灰。来源：styles.css 的 .battle__end-turn .plaque-button:disabled。"
+          },
+          "edge": {
+            "$value": "#a09c90",
+            "$type": "color",
+            "$description": "纸白匾额禁用时的外框。来源同上。"
+          },
+          "line": {
+            "$value": "#969184",
+            "$type": "color",
+            "$description": "纸白匾额禁用时的内框细线。来源：styles.css 的 --plaque-line: rgb(150 145 132 / 50%)。"
+          }
+        }
+      },
+      "terracotta": {
+        "default": {
+          "fill": {
+            "$value": "#b77f5f",
+            "$type": "color",
+            "$description": "陶橙匾额变体的板面，用在「催一催」这类轻量互动上——它不该比主操作更抢眼。来源：styles.css 的 .battle__urge .plaque-button。"
+          },
+          "edge": {
+            "$value": "#6f4f3e",
+            "$type": "color",
+            "$description": "陶橙匾额的外框描边。来源同上。"
+          },
+          "line": {
+            "$value": "#f4d5b5",
+            "$type": "color",
+            "$description": "陶橙匾额的内框细线。来源：styles.css 的 --plaque-line: rgb(244 213 181 / 62%)。"
+          }
+        },
+        "hover": {
+          "fill": {
+            "$value": "#c28a68",
+            "$type": "color",
+            "$description": "陶橙匾额悬停时的板面。来源：styles.css 的 .battle__urge .plaque-button:hover。"
+          },
+          "edge": {
+            "$value": "{color.plaque.terracotta.default.edge}",
+            "$type": "color",
+            "$description": "陶橙匾额悬停时外框不变，沿用默认态那一档。"
+          },
+          "line": {
+            "$value": "#ffe3c2",
+            "$type": "color",
+            "$description": "陶橙匾额悬停时的内框细线。来源：styles.css 的 --plaque-line: rgb(255 227 194 / 82%)。"
+          }
+        },
+        "disabled": {
+          "fill": {
+            "$value": "#9b887c",
+            "$type": "color",
+            "$description": "陶橙匾额禁用时的板面。来源：styles.css 的 .battle__urge .plaque-button:disabled。"
+          },
+          "edge": {
+            "$value": "#756961",
+            "$type": "color",
+            "$description": "陶橙匾额禁用时的外框。来源同上。"
+          },
+          "line": {
+            "$value": "#e1d6c7",
+            "$type": "color",
+            "$description": "陶橙匾额禁用时的内框细线。来源：styles.css 的 --plaque-line: rgb(225 214 199 / 32%)。"
+          }
+        }
+      },
+      "ivory": {
+        "default": {
+          "fill": {
+            "$value": "#e7ddc6",
+            "$type": "color",
+            "$description": "米白匾额变体的板面，英雄页那颗「确认英雄」用它：那一页背景暗，主按钮得是画面上最亮的一块。来源：legacy-client/src/screens/hero.css 的 .hero__confirm / .hero__return。"
+          },
+          "edge": {
+            "$value": "#8f7c56",
+            "$type": "color",
+            "$description": "米白匾额的外框描边。来源同上。"
+          },
+          "line": {
+            "$value": "#786442",
+            "$type": "color",
+            "$description": "米白匾额的内框细线，和纸白那档同色，只是透明度不同。来源：hero.css 的 --plaque-line: rgb(120 100 66 / 55%)。"
+          }
+        },
+        "hover": {
+          "fill": {
+            "$value": "#f2e9d5",
+            "$type": "color",
+            "$description": "米白匾额悬停时的板面。来源：hero.css 的 .hero__confirm:hover。"
+          },
+          "edge": {
+            "$value": "{color.plaque.ivory.default.edge}",
+            "$type": "color",
+            "$description": "米白匾额悬停时外框不变，沿用默认态那一档。"
+          },
+          "line": {
+            "$value": "{color.plaque.ivory.default.line}",
+            "$type": "color",
+            "$description": "米白匾额悬停时内框色不变，只把透明度提到 75%（见 opacity.plaqueLine.ivory.hover）。"
+          }
+        }
+      }
+    }
+  }
+}

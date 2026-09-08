@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 把 /room 匹配房的整张 UI 素材图切成一张张独立的元素图，输出到
-packages/client/public/room/，供 RoomScreen.tsx / room.css 直接当 <img> 用。
+packages/legacy-client/public/room/，供 RoomScreen.tsx / room.css 直接当 <img> 用。
 
 素材图 assets/room-ui-sheet.png 是 3344x1882（去掉了背景和文字），正好是页面
 1672x941 舞台的 2 倍，且每个元素都画在它在页面上应处的位置。所以切片的包围盒
@@ -27,7 +27,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 SHEET = ROOT / "assets" / "room-ui-sheet.png"
-OUT_DIR = ROOT / "packages" / "client" / "public" / "room"
+OUT_DIR = ROOT / "packages" / "legacy-client" / "public" / "room"
 
 # 素材图相对舞台的倍率，以及舞台尺寸。折算落位全靠这三个数。
 SCALE = 2
@@ -62,7 +62,7 @@ PANEL_HOLLOW = (390, 512, 2961, 1186)
 # 下面注掉的读数就是量出来的安全范围。
 #
 # 左上角的返回箭头（原图 100,92~217,201）不在这张表里：它已经改画成矢量了
-# （见 client 的 ui/BackButton.tsx），切出来也没人用。
+# （见 legacy-client 的 ui/BackButton.tsx），切出来也没人用。
 REGIONS: list[tuple[str, tuple[int, int, int, int], bool]] = [
     ("book", (2809, 92, 2968, 209), True),
     ("flourish-l", (844, 184, 1246, 301), True),

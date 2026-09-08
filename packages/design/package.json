@@ -1,0 +1,23 @@
+{
+  "name": "@ai-duel/design",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/generated/tokens.css"
+  },
+  "scripts": {
+    "build": "node sd.config.mjs",
+    "check": "node sd.config.mjs --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "style-dictionary": "^5.5.2",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  }
+}

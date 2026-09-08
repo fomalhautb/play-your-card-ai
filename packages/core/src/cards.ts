@@ -1,6 +1,6 @@
-import type { CardId, HandCard } from './types'
-import { AI_MODEL_CARDS, PLAYABLE_AI_CARD_IDS } from './aiModels'
+import { AI_MODEL_CARDS } from './aiModels'
 import { SKILL_DESIGN_CARDS } from './skillCards'
+import type { CardId, HandCard } from './types'
 
 /**
  * 全部卡牌定义：十八张具名 AI 牌（表在 aiModels.ts，那边一张卡对一张原画）
@@ -42,7 +42,7 @@ export const DECK_SIZE = 20
 
 /*
  * 下面三套预设牌组：新玩家一进来就有这三副能直接开局的牌，各是一种打法。
- * 客户端把它们播成最初的三套牌组存档（见 client 的 deckStore）。
+ * 客户端把它们播成最初的三套牌组存档（见 legacy-client 的 deckStore）。
  *
  * 三副的共同约束（由 collection 的测试守着）：各 20 张（DECK_SIZE）、同名卡最多 3 份
  * （构筑页的 MAX_COPIES，预设不该出现玩家自己编不出来的牌组）、

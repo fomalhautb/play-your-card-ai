@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    // 内容数据要能被服务端（workerd）和客户端（浏览器）同样地读，两边都不是 Node。
+    // 这里清空全局类型，误用 DOM 或 Node API 时会直接编译报错。
+    "types": []
+  },
+  "include": ["src"]
+}

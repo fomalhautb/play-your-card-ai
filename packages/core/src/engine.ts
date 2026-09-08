@@ -113,7 +113,7 @@ export interface PlayerSetup {
   deck: CardId[]
   /**
    * 这一方的英雄，不填就是 DEFAULT_HERO。
-   * 联机对局双方都会明确传（匹配后的选英雄那一步，见 client 的 RoomScreen）；
+   * 联机对局双方都会明确传（匹配后的选英雄那一步，见 legacy-client 的 RoomScreen）；
    * 测试房只在存档里存过英雄时才传，没存过就吃默认值。
    * 传 null 表示这一方不带英雄（现在只有测试会这么用）。
    */
@@ -202,8 +202,7 @@ export function createGame(setup: GameSetup): ExecuteResult {
   // 于是同一个 seed 下改先手不会连带把牌堆和题序也洗成另一副，
   // 教程排剧本时"先定牌序、再单独安排谁先手"这两件事才互不牵连。
   // 代价是指定先手和不指定先手在同一个 seed 上洗出来的牌不一样——那是两种玩法，本就不必对齐。
-  const firstPlayer: PlayerId =
-    setup.firstPlayer ?? (uniformInt(rng, 0, 1) === 0 ? 0 : 1)
+  const firstPlayer: PlayerId = setup.firstPlayer ?? (uniformInt(rng, 0, 1) === 0 ? 0 : 1)
   // 先建好两个玩家再组装 state：makePlayer 会推进 seq，
   // 写在对象字面量里的话 seq 那一行会按书写顺序取到发牌前的旧值。
   const players: [PlayerState, PlayerState] = [
@@ -777,9 +776,7 @@ function submitAnswers(state: GameState, results: AnswerResult[]): ExecuteResult
   const correctCounts: [number, number] = [0, 0]
   for (const result of results) {
     // 上面刚校验过 results 和场上一一对应，所以这里必定找得到人。
-    const owner = next.players.find((p) =>
-      p.board.some((a) => a.instanceId === result.instanceId),
-    )!
+    const owner = next.players.find((p) => p.board.some((a) => a.instanceId === result.instanceId))!
     if (result.correct) correctCounts[owner.id] += 1
     const index = owner.board.findIndex((a) => a.instanceId === result.instanceId)
     const ai = owner.board[index]!
@@ -813,10 +810,7 @@ function submitAnswers(state: GameState, results: AnswerResult[]): ExecuteResult
 
   // 计分：每轮就 1 分，按三档判（见 RoundVerdict）。
   // 场上一个 AI 都没有的一方答对数是 0，但对局照常走下去。
-  const spent: [number, number] = [
-    next.players[0].spentThisRound,
-    next.players[1].spentThisRound,
-  ]
+  const spent: [number, number] = [next.players[0].spentThisRound, next.players[1].spentThisRound]
   let gains: [number, number]
   let verdict: RoundVerdict
   if (correctCounts[0] !== correctCounts[1]) {

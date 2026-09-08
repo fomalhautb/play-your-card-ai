@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // Pixi 要拿 canvas 元素、WebGL 上下文、指针事件，所以要 DOM 的全局类型。
+    // 不加 "node"：场景跑在浏览器 / WebView / Electron 渲染进程里，
+    // 误用 process、fs 这类 Node 全局要在编译期就拦下来。
+    "types": []
+  },
+  "include": ["src"]
+}

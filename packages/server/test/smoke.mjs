@@ -1,7 +1,7 @@
 /**
  * 转发器的端到端冒烟测试。
  *
- * 跑法：先 `pnpm --filter @ai-duel/client build` 出静态资源，
+ * 跑法：先 `pnpm --filter @ai-duel/legacy-client build` 出静态资源，
  * 另开一个终端 `pnpm --filter @ai-duel/server dev`，然后 `pnpm --filter @ai-duel/server smoke`。
  * 换地址用环境变量：SMOKE_BASE=https://playyourcardai.online node test/smoke.mjs
  *
@@ -32,7 +32,10 @@ function check(ok, label, detail = '') {
 
 /** 每个模拟玩家一个 id，重连时沿用同一个，转发器靠它认出"还是刚才那个人"。 */
 let peerSeq = 0
-const newPeerId = () => `smoke-${(peerSeq += 1)}`
+const newPeerId = () => {
+  peerSeq += 1
+  return `smoke-${peerSeq}`
+}
 
 /**
  * 一条连上去的 WebSocket，带一个消息队列。
@@ -255,12 +258,20 @@ async function main() {
    * 就会给 host 补一条 peer:offline——host 那边的宽限期计时随即启动，
    * 一局正常进行的对局会莫名其妙被判中断。
    */
-  check(await host.quiet(), 'host 没有收到多余的 peer:offline（重连不误报掉线）', JSON.stringify(host.inbox))
+  check(
+    await host.quiet(),
+    'host 没有收到多余的 peer:offline（重连不误报掉线）',
+    JSON.stringify(host.inbox),
+  )
 
   console.log('\n9. 重连之后转发照常走新连接')
   guestBack.ws.send('after-reconnect')
   const afterReconnect = await host.next()
-  check(afterReconnect === '>after-reconnect', 'host 收到新连接发来的载荷', JSON.stringify(afterReconnect))
+  check(
+    afterReconnect === '>after-reconnect',
+    'host 收到新连接发来的载荷',
+    JSON.stringify(afterReconnect),
+  )
 
   console.log('\n10. 心跳：发 ping 收 pong，且不会被转发给对手')
   /*
@@ -276,12 +287,16 @@ async function main() {
   console.log('\n11. host 断线重连：客人还在房里，房主不该被判「房间已被占用」')
   const hostBack = await connect(code, 'host', hostId, true)
   check(true, 'host 用同一个 peer id 重连成功')
-  check(hostBack.presence === '#peer:online', '重连方收到 #peer:online（客人还在）', hostBack.presence)
+  check(
+    hostBack.presence === '#peer:online',
+    '重连方收到 #peer:online（客人还在）',
+    hostBack.presence,
+  )
   /*
    * 这条断言依赖上一项的心跳：本地 wrangler 里，一条**从没往上发过消息**的连接
    * 被服务端主动 close 时，关闭帧不会真的送到客户端（服务端侧停在 CLOSING）。
    * 上一项让 host 发过 ping 之后这里才稳定——真实客户端每 15 秒一次心跳，
-   * 所以线上不存在"从没发过消息"的连接（见 client 的 socket.ts）。
+   * 所以线上不存在"从没发过消息"的连接（见 legacy-client 的 socket.ts）。
    *
    * 顺带说明：就算关闭帧真的没送达也不影响对局。房里谁是谁按玩家 id 分组，
    * 僵尸连接和顶替它的新连接算同一个玩家，不会被当成对端，也不会占掉对手的位置。
@@ -290,7 +305,11 @@ async function main() {
   check(hostZombie.code === 4004, 'host 旧连接被顶掉，关闭码 4004', JSON.stringify(hostZombie))
   const guestSaw = await guestBack.next()
   check(guestSaw === '#peer:online', 'guest 收到 #peer:online', `实际 ${JSON.stringify(guestSaw)}`)
-  check(await guestBack.quiet(), 'guest 没有收到多余的 peer:offline', JSON.stringify(guestBack.inbox))
+  check(
+    await guestBack.quiet(),
+    'guest 没有收到多余的 peer:offline',
+    JSON.stringify(guestBack.inbox),
+  )
 
   console.log('\n12. 对手真的走了，才发 peer:offline')
   guestBack.ws.close()
@@ -307,12 +326,20 @@ async function main() {
   const lonelyCode = await freshCode()
   const resumed = await connect(lonelyCode, 'guest', newPeerId(), true)
   check(true, 'guest 带 resume=1 进了空房间')
-  check(resumed.presence === '#peer:offline', '收到 #peer:offline（房主还没回来）', resumed.presence)
+  check(
+    resumed.presence === '#peer:offline',
+    '收到 #peer:offline（房主还没回来）',
+    resumed.presence,
+  )
 
   const hostRejoin = await connect(lonelyCode, 'host', newPeerId(), true)
   check(hostRejoin.presence === '#peer:online', 'host 随后回来，看到客人在等', hostRejoin.presence)
   const resumedSaw = await resumed.next()
-  check(resumedSaw === '#peer:online', 'guest 收到 #peer:online', `实际 ${JSON.stringify(resumedSaw)}`)
+  check(
+    resumedSaw === '#peer:online',
+    'guest 收到 #peer:online',
+    `实际 ${JSON.stringify(resumedSaw)}`,
+  )
   resumed.ws.close()
   hostRejoin.ws.close()
 

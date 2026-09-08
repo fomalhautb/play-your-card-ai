@@ -16,7 +16,7 @@ import type { AiCard, CardId } from './types'
  * OpenRouter 上都没有对得上的模型（各自的原委写在那两张牌旁边），它们因此不进卡池
  *（见 collection.ts 的 CARD_POOL），牌组页仍然把它们灰着摆在最后，和「即将上线」的技能牌
  * 一个待遇。
- * 离线预生成脚本 scripts/pregen-answers.mjs 另有一份自己的模型表：那边除了 id 还要配
+ * 离线预生成的数据表 scripts/pregen-data.mjs 另有一份自己的模型表：那边除了 id 还要配
  * 思考强度和截断方式，是这份表的一个带调参的子集，加模型时两处都要看一眼。
  *
  * 另有两个给技能牌读的标签，改动同样会直接影响平衡。它们和"调不调得到模型"是两回事，

@@ -7,7 +7,7 @@ import type { Question } from './types'
  * 但现在一局不一定打满：先到 3 分就结束（见 engine 的 WIN_TARGET），
  * 题库只是"最多能打几轮"和加赛的上限。
  *
- * 这 8 道题的题面必须和 scripts/pregen-answers.mjs 里的 QUESTIONS 完全一致：
+ * 这 8 道题的题面必须和 scripts/pregen-data.mjs 里的 QUESTIONS 完全一致：
  * 对局里 AI 的回答是照那份题面离线跑出来的（见 script.ts），
  * 这边改一个字，玩家看到的题就和 AI 实际被问到的那道对不上了。
  * id 也是两边对齐的查表键，改 id 等于让预生成数据整行作废。
