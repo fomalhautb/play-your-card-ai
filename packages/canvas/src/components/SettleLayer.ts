@@ -1,8 +1,8 @@
 /**
  * 回合结算全屏层（需求单面板 I）：题目 + 标准答案 + 双方 AI 的作答 + 本轮计分 + 确认按钮。
  *
- * 上半截（顶栏和题目那一行）在 `SettleChrome`，一张结果卡在 `SettleRow`，
- * 拆开只是因为单文件 400 行那条卡着——三个文件合起来才是这一层。
+ * 上半截（顶栏和题目那一行）在 `SettleChrome`，一侧的标头加那一排结果卡在 `SettleSquad`，
+ * 一张结果卡在 `SettleRow`，拆开只是因为单文件 400 行那条卡着——四个文件合起来才是这一层。
  *
  * **一段演出一个方法，和 cue 一一对应**：`open` / `addRow` / `revealAnswer` / `typeRow` /
  * `stamp` / `showCounts` / `showScore` / `enableConfirm` / `exit` 依次对上
@@ -34,24 +34,21 @@ import { Label } from './Label'
 import { PLAQUE_NAVY, PlaqueButton } from './PlaqueButton'
 import { SettleChrome, type SettleChromeDeps } from './SettleChrome'
 import { SettleRow } from './SettleRow'
+import { SettleSquad } from './SettleSquad'
 
 /** 哪一侧。和 cue 里 `settle-row` 的 `mine` 是同一件事，换成有名字的写法。 */
 export type SettleSide = 'mine' | 'theirs'
 
 /**
- * 底栏和结果卡区自己的几何、字号（px）。组件私有，理由见 design 的 README。
- * 来源：styles.css 的 `.settle__bottom`（96 高）、`.settle__squad-tab`（5.2 宽）等。
+ * 底栏自己的几何、字号（px）。组件私有，理由见 design 的 README。
+ * 来源：styles.css 的 `.settle__bottom`（96 高）。`padX` 同时是整层的左右留白，
+ * 两侧的标头也贴着它起排（见 layoutSquads）。
  */
 const BOTTOM = { height: 96, padX: 28 } as const
-const SQUAD = { tabWidth: 6, gap: 18, headHeight: 26 } as const
 const TYPE = {
-  head: { fontSize: tokens.font.size.lg, letterSpacing: 1.68 },
-  lead: { fontSize: tokens.font.size.md, letterSpacing: 1.2 },
   spend: { fontSize: tokens.font.size.lg, letterSpacing: 0.78 },
   verdict: { fontSize: 22, letterSpacing: 1.32, weight: '600' },
 } as const
-/** 领先徽章的内边距。抄需求单徽章 G（45×13、padding 2/10）。 */
-const LEAD_PAD = { x: 10, y: 2 } as const
 /**
  * 这一层的设计尺寸，也是旧版那块舞台的大小。
  *
@@ -81,14 +78,7 @@ export class SettleLayer extends Container {
   private readonly content = new Container()
   private readonly paper = new Graphics()
   private readonly chrome: SettleChrome
-  private readonly squads: Record<SettleSide, Container> = {
-    theirs: new Container(),
-    mine: new Container(),
-  }
-  private readonly heads: Record<SettleSide, Container> = {
-    theirs: new Container(),
-    mine: new Container(),
-  }
+  private readonly squads: Record<SettleSide, SettleSquad>
   private readonly bottom = new Container()
   private readonly confirmSlot = new Container()
   private readonly rows = new Map<string, SettleRow>()
@@ -112,13 +102,12 @@ export class SettleLayer extends Container {
     // 整层吃指针事件：结算期间战场点不动，只有确认按钮能点。
     this.eventMode = 'static'
     this.chrome = new SettleChrome(DESIGN.width, deps)
+    this.squads = { theirs: new SettleSquad('theirs', deps), mine: new SettleSquad('mine', deps) }
     this.content.addChild(
       this.paper,
       this.chrome,
       this.squads.theirs,
       this.squads.mine,
-      this.heads.theirs,
-      this.heads.mine,
       this.bottom,
       this.confirmSlot,
     )
@@ -165,7 +154,7 @@ export class SettleLayer extends Container {
     this.chrome.setMeta(round, scoresBefore.mine, scoresBefore.theirs)
     this.chrome.setStep(0)
     this.chrome.setQuestion(question.category, question.text)
-    this.buildSquadHeads()
+    for (const squad of Object.values(this.squads)) squad.setCounts(null, false)
     this.buildBottom(null)
     for (const child of this.confirmSlot.removeChildren()) child.destroy({ children: true })
     this.layoutSquads()
@@ -193,7 +182,7 @@ export class SettleLayer extends Container {
     if (this.rows.has(rowId)) return 0
     const row = new SettleRow(rowId, name, card, this.deps)
     this.rows.set(rowId, row)
-    this.squads[side].addChild(row)
+    this.squads[side].addRow(row)
     this.layoutSquads()
     row.appear(SETTLE_ROW_IN_MS)
     return SETTLE_ROW_IN_MS
@@ -222,14 +211,9 @@ export class SettleLayer extends Container {
    */
   showCounts(mine: number, theirs: number, leader: SettleSide | null): number {
     this.chrome.setStep(2)
-    this.buildSquadHeads({ mine, theirs }, leader)
-    const duration = SETTLE_COUNTS_MS / 1000
+    const counts = { mine, theirs }
     for (const side of ['mine', 'theirs'] as const) {
-      this.deps.animator.fromTo(
-        this.heads[side],
-        { alpha: 0 },
-        { alpha: 1, duration, ease: 'power2.out', overwrite: 'auto' },
-      )
+      this.squads[side].revealCounts(counts[side], leader === side, SETTLE_COUNTS_MS)
     }
     return SETTLE_COUNTS_MS
   }
@@ -348,66 +332,6 @@ export class SettleLayer extends Container {
     this.rows.clear()
   }
 
-  /**
-   * 两侧的标头：阵营侧条（标签页 D）、「我方 / 对方」、「正确 x / N」和领先徽章（徽章 G）。
-   * counts 给 null 就只画名字那一半——`open` 那会儿还没人答题。
-   */
-  private buildSquadHeads(
-    counts: { mine: number; theirs: number } | null = null,
-    leader: SettleSide | null = null,
-  ): void {
-    for (const side of ['theirs', 'mine'] as const) {
-      const head = this.heads[side]
-      for (const child of head.removeChildren()) child.destroy({ children: true })
-      const accent = side === 'mine' ? tokens.color.theme.life : tokens.color.battle.lineDark
-      const title = new Label(
-        side === 'mine' ? '我方' : '对方',
-        TYPE.head,
-        this.deps,
-        tokens.color.battle.ink,
-      )
-      title.position.set(SQUAD.tabWidth + 12 + title.textWidth / 2, SQUAD.headHeight / 2)
-      head.addChild(title)
-      if (counts !== null) {
-        const total = this.squads[side].children.length
-        const correct = counts[side]
-        const note = new Label(
-          `正确 ${correct} / ${total}`,
-          TYPE.head,
-          this.deps,
-          tokens.color.battle.inkMuted,
-        )
-        note.position.set(
-          title.x + title.textWidth / 2 + 16 + note.textWidth / 2,
-          SQUAD.headHeight / 2,
-        )
-        head.addChild(note)
-        if (leader === side) head.addChild(this.buildLead(note.x + note.textWidth / 2 + 14))
-      }
-      // 阵营侧条：贴在结果卡纵列外侧的一条竖色带。
-      head.addChild(
-        new Graphics().rect(0, 0, SQUAD.tabWidth, SQUAD.headHeight).fill({ color: accent }),
-      )
-    }
-  }
-
-  /** 「本轮领先」徽章：绿底白字的一小块。 */
-  private buildLead(x: number): Container {
-    const box = new Container()
-    const label = new Label('本轮领先', TYPE.lead, this.deps, tokens.color.battle.paper)
-    const width = Math.round(label.textWidth) + LEAD_PAD.x * 2
-    const height = Math.round(label.textHeight) + LEAD_PAD.y * 2
-    box.addChild(
-      new Graphics()
-        .roundRect(0, 0, width, height, tokens.radius.sm)
-        .fill({ color: tokens.color.theme.forest }),
-    )
-    label.position.set(width / 2, height / 2)
-    box.addChild(label)
-    box.position.set(x, (SQUAD.headHeight - height) / 2)
-    return box
-  }
-
   /** 底栏那两行：消耗和结论。传 null 就只占位不写字（`open` 那会儿还没算分）。 */
   private buildBottom(
     data: { spent: { mine: number; theirs: number }; verdict: string } | null,
@@ -433,35 +357,17 @@ export class SettleLayer extends Container {
     this.chrome.pulseMeta(this.deps.animator, PULSE.scale, PULSE.dur)
   }
 
-  /** 结果卡两列：对方在上、我方在下，各自居中，列内从上往下排。 */
+  /**
+   * 两侧的位置：对方在上、我方在下，各占剩下那块高度的一半。
+   * 块内怎么排（标头贴左、卡整排居中）归 `SettleSquad` 自己管。
+   */
   private layoutSquads(): void {
     const top = this.chrome.rowBottom
     const half = (this.boxHeight - BOTTOM.height - top) / 2
     for (const [index, side] of (['theirs', 'mine'] as const).entries()) {
-      const column = this.squads[side]
-      const rows = column.children as SettleRow[]
-      const blockTop = top + index * half
-      this.heads[side].position.set(BOTTOM.padX, blockTop)
-      column.position.set(0, 0)
-      if (rows.length === 0) continue
-      /*
-       * 一侧的卡**横着排**，不是叠成一列。
-       *
-       * 这一层的高度是死的，一侧分到的那半格只装得下一张卡的高度；竖着排的话第二张
-       * 就掉到另一侧的地盘里去了。旧版同理，它是靠 `--settle-cols` 按张数现算列数的。
-       * 张数多到一行摆不下时压边（同战场那两排的处理），每张至少露出 `SQUAD.gap` 那么宽。
-       */
-      const cardWidth = rows[0]!.boxWidth
-      const usable = this.boxWidth - BOTTOM.padX * 2
-      const ideal = cardWidth + SQUAD.gap
-      const fit = rows.length <= 1 ? ideal : (usable - cardWidth) / (rows.length - 1)
-      const step = Math.max(SQUAD.gap, Math.min(ideal, fit))
-      const rowY = blockTop + SQUAD.headHeight + 8
-      const totalWidth = cardWidth + step * (rows.length - 1)
-      const left = (this.boxWidth - totalWidth) / 2
-      rows.forEach((row, i) => {
-        row.position.set(left + i * step, rowY)
-      })
+      const squad = this.squads[side]
+      squad.position.set(0, top + index * half)
+      squad.layout(this.boxWidth, BOTTOM.padX)
     }
   }
 }
