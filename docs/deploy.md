@@ -1,8 +1,9 @@
 # 部署说明
 
 > 这份文档写的是**黑客松那版转发器**怎么部署，线上跑的仍然是它。
-> 新的权威房间对象和大厅对象（《正式版架构》迁移第 22、24 条）并排加在同一个 Worker 里，
-> 走 `/match/:code` + `MATCH_ROOM` 和 `/lobby` + `LOBBY` 两组绑定，和下面这套互不相干——
+> 新的权威房间对象、大厅对象和账号系统（《正式版架构》迁移第 22、24、25 条）
+> 并排加在同一个 Worker 里，走 `/match/:code` + `MATCH_ROOM`、`/lobby` + `LOBBY`、
+> `/api/auth/*` + `AUTH_DB`（D1）三组绑定，和下面这套互不相干——
 > 它自己的目录结构、本地开发和测试见 `packages/server/README.md`。
 > 部署方式两套是一样的：同一个 `wrangler deploy`。
 
@@ -184,7 +185,7 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 （Cloudflare 自家 PartyKit 那套里拆出来的），别自己手写——它是 `WebSocket` 的替身，
 自带指数退避重连、断线期间的发送队列和心跳，接口和原生 `WebSocket` 一样。
 
-## 6. 免费档够不够用
+## 7. 免费档够不够用
 
 | 额度 | 免费档 | 这个项目怎么花 |
 |---|---|---|
@@ -197,10 +198,43 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 
 结论：黑客松演示的量级离额度上限差着好几个数量级。
 
-## 7. 自动部署
+## 8. 账号库（D1）
+
+账号是 better-auth 配 Cloudflare D1（《正式版架构》5.5，迁移第 25 条），
+挂在同一个 Worker 的 `/api/auth/*` 下面，绑定名 `AUTH_DB`。
+用 D1 而不是再开一个 Durable Object：账号是全局要查的关系型数据，
+而 DO 的 SQLite 是一个实例一份，天然做不了跨实例查询。
+
+**合并这条改动之前，仓库的主人要先做两件事**（都需要 Cloudflare 凭据，别人代劳不了）：
+
+```bash
+cd packages/server
+
+# 1) 建库。输出里的 database_id 填进 wrangler.jsonc 的 d1_databases
+#    （现在那里是占位符 "<待用户 wrangler d1 create 后填写>"）
+npx wrangler d1 create ai-duel-auth
+
+# 2) 生成并写入 better-auth 的主密钥（签会话 cookie、加密 JWT 私钥）
+openssl rand -base64 32 | npx wrangler secret put BETTER_AUTH_SECRET
+```
+
+建表不用手动跑：`deploy.yml` 里在部署前有一步
+`wrangler d1 migrations apply AUTH_DB --remote`，语句在 `packages/server/migrations/`。
+这条命令是幂等的，wrangler 按 `d1_migrations` 表记账，跑过的不会再跑。
+顺序不能反——新代码一上线就会去查那几张表，表还没建的话第一个来登录的人直接报 500。
+
+`BETTER_AUTH_SECRET` **换掉就等于把已经生成的 JWT 私钥变成一坨解不开的东西**
+（它是拿这个密钥加密存在 `jwks` 表里的）。真要换，得连那张表一起清掉让它重新生成，
+代价是所有已经发出去的 JWT 立刻作废，玩家重新登录一次。
+
+D1 免费档是 5GB 存储、每天 500 万行读 / 10 万行写。一个游客账号占三四行，
+握手验签那条查询还带一分钟的内存缓存（`src/auth/verify.ts`），离上限差得远。
+
+## 9. 自动部署
 
 `.github/workflows/deploy.yml`：push 到 `main` 或者手动触发 → 装依赖 →
-`pnpm --filter @ai-duel/legacy-client build` → 在 `packages/server` 里跑 `wrangler deploy`。
+`pnpm --filter @ai-duel/legacy-client build` → 应用账号库迁移 →
+在 `packages/server` 里跑 `wrangler deploy`。
 
 **必须先构建前端**：`wrangler.jsonc` 里 `assets.directory` 指向 `../legacy-client/dist`，
 而 `dist/` 是 gitignore 掉的，仓库里没有这个目录。
@@ -220,7 +254,7 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 
 没配 secret 时工作流会**跳过部署并显示成功**，不会变红。这样别人 fork 这个仓库不会看到一片红。
 
-## 8. 踩过的坑
+## 10. 踩过的坑
 
 **`exports` 取代了 legacy 的 `migrations`。**
 老教程里的 `"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]` 已经是遗留写法，
@@ -257,20 +291,22 @@ Cloudflare 这么做是为了少算一次计费调用。
 WebSocket 升级请求不是导航请求，所以能正常进到 Worker。
 上面 `run_worker_first` 里列出来的路径不受这条影响。
 
-## 9. 本地跑和验证
+## 11. 本地跑和验证
 
 ```bash
-cp packages/server/.dev.vars.example packages/server/.dev.vars   # 第一次：填 JWT_SECRET
+cp packages/server/.dev.vars.example packages/server/.dev.vars   # 第一次：填 BETTER_AUTH_SECRET
 pnpm --filter @ai-duel/legacy-client build     # 先出静态资源，Worker 要用
+# 第一次还要把本地那个 D1 库的表建起来（库在 packages/server/.wrangler/ 下面，不进仓库）
+pnpm --filter @ai-duel/server exec wrangler d1 migrations apply AUTH_DB --local
 pnpm dev:server                         # wrangler dev，默认 http://127.0.0.1:8787
 
 # 另开一个终端，跑端到端冒烟测试
 pnpm --filter @ai-duel/server smoke
 ```
 
-`JWT_SECRET` 是新房间对象验握手 JWT 用的（`src/auth/verify.ts`），
-`.dev.vars` 不进仓库，线上那份走 `wrangler secret put JWT_SECRET`。
-旧转发器不认账号，没有这一条也照跑。
+`BETTER_AUTH_SECRET` 是账号系统的主密钥（见上一节），`.dev.vars` 不进仓库。
+旧转发器不认账号，这一条和 D1 建表它都用不上，没有也照跑；
+新房间和大厅要靠它验握手那张 JWT（`src/auth/verify.ts`）。
 
 新服务端自己的测试不用先起 `wrangler dev`——它跑在 `@cloudflare/vitest-pool-workers`
 起的 workerd 里，`pnpm --filter @ai-duel/server test` 就够，已经在 CI 的快档里。

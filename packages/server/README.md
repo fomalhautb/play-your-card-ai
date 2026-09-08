@@ -7,6 +7,7 @@ Cloudflare Worker 加 Durable Object。一个脚本里**并排跑着两套服务
 | 旧转发器 | `/api/room`、`/room/:code` | `ROOM` → `Room` | `src/legacy/` | 冻结，线上还在用 |
 | 新房间 | `/match/:code` | `MATCH_ROOM` → `MatchRoom` | `src/room/` | 在写 |
 | 新大厅 | `/lobby` | `LOBBY` → `Lobby` | `src/lobby/` | 在写 |
+| 账号 | `/api/auth/*` | `AUTH_DB`（D1，不是 DO） | `src/auth/` | 在写 |
 
 旧的是黑客松那版**纯消息转发器**：没有权威状态，规则跑在房主客户端里。
 线上的 legacy-client 仍然靠它打联机，`deploy.yml` 每次合并 main 就部署，
@@ -24,8 +25,12 @@ Durable Object 是按类名找实例的。
 
 ```
 src/
-  index.ts            总路由：旧路径进 legacy，/match/:code 和 /lobby 进新代码，其余交静态资源
-  auth/verify.ts      验 JWT 认出 userId。本 PR 是 HS256 + JWT_SECRET，第 25 条换 better-auth
+  index.ts            总路由：旧路径进 legacy，/api/auth/* 进账号系统，
+                      /match/:code 和 /lobby 进新代码，其余交静态资源
+  auth/
+    betterAuth.ts     账号系统：better-auth 配 D1，开了游客登录和 jwt 两个插件
+    routes.ts         /api/auth/* 原样交给 better-auth 的 handler
+    verify.ts         验握手那张 JWT 认出 userId：从 D1 读公钥，带缓存
   net/session.ts      大厅和房间共用的连接层：附件、发消息、101 回显、顶号、session:hello
   legacy/
     room.ts           旧转发器的 Room 类（冻结）
@@ -46,8 +51,11 @@ src/
     queue.ts          SQLite：匹配队列一张表、在用的房间码一张表、摇码
     handlers.ts       五条 lobby:* 消息各自怎么办
 test/
-  helpers.ts          签 token、连 WebSocket、按顺序取消息、读权威局面、叫醒 alarm
+  setup.ts            每个测试文件开跑前：建账号库的表、预先生成签名密钥
+  accounts.ts         真的走 /api/auth/* 开游客账号、换 token，以及几种伪造 token
+  helpers.ts          连 WebSocket、按顺序取消息、读权威局面、叫醒 alarm
   duel.ts             把一局从建房打到 GAME_OVER 的驱动器
+  auth.test.ts        游客登录、换 JWT、伪造和过期 token 一律进不去、换密钥
   handshake.test.ts   握手、认证、座位、顶号、版本
   match.test.ts       打完整局，验裁剪、序号、快照、重连
   cheat.test.ts       作弊：借座位、DEBUG_*、SUBMIT_ANSWERS、冒充重连……全部要被拒
@@ -112,21 +120,82 @@ test/
 局面都不会卡住。生成答案集中在 `autopilot.ts` 的 `answersFor` 一个函数里——
 将来改成对局中途真去调模型 API 只改那一处（《正式版架构》5.3）。
 
+## 账号与鉴权
+
+账号是 **better-auth 配 Cloudflare D1**（《正式版架构》5.5），全部挂在 `/api/auth/*` 下面。
+现在只开了**游客**一种登录方式：玩家打开就能玩，不填任何东西就有一个账号 id，
+座位、匹配、重连全靠它认人。邮箱 / OAuth 绑定和 Steam 票据换 JWT 是后面的事（第 35 条）。
+
+一次完整的流程是三步：
+
+```bash
+# 1) 开一个游客账号，会话在 cookie 里
+curl -c cookies.txt -X POST http://127.0.0.1:8787/api/auth/sign-in/anonymous \
+  -H 'Content-Type: application/json' -d '{}'
+
+# 2) 用会话换一张握手用的 JWT
+curl -b cookies.txt http://127.0.0.1:8787/api/auth/token
+
+# 3) 连 WebSocket 时把它放进子协议：ai-duel, jwt.<token>
+```
+
+**签发和验签是分开的两半**，这是这套设计的关键：
+
+| | 谁在做 | 用什么 |
+|---|---|---|
+| 签发 | `/api/auth/*` 上的 better-auth | D1 `jwks` 表里那把私钥（EdDSA / Ed25519） |
+| 验签 | 房间和大厅对象（`src/auth/verify.ts`） | 同一张表里的公钥，直接查 D1，带一分钟缓存 |
+
+两边不共享任何秘密，所以房间对象即使被读走代码也签不出 token。
+公钥不走 HTTP 回自己去拿：Worker 请求自己要绕一圈出口，而 D1 绑定在 DO 里直接能用。
+
+`jwks` 表里认不出的 kid 会触发一次重查（新生成的密钥就是这么被认出来的），
+查完还是没有就记下这个 kid，同一张坏 token 再来不必再查。
+
+改了插件或者字段之后重新生成建表语句（`migrations/0001_auth.sql`）：
+CLI 要在 Node 里加载一份配置，而真正那份要 D1 绑定（只有 Worker 里才有），
+所以临时写一份用内存 SQLite 的：
+
+```bash
+cat > packages/server/tmp-auth-config.ts <<'EOF'
+import { DatabaseSync } from 'node:sqlite'
+import { betterAuth } from 'better-auth'
+import { anonymous, jwt } from 'better-auth/plugins'
+
+export const auth = betterAuth({
+  appName: 'ai-duel',
+  secret: 'schema-generation-only-schema-generation-only',
+  database: new DatabaseSync(':memory:'),
+  plugins: [anonymous(), jwt({ jwks: { keyPairConfig: { alg: 'EdDSA', crv: 'Ed25519' } } })],
+})
+EOF
+cd packages/server
+npx auth@latest generate --config ./tmp-auth-config.ts --output ./migrations/0001_auth.sql --yes
+rm tmp-auth-config.ts
+```
+
+插件列表要和 `src/auth/betterAuth.ts` 里的一致，不然生成出来的表会少字段。
+生成的文件没有注释，记得把文件头那段说明补回去。
+
 ## 本地开发
 
 密钥不进仓库，第一次要自己建一份：
 
 ```bash
 cp packages/server/.dev.vars.example packages/server/.dev.vars
-# 把 JWT_SECRET 改成随便什么够长的串
+# 把 BETTER_AUTH_SECRET 换成 `openssl rand -base64 32` 的输出
 ```
 
-线上那份走 `wrangler secret put JWT_SECRET`，不写进 `wrangler.jsonc`。
+线上那份走 `wrangler secret put BETTER_AUTH_SECRET`，不写进 `wrangler.jsonc`。
 
 ```bash
 pnpm --filter @ai-duel/legacy-client build   # 先出静态资源，assets.directory 指着它
+pnpm --filter @ai-duel/server exec wrangler d1 migrations apply AUTH_DB --local  # 建账号库的表
 pnpm dev:server                              # wrangler dev，默认 http://127.0.0.1:8787
 ```
+
+本地那个 D1 库在 `packages/server/.wrangler/` 下面（不进仓库）。
+换过 `BETTER_AUTH_SECRET` 之后旧的私钥就解不开了，把整个目录删掉重来最省事。
 
 改了 `wrangler.jsonc` 里的绑定之后重新生成 `Env` 类型：
 
@@ -146,6 +215,16 @@ pnpm --filter @ai-duel/server test
 跑在**真的 workerd 里**（`@cloudflare/vitest-pool-workers`，《正式版架构》6.7）：
 Durable Object、SQLite、WebSocket Hibernation、升级请求的头都是真的那一套，
 配置从 `wrangler.jsonc` 读。不需要先起 `wrangler dev`，也不需要静态资源。
+D1 也是真的：miniflare 按 `AUTH_DB` 那条绑定现建一个内存库，
+`test/setup.ts` 在每个测试文件开跑前把 `migrations/` 里的表建好。
+
+测试里**没有「测试专用签发」**：token 一律真的走 `/api/auth/*` 换（见 `test/accounts.ts`）。
+以前那版是测试自己拿共享密钥签，结果验签那条路只有测试走过，签发方一换就全瞎了。
+测试里说的 `'alice'`、`'bob'` 是**标签**，背后是 better-auth 随机生成 id 的游客账号。
+
+有一处要知道：这个 pool 每条用例跑完会把存储回滚，账号那几行会没掉，
+但 JWT 是自包含的（验签只看签名和 `sub`，不查账号表），所以上一条用例拿到的 token
+在下一条里照样能用。密钥那一行是在 setup 里生成的，回滚不掉。
 
 `test/smoke.mjs` 是另一回事——它打真的 `wrangler dev` 或线上，
 覆盖面比 vitest 那几个宽（静态资源回退、CORS、跨房间释放），但不在 CI 里：
@@ -157,8 +236,11 @@ SMOKE_BASE=https://playyourcardai.online pnpm --filter @ai-duel/server smoke
 
 ## 还没做的
 
-- better-auth + D1 签发 JWT（第 25 条）：现在是 HS256 共享密钥，`verifyToken` 的签名不会变。
+- 账号只有游客一种：邮箱 / OAuth 绑定还没接，Steam 票据换 JWT 是第 35 条。
+  换句话说现在**换个浏览器就是另一个人**，清了 cookie 也一样。
 - `room:urge` 的 id 查表：那张喊话表还在 legacy-client 里（第 33 条搬进 content），
   搬过来之前只转发不校验，查不到该回的 `unknown-urge` 还发不出来。
 - `room:error malformed` 现在一律发，上线前要改成只在开发模式发（见 MatchRoom 里那段注释）。
-- 显示名：`createGame` 的 `name` 暂时直接用账号 id，等第 25 条接上账号才有地方取。
+- 显示名：`createGame` 的 `name` 暂时直接用账号 id。better-auth 的 `user` 表里
+  其实有一列 `name`（游客登录时随机生成一个），但那要按 `sub` 回查一次 D1，
+  而房间对象现在一次 D1 都不查——等真要显示昵称时再一起接（第 27、31 条）。
