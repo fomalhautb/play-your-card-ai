@@ -165,7 +165,17 @@ module.exports = {
         '骨架阶段它们还只有一句 export {}，那是预期状态不是问题。',
       from: {
         orphan: true,
-        pathNot: ['^packages/[^/]+/src/index\\.ts$', '^apps/[^/]+/src/main\\.tsx$', '\\.d\\.ts$'],
+        pathNot: [
+          '^packages/[^/]+/src/index\\.ts$',
+          '^apps/[^/]+/src/main\\.tsx$',
+          '\\.d\\.ts$',
+          /*
+           * Playwright 的用例文件也不算。它们没有上游（跑批器按文件名收），
+           * 而下游往往只有 @playwright/test 一个——node_modules 被下面的 exclude 整个摘掉了，
+           * 于是在这张图里它们看着"两头都没有"。
+           */
+          '\\.spec\\.ts$',
+        ],
       },
       to: {},
     },
@@ -181,6 +191,8 @@ module.exports = {
         '^packages/legacy-client/',
         '(^|/)node_modules/',
         '(^|/)dist/',
+        // 组件目录页的静态产物（`build-storybook` 打的），进了 .gitignore 但磁盘上有。
+        '^packages/client/storybook-static/',
         // 测试和构建配置不属于产品依赖图，见文件头的说明。
         '^packages/[^/]+/test/',
         '\\.config\\.(ts|js|cjs|mjs)$',

@@ -8,7 +8,11 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p dev/storybook",
+    "storybook": "storybook dev -c dev/storybook --no-open -p 6006",
+    "build-storybook": "storybook build -c dev/storybook",
+    "catalog:test": "playwright test -c dev/storybook/playwright.config.ts",
+    "catalog:update": "playwright test -c dev/storybook/playwright.config.ts --update-snapshots"
   },
   "dependencies": {
     "@ai-duel/canvas": "workspace:*",
@@ -23,8 +27,12 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@storybook/react-vite": "^10.6.0",
+    "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
+    "storybook": "^10.6.0",
     "typescript": "^7.0.2",
     "vite": "^8.2.2"
   }

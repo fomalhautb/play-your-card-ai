@@ -47,7 +47,15 @@ export class TextTextureCache {
       resolution: this.renderer.resolution,
       antialias: true,
     })
-    text.destroy(true)
+    /*
+     * 不带参数：Pixi 的 `Text.destroy(true)` 会连**样式对象一起销毁**（把它的 _fill 置空），
+     * 而样式是调用方传进来的、多半还要给下一段文字用——第二段起就没有填充色了，
+     * 烤出来是一块跟着上一次残留状态走的颜色。
+     * 组件目录页的预烤纹理那一条（fx/bakedTextures.stories.ts）三行标签共用一个样式，
+     * 正是在那里露的馅：第一行正常，后两行几乎是黑的。
+     * 样式该由谁建谁收，这里只借用。
+     */
+    text.destroy()
     this.cache.set(key, { texture, content, style })
     this.created += 1
     return texture
@@ -65,7 +73,8 @@ export class TextTextureCache {
     for (const baked of this.cache.values()) {
       const text = new Text({ text: baked.content, style: baked.style })
       this.renderer.render({ container: text, target: baked.texture, clear: true })
-      text.destroy(true)
+      // 同 get()：不带参数，别把调用方的样式对象一起销毁掉。
+      text.destroy()
       this.created += 1
     }
   }

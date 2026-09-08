@@ -11,6 +11,7 @@
     "dev": "pnpm --filter @ai-duel/web dev",
     "dev:legacy": "pnpm --filter @ai-duel/legacy-client dev",
     "dev:server": "pnpm --filter @ai-duel/server dev",
+    "storybook": "pnpm --filter @ai-duel/client storybook",
     "build": "pnpm -r build",
     "assets:build": "node assets/build-atlas.mjs",
     "lint": "biome check . && depcruise packages apps && knip",

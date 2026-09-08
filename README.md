@@ -59,6 +59,7 @@ pnpm install
 pnpm dev:legacy         # 黑客松版客户端 http://localhost:5173
 pnpm dev                # 正式版网页壳 apps/web http://localhost:5174（业务还是空的，只有开发页）
 pnpm dev:server         # 另开一个终端，起 Worker http://localhost:8787
+pnpm storybook          # 组件目录页 http://localhost:6006
 pnpm typecheck          # 全仓类型检查
 pnpm lint               # Biome + dependency-cruiser + knip，任一红则红
 pnpm lint:fix           # 能自动修的都修掉（格式、import 排序）
@@ -66,7 +67,7 @@ pnpm test               # 单元测试：core 规则、答题剧本、canvas 的
 pnpm assets:build       # 打卡面图集（第一次跑正式版开发页之前要先来一次）
 ```
 
-这三条（typecheck / lint / test）就是 CI 快档跑的全部内容，见
+CI 快档跑这三条（typecheck / lint / test），外加组件目录页的截图回归，见
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。lint 的三件工具各管一摊：
 Biome 管格式和单文件行数，dependency-cruiser 管包之间的依赖方向，knip 管没人用的导出和依赖。
 冻结的 `legacy-client` 三个都不看，但它的 typecheck 和测试照跑。
@@ -75,11 +76,16 @@ Biome 管格式和单文件行数，dependency-cruiser 管包之间的依赖方�
 
 正式版的画布场景还没接进任何界面，先在开发专用页面上看（架构 7.2 第 5 条，生产构建剔除）：
 
-| 地址 | 看什么 |
-|---|---|
-| http://localhost:5174/dev/hand-fan | 手牌扇形、拖出出牌、翻面、命中特效（迁移第 1 条） |
+| 地址 | 怎么起 | 看什么 |
+|---|---|---|
+| http://localhost:5174/dev/hand-fan | `pnpm dev` | 手牌扇形、拖出出牌、翻面、命中特效（迁移第 1 条） |
+| http://localhost:6006 | `pnpm storybook` | 组件目录页：所有组件、变体、状态（迁移第 10 条，架构 7.1 第 3 条） |
 
-页面要加载卡面图集，所以先跑一次 `pnpm assets:build`，否则画面上一张牌都没有。
+两个页面都要加载卡面图集，所以先跑一次 `pnpm assets:build`，否则画面上一张牌都没有。
+
+组件目录页还是截图回归的输入：每个条目截一张图，样式改动在这里暴露（架构 6.6、6.8）。
+怎么加条目、怎么更新基线、CI 怎么比对，见
+[`packages/client/dev/storybook/README.md`](packages/client/dev/storybook/README.md)。
 
 ## 卡面图集
 

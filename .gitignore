@@ -34,6 +34,14 @@ tmp/
 output/
 scripts/out/pregen-smoke.json
 
+# 组件目录页的产物（迁移第 10 条）。
+# storybook-static 是 `build-storybook` 打出来的静态站；
+# 截图回归失败时 Playwright 会把差异图和 trace 留在 test-results/ 里。
+# 基线图（dev/storybook/baselines/）反过来**要**进仓库，那是比对的依据。
+packages/client/storybook-static/
+packages/client/test-results/
+packages/client/playwright-report/
+
 # 性能剧本的产物（迁移第 2 条）。
 # results/ 是每台机器各跑各的数字，提交进来只会天天冲突；
 # public/atlas/ 是图集脚本从别处复制过来的，源头在美术资源那边不在这里；
