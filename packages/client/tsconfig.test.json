@@ -2,5 +2,10 @@
   // 测试单独一份配置，只为了把 test/ 也纳入类型检查（写法照抄 core 和 protocol 那边）。
   // 沿用主配置的 DOM 全局类型：被测的 serverDriver 会读 window.location.origin 兜底。
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // 只有测试给 Node 类型。主配置刻意不给（误用 process、fs 要在编译期就拦下来），
+    // 而资源清单那条测试必须扫一遍 assets/source/ 下真实的文件，绕不开 node:fs。
+    "types": ["vite/client", "node"]
+  },
   "include": ["test"]
 }
