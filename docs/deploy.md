@@ -1,5 +1,11 @@
 # 部署说明
 
+> 这份文档写的是**黑客松那版转发器**怎么部署，线上跑的仍然是它。
+> 新的权威房间对象（《正式版架构》迁移第 22 条）并排加在同一个 Worker 里，
+> 走 `/match/:code` 和 `MATCH_ROOM` 绑定，和下面这套互不相干——
+> 它自己的目录结构、本地开发和测试见 `packages/server/README.md`。
+> 部署方式两套是一样的：同一个 `wrangler deploy`。
+
 ## 1. 一个 Worker 干两件事
 
 整个项目部署成 **Cloudflare 上的一个 Worker**：
@@ -11,7 +17,8 @@
               │                                       │
       静态资源层（免费、不计 Worker 调用）        Worker 脚本
       /  /assets/*  以及匹配不到的路径            /api/room      摇房间码
-      → packages/legacy-client/dist              /room/:code    WebSocket 升级
+      → packages/legacy-client/dist              /room/:code    WebSocket 升级（旧转发器）
+                                                 /match/:code   WebSocket 升级（新房间）
                                                       │
                                                  Durable Object
                                                  一个房间一个实例
@@ -220,7 +227,10 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 现在直接在 `exports` 里声明：
 
 ```jsonc
-"exports": { "Room": { "type": "durable-object", "storage": "sqlite" } }
+"exports": {
+  "Room": { "type": "durable-object", "storage": "sqlite" },
+  "MatchRoom": { "type": "durable-object", "storage": "sqlite" }
+}
 ```
 
 **免费档只有 SQLite 后端的 Durable Object。** `storage` 必须写 `"sqlite"`，
@@ -232,7 +242,7 @@ URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，�
 要 Worker 处理的路径必须在 `assets.run_worker_first` 里显式列出来：
 
 ```jsonc
-"run_worker_first": ["/api/*", "/room/*"]
+"run_worker_first": ["/api/*", "/room/*", "/match/*"]
 ```
 
 `/room/*` 在列表里是因为它一路两用：既是 WebSocket 端点，又是前端的对局页面路由。
@@ -249,12 +259,20 @@ WebSocket 升级请求不是导航请求，所以能正常进到 Worker。
 ## 9. 本地跑和验证
 
 ```bash
+cp packages/server/.dev.vars.example packages/server/.dev.vars   # 第一次：填 JWT_SECRET
 pnpm --filter @ai-duel/legacy-client build     # 先出静态资源，Worker 要用
 pnpm dev:server                         # wrangler dev，默认 http://127.0.0.1:8787
 
 # 另开一个终端，跑端到端冒烟测试
 pnpm --filter @ai-duel/server smoke
 ```
+
+`JWT_SECRET` 是新房间对象验握手 JWT 用的（`src/auth/verify.ts`），
+`.dev.vars` 不进仓库，线上那份走 `wrangler secret put JWT_SECRET`。
+旧转发器不认账号，没有这一条也照跑。
+
+新服务端自己的测试不用先起 `wrangler dev`——它跑在 `@cloudflare/vitest-pool-workers`
+起的 workerd 里，`pnpm --filter @ai-duel/server test` 就够，已经在 CI 的快档里。
 
 冒烟测试（`packages/server/test/smoke.mjs`）覆盖摇码、双方进房、转发、
 房满/房间不存在的拒绝、对端断开通知、SPA 回退，以及换房之后原来那间房要被释放。

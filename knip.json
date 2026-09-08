@@ -89,11 +89,11 @@
       "ignoreDependencies": [
         // cloudflare:workers 是 Workers 运行时的内建模块，不是 npm 包。
         // knip 按冒号前面那段当包名找，所以看着像"用了没装"。
-        "cloudflare",
-        // 服务端重写（迁移第 22 条）之后才会真正用上这三个，现在还是纯转发器。
-        "@ai-duel/content",
-        "@ai-duel/core",
-        "@ai-duel/protocol"
+        //
+        // content、core、protocol 三条按上面的到期条款删掉了：
+        // 房间对象（迁移第 22 条）在跑 core 的 execute、发 protocol 的消息、
+        // 用 content 的卡表和题库。
+        "cloudflare"
       ]
     }
   }
