@@ -47,7 +47,7 @@ export const COST_BADGE_SIZE = CARD_WIDTH * 0.208
 export const COST_BADGE_CENTER = { x: CARD_WIDTH * 0.11, y: CARD_HEIGHT * 0.071 }
 
 export interface BakedTextures {
-  /** 中心实、边缘透明的一团柔光。落地的烟尘和边缘追光共用它，靠 tint 和缩放变样子。 */
+  /** 中心实、边缘透明的一团柔光。落地的烟尘用它，靠 tint 和缩放变样子。 */
   softDot: Texture
   /** 卡面的边框加底部铭牌带，尺寸就是卡面基准尺寸。 */
   cardChrome: Texture

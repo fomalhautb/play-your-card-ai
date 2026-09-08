@@ -1,16 +1,14 @@
 /**
- * 卡牌落地的命中特效：震屏 + 脚下扬尘 + 沿卡牌边缘跑一圈的金色追光。
+ * 卡牌落地的命中特效：震屏 + 脚下扬尘 + 沿卡牌边缘跑一圈的金色亮环。
  * 节奏和数值抄自旧客户端 `src/ui/playSummonFx.ts`。
  *
  * 三样都不挂 Filter（3.1）：
  * - 烟尘是一批共用同一张柔光纹理的精灵，全部合进同一个绘制批（3.9）；
- * - 追光不是 conic-gradient 而是一颗沿边框跑的光点，同样用那张柔光纹理，叠加混合。
- *   旧版那圈 conic-gradient 是拿圆角矩形的 mask 裁出来的，路径天生跟着 border-radius；
- *   这边光点的路径要自己走一遍圆角（见 edgePath.ts），不然转角处会跑到卡的圆角外面去；
+ * - 亮环是一张自己写着色器的四边形网格，圆角轮廓、亮弧和辉光全在片元里算（见 fx/edgeRing.ts）；
  * - 震屏只改一个容器的 x / y。
- * 全程只动 transform、alpha、tint，不碰文字、纹理尺寸和遮罩（3.10）。
+ * 全程只动 transform、alpha、tint 和两个 uniform，不碰文字、纹理尺寸和遮罩（3.10）。
  *
- * 烟尘精灵在建场景时一次性建好、循环使用，不是每次落地现建现删——
+ * 烟尘精灵和那圈环都在建场景时一次性建好、循环使用，不是每次落地现建现删——
  * 旧版 DOM 那套是"现建 div、演完 remove"，在 Pixi 里那等于每次出牌都新建一批显示对象，
  * 稳态每帧堆分配那条（3.10）过不去。
  */
@@ -20,18 +18,16 @@ import { type Container, Sprite } from 'pixi.js'
 import type { Animator } from '../runtime/animator'
 import type { Rng } from '../runtime/rng'
 import type { BakedTextures } from './bakedTextures'
-import { type EdgePath, type EdgePoint, edgePointAt, setEdgePath } from './edgePath'
+import { EdgeRing } from './edgeRing'
 import { type EffectTier, TIER_CONFIG } from './effectTier'
 
 /** 震屏里每一小段位移的时长。五段拼成一次抖动，末段翻倍收尾，全程约 0.3 秒。 */
 const SHAKE_STEP = 0.05
-/** 追光绕卡牌边缘跑满一圈的时长。淡入淡出都叠在这段里，所以它就是整条追光的总时长。 */
+/** 亮弧绕卡牌边缘跑满一圈的时长。淡入淡出都叠在这段里，所以它就是整圈环的总时长。 */
 const EDGE_DUR = 0.5
-/** 追光的淡入 / 淡出时长。淡入要快到几乎看不见过程，亮弧才像是"一下子亮起来就跑了"。 */
+/** 亮环的淡入 / 淡出时长。淡入要快到几乎看不见过程，亮弧才像是"一下子亮起来就跑了"。 */
 const EDGE_IN = 0.08
 const EDGE_OUT = 0.16
-/** 追光那颗光点画多大（长边、短边）。细长才像一小段亮弧，圆点看着像萤火虫。 */
-const EDGE_COMET = { long: 46, short: 14 }
 
 export interface HitFxOptions {
   /** 特效画在哪一层。这一层不吃指针事件，也不参与布局。 */
@@ -50,8 +46,8 @@ export interface HitFxTarget {
   x: number
   y: number
   /**
-   * 落地那张卡的尺寸，追光绕着它的圆角边跑。
-   * 圆角半径不用传：按 width 相对卡面基准宽的比例从令牌算（见 edgePath.ts 的 setEdgePath）。
+   * 落地那张卡的尺寸，亮环贴着它的圆角轮廓画。
+   * 圆角半径不用传：按 width 相对卡面基准宽的比例从令牌算（见 edgeRing.ts 的 setCard）。
    */
   width: number
   height: number
@@ -61,25 +57,12 @@ export class HitFx {
   private readonly options: HitFxOptions
   /** 烟尘精灵池，按最高档的团数预先建好，低档只用前面几个。 */
   private readonly smoke: Sprite[] = []
-  private readonly comet: Sprite
   /**
-   * 追光的路径和当前落点，两个都是**复用的**可变对象。
-   *
-   * 路径每次落地重算一遍（卡的尺寸可能变），落点每帧覆写。
-   * 都提到实例上是为了稳态每帧零堆分配那条（3.10）：追光一帧一次、一圈跑 30 帧，
-   * 每帧新建一个 { x, y, angle } 就是每次出牌多三十来个短命对象。
+   * 落地的那圈亮环。低档不开它（TIER_CONFIG.low 的 edgeLight），那一档干脆不建：
+   * 它带自己的着色器，建了就要预热（见 scenes/warmup.ts），而这一档一次都不会用到。
+   * 公开只为了让预热拿得到它，别的地方不要动。
    */
-  private readonly edgePath: EdgePath = {
-    halfW: 0,
-    halfH: 0,
-    radius: 0,
-    straightH: 0,
-    straightV: 0,
-    arc: 0,
-    perimeter: 0,
-    start: 0,
-  }
-  private readonly edgePoint: EdgePoint = { x: 0, y: 0, angle: 0 }
+  readonly ring: EdgeRing | null
 
   constructor(options: HitFxOptions) {
     this.options = options
@@ -97,20 +80,18 @@ export class HitFx {
       this.smoke.push(puff)
     }
 
-    this.comet = new Sprite(options.baked.softDot)
-    this.comet.anchor.set(0.5)
-    this.comet.alpha = 0
-    this.comet.tint = tokens.color.theme.gold
-    this.comet.blendMode = 'add'
-    // 叠加混合的东西留在批里代价更大：前后各切一次混合模式，不演的时候必须摘掉。
-    this.comet.visible = false
-    options.layer.addChild(this.comet)
+    if (TIER_CONFIG[options.tier].edgeLight) {
+      this.ring = new EdgeRing()
+      options.layer.addChild(this.ring)
+    } else {
+      this.ring = null
+    }
   }
 
   /**
    * 播一次落地特效。返回整段演出的时长（秒），调用方拿它排后续节奏。
    *
-   * 节奏（t0 = 落地那一刻）：震屏、烟尘、边缘追光同时起，追光在 t0+0.5 收，
+   * 节奏（t0 = 落地那一刻）：震屏、烟尘、亮环同时起，亮环在 t0+0.5 收，
    * 最后一样东西（烟尘）在 t0+0.8 前后收尾。
    */
   play(target: HitFxTarget): number {
@@ -188,40 +169,37 @@ export class HitFx {
   /**
    * 沿卡牌边缘跑一圈的金色亮弧：淡入 → 绕一圈 → 淡出。
    *
-   * 匀速转（ease: 'none'）：追光要像绕着边框"跑"，带缓动的话会在某一段莫名其妙地慢下来。
-   * 位置由一个 0→1 的进度代理算出来，补间本身只改这个普通对象，
-   * 每帧写到精灵上的仍然只有 position 和 rotation（3.10）。
+   * 匀速转（ease: 'none'）：亮弧要像绕着边框"跑"，带缓动的话会在某一段莫名其妙地慢下来。
+   * 转的是一个 0→1 的进度代理，补间本身只改这个普通对象，每帧写进环里的只有一个 uniform
+   * （3.10）；淡入淡出直接补 Mesh 的 alpha，理由见 edgeRing.ts 的文件头。
    */
   private runEdgeLight(target: HitFxTarget): void {
+    const ring = this.ring
+    if (ring === null) return
     const { animator } = this.options
-    const progress = { t: 0 }
-    const comet = this.comet
-    comet.setSize(EDGE_COMET.long, EDGE_COMET.short)
-    comet.visible = true
-    setEdgePath(this.edgePath, target.width, target.height)
+    const spin = { turn: 0 }
+    ring.setCard(target.width, target.height)
+    ring.position.set(target.x, target.y)
+    ring.setTurn(0)
+    ring.visible = true
 
     const timeline = animator.timeline({
       onComplete: () => {
-        comet.alpha = 0
-        comet.visible = false
+        ring.alpha = 0
+        ring.visible = false
       },
     })
     timeline.to(
-      progress,
+      spin,
       {
-        t: 1,
+        turn: 1,
         duration: EDGE_DUR,
         ease: 'none',
-        onUpdate: () => {
-          const point = this.edgePoint
-          edgePointAt(this.edgePath, progress.t, point)
-          comet.position.set(target.x + point.x, target.y + point.y)
-          comet.rotation = point.angle
-        },
+        onUpdate: () => ring.setTurn(spin.turn),
       },
       0,
     )
-    timeline.fromTo(comet, { alpha: 0 }, { alpha: 1, duration: EDGE_IN, ease: 'power2.out' }, 0)
-    timeline.to(comet, { alpha: 0, duration: EDGE_OUT, ease: 'power2.in' }, EDGE_DUR - EDGE_OUT)
+    timeline.fromTo(ring, { alpha: 0 }, { alpha: 1, duration: EDGE_IN, ease: 'power2.out' }, 0)
+    timeline.to(ring, { alpha: 0, duration: EDGE_OUT, ease: 'power2.in' }, EDGE_DUR - EDGE_OUT)
   }
 }

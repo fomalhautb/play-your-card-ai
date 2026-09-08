@@ -78,7 +78,7 @@ export const LIMITS: Readonly<Record<ProfileName, Limits>> = {
     /*
      * 6.9 表原话是「移动端档位为 0，桌面档位设上限」，验证下来桌面档实测也是 0，所以就定 0。
      * 不是巧合：效果分档那三档都不挂 Filter（见 canvas 的 fx/effectTier.ts），
-     * 发光和追光走的是预烤纹理加叠加混合，动画期间一次离屏都不需要。
+     * 烟尘走预烤纹理、落地亮环走自己写的着色器，动画期间一次离屏都不需要。
      * 烤纹理本身要离屏，但那件事发生在建场景时，不在剧本的计数窗口里。
      */
     offscreenBindsPerFrame: { value: 0, discipline: '3.1 离屏渲染' },
