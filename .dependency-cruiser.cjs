@@ -6,6 +6,10 @@
  * 甚至将来的 tsconfig paths 别名都会落到同一个文件上。dependency-cruiser 跑的是解析后的模块图。
  * 两边分工：跨包只走包入口那条（7.2 第 2 条）在 biome.jsonc 的 noRestrictedImports，
  * 方向这条在这里。
+ * 第三方也在图里，只是当叶子、不往里追（见 options 里 exclude 和 doNotFollow 两段注释），
+ * 所以「core 只许 pure-rand」「canvas 不碰 react」「ui 不碰 pixi」这类包对第三方的边界
+ * 也写在这里；Biome 那边按 import 字符串匹配，只管包内目录级的禁令
+ * （比如 canvas/src/director 不碰 pixi.js / gsap）。
  *
  * 只扫 packages/ 和 apps/ 下的 src：测试、构建配置、一次性脚本不属于产品的依赖图，
  * 它们依赖 vitest、vite、playwright 是正常的，扫进来只会逼着为它们写一堆例外。
@@ -43,7 +47,8 @@ const packagesGroup = (names) => `^packages/(${names.join('|')})/`
  *
  * to 的写法是「落在 packages/ 里、但不在允许名单里」——不限制第三方依赖，
  * 那是 knip 和各自 package.json 的事，这里只管包与包的方向。
- * 唯一的例外是 core：它连第三方都只许有 pure-rand 一个，单独写在下面。
+ * 对第三方的限制不走这个生成器，单独写在下面：
+ * core 只许 pure-rand、canvas 不碰 react、ui 不碰 pixi。
  */
 const packageRule = (name, allowed) => ({
   name: `依赖方向-${name}`,

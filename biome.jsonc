@@ -4,7 +4,8 @@
   //
   // 三件工具分工（见 6.2「静态检查」）：
   //   - Biome：格式化、通用 lint、单文件行数、循环依赖、包内禁止的 import；
-  //   - dependency-cruiser（.dependency-cruiser.cjs）：包与包之间的单向依赖方向；
+  //   - dependency-cruiser（.dependency-cruiser.cjs）：包与包之间的单向依赖方向，
+  //     以及包对第三方的边界（core 只许 pure-rand、canvas 不碰 react、ui 不碰 pixi）；
   //   - knip（knip.json）：未使用的导出和依赖。
   // 三个都由根目录的 `pnpm lint` 依次跑，任何一个红整条就红。
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
