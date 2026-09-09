@@ -64,7 +64,7 @@ export interface TopBarDeps {
   ui: UiTextures
   text: TextTextureCache
   animator: Animator
-  platform: Platform
+  platform: Pick<Platform, 'audio' | 'haptics'>
   /** 按下时放的那一声，直接透给两颗图标钮。给 null 就不出声（见 PlaqueButton 的同名项）。 */
   clickSound: SoundSpec | null
   /** 两颗图标钮的剪影。canvas 不管资源从哪来，纹理由调用方给（同 PlaqueButton 的 icon）。 */

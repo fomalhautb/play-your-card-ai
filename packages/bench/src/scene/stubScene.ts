@@ -7,12 +7,14 @@
  * 高档位的全屏发光（数过度绘制）。
  *
  * 真实场景接上之后这个文件留着：骨架自身有回归时，桩场景是唯一不会跟着一起变的对照组。
+ * 它按 `BenchScene` 那三个动作实现，但只求「形状对得上、每条计数器都会动」——
+ * 它演的不是这个游戏，所以「放大查看」在这里就是把卡压扁再弹回来。
  */
 
 import { tokens } from '@ai-duel/design'
 import { gsap } from 'gsap'
 import { Container, Sprite, Text, Texture, Ticker, WebGLRenderer } from 'pixi.js'
-import type { DuelPrototype, DuelPrototypeCounters, DuelPrototypeOptions } from './contract'
+import type { BenchScene, BenchSceneOptions, DuelSceneCounters } from './contract'
 import { mulberry32 } from './random'
 import { boardSlot, deckAnchor, fanSlot, TIERS } from './stubLayout'
 
@@ -24,6 +26,9 @@ interface CardView {
 }
 
 type Vars = Record<string, unknown> & { duration: number }
+
+/** `restart` 摆几张手牌。够 `play10` 连着打十次还剩两张。 */
+const RESTART_HAND = 12
 
 /** gsap 的根时间轴当前是不是由我们手动推。模块级的，因为 gsap 本身就是单例。 */
 let gsapDetached = false
@@ -45,7 +50,7 @@ function configureGsap(manual: boolean) {
   }
 }
 
-class StubScene implements DuelPrototype {
+class StubScene implements BenchScene {
   private readonly stage = new Container()
   private readonly cardLayer = new Container()
   private readonly fxLayer = new Container()
@@ -67,7 +72,7 @@ class StubScene implements DuelPrototype {
 
   constructor(
     private readonly renderer: WebGLRenderer,
-    private readonly opts: DuelPrototypeOptions,
+    private readonly opts: BenchSceneOptions,
   ) {
     this.random = mulberry32(opts.seed)
     this.stage.addChild(this.background(), this.cardLayer, this.fxLayer)
@@ -90,7 +95,7 @@ class StubScene implements DuelPrototype {
    * 文字尤其重要：纪律 3.5 要求文字只创建一次，动画期间 textCreated 必须纹丝不动。
    */
   private buildPool() {
-    for (const key of this.opts.deck) {
+    for (const key of Object.keys(this.opts.textures.faces)) {
       const face = new Sprite(this.opts.textures.faces[key] ?? this.opts.textures.back)
       face.anchor.set(0.5)
       const label = new Text({
@@ -213,7 +218,8 @@ class StubScene implements DuelPrototype {
     })
   }
 
-  async deal(count: number): Promise<void> {
+  /** 一批牌从卡堆飞进扇形。`restart` 用它把手牌摆好。 */
+  private async deal(count: number): Promise<void> {
     const start = deckAnchor(this.opts.width, this.opts.height)
     for (let i = 0; i < count; i += 1) {
       const card = this.pool[this.dealt % this.pool.length]
@@ -228,7 +234,7 @@ class StubScene implements DuelPrototype {
     await Promise.all(this.layoutHand())
   }
 
-  async playCard(handIndex: number): Promise<void> {
+  private async playCard(handIndex: number): Promise<void> {
     const card = this.hand[handIndex]
     if (!card) return
     this.hand.splice(handIndex, 1)
@@ -273,7 +279,9 @@ class StubScene implements DuelPrototype {
     this.markDirty()
   }
 
-  async flip(handIndex: number): Promise<void> {
+  /** 桩场景版的「放大查看」：把卡压扁、换一面、再弹回来。它只负责让计数器动起来。 */
+  async inspect(index: number): Promise<void> {
+    const handIndex = index % Math.max(1, this.hand.length)
     const card = this.hand[handIndex]
     if (!card) return
     const showingBack = card.face.texture === this.opts.textures.back
@@ -293,7 +301,7 @@ class StubScene implements DuelPrototype {
    * 没有倾斜也没有反光可跟。它存在的意义是当测量骨架的固定物——数字不跟着真实场景变，
    * 所以它反而**不该**跟着真实场景一起加特效。
    */
-  hover(handIndex: number | null, _at?: { rx: number; ry: number }): void {
+  private hover(handIndex: number | null): void {
     const { width, height } = this.opts
     const restore = (index: number) => {
       const card = this.hand[index]
@@ -307,6 +315,28 @@ class StubScene implements DuelPrototype {
     }
     this.markDirty()
   }
+
+  /** 回到空场再摆一手牌。剧本每一段的热身和被测那遍各调一次。 */
+  async restart(): Promise<void> {
+    for (const card of this.pool) card.root.visible = false
+    this.hand = []
+    this.board = []
+    this.dealt = 0
+    this.hovered = null
+    await this.deal(RESTART_HAND)
+  }
+
+  /** 连着打 n 张。每张之前先扫一眼手牌——那条路专门验证「没有补间但画面变了」也会醒一帧。 */
+  async playCards(count: number): Promise<void> {
+    for (let i = 0; i < count && this.hand.length > 0; i += 1) {
+      this.hover(0)
+      this.hover(null)
+      await this.playCard(0)
+    }
+  }
+
+  /** 桩场景没有文字要热身，这一档对它没有意义，收下就扔。 */
+  setWarmup(_warm: boolean): void {}
 
   step(deltaMs: number): void {
     this.elapsedMs += deltaMs
@@ -333,7 +363,7 @@ class StubScene implements DuelPrototype {
     this.markDirty()
   }
 
-  counters(): DuelPrototypeCounters {
+  counters(): DuelSceneCounters {
     return {
       textCreated: this.textCreated,
       renders: this.renders,
@@ -359,7 +389,7 @@ class StubScene implements DuelPrototype {
   }
 }
 
-export async function createStubDuelPrototype(opts: DuelPrototypeOptions): Promise<DuelPrototype> {
+export async function createStubDuelScene(opts: BenchSceneOptions): Promise<BenchScene> {
   configureGsap(opts.manualClock)
   // 纪律 3.8：显式指定 WebGL，暂不开 WebGPU。不走 autoDetectRenderer 就是为了这一条——
   // 自动探测会在支持的机器上挑 WebGPU，计数器包的却是 WebGL 上下文，数字会全变成 0。

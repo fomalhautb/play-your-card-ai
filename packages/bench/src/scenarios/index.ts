@@ -8,7 +8,7 @@
  * 在 SCENARIOS 里登记一下就能单独跑。
  */
 
-import type { DuelPrototype } from '../scene/contract'
+import type { BenchScene } from '../scene/contract'
 import { DUEL_SCENARIOS } from './duel'
 import type { FrameDriver, Scenario, ScenarioContext } from './types'
 
@@ -59,7 +59,7 @@ async function pump(driver: FrameDriver, until: () => boolean, label: string): P
   }
 }
 
-export function createContext(scene: DuelPrototype, driver: FrameDriver): ScenarioContext {
+export function createContext(scene: BenchScene, driver: FrameDriver): ScenarioContext {
   return {
     scene,
     async act(start) {

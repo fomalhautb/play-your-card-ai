@@ -5,16 +5,16 @@
  * 结算层）每条条目都要先摆几张真卡，各写一遍的话同一段十来行的代码会出现十次，
  * 改图集取法时要改十处。
  *
- * 卡面数据走 `scenes/deckCards.ts` 那座原型专用的临时桥（接上 content 之后它会整个删掉），
- * 目录页和对局原型因此看到的是同一批卡名和费用，两边的截图能对着比。
+ * 卡面数据由本文件末尾那段按贴图名推出来，**只服务目录页**：真对局的卡名和费用来自卡池
+ *（见 scenes/duel/cardVisuals.ts）。目录页拍的是组件的样子，不该为了摆几张卡先造一份卡池。
  */
 
 import { createFakePlatform, type Platform, type SoundSpec } from '@ai-duel/platform'
-import { CardSprite } from './components/CardSprite'
+import type { Texture } from 'pixi.js'
+import { CardSprite, type CardVisual } from './components/CardSprite'
 import { type BakedTextures, bakeTextures } from './fx/bakedTextures'
 import { bakeUiTextures, type UiTextures } from './fx/uiTextures'
 import { TextTextureCache } from './runtime/textCache'
-import { cardVisualOf } from './scenes/deckCards'
 import type { StoryStage } from './storyStage'
 
 /** 一条条目要用到的全部依赖，外加一个把它们一起收掉的函数。 */
@@ -88,4 +88,77 @@ export function storyCardName(ctx: StoryStage, index: number): string {
   const face = textures.faces[key]
   if (face === undefined) throw new Error('图集里一张卡面都没有')
   return cardVisualOf(key, index, face, textures.back).name
+}
+
+/*
+ * ---------- 目录页专用的卡面数据 ----------
+ *
+ * 从「一串图集里的贴图名」推出一张卡的展示数据。真对局的卡名和费用来自卡池
+ *（见 scenes/duel/cardVisuals.ts），而目录页要的只是「一批看着像真牌、每次都一样的卡」——
+ * 它不该为了摆几张卡先造一份卡池出来。
+ *
+ * 推导必须是确定性的：同一个贴图名永远得到同一个费用和同一种颜色，
+ * 截图比对才比得动（6.9 的确定性前提）。
+ */
+
+/** 费用的取值范围，和 core 里那批卡的费用区间对齐。 */
+const MIN_COST = 1
+const MAX_COST = 8
+
+/**
+ * 圆章底色的备选。取自设计令牌的主题色板——目录页没有每张原画的采样色，
+ * 按贴图名稳定地挑一个，至少能让相邻的几张牌颜色分得开。
+ */
+const ACCENT_PALETTE = [0x46584b, 0x87502d, 0x304e70, 0x655580, 0x37646b, 0x95465f, 0x3d4a64]
+
+/**
+ * 把贴图名摊成一个 32 位整数。
+ *
+ * 用 FNV-1a，只求"不同名字分得开"，不需要抗碰撞——撞了也只是两张牌费用一样。
+ * 和旧客户端 cardArt.ts 挑占位图用的是同一套哈希，行为可以对着比。
+ */
+function hashOf(key: string): number {
+  let hash = 2166136261
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i)
+    hash = Math.imul(hash, 16777619)
+  }
+  // >>> 0 把 32 位有符号结果转成无符号，省掉负数取模那一层判断。
+  return hash >>> 0
+}
+
+/**
+ * 贴图名转成印在铭牌上的名字：连字符换空格，每段首字母大写。
+ * `gpt-4o` → `Gpt 4o`。目录页够用，真对局读卡池里的正式卡名。
+ */
+function displayNameOf(key: string): string {
+  return key
+    .split('-')
+    .map((part) => (part.length === 0 ? part : part[0]?.toUpperCase() + part.slice(1)))
+    .join(' ')
+}
+
+/**
+ * 建一张卡的展示数据。
+ *
+ * @param key 图集里的贴图名。
+ * @param instance 同一个贴图名在一条条目里可能出现好几次，所以牌的 id 要再带一个序号，
+ *   否则扇形按 id 认牌时两张会互相顶掉。
+ */
+export function cardVisualOf(
+  key: string,
+  instance: number,
+  face: Texture,
+  back: Texture,
+): CardVisual {
+  const hash = hashOf(key)
+  const accent = ACCENT_PALETTE[hash % ACCENT_PALETTE.length] ?? ACCENT_PALETTE[0] ?? 0x304e70
+  return {
+    id: `${key}#${instance}`,
+    name: displayNameOf(key),
+    cost: MIN_COST + ((hash >>> 8) % (MAX_COST - MIN_COST + 1)),
+    face,
+    back,
+    accent,
+  }
 }

@@ -68,7 +68,7 @@ export interface SettleLayerDeps extends SettleChromeDeps {
   text: TextTextureCache
   animator: Animator
   /** 确认按钮是一颗匾额按钮，它按下时要叫触感和音效，所以这两项要一路透下来。 */
-  platform: Platform
+  platform: Pick<Platform, 'audio' | 'haptics'>
   clickSound: SoundSpec | null
 }
 

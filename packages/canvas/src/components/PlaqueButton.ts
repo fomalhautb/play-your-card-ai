@@ -125,8 +125,14 @@ export interface PlaqueButtonDeps {
   text: TextTextureCache
   /** 补间的唯一入口。按下和弹回都从这儿建，帧循环才推得动、也才停得下来（3.6）。 */
   animator: Animator
-  /** 触感和音效走它。谁都不直接碰浏览器 API（第 2 节第 5 条）。 */
-  platform: Platform
+  /**
+   * 触感和音效走它。谁都不直接碰浏览器 API（第 2 节第 5 条）。
+   *
+   * 只收这两样能力，不收整个 `Platform`：按钮真正用到的就是它们两个，
+   * 而对局场景往下透的也只有这两项（见 scenes/duel 的契约）。声明成整个的话，
+   * 调用方为了一颗按钮要把网络、存储、全屏、安全区一起配齐。
+   */
+  platform: Pick<Platform, 'audio' | 'haptics'>
   /**
    * 按下时放的那一声。资源地址不归 canvas 管，由调用方给；给 null 就不出声。
    * 旧版是 document 级捕获 click 统一放（useGlobalButtonSound），改成按钮自己在按下时放：

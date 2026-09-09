@@ -14,7 +14,7 @@
 import { bakeTextures } from '../fx/bakedTextures'
 import { PLAYER_FAN } from '../layout/fanMath'
 import { TextTextureCache } from '../runtime/textCache'
-import { cardVisualOf } from '../scenes/deckCards'
+import { cardVisualOf } from '../storyCards'
 import type { StoryStage } from '../storyStage'
 import { CardSprite } from './CardSprite'
 import { HandFan } from './HandFan'

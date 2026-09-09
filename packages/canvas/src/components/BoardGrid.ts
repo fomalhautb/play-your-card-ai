@@ -209,6 +209,21 @@ export class BoardGrid extends Container {
     return POP_IN_MS
   }
 
+  /**
+   * 当场清空整个战场，不播任何演出。
+   *
+   * 和 `remove` 是两回事：那个是「这一格被罚下了」，要演一段沉下去化掉；
+   * 这个是「换一局」——上一局的场面不该演一遍退场，它压根不该再出现。
+   */
+  clear(): void {
+    for (const { tile } of this.tiles.values()) {
+      this.deps.animator.killTweensOf(tile)
+      this.deps.animator.killTweensOf(tile.scale)
+      tile.destroy({ children: true })
+    }
+    this.tiles.clear()
+  }
+
   /** 挂哪几枚状态角标。文案表归场景查（旧版在 ui/tileMarks.ts），这里只管画。 */
   setMark(instanceId: string, marks: readonly TileMark[]): void {
     this.tiles.get(instanceId)?.tile.setMarks(marks)
@@ -242,6 +257,17 @@ export class BoardGrid extends Container {
   /** 拿到某个格子本身（要藏起来、要换角标、要对着它播特效时用）。 */
   tile(instanceId: string): BoardTile | null {
     return this.tiles.get(instanceId)?.tile ?? null
+  }
+
+  /**
+   * 现在场上有哪几格，按放上去的先后排。
+   *
+   * 场景拿它和局面对账：视图里已经没有、这里还留着的那几格说明有单位下场了
+   *（见 scenes/duel/applyView.ts）。罚下那一段演着的时候格子已经不在这份名单里了——
+   * `remove` 是当场从表里划掉、只把动画留到后面演的。
+   */
+  ids(): string[] {
+    return [...this.tiles.keys()]
   }
 
   /** 中线正中那枚徽章上印什么（「第 3 轮 · 轮到你出牌」）。传 null 就不挂。 */

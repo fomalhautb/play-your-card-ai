@@ -8,6 +8,8 @@
  * 现在装着的是迁移第 1 条那批：手牌扇形、拖出出牌、翻面、命中特效，
  * 以及它们共用的帧循环、补间记账、文字纹理缓存和定种子随机数；
  * 迁移第 16 条的对局演出编排层；
+ * 迁移第 18 条的对局渲染器（scenes/duel）：它消费编排层的 cue，是**唯一**认得
+ * 「哪条 cue 该让哪个组件演什么」的地方；
  * 以及迁移第 17 条那批对局用的组件，分两层：
  * 基础件（匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字）和拿它们拼出来的复合件
  *（顶栏、侧栏、玩家面板、Token 细条、战场、对手手牌、横幅、抛硬币、抵消层、展示层、
@@ -26,7 +28,7 @@
  *   interaction/   交互（拖拽判定的纯函数、手牌的指针状态机）
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
- *   scenes/        场景装配（对局原型、版式）
+ *   scenes/        场景装配（对局渲染器 scenes/duel，含两档版式、cue 播放器、输入）
  *   storyStage.ts  组件目录页那边的约定（本包的 *.stories.ts 和装配层的舞台按它对接）
  *
  * director/ 是唯一依赖 `@ai-duel/core` 的目录：它要读引擎的事件和视图类型。
@@ -185,12 +187,15 @@ export { Animator } from './runtime/animator'
 export { FrameLoop, type FrameLoopCounters, type FrameLoopOptions } from './runtime/frameLoop'
 export { Rng } from './runtime/rng'
 export { TextTextureCache } from './runtime/textCache'
+export { createDuelScene } from './scenes/duel/DuelScene'
+export { pickLayout, pickTier, TOUCH_BREAKPOINT } from './scenes/duel/layout/pickLayout'
+export type { DuelLayout, LayoutTier } from './scenes/duel/layout/types'
 export type {
   CardTextures,
-  DuelPrototype,
-  DuelPrototypeCounters,
-  DuelPrototypeOptions,
+  CreateDuelScene,
+  DuelCommand,
+  DuelScene,
+  DuelSceneCounters,
+  DuelSceneOptions,
 } from './scenes/duelContract'
-export { computeLayout, type DuelLayout } from './scenes/duelLayout'
-export { createDuelPrototype } from './scenes/duelPrototype'
 export type { StoryStage, StoryTeardown } from './storyStage'

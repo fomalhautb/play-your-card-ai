@@ -32,7 +32,8 @@ const ALLOWED = {
   ui: ['design', 'platform'],
   client: ['core', 'content', 'protocol', 'design', 'platform', 'canvas', 'ui'],
   server: ['core', 'content', 'protocol'],
-  bench: ['canvas', 'design', 'platform'],
+  // bench 多一个 core：性能剧本要开一局真对局（脚本化），指令进事件出都走引擎。
+  bench: ['canvas', 'core', 'design', 'platform'],
 }
 
 /** `^packages/(a|b|c)/` 这种正则片段。 */
