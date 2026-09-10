@@ -47,8 +47,23 @@ jobs:
       - name: 重新生成 linux 基线
         run: pnpm --filter @ai-duel/client catalog:update
 
+      # 有条目失败也照传：这一步跑一趟十几分钟，而失败往往只是个别条目
+      # （超时、或者真的和基线对不上），其余一百多张是好的，丢掉整趟等于白跑。
+      # 传上来的目录里，失败的那几条没有对应的 png——提交之前照样要 git status 看一遍。
       - name: 上传 linux 基线
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: catalog-baselines-linux
           path: packages/client/dev/storybook/baselines/linux
+
+      # 失败时连 Playwright 的现场一起传：里面有实拍图和 trace.zip
+      # （`playwright show-trace` 能一步步回看它到底卡在哪一步）。
+      # 不传的话，超时这类失败在日志里只有一句「Timeout exceeded」，没有别的线索。
+      - name: 上传失败现场
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-failure-context
+          path: packages/client/test-results
+          if-no-files-found: ignore

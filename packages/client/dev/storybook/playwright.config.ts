@@ -66,9 +66,14 @@ export default defineConfig({
      * 45 秒是按"CI 上一张十几秒、连拍两张二十多秒"再留一倍余量定的——跑机快慢波动很大，
      * 同一个 commit 的两次运行里超时的条目一次 7 条、一次 5 条。
      *
-     * 放在 expect 上而不是 toHaveScreenshot 里：Playwright 的 toHaveScreenshot 配置块
-     * 只收 maxDiffPixelRatio 这类比对参数，时限统一走 expect.timeout。
+     * 放在 expect 上而不是下面的 toHaveScreenshot 块里：那个**配置**块只收
+     * maxDiffPixelRatio 这类比对参数，收不了时限，所以统一那档只能写在 expect.timeout 上。
      * 这里调大的只是"愿意等多久"，比对的严格程度一点没动（阈值见下面）。
+     *
+     * 个别条目还是不够用（首页那三条，理由见 HomeScene.stories.ts）：那种在 story 自己的
+     * `screenshotTimeoutMs` 里单独声明，catalog.spec.ts 会按条目传给 toHaveScreenshot
+     * ——**逐次断言**是收 timeout 的，收不了的只有上面说的那个配置块。
+     * 不为它们把这个数整体调大：调大是全局的，一条真坏掉的条目也要拖满新时限才报错。
      */
     timeout: 45_000,
     toHaveScreenshot: {

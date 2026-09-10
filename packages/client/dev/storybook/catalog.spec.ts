@@ -25,6 +25,14 @@ interface StoryIndex {
  */
 const READY = '[data-story-ready="1"]'
 
+/**
+ * 个别条目自己声明的单张截图时限（毫秒），由画布装饰器写在同一个元素上（见 pixiStory.tsx）。
+ *
+ * 为什么绕 DOM 走：条目清单是从 Storybook 的 index.json 读的，那份清单只有
+ * id / name / title，`parameters` 里的东西一样都带不出来。
+ */
+const TIMEOUT_ATTR = 'data-screenshot-timeout'
+
 test('组件目录页每个条目都和基线一致', async ({ page, baseURL }) => {
   const response = await page.request.get(`${baseURL}/index.json`)
   expect(response.ok(), 'Storybook 的 index.json 取不到').toBe(true)
@@ -58,7 +66,14 @@ test('组件目录页每个条目都和基线一致', async ({ page, baseURL }) 
      *
      * 文件名就是 story id：id 由「title + 导出名」生成，改了名字基线跟着改名，一目了然。
      */
-    await expect.soft(frame).toHaveScreenshot(`${story.id}.png`)
+    /*
+     * 时限按条目走：绝大多数条目用 playwright.config.ts 里统一的那一档，
+     * 个别特别重的（首页那三条：九张 3344×1882 的图 + 建场景时九次 GPU 回读）
+     * 自己声明一个更长的。放宽的只是「愿意等多久」，阈值一点没动。
+     */
+    const declared = await frame.getAttribute(TIMEOUT_ATTR)
+    const options = declared === null ? {} : { timeout: Number(declared) }
+    await expect.soft(frame).toHaveScreenshot(`${story.id}.png`, options)
   }
 
   expect(problems, `目录页有条目在浏览器里报错：\n${problems.join('\n')}`).toEqual([])
