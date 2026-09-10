@@ -7,9 +7,10 @@
  * 二是指针每移动一次就建一条补间的话，稳态每帧堆分配那条（3.10）过不去。
  * 一次性的姿态切换（转正 + 放大）仍然走补间——那是有明确起止的一段演出。
  *
- * pressAt / moveTo / releaseAt 是给"不经过真指针的合成拖拽"留的口子，现在还没有调用方：
- * 场景的 playCard 前半段是自己按脚本排的（理由见 duelPrototype 里那段注释），
- * 只有落地之后才和真拖拽合流。留着是因为 6.6 的交互回归要靠它喂坐标。
+ * pressAt / moveTo / releaseAt 是给"不经过真指针的合成拖拽"留的口子，现在的调用方只有
+ * 6.6 的交互回归（canvas 的 test/duelInput.test.ts）——它按这三个入口喂坐标，
+ * 断言一串动作最后发出了哪条指令。所以这三个入口要和真指针那条路**行为一致**，
+ * 该问的闸（现在许不许动）一样要问。
  *
  * 这里所有跟随（拖拽的、倾斜的）都只在 advance 里推进，而 advance 只有帧循环在跑时才被调到。
  * 补间那条路由 Animator 负责叫醒帧循环，指针这条路没有补间，所以要自己调 options.wake()——
@@ -139,8 +140,16 @@ export class HandPointer {
     return busy
   }
 
-  /** 合成一次按下。场景的 playCard 用它走真指针那条路。 */
+  /**
+   * 合成一次按下。
+   *
+   * 和真指针那条路（onDown）一样先问一句「现在许不许动」：不问的话，锁着的时候
+   * 合成拖拽照样能把牌从扇形里抓出来，只是松手时被判成取消——牌抬起来又掉回去，
+   * 而真指针在这种时候是**一动不动**的。交互测试按这条口子喂坐标（见 input.ts 的文件头），
+   * 两条路的行为对不上，测出来的就不是玩家会遇到的那件事。
+   */
   pressAt(card: CardSprite, x: number, y: number, pointerType = 'mouse'): void {
+    if (!this.options.enabled()) return
     this.begin(card, x, y, -1, pointerType)
   }
 

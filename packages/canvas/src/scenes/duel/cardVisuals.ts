@@ -35,7 +35,7 @@ export interface CardVisuals {
    * 建一张牌的展示数据。
    *
    * @param instanceId 同一张牌可以同时有好几个实例（手牌里两张一样的、场上一张手里一张），
-   *   而扇形和战场都按 `CardVisual.id` 认牌，所以这里用实例 id 当标识而不是卡牌 id。
+   *   而扇形和战场都按 `CardVisual.instanceId` 认牌，所以这里用实例 id 当标识而不是卡牌 id。
    */
   visualOf(cardId: CardId, instanceId: string): CardVisual
   /** 卡池里缺贴图的那些牌，起场景时报一次就够。 */
@@ -49,7 +49,7 @@ export function createCardVisuals(catalog: Catalog, textures: CardTextures): Car
     visualOf(cardId, instanceId) {
       const card = catalog.cards[cardId]
       return {
-        id: instanceId,
+        instanceId,
         // 查不到定义就把 id 印上去。这只会在目录和牌组对不上时发生，
         // 而那时候看得见「印着 id 的那张牌」远比看见一张空白卡好排查。
         name: card?.name ?? cardId,

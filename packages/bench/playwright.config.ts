@@ -59,6 +59,14 @@ export default defineConfig({
   reporter: [['list'], ['./src/node/deterministicReporter.ts']],
   // 图集不在就先打一份：它是构建产物、不进仓库，少了这一步第一次跑批只会看到一串 404。
   globalSetup: './src/node/ensureAtlas.ts',
+  /*
+   * 关键帧基线按平台分目录：字体光栅化在 macOS 和 Linux 上对不齐，一份基线两边一定比不过
+   *（和目录页那条同一个决定，见 client 的 dev/storybook/playwright.config.ts）。
+   * 目录名就是 `process.platform`：本机跑生成 darwin/，CI（Linux）用 linux/。
+   * 只有 keyframes 那个 project 会用到它，别的 project 一张图都不拍。
+   */
+  snapshotDir: './baselines',
+  snapshotPathTemplate: '{snapshotDir}/{platform}/{arg}{ext}',
   use: { baseURL: BASE_URL },
   webServer: {
     command: 'pnpm exec vite',
@@ -96,6 +104,47 @@ export default defineConfig({
             '--use-angle=swiftshader',
             '--enable-unsafe-swiftshader',
           ],
+        },
+      },
+    },
+    {
+      /*
+       * 剧本关键帧的截图回归（6.6）。和确定性那组同一套无头 + SwiftShader 的跑法——
+       * 软件渲染跨机器一致，基线才比得过。它抓完最后一帧就收工，所以比指标那组快得多。
+       */
+      name: 'keyframes',
+      testMatch: /keyframes\.spec\.ts/,
+      fullyParallel: true,
+      timeout: 600_000,
+      use: {
+        browserName: 'chromium',
+        headless: true,
+        launchOptions: {
+          args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+        },
+      },
+    },
+    {
+      /*
+       * 交互回归（6.6 第 2 条）。和确定性那组同样是无头 + SwiftShader，但它不量任何东西，
+       * 所以一条用例几十秒就完了，超时走下面那个覆盖而不是顶上那个 15 分钟。
+       * 各条用例各开各的浏览器，之间没有耦合，照样并行。
+       *
+       * 3 分钟是按本机最慢那条（47 秒，几个 worker 抢核时）留三倍余量给的。
+       * 两核跑机上一条实测只要 4～6 秒——那儿慢的从来不是这几下点击，
+       * 而是每条都要重新起浏览器、重新加载页面和图集。
+       * 这个数**不是**用来兜「上下文建不出来」那种卡死的：那种情况给多久都不会返回，
+       * 治它的是 tests/freshBrowser.ts。
+       */
+      name: 'interaction',
+      testMatch: /interaction\.spec\.ts/,
+      fullyParallel: true,
+      timeout: 180_000,
+      use: {
+        browserName: 'chromium',
+        headless: true,
+        launchOptions: {
+          args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
         },
       },
     },

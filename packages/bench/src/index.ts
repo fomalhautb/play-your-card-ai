@@ -49,4 +49,4 @@ export { median, medianStats, parseFramesReport, percentile, statsFrom } from '.
 export { FRAME_MS, SCENARIOS, scenarioNames } from './scenarios/index'
 export type { BenchScene, BenchSceneOptions, CreateBenchScene } from './scene/contract'
 export type { Limit, LimitKey, Limits, ProfileName } from './thresholds'
-export { FRAME_BUDGET_MS, LEAK_TOLERANCE, LIMITS, limitsFor, placeholderKeys } from './thresholds'
+export { FRAME_BUDGET_MS, LEAK_TOLERANCE, LIMITS, limitsFor, pendingLimits } from './thresholds'

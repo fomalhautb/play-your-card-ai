@@ -13,18 +13,13 @@
 
 import { tokens } from '@ai-duel/design'
 import { gsap } from 'gsap'
-import { Container, Sprite, Text, Texture, Ticker, WebGLRenderer } from 'pixi.js'
+import { Container, type Sprite, Ticker, WebGLRenderer } from 'pixi.js'
 import type { BenchScene, BenchSceneOptions, DuelSceneCounters } from './contract'
 import { mulberry32 } from './random'
 import { configureGsap } from './stubGsap'
-import { boardSlot, deckAnchor, fanSlot, TIERS } from './stubLayout'
-
-interface CardView {
-  root: Container
-  face: Sprite
-  label: Text
-  key: string
-}
+import { boardSlot, deckAnchor, fanSlot } from './stubLayout'
+import type { CardView } from './stubProps'
+import { buildStubProps } from './stubProps'
 
 type Vars = Record<string, unknown> & { duration: number }
 
@@ -36,10 +31,10 @@ class StubScene implements BenchScene {
   private readonly cardLayer = new Container()
   private readonly fxLayer = new Container()
   private readonly ticker = new Ticker()
-  private readonly pool: CardView[] = []
-  private readonly particles: Sprite[] = []
+  private readonly pool: CardView[]
+  private readonly particles: Sprite[]
   private readonly random: () => number
-  private glow: Sprite | null = null
+  private readonly glow: Sprite | null
   private hand: CardView[] = []
   private board: CardView[] = []
   private dealt = 0
@@ -56,64 +51,19 @@ class StubScene implements BenchScene {
     private readonly opts: BenchSceneOptions,
   ) {
     this.random = mulberry32(opts.seed)
-    this.stage.addChild(this.background(), this.cardLayer, this.fxLayer)
-    this.buildPool()
-    this.buildEffects()
+    // 固定物在 stubProps.ts 里造好，这里只负责挂进各自的层。
+    const props = buildStubProps(opts)
+    this.pool = props.cards
+    this.particles = props.particles
+    this.glow = props.glow
+    // 每张卡带一个 Text，全在建卡池那一下烤好。这条计数器从这个数起步，
+    // 之后再动就说明运行期又建了文字——纪律 3.5 要拦的正是那种情况。
+    this.textCreated = props.cards.length
+    this.cardLayer.addChild(...props.cards.map((card) => card.root))
+    this.fxLayer.addChild(...props.particles)
+    if (props.glow) this.fxLayer.addChild(props.glow)
+    this.stage.addChild(props.background, this.cardLayer, this.fxLayer)
     if (!opts.manualClock) this.ticker.add(this.tick)
-  }
-
-  private background(): Sprite {
-    const bg = new Sprite(Texture.WHITE)
-    bg.width = this.opts.width
-    bg.height = this.opts.height
-    // 颜色和时长一律读 design 包的令牌，组件里不写死数值（7.1 第 4 条）。
-    bg.tint = tokens.color.paper.night
-    return bg
-  }
-
-  /**
-   * 牌库里每张牌都先建好对象放进池子，之后只在池子里搬，运行期不 new。
-   * 文字尤其重要：纪律 3.5 要求文字只创建一次，动画期间 textCreated 必须纹丝不动。
-   */
-  private buildPool() {
-    for (const key of Object.keys(this.opts.textures.faces)) {
-      const face = new Sprite(this.opts.textures.faces[key] ?? this.opts.textures.back)
-      face.anchor.set(0.5)
-      const label = new Text({
-        text: key,
-        style: { fontFamily: 'sans-serif', fontSize: 14, fill: tokens.color.paper.base },
-      })
-      this.textCreated += 1
-      label.anchor.set(0.5)
-      label.y = face.height / 2 - 16
-      const root = new Container()
-      root.addChild(face, label)
-      root.visible = false
-      this.cardLayer.addChild(root)
-      this.pool.push({ root, face, label, key })
-    }
-  }
-
-  private buildEffects() {
-    for (let i = 0; i < TIERS[this.opts.tier].particles; i += 1) {
-      const particle = new Sprite(Texture.WHITE)
-      particle.anchor.set(0.5)
-      particle.width = 14
-      particle.height = 14
-      particle.blendMode = 'add'
-      particle.visible = false
-      this.fxLayer.addChild(particle)
-      this.particles.push(particle)
-    }
-    if (!TIERS[this.opts.tier].fullscreenGlow) return
-    const glow = new Sprite(Texture.WHITE)
-    glow.width = this.opts.width
-    glow.height = this.opts.height
-    glow.tint = tokens.color.theme.purple
-    glow.blendMode = 'add'
-    glow.visible = false
-    this.fxLayer.addChild(glow)
-    this.glow = glow
   }
 
   /**
@@ -316,8 +266,26 @@ class StubScene implements BenchScene {
     }
   }
 
+  /** 桩场景没有结算层，这一段对它就是"再打两张"，只为让契约齐全。 */
+  async settleRound(): Promise<void> {
+    await this.playCards(2)
+  }
+
   /** 桩场景没有文字要热身，这一档对它没有意义，收下就扔。 */
   setWarmup(_warm: boolean): void {}
+
+  /**
+   * 桩场景没有输入层，也就永远发不出指令，恒为空。
+   * 契约里有这一条是给交互用例用的，那条用例只跑真实场景（见 contract.ts）。
+   */
+  commands(): [] {
+    return []
+  }
+
+  /** 桩场景的"手牌"只是几个精灵，没有牌面身份。同上，这一条只给交互用例。 */
+  handCards(): [] {
+    return []
+  }
 
   step(deltaMs: number): void {
     this.elapsedMs += deltaMs

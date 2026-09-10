@@ -13,9 +13,26 @@
 import type { Catalog, Question } from '@ai-duel/core'
 import { DECK } from '../node/profiles'
 
-/** 卡池：`profiles.ts` 那批贴图名各一张 AI 牌。 */
+/**
+ * 交互用例（tests/interaction.spec.ts）要打的那张技能牌。
+ *
+ * 目标档选 `own-hand-ai`（模型蒸馏那一档）：它的合法目标是**自己手里**的另一张 AI 牌，
+ * 不需要先在场上摆出单位，一局刚发完牌就能走「拖进落区 → 选目标 → 点中」这整条路。
+ * 三段确定性剧本抽不到它（它只在 INTERACTION_DECK 里），所以那边的指标一个数都不会动。
+ */
+export const INTERACTION_SKILL = 'bench-distill'
+
+/** 卡池：`profiles.ts` 那批贴图名各一张 AI 牌，外加交互用例要的那张技能牌。 */
 function makeCatalog(): Catalog {
   const cards: Catalog['cards'] = {}
+  cards[INTERACTION_SKILL] = {
+    kind: 'skill',
+    id: INTERACTION_SKILL,
+    name: '剧本用的技能牌',
+    tokenCost: 1,
+    text: '交互用例专用：打自己手里的一张 AI 牌。',
+    target: 'own-hand-ai',
+  }
   for (const id of DECK) {
     cards[id] = {
       kind: 'ai',
@@ -53,3 +70,11 @@ export const BENCH_QUESTIONS: Question[] = [1, 2, 3].map((round) => ({
  * 所以最先摸到的那几张写在最后。这里一律用同一批牌，谁先谁后不影响指标。
  */
 export const BENCH_DECK = [...DECK, ...DECK].slice(0, 24)
+
+/**
+ * 交互用例的牌组：和 `BENCH_DECK` 一样，只是把最先摸到的那张换成技能牌。
+ *
+ * 抽牌从数组**末尾**取，所以末尾那张是开局第一张。开局发五张，剩下四张都是 AI 牌，
+ * 正好当那张技能牌的候选目标。
+ */
+export const INTERACTION_DECK = [...BENCH_DECK.slice(0, -1), INTERACTION_SKILL]

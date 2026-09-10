@@ -13,7 +13,7 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, Graphics, Sprite, Texture } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
 import { SETTLE_ANSWER_MS } from '../director/timings'
 import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
@@ -57,7 +57,14 @@ export class SettleChrome extends Container {
   private readonly questionSlot = new Container()
   private readonly answerSlot = new Container()
   private readonly answerBody = new Container()
-  private readonly answerMask = new Sprite(Texture.WHITE)
+  /**
+   * 擦出答案框那一层的遮罩。
+   *
+   * 是 Graphics 不是 Sprite：Pixi 按遮罩对象的类型挑实现，Sprite 走 AlphaMask
+   *（先把被遮的东西画进一张离屏纹理再乘遮罩），而纪律 3.1 要求离屏渲染为 0。
+   * Graphics 走的是 StencilMask，只写模板缓冲。理由同 SettleRow 里那一处。
+   */
+  private readonly answerMask = new Graphics()
   private boxWidth: number
   /** 题目那一行占多高。`SettleLayer` 要拿它算下面结果卡区的起点。 */
   rowBottom: number = BAR.height
@@ -196,18 +203,16 @@ export class SettleChrome extends Container {
     note.position.set(ANSWER_PANEL.width / 2, ANSWER_PANEL.pad + 104)
     this.answerBody.addChild(tag, main, note)
 
-    /*
-     * 遮罩是一张 1×1 的白色纹理拉出来的，所以「铺满答案框」这件事本身就是靠 scale 做到的：
-     * setSize 之后 scale.x 是 362 而不是 1。补间的终点必须取这个数——写死 1 的话，
-     * 擦到最后只露出 1 个像素宽。这一步容易看漏，所以先把满格的倍数记下来再动。
-     */
-    this.answerMask.setSize(ANSWER_PANEL.width, ANSWER_PANEL.height)
-    const full = this.answerMask.scale.x
+    // 遮罩按满格尺寸画好，再把横向缩放从 0 补到 1，就是「从左往右擦出来」。
+    this.answerMask
+      .clear()
+      .rect(0, 0, ANSWER_PANEL.width, ANSWER_PANEL.height)
+      .fill({ color: 0xffffff })
     this.answerMask.scale.x = 0
     this.answerSlot.addChild(this.answerBody, this.answerMask)
     this.answerBody.mask = this.answerMask
     this.deps.animator.tween(this.answerMask.scale, {
-      x: full,
+      x: 1,
       duration: SETTLE_ANSWER_MS / 1000,
       ease: 'power2.out',
       overwrite: 'auto',

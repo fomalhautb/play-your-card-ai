@@ -13,7 +13,7 @@
 
 import type { Reporter, TestResult } from '@playwright/test/reporter'
 import { scenarioNames } from '../scenarios/index'
-import { limitsFor, placeholderKeys } from '../thresholds'
+import { limitsFor, pendingLimits } from '../thresholds'
 import { PROFILES } from './profiles'
 import type { DeterministicRow } from './report'
 import { renderDeterministicMarkdown } from './report'
@@ -55,7 +55,7 @@ export default class DeterministicReporter implements Reporter {
     const report = {
       generatedAt: new Date().toISOString(),
       rows: [...this.rows.values()].sort((a, b) => rank(a) - rank(b)),
-      placeholders: placeholderKeys(limitsFor('desktop')),
+      pending: pendingLimits(limitsFor('desktop')),
     }
     writeResult('deterministic.json', `${JSON.stringify(report, null, 2)}\n`)
     writeResult('deterministic.md', renderDeterministicMarkdown(report))

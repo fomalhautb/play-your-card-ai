@@ -69,8 +69,8 @@ export interface DuelContext {
   /**
    * 手牌实例 id → 卡牌 id。
    *
-   * 单独记一份是因为扇形里那张 `CardSprite` 的 `cardId` 存的是**实例** id
-   *（扇形按它认牌），而牌离开手牌之后还要知道它是哪张牌面（技能牌亮相要按牌面找人）。
+   * 单独记一份是因为扇形里那张 `CardSprite` 上只有实例 id（`CardSprite.instanceId`，
+   * 扇形按它认牌），而牌离开手牌之后还要知道它是哪张牌面（技能牌亮相要按牌面找人）。
    */
   readonly handCardIds: Map<InstanceId, CardId>
   /**
@@ -96,7 +96,7 @@ export interface DuelContext {
   tilePoint(instanceId: InstanceId): (RevealPoint & { width: number; height: number }) | null
   /**
    * 场上某个单位现在是哪张牌。查的是视图，不是格子上那张 `CardSprite`——
-   * 后者的 `cardId` 存的是**实例** id（扇形和战场按它认牌），不是卡牌 id。
+   * 后者身上只有实例 id（扇形和战场按它认牌），压根不记自己是哪张牌面。
    */
   cardIdOf(instanceId: InstanceId): CardId | null
   /** 排一件将来要做的事，走场景自己的虚拟时钟（和 cue 同一条时间轴）。 */
