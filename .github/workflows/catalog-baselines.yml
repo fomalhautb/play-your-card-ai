@@ -8,6 +8,9 @@
 # 只生成不比对，也不往仓库里写：跑完把整个 baselines/linux 传成 artifact，
 # 人下载下来看过再提交（怎么提交见 packages/client/dev/storybook/README.md）。
 # 让工作流直接推提交的话，一次误触就把基线洗成了当时那一版的样子，谁都没看过。
+#
+# 分片和 ci.yml 的 catalog 一样按 `@shard<n>` 标签拆（规则见 catalog.spec.ts）：
+# 一格只生成自己那一片的图，所以要把两格的 artifact 都下下来才凑得齐一份完整基线。
 name: 目录页 linux 基线
 
 on:
@@ -15,11 +18,16 @@ on:
 
 jobs:
   baselines:
+    name: 生成第 ${{ matrix.shard }}/2 片
     runs-on: ubuntu-latest
     # 只跑截图那一步，但比快档慢：生成基线时每条条目要**连拍两张一样的**才算数
     # （快档手上有基线，一张比过就完事），最重的几条一条就要二十多秒。
-    # 一百条实测 5 分多钟，再加上装依赖和装 Chromium，留 25 分钟。
+    # 整页一百多条实测 5 分多钟，分片之后一格约一半，再加上装依赖和装 Chromium，留 25 分钟。
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -43,12 +51,15 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       # 卡面图集是构建产物、不进仓库，截图那步的 globalSetup 会自己打一份。
-      # --update-snapshots 会把 baselines/linux 下的图全部重写一遍（platform 取自 process.platform）。
+      # --update-snapshots 会把这一片的图重写一遍（platform 取自 process.platform）。
       - name: 重新生成 linux 基线
-        run: pnpm --filter @ai-duel/client catalog:update
+        run: pnpm --filter @ai-duel/client catalog:update --grep "@shard${{ matrix.shard }}"
 
+      # artifact 名字带上这一片：v4 不允许两个 job 传同一个名字。
+      # 上传的是整个 baselines/linux 目录，但这一格只重写了自己那一片，
+      # 其余的图是仓库里那一版原样带出来的——两格下下来覆盖到同一个目录才是完整的一份。
       - name: 上传 linux 基线
         uses: actions/upload-artifact@v4
         with:
-          name: catalog-baselines-linux
+          name: catalog-baselines-linux-${{ matrix.shard }}
           path: packages/client/dev/storybook/baselines/linux

@@ -123,6 +123,22 @@ pnpm --filter @ai-duel/client catalog:test      # 比对
 pnpm --filter @ai-duel/client catalog:update    # 重新生成基线
 ```
 
+### 分片
+
+条目一多，整页一条用例就顶破 CI 快档给每个 job 的 10 分钟（实测已到 9 分多钟），
+所以 `catalog.spec.ts` 里按 `SHARDS` 把条目**按排序后的序号轮流发牌**，分成几条互不重叠的用例，
+各带一个 `@shard<n>` 标签；CI 按标签把它们分到并行的 job 上（`.github/workflows/ci.yml` 的
+`catalog` 那格的 matrix）。本机不加 `--grep` 就是几条依次跑完，总耗时和从前一样：
+
+```bash
+pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
+```
+
+**改 `SHARDS` 要同时改 ci.yml 和 catalog-baselines.yml 的 matrix**——工作流按标签筛用例，
+多出来的那一片会变成「一条用例都没匹配到」而不是失败，静悄悄地少拍一批条目。
+不按 `Canvas/*` 和 `UI/*` 分是因为两边条目数差得太远，分完仍然是一片扛住九成的时间。
+基线图按 story id 存，和它落在哪一片无关，所以新增条目让分片重新洗牌也不会让任何基线失效。
+
 做法：起一个目录页服务，从 Storybook 自己的 `index.json` 读出全部条目，
 对每条打开 `iframe.html?id=<id>&viewMode=story`，等 `[data-story-ready="1"]` 出现之后
 拍**这一块**（不是整页），和 `baselines/<平台>/<story id>.png` 逐像素比。
@@ -185,12 +201,14 @@ gh workflow run catalog-baselines.yml --ref <你的分支>
 gh run list --workflow=catalog-baselines.yml --limit 1
 
 # 3. 下载覆盖到 linux 基线目录（在仓库根目录跑）
-gh run download <run-id> -n catalog-baselines-linux -D packages/client/dev/storybook/baselines/linux
+# 基线按分片生成（见下面「分片」），两格的 artifact 都要下，覆盖到同一个目录
+gh run download <run-id> -p 'catalog-baselines-linux-*' -D /tmp/catalog-linux
+cp /tmp/catalog-linux/*/*.png packages/client/dev/storybook/baselines/linux/
 
 > 注意：`gh workflow run` 只认**默认分支（main）上已有**的工作流文件，`catalog-baselines.yml`
 > 合进 main 之前在分支上调它会得到 404。这段时间的替代做法：让 CI 快档红一次，从它上传的
-> `catalog-diff` artifact 里取 `<条目 id>-actual.png`，去掉 `-actual` 后缀放进 `baselines/linux/`
-> 提交即可——那就是 Linux 上实拍的图，和工作流生成的一模一样。
+> `catalog-diff-<片号>` artifact 里取 `<条目 id>-actual.png`，去掉 `-actual` 后缀放进
+> `baselines/linux/` 提交即可——那就是 Linux 上实拍的图，和工作流生成的一模一样。
 
 # 4. git status 看一遍，确认变的和 darwin 那趟是同一批条目，然后提交
 ```
@@ -221,7 +239,7 @@ CI 快档（`.github/workflows/ci.yml`）那一步分两种走法：
   也就是说这里拍到的都是动画停下来的样子，**过程**归另一条管：
   `packages/bench/tests/keyframes.spec.ts` 在四段性能剧本的固定帧号上各截一张
   （迁移第 20 条做的），两边容差同口径、基线同样按平台分目录。
-- **一条用例包全部条目**：Playwright 建用例必须在加载测试文件时同步完成，而条目清单要等服务器
-  起来才拿得到。所以是一条用例在里面遍历，报告里看不到「17 条用例」那样的列表。
+- **一条用例包一整片条目**：Playwright 建用例必须在加载测试文件时同步完成，而条目清单要等服务器
+  起来才拿得到。所以是几条用例各自在里面遍历一片，报告里看不到「17 条用例」那样的列表。
 - **端口写死 6006 / 6007**：被占了会直接失败，不会自动换一个。这是故意的——
   自动换端口的话另一个工作树里开着的目录页会被当成这一个来拍，而且全程没有提示。
