@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { anonymous, jwt } from 'better-auth/plugins'
+import { isDevEnv } from '../devMode'
 import { JWT_ALGORITHM } from './verify'
 
 /**
@@ -12,13 +13,33 @@ import { JWT_ALGORITHM } from './verify'
  * 房间和大厅**不 import 这个文件**：它们只需要 `verify.ts` 里那个读公钥的验签函数。
  * 私钥、会话表、cookie 全部只在 `/api/auth/*` 这条路径上出现。
  *
- * 一个已知的口子留给客户端那几条（迁移第 27、31 条）：没有配 `trustedOrigins`，
- * 所以**跨源的登录请求会被 better-auth 挡掉**。线上前端和 Worker 同域没问题，
- * 本地开发时前端另起一个端口就会撞上，到时候把 dev 的地址加进 `trustedOrigins`。
+ * 跨源那道门（`trustedOrigins`）只在本地开发时放宽，见下面 `devTrustedOrigins`。
  */
 
 /** better-auth 的全部路由都挂在这个前缀下面。 */
 export const AUTH_BASE_PATH = '/api/auth'
+
+/**
+ * 本地开发时额外信任的来源。**线上返回空数组**（判据见 devMode.ts）。
+ *
+ * 为什么要这一条：better-auth 的 origin-check 中间件会拿请求的 `Origin` 头和这份名单
+ *（`baseURL` 自己那个源永远在名单里）比对，对不上就整条回 403 `INVALID_ORIGIN`。
+ * 它不是每条请求都查——只查**带着 cookie 的非 GET 请求**，而玩家一旦开过号，
+ * 之后每条 POST 都带着会话 cookie，正好全在这道门里。
+ *
+ * 线上前端和 Worker 是同一个 Worker、同一个域名，Origin 和 baseURL 天生对得上。
+ * 本地开发对不上，而且有两层原因，缺一条都以为不需要这份名单：
+ * 1. 页面来自 Vite（默认 5174，端到端另起一个端口），请求经代理转到 wrangler 的 8787；
+ * 2. `wrangler dev` 会按 wrangler.jsonc 里那条 `routes` 把请求的 URL 重写成正式域名，
+ *    所以 Worker 里读到的 `baseURL` 干脆是 `http://playyourcardai.online`，
+ *    连 8787 都不是（同一个原因让本地签出的 JWT 里 `iss` 也是正式域名，见 verify.ts）。
+ *
+ * 端口写成通配是因为端口本来就会变（`PORT=xxx pnpm dev`、端到端那份配置、
+ * 另一个工作树同时开着），一个个列出来只会漏。主机名不通配：只认这两个回环地址。
+ */
+function devTrustedOrigins(env: Env): string[] {
+  return isDevEnv(env) ? ['http://localhost:*', 'http://127.0.0.1:*'] : []
+}
 
 /**
  * 每个请求现造一个 auth 实例。
@@ -38,6 +59,8 @@ export function createAuth(env: Env, baseURL: string) {
     // 默认就是 /api/auth，写出来是因为 wrangler.jsonc 的 run_worker_first 和
     // src/index.ts 的路由前缀都得和它对上，三处改一处就得一起改。
     basePath: AUTH_BASE_PATH,
+    // 线上这一项是空的，也就是只信 baseURL 自己那个源（见 devTrustedOrigins）。
+    trustedOrigins: devTrustedOrigins(env),
     secret: env.BETTER_AUTH_SECRET,
     // D1 绑定直接传：better-auth 1.5 起认得 D1（靠 batch/exec/prepare 这几个方法认），
     // 不需要再自己配 kysely-d1 或者 drizzle。

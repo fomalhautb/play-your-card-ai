@@ -1,5 +1,6 @@
 import type { PlayerId } from '@ai-duel/core'
 import type { RoomErrorReason, ServerMessage } from '@ai-duel/protocol'
+import { isDevEnv } from '../devMode'
 import { hasOtherConnection, readSession, type Session, send } from '../net/session'
 
 /**
@@ -32,6 +33,19 @@ export function seatTag(seat: PlayerId): string {
  */
 export function sendRoomError(ws: WebSocket, reason: RoomErrorReason, notice: string): void {
   send(ws, { type: 'room:error', reason, notice })
+}
+
+/**
+ * `malformed`：整条消息连 schema 都没过，**只在开发模式下回**（协议的 `roomErrorReasonSchema`）。
+ *
+ * 线上告诉对方「你发的东西我没看懂」除了帮他调试没有别的用处：正常客户端不会发出
+ * 过不了 schema 的消息，会发的只有在试探协议边界的人。开发时反过来——静默丢弃会让
+ * 「消息发错了」和「服务端没反应」长得一模一样，那是最难查的一类问题。
+ * 「现在算不算开发环境」的判据见 devMode.ts。
+ */
+export function sendMalformed(env: Env, ws: WebSocket, notice: string): void {
+  if (!isDevEnv(env)) return
+  sendRoomError(ws, 'malformed', notice)
 }
 
 /**

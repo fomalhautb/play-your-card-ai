@@ -63,7 +63,7 @@ import {
   reserveRoom,
   setupRoom,
 } from './membership'
-import { type RoomSession, seatTag, sendRoomError } from './session'
+import { type RoomSession, seatTag, sendMalformed } from './session'
 import { type RoomContext, RoomStore, roomCodeOf, seatOf } from './state'
 
 /** 大厅排队配对成功之后调 `setup` 用的参数。 */
@@ -175,11 +175,8 @@ export class MatchRoom extends DurableObject<Env> {
       // `DEBUG_*` 和 `SUBMIT_ANSWERS` 就是在这一步被挡掉的：`matchCommandSchema` 的载荷
       // 只认 `playerCommandSchema` 那四种玩家操作，它们连指令都没变成就整条过不了 schema。
       //
-      // 协议 README 说 `malformed` 只该在开发模式下发（线上告诉对方「你发的东西我没看懂」
-      // 除了帮他调试没别的用处）。这里一律发，是因为客户端的 driver 眼下还没写完，
-      // 静默丢弃会让「消息发错了」和「服务端没反应」长得一模一样。
-      // 等第 27 条 serverDriver 接上、上线之前，这条要改成按环境开关。
-      sendRoomError(ws, 'malformed', '这条消息没看懂')
+      // 回不回这条错要看环境（见 session.ts 的 `sendMalformed`）：线上一律静默丢弃。
+      sendMalformed(this.env, ws, '这条消息没看懂')
       return
     }
     if (parsed.value.type === 'session:hello') {
@@ -187,7 +184,7 @@ export class MatchRoom extends DurableObject<Env> {
       return
     }
     if (!session.greeted) {
-      sendRoomError(ws, 'malformed', '先发 session:hello')
+      sendMalformed(this.env, ws, '先发 session:hello')
       return
     }
     await this.route(ws, session, parsed.value)
@@ -249,7 +246,7 @@ export class MatchRoom extends DurableObject<Env> {
         await handlePlayerCommand(room, ws, seat, message.command)
         break
       default:
-        sendRoomError(ws, 'malformed', '这条消息不是发给房间的')
+        sendMalformed(this.env, ws, '这条消息不是发给房间的')
     }
   }
 

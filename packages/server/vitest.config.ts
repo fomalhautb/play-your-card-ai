@@ -50,6 +50,12 @@ export default defineConfig({
          */
         bindings: {
           BETTER_AUTH_SECRET: 'test-better-auth-secret-at-least-32-chars',
+          /**
+           * 测试就是开发环境：`room:error malformed` 那条按开发模式回
+           *（见 src/devMode.ts）。
+           * `.dev.vars` 不参与测试，这一份得自己给。
+           */
+          DEV: '1',
           TEST_MIGRATIONS: migrations,
         },
         /**

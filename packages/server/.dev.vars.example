@@ -9,3 +9,7 @@
 # 换掉它，本地那个 D1 库里已经生成的私钥就解不开了，得把 jwks 表清掉重来
 # （本地库在 packages/server/.wrangler/ 下面，直接删掉整个目录也行）。
 BETTER_AUTH_SECRET=本地开发用的随便一串够长的密钥
+
+# 有这一行就是「本地开发」。`wrangler deploy` 不带 .dev.vars 上去，所以线上必然没有它，
+# 服务端拿它区分环境（现在只管 `room:error malformed` 回不回给客户端，见 src/devMode.ts）。
+DEV=1
