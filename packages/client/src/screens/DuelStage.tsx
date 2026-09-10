@@ -205,7 +205,7 @@ export function DuelStage({
       if (outerSceneRef !== undefined) outerSceneRef.current = null
       setReady(false)
     }
-    // 这四样都是建场景和编排层时焊死的，换了任何一样都要整套重建。
+    // 依赖里这几样都是建场景和编排层时焊死的，换了任何一样都要整套重建。
   }, [driver, platform, seat, tier, outerSceneRef])
 
   /**
@@ -235,9 +235,12 @@ export function DuelStage({
   })
 
   /*
-   * 没有事件、只有新局面的那条路：联机重连后的 `match:snapshot`，以及场景比 driver
-   * 晚挂上来的那一瞬（图集还在下的时候事件已经攒在 driverCore 里了）。
-   * 单机走不到这里——`applyView` 里那道「同一份不重摆」已经先一步挡下了。
+   * 没有事件、只有新局面的那条路——两种情况：
+   * 联机重连后的 `match:snapshot`（协议第 5 条：整份替换，不补发事件），
+   * 以及**热座换手后重挂的这一份新场景**（它要等下一条指令才会收到事件，
+   * 在那之前得先把当前局面摆出来，靠场景自己的兜底对账把画面补齐）。
+   * 正常打的时候走不到：事件批那条路已经把同一份视图摆过了，
+   * `applyView` 里那道「同一份不重摆」会在这儿挡下来。
    */
   useEffect(() => {
     if (view.view !== null) applyView(view.view)

@@ -158,13 +158,14 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     const view = ctx.view
     if (view === null || !canAct() || targeting !== null) return false
     const hero = view.self.hero
-    if (heroSkillDirectionOf(hero) === null) return false
+    // 先判 null 再问方向：两者本来是一回事（没英雄就没有主动技能），但类型收窄不认后者。
+    if (hero === null || heroSkillDirectionOf(hero) === null) return false
     const legal = heroSkillTargetsOf(view, hero)
     if (legal.length === 0) return false
     targeting = { kind: 'hero', legal: new Set(legal) }
     ctx.userAction({ kind: 'targeting-begin' })
     // 提示条上写技能名，和技能牌那条路写卡名是同一个口径：说清楚现在在给什么选目标。
-    ctx.parts.targeting.begin(view.catalog.heroes[hero ?? 'grace-hopper']?.skillName ?? '英雄技能')
+    ctx.parts.targeting.begin(view.catalog.heroes[hero]?.skillName ?? '英雄技能')
     ctx.parts.board.highlightTargets(legal)
     ctx.wake()
     return true
