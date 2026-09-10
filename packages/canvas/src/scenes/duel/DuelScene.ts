@@ -283,6 +283,11 @@ class DuelSceneImpl {
         this.locks = locks
         this.refreshLocks()
       },
+      setStatus: (text) => {
+        this.parts.topBar.setStatus(text)
+        // 顶栏那一块是重建出来的，不走补间，所以要自己叫一帧把它画出去。
+        this.frameLoop.wake()
+      },
       onCommand: (callback) => {
         this.onCommandCb = callback
       },

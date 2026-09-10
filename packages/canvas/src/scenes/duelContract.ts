@@ -125,6 +125,14 @@ export interface DuelScene {
   play(cues: Cue[]): void
   /** 哪些输入现在不许。场景照它决定手牌接不接指针、按钮灰不灰。 */
   setLocks(locks: DirectorLocks): void
+  /**
+   * 顶栏正中那一行状态字（「正在重连…」「对方掉线…」）。传 null 恢复成比分。
+   *
+   * 它和 `applyView` 是两回事，所以单独一个入口：这行字说的是**连接**的事，
+   * 而局面此刻并没有变——玩家该看的是「现在连不上」，不是第几轮几比几
+   *（见 components/TopBar.ts 的 `setStatus`）。单机玩法永远传 null。
+   */
+  setStatus(text: string | null): void
   /** 玩家在界面上做出的指令（拖出出牌、结束出牌、发英雄技能、确认结算）。 */
   onCommand(callback: (command: DuelCommand) => void): void
   /**

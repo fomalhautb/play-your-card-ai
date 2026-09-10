@@ -4,8 +4,12 @@
  * driver 是首页（联机时是房间页）建好之后放进 `MatchSession` 的——放在路由之上才跨得过
  * 那次跳转。直接刷新 `/match` 会读不到 driver（这一局本来就不存盘），这时跳回首页。
  *
- * 这一页自己只做画布**之外**的四件事：背景音乐、离开确认、终局结算、记胜场。
+ * 这一页自己只做画布**之外**的五件事：背景音乐、离开确认、终局结算、记胜场，
+ * 以及联机时那行连接状态字（正在重连、对方掉线，判据见 matchStatus.ts）。
  * 画布里面那一整套（版式、演出、拖牌、选目标）归 `DuelStage` 接线，那里一行界面代码都没有。
+ *
+ * **界面不分单机和联机**：这一整页对着的是 `MatchDriver` 这一个接口，两种玩法同一套代码
+ *（架构 5.6）。只有两处按 `mode` 分岔，各自都写了理由：测试面板挂不挂、离开之后回哪一页。
  */
 
 import { Dialog } from '@ai-duel/ui'
@@ -17,11 +21,13 @@ import { playTrack } from '../audio/music'
 import { toggleMuted } from '../audio/mute'
 import type { MatchDriver } from '../match/driver'
 import { isLocalDriver } from '../match/localDriver'
+import { isServerDriver } from '../match/serverDriver'
 import { useMatch } from '../match/useMatch'
 import { recordWin } from '../save/saveStore'
 import { DuelStage } from './DuelStage'
 import { type MatchOutcome, MatchResult } from './MatchResult'
 import { outcomeOf, resultTitleOf } from './matchOutcome'
+import { linkStatusOf } from './matchStatus'
 import './matchScreen.css'
 
 /**
@@ -78,6 +84,28 @@ function Match({ driver }: { driver: MatchDriver }) {
     playTrack(platform, 'match')
   }, [platform])
 
+  /*
+   * 开发构建下把当前 driver 挂到 `window.__aiDuel` 上，给端到端用例读局面、发指令。
+   *
+   * 动态 import 而不是文件顶部那种：`import.meta.env.DEV` 在生产构建里是字面量 false，
+   * 整段连同 dev/debugHook 那个模块一起被当成死代码删掉（同 App.tsx 那张开发页表）。
+   * 静态 import 的话模块无论如何都会被打进包里。
+   */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    let remove: (() => void) | null = null
+    let disposed = false
+    void import('../dev/debugHook').then(({ installMatchDebug }) => {
+      // 等这个 await 的工夫组件可能已经卸载了，那就别再挂上去。
+      if (disposed) return
+      remove = installMatchDebug(driver)
+    })
+    return () => {
+      disposed = true
+      remove?.()
+    }
+  }, [driver])
+
   const outcome = outcomeOf(view)
 
   /*
@@ -93,9 +121,23 @@ function Match({ driver }: { driver: MatchDriver }) {
   }, [platform, mode, outcome, driver])
 
   const leave = (to: string): void => {
+    /*
+     * 联机时先说一句「我不打了」再拆连接。只拆连接的话对面看到的是 `online: false`，
+     * 也就是「他掉线了」，于是干等到房间超时；发了 `room:leave` 服务端会当场收摊，
+     * 对面立刻收到 `room:closed{peer-left}`（见 server 的 membership.ts）。
+     * 打完了的那一局房间已经自己收摊了，这时再发一条服务端也只是忽略。
+     */
+    if (isServerDriver(driver)) driver.leave()
     end()
     navigate(to)
   }
+
+  /*
+   * 离开之后回哪一页：联机回房间页（那里才有「再开一局」的入口），单机回首页。
+   * 联机不回首页是因为回去之后玩家还得再点一次「联机对战」、再等一次登录，
+   * 而他刚打完一局，多半就是想接着来。
+   */
+  const exitTo = mode === 'online' ? '/room' : '/'
 
   return (
     <div className="match">
@@ -109,6 +151,7 @@ function Match({ driver }: { driver: MatchDriver }) {
         driver={driver}
         platform={platform}
         seat={view.seat ?? 0}
+        status={linkStatusOf(view)}
         onLeave={() => setLeaving(true)}
         onToggleMute={() => toggleMuted(platform)}
       />
@@ -118,8 +161,9 @@ function Match({ driver }: { driver: MatchDriver }) {
           outcome={outcome}
           title={resultTitleOf(outcome, view.abortReason)}
           score={scoreOf(view, outcome)}
-          // 「再来一局」现在只回首页：真正的重开要等房间页（第 22、27b 条）。
-          onPlayAgain={() => leave('/')}
+          // 「再来一局」也只是回上一页：这一局的房间已经收摊了（`room:closed`），
+          // 真正的「原班人马再来一局」要服务端支持重开房间，那还没有。
+          onPlayAgain={() => leave(exitTo)}
           onHome={() => leave('/')}
         />
       )}
@@ -134,7 +178,7 @@ function Match({ driver }: { driver: MatchDriver }) {
       <Dialog
         open={leaving}
         title="离开对局"
-        confirm={{ label: '确定离开', onSelect: () => leave('/') }}
+        confirm={{ label: '确定离开', onSelect: () => leave(exitTo) }}
         cancel={{ label: '再想想', onSelect: () => setLeaving(false) }}
         onDismiss={() => setLeaving(false)}
       >
