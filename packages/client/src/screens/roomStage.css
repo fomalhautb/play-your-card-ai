@@ -1,0 +1,25 @@
+/*
+ * 画布铺满这块地方。版式在画布里面（见 canvas 的 scenes/room），这里只给它一块矩形。
+ * 和 duelStage.css 是同一套写法，两页各留各的，因为往后房间页要铺自己的背景图。
+ */
+
+.room-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.room-stage canvas {
+  display: block;
+}
+
+/* WebGL 起不来时的那句话。压在画布上，居中。 */
+.room-stage__error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: var(--space-xxl);
+  text-align: center;
+}

@@ -6,11 +6,41 @@
  * 读到半新半旧状态的问题。状态层因此一个库都不用引（memory 里定的）。
  */
 
-import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react'
 import type { MatchDriver, MatchEventBatch, MatchView } from './driver'
 
 export function useMatch(driver: MatchDriver): MatchView {
   return useSyncExternalStore(driver.subscribe, driver.getSnapshot)
+}
+
+/**
+ * 还没有 driver 的时候读到的那一份。**必须是模块级常量**：
+ * `useSyncExternalStore` 拿引用判有没有变，每次现造一个新对象会让组件无限重渲染。
+ */
+const NO_MATCH: MatchView = {
+  view: null,
+  seat: null,
+  status: 'connecting',
+  lastRejection: null,
+  abortReason: null,
+  link: 'down',
+  peer: null,
+}
+
+/**
+ * driver 可能还没有的那一档。房间页用它：进房之前手上一个 driver 都没有，
+ * 进房之后要读座位和对手状态，而 hooks 不许按条件调用。
+ *
+ * 没有 driver 时给一份「还没连上」的空局面，形状和真的一样——
+ * 界面因此不用在每一处再判一次「driver 有没有」。
+ */
+export function useOptionalMatch(driver: MatchDriver | null): MatchView {
+  const subscribe = useCallback(
+    (listener: () => void) => driver?.subscribe(listener) ?? (() => undefined),
+    [driver],
+  )
+  const getSnapshot = useCallback(() => driver?.getSnapshot() ?? NO_MATCH, [driver])
+  return useSyncExternalStore(subscribe, getSnapshot)
 }
 
 /**
