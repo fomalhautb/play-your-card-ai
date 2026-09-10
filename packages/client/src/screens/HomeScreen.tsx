@@ -12,9 +12,11 @@
 import { Button } from '@ai-duel/ui'
 import { useEffect } from 'react'
 import { useLocation } from 'wouter'
+import type { MatchMode } from '../app/MatchSession'
 import { useMatchSession } from '../app/MatchSession'
 import { usePlatform } from '../app/platform'
 import { playTrack } from '../audio/music'
+import type { LocalDriver } from '../match/localDriver'
 import { createHotSeatMatch, createTestMatch } from '../match/localMatch'
 import './homeScreen.css'
 
@@ -31,7 +33,8 @@ export function HomeScreen() {
     playTrack(platform, 'beginning')
   }, [platform])
 
-  const enter = (driver: ReturnType<typeof createTestMatch>, mode: 'test' | 'hotseat') => {
+  /** 交接 driver 再跳转。两个入口只差建的是哪一种 driver。 */
+  const enter = (driver: LocalDriver, mode: MatchMode): void => {
     start(driver, mode)
     navigate('/match')
   }
