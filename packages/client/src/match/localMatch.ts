@@ -82,6 +82,9 @@ export function createTestMatch(platform: Platform, options: LocalMatchOptions =
  *
  * 两边都用存档里那副牌：这台机器上只有一份存档，也没有第二处可问。
  * 英雄同理，两边一样——想让两边不同得先有选英雄那一步（第 29 条）。
+ *
+ * 名字按座位号叫「玩家一 / 玩家二」，不叫「先手 / 后手」：第一轮谁先出牌是抛硬币掷出来的，
+ * 0 号座不一定先手，而且之后每轮还会交换。
  */
 export function createHotSeatMatch(
   platform: Platform,
@@ -94,8 +97,8 @@ export function createHotSeatMatch(
     setup: {
       ...baseSetup(options.seed ?? Date.now()),
       players: [
-        { name: '先手', deck: [...deck], ...hero },
-        { name: '后手', deck: [...deck], ...hero },
+        { name: '玩家一', deck: [...deck], ...hero },
+        { name: '玩家二', deck: [...deck], ...hero },
       ],
     },
     ...(options.quizDelayMs === undefined ? {} : { quizDelayMs: options.quizDelayMs }),
