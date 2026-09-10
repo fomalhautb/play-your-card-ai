@@ -15,8 +15,12 @@ export function outcomeOf(view: MatchView): MatchOutcome | null {
   if (view.status === 'aborted') return 'aborted'
   if (view.status !== 'finished' || view.view === null) return null
   const winner = view.view.winner
-  if (winner === 'draw') return 'draw'
-  return winner === view.seat ? 'victory' : 'defeat'
+  if (winner === view.seat) return 'victory'
+  /*
+   * 打完了却没有赢家（`winner` 是 null）在规则上不该出现——引擎收场时一定会填。
+   * 真出现就当平局：那是「谁也没赢」最接近的说法，而当成失败会平白扣掉一次胜场。
+   */
+  return winner === 'draw' || winner === null ? 'draw' : 'defeat'
 }
 
 /**
