@@ -3,34 +3,13 @@
  * 底栏比分、确认按钮、整层退场。
  *
  * 编排层已经把整条时间线排好了（settleTimeline.ts 用绝对时刻串），这里一条 cue 对一次调用，
- * 不做任何排期。唯一多做的是把 core 的枚举翻成中文（题目类别、本轮判据）——
+ * 不做任何排期。唯一多做的是把 core 的枚举翻成中文（题目类别、本轮判据，见 ../labels.ts）——
  * 那是界面文案，不该进编排层的 cue 载荷。
  */
 
-import type { QuestionCategory, RoundVerdict } from '@ai-duel/core'
 import type { SettleSide } from '../../../components/SettleLayer'
+import { CATEGORY_LABELS, VERDICT_LABELS } from '../labels'
 import type { CuePlayerGroup } from './types'
-
-/**
- * 题目类别的中文名。
- *
- * 编排层里也有同名的一张表（director/events.ts，横幅那句话要用）。两处各留一份是因为
- * 它们服务的是两个不同的东西：那边拼的是横幅文案，这边填的是结算层顶栏的类别药丸，
- * 而 cue 载荷里带的是 core 的枚举值，本来就该由用它的人各自翻译。
- * 真要合并，合并点应该是一份「界面文案表」（第 31 条重做文字界面时再说），不是互相 import。
- */
-const CATEGORY_LABELS: Record<QuestionCategory, string> = {
-  meme: '梗题',
-  bias: '刻板印象',
-  life: '生活类',
-}
-
-/** 本轮那 1 分是怎么分出来的，底栏那句结论。文案抄旧版 RoundSettleLayer 的三档。 */
-const VERDICT_LABELS: Record<RoundVerdict, string> = {
-  'more-correct': '答对更多，本轮 +1',
-  'fewer-tokens': '答对数持平，消耗更少者 +1',
-  'equal-tokens': '答对数与消耗均持平，双方各 +1',
-}
 
 type SettleKind =
   | 'settle-open'
