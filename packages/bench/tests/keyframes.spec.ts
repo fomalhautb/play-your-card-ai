@@ -5,13 +5,16 @@
  * **演出途中**：牌飞到一半、展示层刚立起来、结算层正在逐行盖章。那几拍上出岔子
  * （落点算错、层没开、字没出来）在静止帧上一个都看不出来。
  *
- * 每段剧本取两帧，两档视口各一套，和 `packages/bench/baselines/{平台}/` 比。
+ * 每段剧本取一帧，两档视口各一套，和 `packages/bench/baselines/{平台}/` 比。
  * 差异比例的口径和目录页一致（`maxDiffPixelRatio` 0.001，见 client 的 dev/storybook 那份配置）。
  * 基线按平台分目录，理由也一样：字体光栅化在 macOS 和 Linux 上对不齐，一份基线两边比不过。
  * darwin 那份本机 `--update-snapshots` 生成后提交，linux 那份由 `.github/workflows/bench-baselines.yml`
  * 跑出来传成 artifact（怎么刷新见 README）。
  *
  * 画面从 Pixi 的 `extract` 抓，不走 `page.screenshot()`，理由见 src/page/grabFrame.ts。
+ *
+ * 进 CI **快档**的 `keyframes` job，单独占一台跑机：它是快档里最重的一步，
+ * 和交互回归挤在一起装不进 10 分钟（见 .github/workflows/ci.yml）。
  */
 
 import { PROFILES } from '../src/node/profiles'
@@ -20,22 +23,33 @@ import { expect, test } from './freshBrowser'
 import { captureKeyframes, initOptions, initScene, openBench } from './harness'
 
 /**
- * 每段剧本停在哪两帧。帧号从**被测动作**的第一帧算起（热身那一遍不计），60fps 定步长。
+ * 每段剧本停在哪一帧。帧号从**被测动作**的第一帧算起（热身那一遍不计），60fps 定步长。
  *
  * 挑的都是「正在演」的时刻，不是演完之后的静止帧——静止帧目录页已经拍过了。
- * 两帧都排在前几百帧里还有个实际好处：抓齐就收工（见 benchApi 的 keyframes），
+ * 帧号排在前一两百帧里还有个实际好处：抓齐就收工（见 benchApi 的 keyframes），
  * `play10` 一整遍是一千五百多帧，跑完剩下的一千多帧对这条检查毫无意义。
  * 改了 `director/timings.ts` 里的时长，这些帧号可能就落到别的一拍上了，基线要跟着重拍。
+ *
+ * **一段为什么只停一帧**：第一版每段停两帧，晚的那一帧排在 f200～f420。
+ * 一条用例的开销由**最后那个停帧**决定（抓齐就收工），所以晚的那一帧是贵的那一帧——
+ * 它把每条用例的渲染量翻了三到五倍。这在本机（8 核）看着还行，
+ * 到两核跑机上整组连 10 分钟都跑不完：第 34477014105 次运行里六分四十四秒过去，
+ * 八条一条都没跑完。桌面档尤其贵，1920×1080 按 1.5 倍渲染就是 2880×1620，
+ * SwiftShader 是纯 CPU 光栅，画多少像素就花多少时间。
+ * 砍掉晚的那一帧之后每段只跑到第一个停帧，渲染量降到约四分之一。
+ * 留下的这四帧仍然都是「正在演」的时刻，这条检查要拦的那类岔子（落点算错、层没开、
+ * 字没出来）在它们身上照样看得见；演出后半程那几拍暂时没人看着，
+ * 要补回来得先让这一组变快（降渲染倍率或者缩剧本，那是改口径）。
  */
 const PLANS: readonly { segment: string; stops: readonly number[] }[] = [
-  // 抛硬币过场收尾 / 五张牌正飞进扇形。
-  { segment: 'deal', stops: [120, 260] },
-  // 我方第一张落场的特效 / 打到第三四张、战场已经站了几个。
-  { segment: 'play10', stops: [90, 420] },
-  // 卡飞向屏幕中央翻正 / 第二张的展示层。
-  { segment: 'flip', stops: [40, 200] },
-  // 题面揭晓、答案框正在擦出来 / 结果卡逐行盖章。
-  { segment: 'settle', stops: [120, 420] },
+  // 抛硬币过场收尾。
+  { segment: 'deal', stops: [120] },
+  // 我方第一张落场的特效。
+  { segment: 'play10', stops: [90] },
+  // 卡飞向屏幕中央翻正。
+  { segment: 'flip', stops: [40] },
+  // 题面揭晓、答案框正在擦出来。
+  { segment: 'settle', stops: [120] },
 ]
 
 for (const profile of PROFILES) {

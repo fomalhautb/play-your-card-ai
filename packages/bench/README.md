@@ -73,7 +73,7 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
 
 ## 剧本关键帧的截图回归（6.6）
 
-`tests/keyframes.spec.ts` 把四段剧本各停在两个固定帧号上截一张图，和 `baselines/{平台}/` 逐像素比，
+`tests/keyframes.spec.ts` 把四段剧本各停在一个固定帧号上截一张图，和 `baselines/{平台}/` 逐像素比，
 差异比例的口径和目录页一致（`maxDiffPixelRatio` 0.001）。
 
 和目录页那条的分工：目录页拍的是**静止**的版式（组件、整局停在发牌完成 / 出牌中 / 结算层打开），
@@ -88,7 +88,12 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
 - **基线按逻辑像素的一半存**（`SHOT_SCALE`）。这条要拦的是「这一刻画面对不对」，
   逐像素级的字形回归由目录页负责；半倍之后桌面档一张从八百多 KB 降到两百 KB。
   差异比例的口径不受影响——0.001 是比例，分母跟着一起缩。
-- **抓齐最后一张就收工**，不把剧本跑完。`play10` 一遍是一千五百多帧，而关键帧都排在前几百帧里。
+- **抓齐最后一张就收工**，不把剧本跑完。`play10` 一遍是一千五百多帧，而关键帧都排在前一两百帧里。
+- **一段只停一帧**。第一版每段停两帧，晚的那一帧排在 f200～f420；而一条用例的开销由
+  最后那个停帧决定（抓齐就收工），所以晚的那一帧把渲染量翻了三到五倍。
+  本机看着还行，两核跑机上整组连 10 分钟都跑不完（八条一条都没完）。
+  砍掉之后留下的四帧仍然都是「正在演」的时刻；演出后半程那几拍暂时没人看着，
+  要补回来得先让这一组变快。
 - 帧号写在 spec 的 `PLANS` 里。改了 `director/timings.ts` 的时长，那些帧号可能落到别的一拍上，
   基线要跟着重拍——这正是它该拦下来的那种改动。
 
@@ -112,7 +117,7 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
 GitHub 按**默认分支上的那一份**工作流文件注册 `workflow_dispatch`，
 所以 `bench-baselines.yml` 只有在自己已经合进 main 之后才手动触发得了；
 在那之前跑这条命令只会得到一句「工作流不存在」。
-这段时间里 linux 基线从**快档 `scene` job 第一次运行**传出来的
+这段时间里 linux 基线从**快档 `keyframes` job 第一次运行**传出来的
 `keyframes-baselines-linux` artifact 里取——仓库里还没有 `baselines/linux/` 时那一步走的是
 「只生成不比对」，正好把整份基线生成出来传上去（见 `.github/workflows/ci.yml`）：
 
@@ -174,7 +179,7 @@ src/
   node/        跑在 Node 里：判阈值、解析 trace、出报告（纯逻辑）
   thresholds.ts  6.9 表的全部上限，只在这里改
 test/          vitest 单元测试（pnpm test 只跑这里）
-tests/         Playwright 用例（deterministic / interaction / timing 三个 project）
+tests/         Playwright 用例（deterministic / keyframes / interaction / timing 四个 project）
 scripts/       frames.py：从 Chrome trace 里取帧
 ```
 

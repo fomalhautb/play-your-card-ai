@@ -2,11 +2,17 @@
 #
 # 「10 分钟」这条口径从「整条流水线 10 分钟」改成了「**每个并行 job 各自 10 分钟**」。
 # 原因是第 18 条把真对局场景接进来之后，串成一条已经到 8 分 56 秒（其中目录页截图回归
-# 一步就占 6.8 分钟），再往上加任何一条检查都会顶破。现在拆成三个互不依赖的 job：
+# 一步就占 6.8 分钟），再往上加任何一条检查都会顶破。现在拆成四个互不依赖的 job：
 #   check        类型、lint、设计令牌、单元测试        —— 不开浏览器
 #   catalog      组件目录页的截图回归                  —— 装 Chromium
-#   scene        对局场景的交互回归 + 剧本关键帧截图    —— 装 Chromium
-# 三个并排跑，墙钟时间取最慢的那一个。
+#   scene        对局场景的交互回归                    —— 装 Chromium
+#   keyframes    剧本关键帧的截图回归                  —— 装 Chromium
+# 四个并排跑，墙钟时间取最慢的那一个。
+#
+# scene 和 keyframes 一开始是同一个 job（两步跑在一台机器上），第一次真跑就顶破了 10 分钟：
+# 交互那步 2 分 34 秒跑完，关键帧那步再跑六分四十四秒、八条一条都没完，
+# 整个 job 被 timeout-minutes 掐掉（第 34477014105 次运行）。
+# 拆开是 PR 里预留的两条办法之一，另一条（每段少停一帧）也一起做了，见 keyframes.spec.ts。
 #
 # **确定性性能指标不在这一档**：第 18 条实测整批 17 分钟、最慢一条 12.9 分钟（M2 上），
 # ubuntu 跑机只会更慢，10 分钟的快档装不下。它挪到了慢档（slow.yml）。
@@ -144,15 +150,13 @@ jobs:
           path: packages/client/test-results
 
   scene:
-    name: 对局场景交互 / 关键帧
+    name: 对局场景交互
     runs-on: ubuntu-latest
-    # 本机（M2）实测：交互 7 条 1.5～1.7 分钟，关键帧 8 条 2.7～5.0 分钟
-    #（同一台机器两次跑差了近一倍——SwiftShader 是纯 CPU 光栅，几个 worker 抢核抖得厉害）。
+    # 两核跑机上实测 2 分 34 秒（7 条，每条 32～37 秒）。本机（M2）2.0 分钟。
     #
-    # 这一步是快档里最没把握的一步：目录页那条的换算是本机 3 分钟 → 两核跑机 6.8 分钟，
-    # 照这个倍数套过来，关键帧那半自己就能贴到 10 分钟。真顶破了要做的是**减关键帧**
-    #（每段少停一帧，或者只留桌面档），或者把关键帧单拆成一个 job，
-    # 不是把这个数往上调——快档的口径就是每个 job 10 分钟。
+    # 跑机上一条 30 多秒而本机差不多，不是这几下点击慢：每条用例都要重新起一个浏览器、
+    # 重新加载页面和图集（为什么非这样不可见 packages/bench/tests/freshBrowser.ts）。
+    # 顶破了就该查是不是又多加了用例，10 分钟是快档的口径。
     timeout-minutes: 10
     steps:
       - name: 检出代码
@@ -180,6 +184,35 @@ jobs:
       - name: 交互回归
         run: pnpm --filter @ai-duel/bench interaction
 
+  keyframes:
+    name: 剧本关键帧截图
+    runs-on: ubuntu-latest
+    # 和交互回归分开一台机器跑，因为两个加起来装不进 10 分钟（见文件开头）。
+    # 关键帧这半自己就是快档里最重的一步：桌面档一帧是 2880×1620 的软件光栅，
+    # 两核跑机上比本机慢好几倍。每段只停一帧之后才勉强坐得进来（见 keyframes.spec.ts）。
+    # 再顶破要做的是继续**减关键帧**（只留手机档，或者挪进慢档），不是把这个数往上调。
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 卡面图集同样由 Playwright 的 globalSetup 自己打（src/node/ensureAtlas.ts）。
+      #
       # 剧本关键帧的截图回归（6.6）：演出途中的几拍和 baselines/linux 逐像素比。
       #
       # 和目录页那一步同样的两分支写法，理由也一样：基线按平台分目录，而 linux 那份只能在
