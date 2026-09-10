@@ -67,8 +67,14 @@ const SMALL_MESH_VERTICES: MeshVertices = { x: 2, y: 2 }
 
 /** 建一张卡要的数据。纹理由调用方给——canvas 不管资源从哪来。 */
 export interface CardVisual {
-  /** 这张牌的标识，扇形按它认牌。 */
-  id: string
+  /**
+   * 这张牌的**实例**标识，扇形和战场都按它认牌。
+   *
+   * 不是卡牌定义 id：同一张牌可以同时存在好几个实例（手上两张一样的、场上一张手里一张），
+   * 按定义 id 认牌的话它们会互相顶掉。想知道「这是哪张牌面」要去问视图或者调用方自己那份账
+   *（对局场景记在 `DuelContext.handCardIds` 里）。
+   */
+  instanceId: string
   /** 印在铭牌上的名字。 */
   name: string
   /** 左上圆章里的数字。 */
@@ -125,7 +131,8 @@ function styles(): { name: TextStyle; cost: TextStyle } {
 }
 
 export class CardSprite extends Container {
-  readonly cardId: string
+  /** 这张卡的实例标识，含义同 `CardVisual.instanceId`。 */
+  readonly instanceId: string
   /** 卡面那一小块反光，平时藏着（visible 为 false）。这一档不开反光时是 null。 */
   readonly glare: CardGlare | null
 
@@ -150,8 +157,8 @@ export class CardSprite extends Container {
 
   constructor(visual: CardVisual, deps: CardSpriteDeps) {
     super()
-    this.cardId = visual.id
-    this.label = `card:${visual.id}`
+    this.instanceId = visual.instanceId
+    this.label = `card:${visual.instanceId}`
 
     this.backLayer.visible = false
     this.addChild(this.frontLayer, this.backLayer)

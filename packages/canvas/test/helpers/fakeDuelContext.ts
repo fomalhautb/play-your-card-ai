@@ -32,10 +32,10 @@ function recorder(calls: string[], prefix: string, methods: readonly string[], r
   return out
 }
 
-/** 假的卡：cue 播放器只会读它的 id、改它的位置、最后销毁它。 */
+/** 假的卡：cue 播放器只会读它的实例 id、改它的位置、最后销毁它。 */
 function fakeCard(calls: string[], id: string) {
   return {
-    cardId: id,
+    instanceId: id,
     x: 0,
     y: 0,
     alpha: 1,

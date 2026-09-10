@@ -124,7 +124,7 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     else {
       // 打向手牌的那一档：候选是自己手里的牌，压暗其余的，被压暗的那些点了没反应。
       for (const one of ctx.parts.fan.all()) {
-        one.alpha = targeting.legal.has(one.cardId) ? 1 : CASTING_DIM
+        one.alpha = targeting.legal.has(one.instanceId) ? 1 : CASTING_DIM
       }
     }
     ctx.wake()
@@ -135,7 +135,7 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
   const onPlay = (card: CardSprite): void => {
     const view = ctx.view
     if (view === null) return
-    const instanceId = card.cardId
+    const instanceId = card.instanceId
     // 正在给「模型蒸馏」这类牌选手牌目标时，点一张手牌的含义是选中它，不是把它打出去。
     if (targeting !== null && targeting.scope === 'hand') {
       if (!targeting.legal.has(instanceId)) return
