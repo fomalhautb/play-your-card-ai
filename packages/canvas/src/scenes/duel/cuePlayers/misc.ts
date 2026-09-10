@@ -28,7 +28,11 @@ function popBubble(
   holdMs: number,
 ): void {
   const layer = ctx.parts.layers.bubble
-  for (const child of layer.removeChildren()) child.destroy({ children: true })
+  for (const child of layer.removeChildren()) {
+    // 上一颗可能还在淡入淡出，掐干净再拆——它的补间挂在私有的内层上，只有组件自己掐得到。
+    if (child instanceof Bubble) child.clear()
+    child.destroy({ children: true })
+  }
   const bubble = new Bubble({ variant, content, maxWidth: BUBBLE_MAX_WIDTH }, ctx.deps)
   bubble.position.set(
     ctx.layout.bubble.x - bubble.boxWidth / 2,
@@ -39,6 +43,7 @@ function popBubble(
   ctx.after(holdMs, () => {
     bubble.hide()
     ctx.after(Math.round(tokens.duration.bubble.out * 1000), () => {
+      bubble.clear()
       bubble.destroy({ children: true })
     })
   })

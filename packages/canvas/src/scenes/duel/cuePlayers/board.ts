@@ -8,6 +8,7 @@
 
 import { SKILL_FLIGHT_MS } from '../../../director/timings'
 import type { DuelContext } from '../context'
+import { killAndDestroy } from '../disposal'
 import { dropShowcase } from './showcase'
 import type { CuePlayerGroup } from './types'
 
@@ -56,11 +57,7 @@ export const boardPlayers: CuePlayerGroup<BoardKind> = {
   'evolve-fx'(ctx, cue) {
     const next = ctx.makeCard(cue.toCardId, cue.instanceId)
     const previous = ctx.parts.board.transform(cue.instanceId, next)
-    if (previous === null) {
-      next.destroy({ children: true, texture: false, textureSource: false })
-      return
-    }
-    previous.destroy({ children: true, texture: false, textureSource: false })
+    killAndDestroy(ctx.deps.animator, previous ?? next)
   },
 
   /**

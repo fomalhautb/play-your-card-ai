@@ -17,6 +17,7 @@ import {
 } from '../../../director/timings'
 import { CARD_HEIGHT } from '../../../layout/fanMath'
 import type { DuelContext, LeavingCard } from '../context'
+import { killAndDestroy } from '../disposal'
 import { dropShowcase } from './showcase'
 import type { CuePlayerGroup } from './types'
 
@@ -30,7 +31,7 @@ import type { CuePlayerGroup } from './types'
 function flyToTile(ctx: DuelContext, card: CardSprite, instanceId: string): void {
   const target = ctx.tilePoint(instanceId)
   if (target === null) {
-    card.destroy({ children: true, texture: false, textureSource: false })
+    killAndDestroy(ctx.deps.animator, card)
     return
   }
   ctx.parts.layers.drag.addChild(card)
@@ -55,7 +56,7 @@ function flyToTile(ctx: DuelContext, card: CardSprite, instanceId: string): void
   ctx.after(PLAY_FLIP_MS, () => {
     ctx.parts.board.tile(instanceId)?.setHeld(false)
     ctx.hiddenTiles.delete(instanceId)
-    card.destroy({ children: true, texture: false, textureSource: false })
+    killAndDestroy(ctx.deps.animator, card)
   })
 }
 

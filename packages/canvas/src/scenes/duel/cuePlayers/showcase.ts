@@ -7,6 +7,7 @@
  */
 
 import type { DuelContext } from '../context'
+import { killAndDestroy } from '../disposal'
 
 /**
  * 把展示位上那张卡收掉。
@@ -18,5 +19,5 @@ export function dropShowcase(ctx: DuelContext): void {
   const card = ctx.showcased
   if (card === null) return
   ctx.showcased = null
-  card.destroy({ children: true, texture: false, textureSource: false })
+  killAndDestroy(ctx.deps.animator, card)
 }
