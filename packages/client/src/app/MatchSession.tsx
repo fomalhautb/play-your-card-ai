@@ -8,7 +8,15 @@
  * 这和架构里「不存对局」是一致的——`/match` 读不到 driver 就跳回首页。
  */
 
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type { MatchDriver } from '../match/driver'
 
 /**
@@ -40,24 +48,28 @@ const IDLE: SessionState = { driver: null, mode: 'test' }
 
 export function MatchSessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionState>(IDLE)
-
   /*
-   * dispose 旧的那一下放在 setState 的回调里，不是在外面读一次 state 再拆。
-   * React 18 起同一轮里可能连着调好几次 start（严格模式的双次执行就是），
-   * 在外面读到的会是同一份旧值，于是第一个新 driver 谁也不拆、直接漏掉。
+   * 当前 driver 再存一份在 ref 里，`start` / `end` 拆旧的时候读它，而不是读 state。
+   *
+   * 两个理由：
+   * 1. **ref 是同步的**。同一拍里连着调两次 `start`（首页两颗钮被连点、或者将来某条
+   *    路径重开对局）时，state 还没换过来，读 state 会拿到同一份旧值，
+   *    于是第一个新建的 driver 谁也不拆，它的定时器就一直挂着。
+   * 2. **dispose 是副作用，不该塞进 setState 的回调里**。那个回调 React 要求是纯的，
+   *    严格模式下还会故意跑两遍。
    */
+  const current = useRef<MatchDriver | null>(null)
+
   const start = useCallback((next: MatchDriver, mode: MatchMode) => {
-    setSession((current) => {
-      current.driver?.dispose()
-      return { driver: next, mode }
-    })
+    current.current?.dispose()
+    current.current = next
+    setSession({ driver: next, mode })
   }, [])
 
   const end = useCallback(() => {
-    setSession((current) => {
-      current.driver?.dispose()
-      return IDLE
-    })
+    current.current?.dispose()
+    current.current = null
+    setSession(IDLE)
   }, [])
 
   const value = useMemo<MatchSession>(
