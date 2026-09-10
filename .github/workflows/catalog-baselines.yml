@@ -5,14 +5,15 @@
 # 只会拿它比对、比不过就红——它不生成新的。没有这条工作流的话，唯一的拿法是
 # 等 CI 红了再从 catalog-diff 那个 artifact 里把 actual 图一张张扒出来。
 #
-# 只生成不比对，也不往仓库里写：跑完把整个 baselines/linux 传成 artifact，
+# 不往仓库里写：跑完把这一趟重拍出来的图传成 artifact，
 # 人下载下来看过再提交（怎么提交见 packages/client/dev/storybook/README.md）。
 # 让工作流直接推提交的话，一次误触就把基线洗成了当时那一版的样子，谁都没看过。
 #
 # 分片和 ci.yml 的 catalog 一样按 `@shard<n>` 标签拆（规则见 catalog.spec.ts）：
-# 一格只生成自己那一片的图，所以要把两格的 artifact 都下下来才凑得齐一份完整基线。
-# 每格在生成之前会先把 baselines/linux 清空，传出来的 artifact 里因此只有自己那一片——
-# 两份直接合并就是完整的一份，谁先谁后都一样。
+# 一格只重拍自己那一片，所以要把两格的 artifact 都下下来才凑得齐这一趟的全部改动。
+# 每格传的只有**自己这一趟改过的那几张**（怎么挑见下面那一步），
+# 两份合并到同一个目录不会互相盖，谁先谁后都一样。
+# 一片一张都没变时那一格不产出 artifact，这是对的：那一片本来就不用动。
 name: 目录页 linux 基线
 
 on:
@@ -52,29 +53,45 @@ jobs:
       - name: 安装 Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      # 先把仓库里那份 linux 基线整个删掉，再生成。
-      #
-      # 不删的话，这一格只重写自己那一片的图，另一片的**旧图**会原样留在目录里跟着 artifact
-      # 传出去；两格的 artifact 合并到同一个目录时，后拷进去的那份里的旧图就把前一份刚生成的
-      # 新图盖回了上一版。第 28 条的 ui-designtokens--overview 就是这么被顶回去的，
-      # 结果是 CI 拿一张过期的基线去比，红了还看不出是基线的问题。
-      # 删掉之后每格的 artifact 里只有自己那一片，合并没有先后之分。
-      #
-      # 对不存在的基线，`catalog:update` 是「生成」而不是「比对」（它本来就只生成不比对），
-      # 所以清空不会让这一步失败，只是每张图都要连拍两张，耗时和平时一样。
-      - name: 清空旧的 linux 基线
-        run: rm -rf packages/client/dev/storybook/baselines/linux
-
       # 卡面图集是构建产物、不进仓库，截图那步的 globalSetup 会自己打一份。
-      # --update-snapshots 会把这一片的图重写一遍（platform 取自 process.platform）。
+      # --update-snapshots 把这一片里和现有基线对不上的图就地重写（platform 取自 process.platform）。
       - name: 重新生成 linux 基线
         run: pnpm --filter @ai-duel/client catalog:update --grep "@shard${{ matrix.shard }}"
 
+      # 只挑这一趟真正改过的图，不传整个 baselines/linux。
+      #
+      # 传整个目录会出事：这一格只重写自己那一片，另一片的**旧图**原样留在目录里跟着传出去，
+      # 两格的 artifact 合并到同一个目录时，后拷进去的旧图把前一份刚生成的新图顶回了上一版。
+      # 第 28 条的 ui-designtokens--overview 就是这么被顶回去的，CI 于是拿一张过期的基线去比，
+      # 红了还看不出问题出在基线上。
+      #
+      # 挑的办法是问 git：基线是提交进仓库的，这一步跑完哪几张变了、哪几张是新增的，
+      # `git diff` 和 `git ls-files --others` 一问便知，不用在这里重写一遍分片规则。
+      #
+      # 为什么不改成"生成前先把目录清空"（那样传出去的自然也只有自己这一片）：清空之后每张图
+      # 都算"新建"，而 Playwright 对不存在的基线要**连拍两张一样的**才认账，整片的耗时和超时
+      # 风险都翻倍——第 34508733056 次运行就是这么让结算层那条撞上单张 45 秒的时限红掉的。
+      #
+      # 上一步红了也要挑（`always()`）：截图那步是 `expect.soft`，一条条目对不上或者超时
+      # 不会打断后面的，其余的图照样重拍好了——这时候更需要把它们带出来看。
+      # 没写进来的只有真出问题的那几张：Playwright 要连拍两张一样的才落盘，超时就不写。
+      - name: 挑出这一趟改过的基线
+        if: always()
+        run: |
+          out=catalog-baselines-out
+          base=packages/client/dev/storybook/baselines/linux
+          mkdir -p "$out"
+          files=$( { git diff --name-only -- "$base"; \
+                     git ls-files --others --exclude-standard -- "$base"; } | sort -u )
+          for f in $files; do cp "$f" "$out/"; done
+          echo "这一趟改过 $(ls -1 "$out" | wc -l) 张："
+          ls -1 "$out"
+
       # artifact 名字带上这一片：v4 不允许两个 job 传同一个名字。
-      # 上一步清过场，所以这里传的就是这一格刚生成的那一片，一张多余的都没有——
-      # 两格下下来拷进同一个目录才是完整的一份。
+      # 传的是上一步挑出来的那几张，两格下下来拷进 baselines/linux 就是这一趟的全部改动。
       - name: 上传 linux 基线
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: catalog-baselines-linux-${{ matrix.shard }}
-          path: packages/client/dev/storybook/baselines/linux
+          path: catalog-baselines-out

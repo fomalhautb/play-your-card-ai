@@ -206,8 +206,9 @@ gh run list --workflow=catalog-baselines.yml --limit 1
 
 # 3. 下载覆盖到 linux 基线目录（在仓库根目录跑）
 # 基线按分片生成（见下面「分片」），两格的 artifact 都要下，拷进同一个目录。
-# 每格在生成之前会先清空 baselines/linux，artifact 里因此只有自己那一片，
-# 两份直接合并就行，谁先拷谁后拷都一样，不会互相盖。
+# 每格传的只有**它这一趟改过的那几张**（工作流拿 git 挑出来的），
+# 所以两份直接合并就行，谁先拷谁后拷都一样，不会互相盖。
+# 某一片一张都没变时那一格不产出 artifact，下下来只有一份是正常的。
 gh run download <run-id> -p 'catalog-baselines-linux-*' -D /tmp/catalog-linux
 cp /tmp/catalog-linux/*/*.png packages/client/dev/storybook/baselines/linux/
 
