@@ -96,7 +96,7 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
   const beginDrag = (state: Press, x: number, y: number): void => {
     state.dragging = true
     ctx.dragging = state.origin
-    const ghost = ctx.takeCard(state.origin.cardId, `drag:${state.origin.cardId}`)
+    const ghost = ctx.holdCard(state.origin.cardId, `drag:${state.origin.cardId}`)
     state.ghostScale = dragScaleOf(state.origin.from) * DRAG_SCALE
     ghost.scale.set(state.ghostScale)
     ctx.parts.layers.drag.addChild(ghost)

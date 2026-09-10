@@ -1,0 +1,10 @@
+/*
+ * 构筑页的外壳：整页就是一块给画布用的矩形。
+ * 那几个弹框会被传送到 body（见 ui 的 Dialog），不受这里影响。
+ */
+
+.deck-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}

@@ -6,7 +6,7 @@
  * 缩到屏幕里；这一版按视口算，两档并列（需求第 3 条）。
  *
  * 卡池一页 4 列 × 2 行 = 8 张，翻页而不是滚动，理由见 logic/pagination.ts。
- * 牌组栏 2 列 × 10 行 = 20 格，和牌组张数一样多，所以永远一屏摆得下，不用翻页。
+ * 牌组栏 5 列 × 4 行 = 20 格，和牌组张数一样多，所以永远一屏摆得下，不用翻页。
  */
 
 import { tokens } from '@ai-duel/design'
@@ -27,8 +27,14 @@ import {
 
 /** 卡池一页几列几行。4 列是旧版 `.deck-grid` 的列数；2 行是「一屏刚好看完一页」的高度。 */
 const POOL_SHAPE = { columns: 4, rows: 2, gapX: POOL_GAP.x, gapY: POOL_GAP.y }
-/** 牌组栏 2 列 × 10 行，正好 20 格。旧版 `.deck-slots` 也是 2 列。 */
-const SLOT_SHAPE = { columns: 2, rows: 10, gapX: SLOT_GAP.x, gapY: SLOT_GAP.y }
+/**
+ * 牌组栏 5 列 × 4 行，正好 20 格。
+ *
+ * 旧版是 **2 列 × 10 行**加一条滚动条，而这一版不做滚动（理由同卡池，见 logic/pagination.ts），
+ * 20 格必须一屏摆下。侧栏只有三四百宽、四五百高，2 列的话每格会被高度挤到二十来像素
+ * ——那已经不是卡，是色块了。摊成 5 列之后每格六七十像素，看得出是哪张牌。
+ */
+const SLOT_SHAPE = { columns: 5, rows: 4, gapX: SLOT_GAP.x, gapY: SLOT_GAP.y }
 
 /** 牌组栏占多宽。夹在上下限之间：太窄两列卡挤成条，太宽卡池就没地方了。 */
 const SIDE_WIDTH_RATIO = 0.3
@@ -45,6 +51,8 @@ const CONFIRM_HEIGHT = tokens.size.plaque.endTurnHeight
 const ROW_GAP = 10
 /** 底板四周的内边距。 */
 const INNER_PAD = 14
+/** 头部条左右各留多宽。 */
+const HEAD_PAD = 12
 
 export function desktopLayout(width: number, height: number): DeckLayout {
   const topBarHeight = DESKTOP_TOP_BAR
@@ -58,12 +66,9 @@ export function desktopLayout(width: number, height: number): DeckLayout {
     width: Math.max(1, width - sideWidth - PAGE_PAD * 3),
     height: bodyHeight,
   }
-  const poolHead = {
-    x: pool.x,
-    y: pool.y,
-    width: pool.width,
-    height: POOL_HEAD_HEIGHT,
-  }
+  const poolHead = { x: pool.x, y: pool.y, width: pool.width, height: POOL_HEAD_HEIGHT }
+  // 桌面档头部条一行：种类页签靠左，阵营药丸靠右，各自竖向居中。
+  const headRowY = poolHead.y + POOL_HEAD_HEIGHT / 2
   const poolHint = {
     x: pool.x,
     y: pool.y + pool.height - HINT_HEIGHT,
@@ -118,6 +123,8 @@ export function desktopLayout(width: number, height: number): DeckLayout {
     title: { x: PAGE_PAD + 120, y: topBarHeight / 2 },
     pool,
     poolHead,
+    poolKinds: { x: poolHead.x + HEAD_PAD, y: headRowY },
+    poolFactions: { x: 0, y: headRowY, right: poolHead.x + poolHead.width - HEAD_PAD },
     poolGrid,
     poolHint,
     pager: {

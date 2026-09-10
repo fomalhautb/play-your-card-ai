@@ -17,7 +17,12 @@ import { Badge, type BadgeDeps } from './Badge'
 import type { CardSprite } from './CardSprite'
 import { SmallButton, type SmallButtonDeps } from './SmallButton'
 
-/** 「＋」那枚圆章的直径，以及它离格子右下角多远。 */
+/**
+ * 「＋」那枚圆章的直径，以及它离格子**右上角**多远。
+ *
+ * 摆右上角而不是旧版的右下角：卡面底部有一条印着模型名的铭牌，圆章压上去正好盖住名字，
+ * 而小格子上那行名字本来就将将够看。左上角让给「带了几份」的角标。
+ */
 const ADD = { size: 26, inset: 4 }
 /** 角标离格子左上角多远。 */
 const BADGE_INSET = 4
@@ -167,10 +172,7 @@ export class PoolCell extends Container {
   }
 
   private place(): void {
-    this.add.position.set(
-      this.boxWidth - this.add.boxWidth - ADD.inset,
-      this.boxHeight - this.add.boxHeight - ADD.inset,
-    )
+    this.add.position.set(this.boxWidth - this.add.boxWidth - ADD.inset, ADD.inset)
     if (this.card !== null) {
       this.card.scale.set(this.cardScale)
       this.card.position.set(this.boxWidth / 2, CARD_HEIGHT * this.cardScale)

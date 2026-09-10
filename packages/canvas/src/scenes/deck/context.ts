@@ -44,6 +44,14 @@ export interface DeckContext {
    * 所以调用方不用自己配对（见 cards.ts 的回收池）。
    */
   takeCard(cardId: CardId, tag: string): CardSprite
+  /**
+   * 拿一张**不进借出名单**的卡：跟着指针跑的那一张就是它。
+   *
+   * 走 `takeCard` 的话，下一次重排画面时 `beginBorrow` 会把它一起还回去——
+   * 而拖拽期间画面每让一次位就重排一次，卡当场从手上消失。
+   * 这一张由输入层自己在松手时 `releaseCard`。
+   */
+  holdCard(cardId: CardId, tag: string): CardSprite
   /** 把上一轮借出去的卡全部还回去。每次重排画面的第一步。 */
   beginBorrow(): void
   /** 单独还一张（拖拽结束时那张不走 `beginBorrow` 那条路）。 */

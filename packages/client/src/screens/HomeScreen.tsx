@@ -1,5 +1,5 @@
 /**
- * 临时首页：两个进对局的入口，外加开发构建里通往开发页索引的一行。
+ * 临时首页：两个进对局的入口、一个进构筑页的入口，外加开发构建里通往开发页索引的一行。
  *
  * 真首页（那张 1672×941 的画、七个人物、四张展示卡）是第 30 条的事。
  * 这一版存在的意义只有一个——第 21 条要能「从头点进一局单机、打完、回来」，
@@ -48,6 +48,8 @@ export function HomeScreen() {
       <div className="home__actions">
         <Button onClick={() => enter(createTestMatch(platform), 'test')}>测试对局</Button>
         <Button onClick={() => enter(createHotSeatMatch(platform), 'hotseat')}>热座</Button>
+        {/* 构筑页不用建 driver，直接跳（迁移第 28 条）。 */}
+        <Button onClick={() => navigate('/deck')}>牌组</Button>
       </div>
       {/*
         开发页索引只在本地构建里出现。这一整段在生产构建里会连同 import.meta.env.DEV

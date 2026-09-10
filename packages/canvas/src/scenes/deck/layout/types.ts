@@ -52,8 +52,18 @@ export interface DeckLayout {
 
   /** 卡池底板（面板 D）。 */
   pool: Rect
-  /** 卡池头部那一条：种类页签在左，阵营药丸在右。 */
+  /** 卡池头部那一条。手机档它有两行高（种类页签一行、阵营药丸一行）。 */
   poolHead: Rect
+  /** 种类页签（标签页 B）的左上角。 */
+  poolKinds: { x: number; y: number }
+  /**
+   * 阵营药丸（标签页 C）那一排摆哪儿。
+   *
+   * `right` 不为 null 就是**靠右**贴着那条边界摆（桌面档：和种类页签同一行）；
+   * 为 null 就按 `x` 靠左摆（手机档：另起一行）。
+   * 靠右那一档的 x 要等这排页签的字烤出来才算得出（宽度跟着字走），所以在 render 里定。
+   */
+  poolFactions: { x: number; y: number; right: number | null }
   /** 卡池网格。列数两档不同。 */
   poolGrid: GridSpec
   /** 卡池底边那条提示（提示 A）。 */

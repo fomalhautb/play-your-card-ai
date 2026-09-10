@@ -36,6 +36,8 @@ const PAGER_TYPE = { fontSize: 13, letterSpacing: 1.3 } as const
 
 /** 页头标题。写死在这里而不是由调用方给：这一页只有这一个身份。 */
 const TITLE = '组建牌组'
+/** 返回钮和标题之间留多宽。 */
+const TITLE_GAP = 20
 
 interface DeckLayers {
   page: Container
@@ -288,15 +290,24 @@ export function createDeckParts(options: DeckPartsOptions): DeckParts {
 function applyDeckLayout(parts: DeckParts, layout: DeckLayout): void {
   parts.page.position.set(0, 0)
   parts.back.position.set(layout.back.x, layout.back.y)
-  parts.title.position.set(layout.title.x, layout.title.y)
+  /*
+   * 标题排在返回钮之后。版式给的 `title.x` 只是一个下限——返回钮的宽度跟着它那行字走
+   *（字要烤成纹理才知道多宽），版式算不出来，所以在这儿取两者的大的那个。
+   */
+  parts.title.position.set(
+    Math.max(layout.title.x, layout.back.x + parts.back.boxWidth + TITLE_GAP),
+    layout.title.y,
+  )
 
   parts.pool.position.set(layout.pool.x, layout.pool.y)
-  // 头部条：种类页签靠左，阵营药丸靠右，同一条基线。
-  const headY = layout.poolHead.y + (layout.poolHead.height - parts.kindTabs.boxHeight) / 2
-  parts.kindTabs.position.set(layout.poolHead.x + 12, headY)
+  /*
+   * 两排页签的**竖向**位置在这儿定（版式给的是那一行的中线，扣掉半个高就是左上角）；
+   * 阵营那一排的**横向**位置要等它的字烤出来才算得出，所以在 render 里定。
+   */
+  parts.kindTabs.position.set(layout.poolKinds.x, layout.poolKinds.y - parts.kindTabs.boxHeight / 2)
   parts.factionTabs.position.set(
-    layout.poolHead.x + layout.poolHead.width - parts.factionTabs.boxWidth - 12,
-    layout.poolHead.y + (layout.poolHead.height - parts.factionTabs.boxHeight) / 2,
+    layout.poolFactions.x,
+    layout.poolFactions.y - parts.factionTabs.boxHeight / 2,
   )
   parts.poolCells.forEach((cell, index) => {
     const rect = cellRect(layout.poolGrid, index)

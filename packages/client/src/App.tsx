@@ -9,8 +9,8 @@
  * 没有 loader、没有嵌套路由那一套——这个应用的页面之间没有数据依赖关系，
  * 「匹配 → 选卡组 → 选英雄」那种流程是在**同一条路由内换 phase**（旧版就是这么做的）。
  *
- * 现在只有临时首页、对局和开发页。真首页、房间页、牌组页、英雄页、教程分别是
- * 第 28~32 条的事，到时候各自往下面这张表里加一行。
+ * 现在有临时首页、对局、构筑页和开发页。真首页、房间页、英雄页、教程分别是
+ * 第 29~32 条的事，到时候各自往下面这张表里加一行。
  */
 
 import type { Platform } from '@ai-duel/platform'
@@ -18,6 +18,7 @@ import { type ComponentType, lazy, Suspense } from 'react'
 import { Route, Switch } from 'wouter'
 import { MatchSessionProvider } from './app/MatchSession'
 import { PlatformProvider } from './app/platform'
+import { DeckScreen } from './screens/DeckScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { MatchScreen } from './screens/MatchScreen'
 // 设计令牌的 CSS 变量，全应用只在这里 import 一次挂到 :root 上——
@@ -49,6 +50,7 @@ export function App({ platform }: { platform: Platform }) {
         <Switch>
           <Route path="/" component={HomeScreen} />
           <Route path="/match" component={MatchScreen} />
+          <Route path="/deck" component={DeckScreen} />
           {DEV_ROUTES.map(([path, Page]) => (
             <Route key={path} path={path}>
               {/* 开发页是懒加载的，第一帧还没到手；这一行字只在本地闪一下，不进生产包。 */}

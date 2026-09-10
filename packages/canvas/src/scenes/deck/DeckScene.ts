@@ -183,6 +183,7 @@ class DeckSceneImpl {
         this.borrowed.push({ card, cardId })
         return card
       },
+      holdCard: (cardId, tag) => this.cards.take(cardId, tag),
       beginBorrow: () => {
         for (const one of this.borrowed) this.cards.release(one.card, one.cardId)
         this.borrowed = []

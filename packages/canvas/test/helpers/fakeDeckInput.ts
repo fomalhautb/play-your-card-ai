@@ -137,6 +137,7 @@ export function createDeckProbe(spec: ProbeSpec = {}): DeckProbe {
     gap: null,
     dragging: null,
     takeCard: () => fakeCard(),
+    holdCard: () => fakeCard(),
     beginBorrow: () => undefined,
     releaseCard: () => undefined,
     setPageLabel: () => undefined,

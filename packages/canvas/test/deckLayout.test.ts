@@ -100,11 +100,18 @@ describe('桌面档：左卡池右牌组栏', () => {
     expect(DESKTOP.drawer).toBeNull()
   })
 
-  it('卡池一页 4 列 × 2 行 = 8 张，牌组栏 2 列 × 10 行', () => {
+  it('卡池一页 4 列 × 2 行 = 8 张，牌组栏 5 列 × 4 行', () => {
     expect(DESKTOP.poolGrid.columns).toBe(4)
     expect(DESKTOP.poolGrid.rows).toBe(2)
-    expect(DESKTOP.slots.columns).toBe(2)
-    expect(DESKTOP.slots.rows).toBe(10)
+    expect(DESKTOP.slots.columns).toBe(5)
+    expect(DESKTOP.slots.rows).toBe(4)
+  })
+
+  it('卡位不至于小到看不出是哪张牌——不做滚动，20 格必须一屏摆下', () => {
+    // 60 像素上卡面的铭牌还认得出字。再窄就该改行列数，不是硬塞。
+    expect(DESKTOP.slots.cellWidth).toBeGreaterThan(60)
+    expect(WIDE.slots.cellWidth).toBeGreaterThan(60)
+    expect(MOBILE.slots.cellWidth).toBeGreaterThan(60)
   })
 
   it('屏幕越宽卡池越宽，牌组栏封顶不再长', () => {

@@ -21,8 +21,13 @@ import { SmallButton, type SmallButtonDeps } from './SmallButton'
 
 /** 空格子里那圈虚线的实线段和空档各多长。 */
 const DASH = { on: 5, off: 4 }
-/** 「－」那枚圆章的直径，以及它离格子右上角多远。 */
-const REMOVE = { size: 22, inset: 4 }
+/**
+ * 「－」那枚圆章占格宽的多少、最小最大多大，以及它离格子右上角多远。
+ *
+ * 跟着格宽走而不是写死一个数：两档版式的格子差得远（桌面六七十、手机七八十），
+ * 写死的话在小格子上会盖掉小半张卡。
+ */
+const REMOVE = { ratio: 0.34, min: 16, max: 26, inset: 3 }
 
 export type DeckSlotsDeps = SmallButtonDeps
 
@@ -57,7 +62,7 @@ export class DeckSlots extends Container {
         {
           variant: 'J',
           glyph: 'minus',
-          size: REMOVE.size,
+          size: removeSizeOf(options.grid.cellWidth),
           onActivate: () => options.onRemove?.(index),
         },
         deps,
@@ -71,7 +76,13 @@ export class DeckSlots extends Container {
     this.placeButtons()
   }
 
-  /** 换网格或换卡的大小（改视口、换档位都会走这里）。 */
+  /**
+   * 换网格或换卡的大小。
+   *
+   * 「－」的**直径**不跟着改：它是建的时候按格宽定的，改直径要重建那 20 颗圆章。
+   * 场景那边改视口一律整套重建零件（见 DeckScene 的 resize），所以走不到「格子变了但钮没变」
+   * 那个状态；这个方法只在建零件的最后摆一次位。
+   */
   resize(grid: GridSpec, cardScale: number): void {
     this.grid = grid
     this.cardScale = cardScale
@@ -133,7 +144,10 @@ export class DeckSlots extends Container {
   private placeButtons(): void {
     this.removeButtons.forEach((button, index) => {
       const rect = cellRect(this.grid, index)
-      button.position.set(rect.x + rect.width - REMOVE.size - REMOVE.inset, rect.y + REMOVE.inset)
+      button.position.set(
+        rect.x + rect.width - button.boxWidth - REMOVE.inset,
+        rect.y + REMOVE.inset,
+      )
     })
   }
 
@@ -154,6 +168,11 @@ export class DeckSlots extends Container {
       })
     }
   }
+}
+
+/** 「－」在这么宽的格子上该多大。 */
+function removeSizeOf(cellWidth: number): number {
+  return Math.min(REMOVE.max, Math.max(REMOVE.min, Math.round(cellWidth * REMOVE.ratio)))
 }
 
 /**

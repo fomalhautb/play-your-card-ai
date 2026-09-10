@@ -43,8 +43,16 @@ const SLOT_SHAPE = { columns: 4, rows: 5, gapX: SLOT_GAP.x, gapY: SLOT_GAP.y }
 const PAGE_PAD = 12
 /** 底板内边距。 */
 const INNER_PAD = 10
-/** 抽屉展开之后占屏幕多高。 */
-const DRAWER_RATIO = 0.72
+/** 头部条左右各留多宽。 */
+const HEAD_PAD = 10
+/**
+ * 抽屉展开之后占屏幕多高。
+ *
+ * 九成，也就是**基本铺满**。20 个卡位不做滚动（理由同卡池，见 logic/pagination.ts），
+ * 要在竖屏里排成 4 列 × 5 行还让每格有六十几像素宽，只能给它这么多高度。
+ * 反正抽屉一打开玩家就是在看牌组，卡池那时候不用露出来。
+ */
+const DRAWER_RATIO = 0.9
 /** 抽屉里几行东西各占多高。 */
 const HANDLE_HEIGHT = 26
 const TALLY_HEIGHT = 22
@@ -69,7 +77,12 @@ export function mobileLayout(width: number, height: number): DeckLayout {
     width: Math.max(1, width - PAGE_PAD * 2),
     height: Math.max(1, collapsedTop - bodyY - PAGE_PAD),
   }
-  const poolHead = { x: pool.x, y: pool.y, width: pool.width, height: POOL_HEAD_HEIGHT }
+  /*
+   * 手机档头部条**两行高**：390 宽上，三个种类页签加一排阵营药丸挤在一行里必然叠上，
+   * 所以阵营那一排另起一行。这是两档版式又一处真正的分岔，不是缩放。
+   */
+  const headHeight = POOL_HEAD_HEIGHT * 2
+  const poolHead = { x: pool.x, y: pool.y, width: pool.width, height: headHeight }
   const poolHint = {
     x: pool.x,
     y: pool.y + pool.height - HINT_HEIGHT,
@@ -135,6 +148,13 @@ export function mobileLayout(width: number, height: number): DeckLayout {
     title: { x: PAGE_PAD + 64, y: topBarHeight / 2 },
     pool,
     poolHead,
+    poolKinds: { x: poolHead.x + HEAD_PAD, y: poolHead.y + POOL_HEAD_HEIGHT / 2 },
+    // 靠左另起一行，所以 right 给 null。
+    poolFactions: {
+      x: poolHead.x + HEAD_PAD,
+      y: poolHead.y + POOL_HEAD_HEIGHT * 1.5,
+      right: null,
+    },
     poolGrid,
     poolHint,
     pager: {

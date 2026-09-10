@@ -107,6 +107,15 @@ function renderTabs(ctx: DeckContext): void {
       : [{ id: ALL_FACTIONS, label: '全部卡牌' }]
   ctx.parts.factionTabs.setItems(factions, ctx.state.faction ?? ALL_FACTIONS)
   ctx.parts.factionTabs.setDisabled(ctx.state.kind !== 'ai')
+  /*
+   * 阵营那一排的横向位置。
+   *
+   * 桌面档靠右贴着边界摆，而「多宽」要等 `setItems` 把字烤出来才知道——所以它只能在这儿定，
+   * 不能在 parts 的 `applyDeckLayout` 里定（那时候整排还是空的，宽度为 0，
+   * 右对齐会把它顶到底板外面去）。手机档另起一行靠左，位置版式已经给死了，不用动。
+   */
+  const { right } = ctx.layout.poolFactions
+  if (right !== null) ctx.parts.factionTabs.x = right - ctx.parts.factionTabs.boxWidth
 
   ctx.parts.deckTabs.setItems(
     ctx.state.decks.map((deck) => ({ id: deck.id, label: deck.name })),
@@ -134,10 +143,15 @@ function renderPool(ctx: DeckContext): void {
       cell.visible = false
       return
     }
-    // 正从这一格往外拖：那张卡跟着指针走了，格子空着（同旧版把原位藏起来）。
+    /*
+     * 正从这一格往外拖：整格藏起来。
+     *
+     * 藏整格而不是只藏卡：角标和「＋」留在原地的话，屏幕上会有一枚悬空的「×1」和一颗
+     *「＋」压在一片空白上——那张牌明明已经跟着手指走了。旧版也是把原位整个藏起来的。
+     */
     const lifted = drag !== null && drag.from === 'pool' && drag.index === index
     cell.setCard(lifted ? null : ctx.takeCard(entry.cardId, poolTagOf(entry.cardId)))
-    cell.visible = true
+    cell.visible = !lifted
     const copies = copiesOf(deck, entry.cardId)
     const atMax = copies >= ctx.rules.maxCopies
     cell.setBlocked(entry.blockedReason)
