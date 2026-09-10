@@ -11,6 +11,8 @@
 #
 # 分片和 ci.yml 的 catalog 一样按 `@shard<n>` 标签拆（规则见 catalog.spec.ts）：
 # 一格只生成自己那一片的图，所以要把两格的 artifact 都下下来才凑得齐一份完整基线。
+# 每格在生成之前会先把 baselines/linux 清空，传出来的 artifact 里因此只有自己那一片——
+# 两份直接合并就是完整的一份，谁先谁后都一样。
 name: 目录页 linux 基线
 
 on:
@@ -50,14 +52,27 @@ jobs:
       - name: 安装 Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      # 先把仓库里那份 linux 基线整个删掉，再生成。
+      #
+      # 不删的话，这一格只重写自己那一片的图，另一片的**旧图**会原样留在目录里跟着 artifact
+      # 传出去；两格的 artifact 合并到同一个目录时，后拷进去的那份里的旧图就把前一份刚生成的
+      # 新图盖回了上一版。第 28 条的 ui-designtokens--overview 就是这么被顶回去的，
+      # 结果是 CI 拿一张过期的基线去比，红了还看不出是基线的问题。
+      # 删掉之后每格的 artifact 里只有自己那一片，合并没有先后之分。
+      #
+      # 对不存在的基线，`catalog:update` 是「生成」而不是「比对」（它本来就只生成不比对），
+      # 所以清空不会让这一步失败，只是每张图都要连拍两张，耗时和平时一样。
+      - name: 清空旧的 linux 基线
+        run: rm -rf packages/client/dev/storybook/baselines/linux
+
       # 卡面图集是构建产物、不进仓库，截图那步的 globalSetup 会自己打一份。
       # --update-snapshots 会把这一片的图重写一遍（platform 取自 process.platform）。
       - name: 重新生成 linux 基线
         run: pnpm --filter @ai-duel/client catalog:update --grep "@shard${{ matrix.shard }}"
 
       # artifact 名字带上这一片：v4 不允许两个 job 传同一个名字。
-      # 上传的是整个 baselines/linux 目录，但这一格只重写了自己那一片，
-      # 其余的图是仓库里那一版原样带出来的——两格下下来覆盖到同一个目录才是完整的一份。
+      # 上一步清过场，所以这里传的就是这一格刚生成的那一片，一张多余的都没有——
+      # 两格下下来拷进同一个目录才是完整的一份。
       - name: 上传 linux 基线
         uses: actions/upload-artifact@v4
         with:

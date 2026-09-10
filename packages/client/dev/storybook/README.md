@@ -149,12 +149,16 @@ pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
 
 一条条目对不上不会打断后面的（用的是 `expect.soft`），一轮跑完能看到全部差异。
 
-确定性靠四件事，缺一条比对就没法用小阈值：
+确定性靠五件事，缺一条比对就没法用小阈值：
 
 1. 画布条目走手动时钟，按 60fps 的固定步长推到固定时刻；
 2. 随机数定种子（命中特效的烟尘方向和大小）；
 3. 浏览器的 `deviceScaleFactor` 钉在 1，视口钉在 1280×900；
-4. WebGL 走 ANGLE 的 SwiftShader 软件后端，不吃各机器的 GPU 驱动差异。
+4. WebGL 走 ANGLE 的 SwiftShader 软件后端，不吃各机器的 GPU 驱动差异；
+5. DOM 条目的版式不跟着容器宽度和字体度量走：列数写死（别用 `auto-fill` / `flex-wrap`），
+   行高写死（别用 `line-height: normal`），高度也别挂在 `100vh` 这类视口尺寸上。
+   这三样都是"差一点就换一种排法"的开关，在哪一档翻面跟着平台走——
+   令牌页（`packages/ui/src/tokens.stories.tsx`）就在 linux 上翻过一次，那里有原委。
 
 阈值 `maxDiffPixelRatio` 是 0.001。顶不住了**先查是不是引入了不确定性**
 （真实时钟、没定种子的随机、字体没加载完），别先去调大这个数——调大一次就等于把这道检查关掉一点。
@@ -201,7 +205,9 @@ gh workflow run catalog-baselines.yml --ref <你的分支>
 gh run list --workflow=catalog-baselines.yml --limit 1
 
 # 3. 下载覆盖到 linux 基线目录（在仓库根目录跑）
-# 基线按分片生成（见下面「分片」），两格的 artifact 都要下，覆盖到同一个目录
+# 基线按分片生成（见下面「分片」），两格的 artifact 都要下，拷进同一个目录。
+# 每格在生成之前会先清空 baselines/linux，artifact 里因此只有自己那一片，
+# 两份直接合并就行，谁先拷谁后拷都一样，不会互相盖。
 gh run download <run-id> -p 'catalog-baselines-linux-*' -D /tmp/catalog-linux
 cp /tmp/catalog-linux/*/*.png packages/client/dev/storybook/baselines/linux/
 

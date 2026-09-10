@@ -148,6 +148,8 @@ jobs:
 
       # artifact 名字带上这一片：v4 不允许两个 job 传同一个名字。
       # 人要的是完整的一份基线，所以下载时按 catalog-baselines-linux-* 把两片都取下来。
+      # 走到这一步说明目录本来就是空的，所以每格传出去的只有自己那一片，合并没有先后之分
+      # （catalog-baselines.yml 那条要靠先清空目录才有这个性质，理由在那边）。
       - name: 上传新生成的 linux 基线
         if: steps.catalog.outputs.generated == 'true'
         uses: actions/upload-artifact@v4

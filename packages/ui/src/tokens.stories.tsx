@@ -43,12 +43,32 @@ const COLORS = under('color').filter(
   (leaf) => typeof leaf.value === 'string' && leaf.value.startsWith('#'),
 )
 
+/**
+ * 一行摆几格。**写死，不许换成 `auto-fill`**：`auto-fill` 的列数是拿容器宽度算出来的，
+ * 而这一页在截图回归的 1280 视口下正好卡在临界点上——去掉左右内边距刚好剩 1216，
+ * 而 7 列（7×160 + 6×16）也正好是 1216，容器窄一个像素就掉成 6 列、整页高度差三百多。
+ * 列数写死之后版式和容器宽度再无关系，宽度上任何一点浮动都不会换一种排法。
+ */
+const GRID_COLUMNS = 7
+
 const page: CSSProperties = {
   padding: tokens.space.xxl * 2,
   fontFamily: tokens.font.family.serif,
   color: tokens.color.page.foreground,
   background: tokens.color.page.background,
-  minHeight: '100vh',
+  /*
+   * 行高写死，不用默认的 `normal`：`normal` 的行盒高度取自当前字体的 ascent/descent，
+   * 而这一页的字体栈最后落到各平台自带的兜底衬线体上（Google Fonts 没有联网加载，
+   * 见 client/dev/storybook/README.md 的「已知局限」），行盒高度于是跟着机器走。
+   * 写成倍数之后行盒高度只由字号决定，整页高度就只是「多少条令牌 × 多大字号」的结果。
+   */
+  lineHeight: 1.4,
+  /*
+   * 故意不写 `minHeight: '100vh'` 这类跟着视口走的尺寸：这一页比任何视口都高，写了不起作用，
+   * 却给元素的高度多开了一个和内容无关的来源——截图时 Playwright 会临时把视口撑到整页那么高
+   * 再拍，视口一变这个下限就跟着变。第 28 条在 linux 上就撞上过「量到的高度比画出来的多 45
+   * 像素」，Playwright 多拍了一轮才稳住。高度只由内容决定，这类反复就不会有。
+   */
   boxSizing: 'border-box',
 }
 
@@ -93,7 +113,7 @@ function Palette() {
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+        gridTemplateColumns: `repeat(${GRID_COLUMNS}, 160px)`,
         gap: tokens.space.xxl,
       }}
     >
@@ -150,10 +170,21 @@ function Spaces() {
   )
 }
 
-/** 圆角阶梯：每一档画一个用那个圆角的方块。 */
+/**
+ * 圆角阶梯：每一档画一个用那个圆角的方块。
+ *
+ * 排成写死列数的网格而不是让它自己换行：`flex-wrap` 一行放得下几个同样是按容器宽度算的，
+ * 和上面色板一个道理（见 `GRID_COLUMNS`）。
+ */
 function Radii() {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.space.xxl }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${GRID_COLUMNS}, 140px)`,
+        gap: tokens.space.xxl,
+      }}
+    >
       {under('radius').map((leaf) => (
         <div
           key={leaf.path}
