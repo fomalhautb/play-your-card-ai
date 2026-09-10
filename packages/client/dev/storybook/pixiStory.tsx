@@ -15,7 +15,7 @@ import { Animator, FrameLoop, type StoryStage, type StoryTeardown } from '@ai-du
 import { tokens } from '@ai-duel/design'
 import { autoDetectRenderer, Container } from 'pixi.js'
 import { useEffect, useRef, useState } from 'react'
-import { loadCardAtlas } from '../../src/dev/cardAtlas'
+import { loadCardTextures } from '../../src/match/cardAtlas'
 
 /** 手动时钟的步长：60fps 那一档。写死才有确定性——按真实帧间隔推每次结果都不一样。 */
 const STEP_MS = 1000 / 60
@@ -82,7 +82,7 @@ export function PixiStage({ spec, live }: PixiStageProps) {
     let teardown: (() => void) | null = null
 
     const boot = async () => {
-      const textures = spec.needsAtlas === true ? await loadCardAtlas() : null
+      const textures = spec.needsAtlas === true ? await loadCardTextures() : null
       if (disposed) return
 
       const renderer = await autoDetectRenderer({

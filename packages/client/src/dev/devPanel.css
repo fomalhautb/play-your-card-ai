@@ -1,0 +1,71 @@
+/*
+ * 测试面板的版式：贴在右下角，展开时往上长。样式跟着组件走（架构 7.2 第 4 条）。
+ * 只在开发构建里存在，所以不必为它进设计令牌——但颜色照旧读令牌，别写死。
+ */
+
+.dev-panel {
+  position: absolute;
+  right: var(--space-sm);
+  bottom: var(--space-sm);
+  /* 压在结算层上面：摆局面时结算层多半正开着，被它挡住就点不着了。 */
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-base);
+}
+
+.dev-panel__toggle,
+.dev-panel button {
+  padding: var(--space-xs) var(--space-lg);
+  border: 1px solid var(--color-plaque-navy-default-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-plaque-navy-default-fill);
+  color: var(--color-paper-base);
+  font: inherit;
+  cursor: pointer;
+}
+
+.dev-panel button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.dev-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--color-plaque-navy-default-line);
+  border-radius: var(--radius-md);
+  background: var(--color-battle-navy);
+  color: var(--color-paper-base);
+}
+
+.dev-panel__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.dev-panel__label {
+  min-width: 3em;
+  opacity: var(--opacity-home-flourish-line);
+}
+
+.dev-panel__select {
+  padding: var(--space-xs);
+  border: 1px solid var(--color-plaque-navy-default-line);
+  border-radius: var(--radius-sm);
+  background: var(--color-plaque-navy-default-fill);
+  color: var(--color-paper-base);
+  font: inherit;
+}
+
+.dev-panel__status,
+.dev-panel__note {
+  margin: 0;
+  opacity: var(--opacity-home-flourish-line);
+}

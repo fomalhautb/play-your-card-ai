@@ -170,6 +170,9 @@ importers:
       react-dom:
         specifier: ^19.2.8
         version: 19.2.8(react@19.2.8)
+      wouter:
+        specifier: ^3.11.0
+        version: 3.11.0(react@19.2.8)
       zod:
         specifier: ^4.5.4
         version: 4.5.4
@@ -4700,6 +4703,11 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
 
+  wouter@3.11.0:
+    resolution: {integrity: sha512-xyMLHhytdGhIjXVRcSjeYbXd7TR1lrxVTPLGBWmmyW52ZuWVQ1jXmsgoJ4G5s4tjloJCq7h4i2eREljWUQ4+/A==}
+    peerDependencies:
+      react: '>=16.8.0'
+
   wrangler@4.124.0:
     resolution: {integrity: sha512-75euoZKjVTJYFy+Xhctt/5JlZL4M6A4xmovZsUlep+6GHcCm14n9VtdGzNIybOW2t8wuNxRj5iMUwjT5E7Ctog==}
     engines: {node: '>=22.0.0'}
@@ -8827,6 +8835,12 @@ snapshots:
   wouter@3.10.0(react@19.2.8):
     dependencies:
       mitt: 3.0.1
+      react: 19.2.8
+      regexparam: 3.0.0
+      use-sync-external-store: 1.6.0(react@19.2.8)
+
+  wouter@3.11.0(react@19.2.8):
+    dependencies:
       react: 19.2.8
       regexparam: 3.0.0
       use-sync-external-store: 1.6.0(react@19.2.8)

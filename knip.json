@@ -75,13 +75,11 @@
         "dev/storybook/ensureAtlas.ts"
       ],
       /*
-       * content、core、platform、protocol 四条按上面的到期条款删掉了：
-       * 联机 driver（迁移第 27 条）在发 protocol 的消息、走 platform 的网络能力、
-       * 读 core 的裁剪视图，测试里还现开一局 content 的真牌。
-       * canvas、design、react 早先就被开发页和目录页用上了（第 18 条的 /dev/duel
-       * 那一页要真卡池和真引擎）。剩 ui 一个还没有调用方。
+       * 这一段原来列着 canvas、content、core、design、platform、protocol、react、ui
+       * 八条，现在按上面的到期条款全删光了——装配层（迁移第 21 条）把它们全用上了：
+       * 屏幕是 react + ui，画面是 canvas + design，规则和卡池是 core + content，
+       * 平台能力走 platform，联机指令的形状来自 protocol。
        */
-      "ignoreDependencies": ["@ai-duel/ui"]
     },
     "packages/server": {
       "ignoreDependencies": [

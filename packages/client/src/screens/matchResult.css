@@ -1,0 +1,71 @@
+/*
+ * 终局结算那一层的版式。临时版，第 31 条做正式的面板 H / 弹窗 E 时整个换掉。
+ * 数值读设计令牌（架构 7.1 第 4 条）。
+ */
+
+.match-result {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /*
+   * 遮罩和纸面对话框同一档：这一层同样要把整个战场挡死。
+   * 用 color-mix 掺透明而不是给整层 opacity：整层透明会把上面那块纸也一起透掉。
+   */
+  background: color-mix(
+    in srgb,
+    var(--color-overlay-dialog) calc(var(--opacity-overlay-dialog) * 100%),
+    transparent
+  );
+}
+
+.match-result__panel {
+  display: flex;
+  width: min(var(--size-dialog-width), 100%);
+  flex-direction: column;
+  align-items: center;
+  /* 内边距和间距是组件私有的，理由同 ui 的 dialog.css。 */
+  gap: 16px;
+  padding: 30px;
+  border: 1px solid var(--color-paper-line-dark);
+  background: var(--color-paper-base);
+  color: var(--color-paper-ink);
+  text-align: center;
+}
+
+.match-result__title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+}
+
+/* 胜负各配一档字色，一眼分得出结果。平局和中断留默认墨色。 */
+.match-result[data-outcome="victory"] .match-result__title {
+  color: var(--color-theme-gold);
+}
+
+.match-result[data-outcome="defeat"] .match-result__title {
+  color: var(--color-theme-rust);
+}
+
+.match-result__score {
+  margin: 0;
+  color: var(--color-paper-ink-muted);
+  font-size: 17px;
+}
+
+.match-result__actions {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  justify-content: center;
+}
+
+.match-result__actions > * {
+  flex: 1 1 40%;
+}

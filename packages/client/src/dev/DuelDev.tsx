@@ -1,30 +1,21 @@
 /**
- * 开发专用页面：本地打一整局（迁移第 18 条）。
+ * 开发专用页面：本地开一局，边打边看效果档位和渲染计数。
  * 地址 `/dev/duel`，挂载点见 App.tsx。生产构建里不存在这个文件的代码，理由见 App.tsx。
  *
- * 页面负责三件画布场景不管的事：加载图集、算视口大小、封顶渲染倍率；外加**推时钟**——
- * 场景走手动时钟，编排层的虚拟时钟和场景的帧由这一个 rAF 一起推。
- * 一条循环而不是两条，是因为两边的时刻必须严格对齐：编排层排在第 3540 毫秒的那条 cue，
- * 场景要在同一刻播（见 canvas 的 scenes/duel/clock.ts）。
- *
- * 真 driver（第 21 条）落地后这一页会跟着换掉：那时推时钟的是 driver，不是页面。
+ * 这一页和正式的 `/match` 用的是**同一条链**（`createTestMatch` → `DuelStage`），
+ * 只多两样正式界面不该有的东西：现场切效果档位，以及每半秒读一次场景的计数器。
+ * 第 18 条那版自己搭了一套引擎和对手（`localDuel.ts`），真 driver 落地之后那份删掉了——
+ * 两套接线并存的话，这一页看到的行为就不再等于玩家看到的行为，调试也就失去意义。
  */
 
-import { createDuelScene, type DuelScene, type EffectTier } from '@ai-duel/canvas'
-import { createCatalog } from '@ai-duel/content'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { loadCardAtlas } from './cardAtlas'
-import { createLocalDuel, type LocalDuel } from './localDuel'
-// 设计令牌的 CSS 变量，下面那份样式表要用。真正的界面开始做之后（迁移第 31 条）
-// 这一行搬到 App.tsx 去引一次就够，现在只有开发页用得上，没必要让生产包跟着带。
-import '@ai-duel/design/tokens.css'
+import type { DuelScene, EffectTier } from '@ai-duel/canvas'
+import { useEffect, useRef, useState } from 'react'
+import { usePlatform } from '../app/platform'
+import type { LocalDriver } from '../match/localDriver'
+import { createTestMatch } from '../match/localMatch'
+import { DuelStage } from '../screens/DuelStage'
+import { DevPanel } from './DevPanel'
 import './duelDev.css'
-
-/**
- * 渲染倍率封顶（纪律 3.3）：设备像素比最高按 1.5 渲染，4K 屏不按 2 倍。
- * 低端档降到 0.75 的那条留给效果分档接进来之后再做。
- */
-const MAX_RESOLUTION = 1.5
 
 /** 这一局的种子。写死是为了每次打开看到的都是同一副牌、同一套演出。 */
 const SEED = 20260905
@@ -32,101 +23,27 @@ const SEED = 20260905
 /** 计数器和帧率的采样间隔（毫秒）。短了 React 重渲染太频繁，长了看不到峰值。 */
 const SAMPLE_MS = 500
 
-/** 一帧最多推多久：标签页切回来时两次 rAF 能差好几秒，照实喂进去演出会一口气跳完。 */
-const MAX_FRAME_MS = 100
-
 const ZERO_COUNTERS = { textCreated: 0, renders: 0, frameRequests: 0, activeMs: 0 }
 
 const TIERS: EffectTier[] = ['low', 'mid', 'high']
 
 export function DuelDev() {
-  const hostRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const platform = usePlatform()
   const sceneRef = useRef<DuelScene | null>(null)
-  const duelRef = useRef<LocalDuel | null>(null)
   const [tier, setTier] = useState<EffectTier>('mid')
-  const [status, setStatus] = useState('正在加载图集…')
   const [counters, setCounters] = useState(ZERO_COUNTERS)
   /** 渲染帧率；null 表示这一段里场景一帧都没画（也就是纪律 3.6 里的「停了」）。 */
   const [fps, setFps] = useState<number | null>(null)
 
-  useEffect(() => {
-    const host = hostRef.current
-    const canvas = canvasRef.current
-    if (host === null || canvas === null) return
-
-    let disposed = false
-    let raf = 0
-    let last = 0
-
-    const boot = async () => {
-      const textures = await loadCardAtlas()
-      if (disposed) return
-      const rect = host.getBoundingClientRect()
-      const scene = await createDuelScene({
-        canvas,
-        width: rect.width,
-        height: rect.height,
-        resolution: Math.min(window.devicePixelRatio, MAX_RESOLUTION),
-        tier,
-        seat: 0,
-        textures,
-        catalog: createCatalog(),
-        seed: SEED,
-        // 时钟归这一页推，见文件头。
-        manualClock: true,
-        coarsePointer: window.matchMedia('(pointer: coarse)').matches,
-      })
-      if (disposed) {
-        scene.destroy()
-        return
-      }
-      const duel = createLocalDuel(scene, SEED)
-      scene.onCommand((command) => duel.command(command))
-      // 用户操作只喂编排层：演出和锁归它管，指令是另一条路（见 localDuel 的文件头）。
-      scene.onUserAction(() => undefined)
-      scene.onTutorialCue(() => undefined)
-      sceneRef.current = scene
-      duelRef.current = duel
-
-      const frame = (stamp: number) => {
-        raf = window.requestAnimationFrame(frame)
-        const deltaMs = last === 0 ? 0 : Math.min(MAX_FRAME_MS, stamp - last)
-        last = stamp
-        if (deltaMs <= 0) return
-        duel.step(deltaMs)
-        scene.step(deltaMs)
-      }
-      raf = window.requestAnimationFrame(frame)
-      setStatus('把牌拖到上半屏就是出牌')
-    }
-
-    boot().catch((error: unknown) => {
-      setStatus(`起不来：${error instanceof Error ? error.message : String(error)}`)
-    })
-
-    // 视口跟着容器走，桌面和手机两档各按各的版式排（需求第 3 条）。
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry === undefined) return
-      const { width, height } = entry.contentRect
-      sceneRef.current?.resize(width, height)
-    })
-    observer.observe(host)
-
-    /*
-     * 清理只拆一次。场景那边也自己挡了重复调用——以前这里拆两次会在 Pixi 内部
-     * 已经置空的表上取属性，异常从 effect 清理冒出去，表现是切档位后整页白屏。
-     */
-    return () => {
-      disposed = true
-      window.cancelAnimationFrame(raf)
-      observer.disconnect()
-      sceneRef.current?.destroy()
-      sceneRef.current = null
-      duelRef.current = null
-    }
-    // tier 变了要整个重建场景：档位决定粒子池大小和特效开关，都是建场景时定下的。
-  }, [tier])
+  /*
+   * 「重开一局」= 换一个 driver。种子固定，所以重开出来的还是同一副牌、同一套演出。
+   *
+   * 这一页不走 MatchSession（那是给跨路由用的），driver 就活在这个组件的 state 里。
+   * 换掉的那一局和卸载时都要 dispose，否则上一局的答题定时器还会接着往里发指令——
+   * 换掉那次由下面这个 effect 的清理负责（driver 一变就跑一次）。
+   */
+  const [driver, setDriver] = useState<LocalDriver>(() => createTestMatch(platform, { seed: SEED }))
+  useEffect(() => () => driver.dispose(), [driver])
 
   /*
    * 计数器和帧率轮询着读，不每帧塞进 React——那本身就会把帧循环钉住不放。
@@ -157,32 +74,27 @@ export function DuelDev() {
       stamp = now
       setCounters(next)
       setFps(renders === 0 || elapsed <= 0 ? null : Math.round((renders * 1000) / elapsed))
-      setStatus(duelRef.current?.status() ?? '')
     }, SAMPLE_MS)
     return () => window.clearInterval(timer)
   }, [])
 
-  const restart = useCallback(() => {
-    const scene = sceneRef.current
-    if (scene === null) return
-    scene.reset()
-    duelRef.current = createLocalDuel(scene, SEED)
-    scene.onCommand((command) => duelRef.current?.command(command))
-  }, [])
-
   return (
     <div className="duel-dev">
-      <div className="duel-dev__stage" ref={hostRef}>
-        {/*
-          key 挂 tier：换档位时让 React 换一个全新的 <canvas>，而不是在旧的上面重建场景。
-          Pixi 的 renderer.destroy() 会把这个 canvas 的 WebGL 上下文永久丢掉，
-          同一个元素上再取上下文拿到的还是那个已丢的，新场景画不出东西。
-        */}
-        <canvas key={tier} ref={canvasRef} />
+      <div className="duel-dev__stage">
+        <DuelStage
+          driver={driver}
+          platform={platform}
+          seat={0}
+          tier={tier}
+          sceneRef={sceneRef}
+          // 这一页没有可去的地方，顶栏那两颗钮点了不做事。
+          onLeave={() => undefined}
+          onToggleMute={() => undefined}
+        />
         <span className="duel-dev__fps">{fps === null ? '空闲' : `${fps} fps`}</span>
       </div>
       <div className="duel-dev__panel">
-        <button type="button" onClick={restart}>
+        <button type="button" onClick={() => setDriver(createTestMatch(platform, { seed: SEED }))}>
           重开一局
         </button>
         <span className="duel-dev__group">
@@ -198,11 +110,12 @@ export function DuelDev() {
             </button>
           ))}
         </span>
-        <span className="duel-dev__status">{status}</span>
         <span className="duel-dev__counters">
           文字 {counters.textCreated} · 渲染 {counters.renders}
         </span>
       </div>
+      {/* 局面怎么摆归测试面板，这一页只管画面和性能。 */}
+      <DevPanel driver={driver} />
     </div>
   )
 }

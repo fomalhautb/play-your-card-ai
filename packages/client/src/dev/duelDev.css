@@ -21,10 +21,6 @@
   min-height: 0;
 }
 
-.duel-dev__stage canvas {
-  display: block;
-}
-
 /*
  * 帧率读数，压在画布左上角。
  * 不吃指针事件：它正盖在画布上，能点的话会把拖牌的按下事件截走。
@@ -77,13 +73,9 @@
   gap: var(--space-xs);
 }
 
-/* 状态和计数器推到右边，按钮那一堆留在左边。 */
-.duel-dev__status {
-  margin-left: auto;
-  opacity: var(--opacity-home-flourish-line);
-}
-
+/* 计数器推到右边，按钮那一堆留在左边。 */
 .duel-dev__counters {
+  margin-left: auto;
   font-variant-numeric: tabular-nums;
   opacity: var(--opacity-home-flourish-line);
 }

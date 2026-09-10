@@ -1,0 +1,27 @@
+/*
+ * 应用壳自己那点样式：页面底色，以及路由兜底那两句提示。
+ * 具体页面的版式跟着各自的组件走（架构 7.2 第 4 条），别往这里堆。
+ */
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-page-background);
+  color: var(--color-page-foreground);
+  font-family: var(--font-family-serif);
+}
+
+/* 「正在加载开发页…」「没有这一页」这类只有一行字的兜底。 */
+.app-notice {
+  padding: var(--space-xxl);
+  opacity: var(--opacity-home-flourish-line);
+}

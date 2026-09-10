@@ -14,7 +14,8 @@
     "storybook": "storybook dev -c dev/storybook --no-open -p 6006",
     "build-storybook": "storybook build -c dev/storybook",
     "catalog:test": "playwright test -c dev/storybook/playwright.config.ts",
-    "catalog:update": "playwright test -c dev/storybook/playwright.config.ts --update-snapshots"
+    "catalog:update": "playwright test -c dev/storybook/playwright.config.ts --update-snapshots",
+    "e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "dependencies": {
     "@ai-duel/canvas": "workspace:*",
@@ -27,6 +28,7 @@
     "pixi.js": "^8.20.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "wouter": "^3.11.0",
     "zod": "^4.5.4"
   },
   "devDependencies": {

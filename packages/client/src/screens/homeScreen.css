@@ -1,0 +1,43 @@
+/*
+ * 临时首页的版式：居中一列。第 30 条做真首页时这个文件整个删掉。
+ * 数值读设计令牌，别写死（架构 7.1 第 4 条）。
+ */
+
+.home {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xxl);
+  padding: var(--space-xxl);
+  text-align: center;
+}
+
+.home__title {
+  margin: 0;
+  /* 组件私有字号：这一页整个是临时的，不值得为它往令牌里加一档标题字号。 */
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+}
+
+.home__note {
+  margin: 0;
+  max-width: 32em;
+  color: var(--color-paper-ink-muted);
+  line-height: 1.75;
+}
+
+.home__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxl);
+  justify-content: center;
+}
+
+.home__dev {
+  color: var(--color-paper-ink-muted);
+  font-size: var(--font-size-lg);
+}

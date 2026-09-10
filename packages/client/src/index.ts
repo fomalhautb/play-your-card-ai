@@ -6,6 +6,8 @@
  * 反过来 `packages/` 里的包一个都不许依赖它，只有 `apps/` 下的壳可以。
  *
  * 目录：
+ * - `app/`：应用壳（路由表、平台能力和当前对局两个 Context）；
+ * - `screens/`：屏幕（首页、对局），画布里那一套由 screens/DuelStage 接线；
  * - `match/`：对局驱动（本地和联机两种），屏幕只认它这一个接口；
  * - `net/`：大厅和房间的 WebSocket 客户端、会话；
  * - `save/`：本机存档（收藏和胜场、牌组），走 `platform.storage`；
@@ -17,7 +19,16 @@
  * 也只有这样才测得了（测试里换成 `createFakePlatform()`）。
  */
 
+/*
+ * 平台实现从这里转一手给壳用。
+ *
+ * apps/ 下的壳只许依赖 client 这一个包（见 .dependency-cruiser.cjs 的
+ *「依赖方向-apps-只挂-client」），所以「建哪一套平台实现」这个选择要经过装配层的门。
+ * 三个壳将来各转各的：web 壳拿这一个，Electron 和 Capacitor 那两个到第 35、36 条再补。
+ */
+export { createWebPlatform } from '@ai-duel/platform'
 export { App } from './App'
+export type { MatchMode } from './app/MatchSession'
 export type { MusicTrack } from './audio/music'
 export { currentTrack, MUSIC_TRACKS, onTrackReplay, playTrack, stopMusic } from './audio/music'
 export { restoreMuted, setMuted, toggleMuted, useMuted } from './audio/mute'
@@ -39,6 +50,12 @@ export type {
   MatchView,
   PeerState,
 } from './match/driver'
+export type { LocalDriver, LocalDriverOptions } from './match/localDriver'
+export { createLocalDriver, isLocalDriver } from './match/localDriver'
+export type { LocalMatchOptions } from './match/localMatch'
+export { createHotSeatMatch, createTestMatch } from './match/localMatch'
+export type { AutopilotTimers, QuizAnswersFor } from './match/quizAutopilot'
+export { QUIZ_AUTOPILOT_DELAY_MS } from './match/quizAutopilot'
 export type { ServerDriver, ServerDriverOptions } from './match/serverDriver'
 export { createServerDriver } from './match/serverDriver'
 export { lobbyUrl, roomUrl } from './net/endpoints'

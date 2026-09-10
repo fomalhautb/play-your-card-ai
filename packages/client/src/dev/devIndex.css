@@ -1,0 +1,35 @@
+/* 开发页索引的版式。就一列链接，不值得多讲究。 */
+
+.dev-index {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxl);
+  padding: var(--space-xxl);
+}
+
+.dev-index__title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+
+.dev-index__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dev-index__list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-lg);
+}
+
+.dev-index__note {
+  color: var(--color-paper-ink-muted);
+  font-size: var(--font-size-lg);
+}
