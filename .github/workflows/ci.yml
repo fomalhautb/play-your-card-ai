@@ -19,7 +19,11 @@ jobs:
   check:
     runs-on: ubuntu-latest
     # 6.1 给快档定的时限就是 10 分钟。超了不是"再等等"，是这档该瘦身或者挪进慢档。
-    timeout-minutes: 10
+    #
+    # 临时放宽到 15：第 18 条加了六条全屏对局场景的目录页条目，截图回归那一步单独就要
+    # 七分多钟，整条超过了 10 分钟。第 19-20 条把截图回归拆成并行的独立 job 之后
+    # 每个 job 各自回到 10 分钟，这一行到时改回去。
+    timeout-minutes: 15
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
