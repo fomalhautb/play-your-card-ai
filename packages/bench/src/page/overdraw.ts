@@ -18,8 +18,11 @@
  *
  * - 精灵：换白纹理，再把换之前的宽高填回去（理由见下面第 2 条）。数得准。
  * - 网格：先摘掉自带的着色器再换白纹理（理由见下面第 3 条）。数得准。
+ * - 图形（Graphics）：整份画法换成「按它自己的包围盒填一块实心白」（理由见下面第 4 条）。
+ *   数得准，而且偏保守。
+ * - 九宫格精灵（NineSliceSprite）：换白纹理，四条边的留白一并归零（理由见下面第 5 条）。数得准。
  * - Filter：一律摘掉，不算进来。3.1 本来就不许挂，真挂了「离屏渲染次数」那条会先报。
- * - 其它会画东西的节点（Graphics、Text 之类）：外观换不掉，只能涂上 tint 1/255，
+ * - 其它会画东西的节点（Text 之类）：外观换不掉，只能涂上 tint 1/255，
  *   画出去的仍然是原来那些深浅不一的像素，加进红通道的不是整数 1，甚至可能是 0。
  *   这种节点计进 `unswapped`。真实场景要求它是 0（tests/deterministic.spec.ts 断言了这条），
  *   桩场景每张牌带一个 Text 标签，不是 0 属于预期（src/scene/stubScene.ts）。
@@ -28,8 +31,11 @@
 import {
   type Container,
   type Filter,
+  Graphics,
+  GraphicsContext,
   Matrix,
   Mesh,
+  NineSliceSprite,
   type Renderer,
   RenderTexture,
   type Shader,
@@ -76,6 +82,10 @@ interface Saved {
    * 还原时要按节点类型判断，不能拿这个字段非不非空当依据。
    */
   shader?: Shader | null
+  /** 图形节点原来的那份画法。换成实心白之后要原样装回去。 */
+  context?: GraphicsContext
+  /** 九宫格精灵四条边的留白。换纹理时会被重置，所以要单独存一份。 */
+  slice?: { left: number; right: number; top: number; bottom: number }
   width?: number
   height?: number
 }
@@ -117,6 +127,23 @@ interface OverdrawSwap {
  *    顺序不能反，是因为网格的 texture setter 在着色器还挂着的时候会把新纹理一并写进
  *    `shader.texture`（Pixi 的 scene/mesh/shared/Mesh）。先把 shader 摘成 null，
  *    整趟调试渲染就一次都不会碰到原着色器；还原时反过来，先设回纹理再把着色器装回去。
+ *
+ * 4. 图形节点（Graphics）整份画法换成「按它自己的包围盒填一块实心白」。
+ *
+ *    对局界面里的图形几乎都是底板和遮罩——顶栏和侧栏的板面、全屏过场的遮罩、格子的高亮圈，
+ *    形状本来就是矩形或圆角矩形，包围盒和它们盖住的面积几乎一样。
+ *    不换的话它们画出去的是原来那些深浅不一的像素，tint 1/255 乘上去四舍五入常常是 0，
+ *    整块底板就从这条指标里消失了——而底板恰恰是填充率的大头。
+ *
+ *    包围盒必然大于等于真实形状，所以这一档只会**高估**过度绘制。方向是对的：
+ *    这条指标是上限检查，宁可算多也别算漏。
+ *
+ * 5. 九宫格精灵在 Pixi v8 里**不是** Sprite 的子类，所以要单开一档。
+ *
+ *    换纹理之外还要把四条边的留白（leftWidth 之类）归零：留白是按原纹理的边框宽度设的，
+ *    换成 1×1 之后那几个数比纹理本身还大，画出来的九宫格会散架。
+ *    归零之后整块就是「中间那格拉满」，正好是一个盖住 width × height 的实心四边形。
+ *    顺序也不能反——texture 的 setter 会按新纹理的默认边框重置那几个数，所以先换纹理再归零。
  */
 function disguise(node: Container, white: Texture, swap: OverdrawSwap) {
   if (!node.visible) return
@@ -135,6 +162,18 @@ function disguise(node: Container, white: Texture, swap: OverdrawSwap) {
   } else if (node instanceof Mesh) {
     entry.texture = node.texture
     entry.shader = node.shader
+  } else if (node instanceof Graphics) {
+    entry.context = node.context
+  } else if (node instanceof NineSliceSprite) {
+    entry.texture = node.texture
+    entry.width = node.width
+    entry.height = node.height
+    entry.slice = {
+      left: node.leftWidth,
+      right: node.rightWidth,
+      top: node.topHeight,
+      bottom: node.bottomHeight,
+    }
   } else if (draws) {
     swap.unswapped += 1
   }
@@ -152,6 +191,19 @@ function disguise(node: Container, white: Texture, swap: OverdrawSwap) {
   } else if (node instanceof Mesh) {
     node.shader = null
     node.texture = white
+  } else if (node instanceof Graphics) {
+    const box = node.getLocalBounds()
+    node.context = new GraphicsContext()
+      .rect(box.x, box.y, box.width, box.height)
+      .fill({ color: 0xffffff })
+  } else if (node instanceof NineSliceSprite) {
+    node.texture = white
+    node.leftWidth = 0
+    node.rightWidth = 0
+    node.topHeight = 0
+    node.bottomHeight = 0
+    if (entry.width !== undefined) node.width = entry.width
+    if (entry.height !== undefined) node.height = entry.height
   }
   for (const child of node.children) disguise(child, white, swap)
 }
@@ -188,6 +240,20 @@ export function restoreAfterOverdraw(swap: OverdrawSwap) {
       // 和换的时候反过来：先设回纹理，再把着色器装回去，同样是为了不碰原着色器。
       if (entry.texture) node.texture = entry.texture
       node.shader = entry.shader ?? null
+    } else if (node instanceof Graphics && entry.context !== undefined) {
+      // 临时那份画法用完就扔：它是这一趟现造的，不还回去也没人再用。
+      node.context.destroy()
+      node.context = entry.context
+    } else if (node instanceof NineSliceSprite) {
+      if (entry.texture) node.texture = entry.texture
+      if (entry.slice !== undefined) {
+        node.leftWidth = entry.slice.left
+        node.rightWidth = entry.slice.right
+        node.topHeight = entry.slice.top
+        node.bottomHeight = entry.slice.bottom
+      }
+      if (entry.width !== undefined) node.width = entry.width
+      if (entry.height !== undefined) node.height = entry.height
     }
   }
 }
