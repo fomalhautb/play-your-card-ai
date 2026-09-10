@@ -5,19 +5,19 @@
  * 快照多换一次引用，`useSyncExternalStore` 就会一直重渲染。
  */
 
-import type { GameEvent, PlayerView } from '@ai-duel/core'
+import type { Director } from '@ai-duel/canvas'
 import { describe, expect, it } from 'vitest'
 import type { MatchEventBatch, MatchView } from '../src/match/driver'
 import { createDriverCore } from '../src/match/driverCore'
 import { SAMPLE_EVENTS, SAMPLE_ONE_EVENT, SAMPLE_VIEW } from './helpers/sampleGame'
 
 /**
- * `canvas` 的 `Director.push()` 入参，照它的签名抄的一份镜像。
+ * `canvas` 的 `Director.push()` 入参，直接从它的签名上取。
  *
- * 直接 import 那个类型才是最结实的写法，但演出编排层（迁移第 16 条）在另一条分支上，
- * 还没并进来。两条并到一起之后把这里换成 `Parameters<Director['push']>[0]`。
+ * 取签名而不是抄一份镜像：编排层改了入参形状，这里当场编译不过，
+ * 而抄的那份只会一直对着一个已经不存在的形状点头。
  */
-type DirectorPushInput = { events: GameEvent[]; view: PlayerView }
+type DirectorPushInput = Parameters<Director['push']>[0]
 
 const EMPTY: MatchView = {
   view: null,
