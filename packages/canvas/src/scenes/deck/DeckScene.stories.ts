@@ -55,8 +55,15 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frame: 
   ctx.stage.addChild(scene.root)
   ctx.onFrame(() => scene.advance(0))
 
-  // 手机档的抽屉一进来是收着的，而这两帧要看牌组栏，先把它拉开。
-  if (frame !== 'empty') scene.toggleDrawer()
+  /*
+   * 手机档的抽屉一进来是收着的。
+   *
+   * 「满 20 张」那一帧要看牌组栏，所以先手动拉开；
+   * 「拖入让位」那一帧**不能**先拉开——抽屉开着时卡池整层是藏起来的（也就抓不到牌），
+   * 而从卡池抓起一张牌本来就会让抽屉自己升上来（见 deck/input.ts）。
+   * 桌面档没有抽屉，这两下都是空操作。
+   */
+  if (frame === 'full') scene.toggleDrawer()
   if (frame === 'dragging') dragFirstCard(scene, size)
 
   return () => {
