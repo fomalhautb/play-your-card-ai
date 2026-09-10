@@ -10,6 +10,7 @@ import type { BenchMetrics, OverdrawResult } from '../src/metrics/types'
 import { DECK, type Profile, SEED } from '../src/node/profiles'
 import type { BenchApi, BenchInitOptions, GpuReport, SceneKind } from '../src/page/benchApi'
 import type { HitPoint } from '../src/page/hitPoints'
+import type { KeyframeShots } from '../src/page/keyframes'
 import type { DuelCommand } from '../src/scene/contract'
 
 declare global {
@@ -157,6 +158,25 @@ export async function handCards(page: Page): Promise<{ instanceId: string; cardI
  */
 export async function hitPoints(page: Page, prefix: string): Promise<HitPoint[]> {
   return page.evaluate((value) => window.__bench.hitPoints(value as string), prefix)
+}
+
+/**
+ * 跑一段剧本，在指定帧号上各抓一张 PNG。
+ * 返回的是解码好的 buffer——`toMatchSnapshot` 收的是二进制，不是 data URL。
+ */
+export async function captureKeyframes(
+  page: Page,
+  segment: string,
+  stops: readonly number[],
+): Promise<{ shots: Buffer[]; frames: number }> {
+  const result = (await page.evaluate(
+    async ([name, frames]) => window.__bench.keyframes(name as string, frames as number[]),
+    [segment, [...stops]] as const,
+  )) as KeyframeShots
+  return {
+    frames: result.frames,
+    shots: result.shots.map((one) => Buffer.from(one.split(',')[1] ?? '', 'base64')),
+  }
 }
 
 /** DevTools 协议的堆采样：一段剧本期间总共分配了多少字节。 */

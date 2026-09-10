@@ -13,6 +13,8 @@
     "test": "vitest run",
     "bench": "playwright test --project=deterministic",
     "interaction": "playwright test --project=interaction",
+    "keyframes": "playwright test --project=keyframes",
+    "keyframes:update": "playwright test --project=keyframes --update-snapshots",
     "timing": "playwright test --project=timing"
   },
   "dependencies": {
