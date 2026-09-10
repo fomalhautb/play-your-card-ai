@@ -94,7 +94,8 @@ export interface BenchApi {
   handCards(): readonly { instanceId: string; cardId: string }[]
   /**
    * 场景图里 label 以 `prefix` 开头的对象，各给一个点得到的视口坐标。
-   * 卡是 `card:<实例 id>`、战场格子是 `tile:<实例 id>`（见各组件的构造函数）。
+   * 卡是 `card:<实例 id>`、战场格子是 `tile:<实例 id>`（见各组件的构造函数），
+   * 「结束出牌」是 `button:end-play`（在 canvas 的 scenes/duel/parts.ts 上）。
    */
   hitPoints(prefix: string): HitPoint[]
   /**

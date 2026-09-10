@@ -9,8 +9,9 @@
  * 为什么放在 bench 而不是目录页：这里已经有一整套「把真场景在浏览器里跑起来」的骨架
  *（页面、图集、手动时钟、window.__bench），目录页那条是截图比对，加交互只会把两件事搅在一起。
  *
- * 它不产出任何指标，所以单独一个 project（playwright.config.ts 的 `interaction`），
- * 和确定性那组一起进 CI 慢档。跑法：`pnpm --filter @ai-duel/bench interaction`。
+ * 它不产出任何指标，所以单独一个 project（playwright.config.ts 的 `interaction`）。
+ * 几分钟就跑完，进 CI **快档**的 `scene` job（确定性指标那组太慢，在慢档）。
+ * 跑法：`pnpm --filter @ai-duel/bench interaction`。
  */
 
 import type { Page } from '@playwright/test'
@@ -206,6 +207,20 @@ test.describe('鼠标', () => {
         targetInstanceId: candidate,
       },
     ])
+  })
+
+  /*
+   * 「结束出牌」这颗按钮只有真浏览器这边测得到：指令是场景在装配按钮时接上的
+   *（canvas 的 scenes/duel/DuelScene.ts 的 onEndPlay），不经过 input.ts，
+   * 那边 vitest 的假上下文里按钮是个替身，只测得到灰不灰。
+   */
+  test('点「结束出牌」按钮，场景发出 END_PLAY', async ({ page }) => {
+    const origin = await openDealt(page, DESKTOP)
+    const button = (await hitPoints(page, 'button:end-play'))[0]
+    if (button === undefined) throw new Error('「结束出牌」按钮现在点不到')
+
+    await page.mouse.click(origin.x + button.x, origin.y + button.y)
+    expect(await sceneCommands(page)).toEqual([{ type: 'END_PLAY', player: 0 }])
   })
 
   test('选目标时点空白处，取消掉，一条指令都不发', async ({ page }) => {

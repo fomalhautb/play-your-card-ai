@@ -11,7 +11,7 @@
  * 用例会莫名其妙地打出另一张牌。验一遍之后返回的坐标点下去命中的一定是它。
  */
 
-import type { Container } from 'pixi.js'
+import { type Container, Rectangle } from 'pixi.js'
 import type { RenderProbe } from './renderProbe'
 
 /** 一个点得到的目标：它的 label，和一个点下去会命中它的**视口**坐标。 */
@@ -41,6 +41,18 @@ const CANDIDATES: readonly { x: number; y: number }[] = [
   { x: 45, y: -112 },
   { x: 0, y: 0 },
 ]
+
+/**
+ * 自己声明了矩形命中区的（按钮那一类），先试它的中心。
+ *
+ * 上面那张表全是按卡和格子的原点排的，而按钮的原点在**左上角**，那几个点一个都落不到它身上。
+ * 命中区是它自己说的「点这块算点我」，取中心最稳。
+ */
+function candidatesFor(target: Container): readonly { x: number; y: number }[] {
+  const area = target.hitArea
+  if (!(area instanceof Rectangle)) return CANDIDATES
+  return [{ x: area.x + area.width / 2, y: area.y + area.height / 2 }, ...CANDIDATES]
+}
 
 /** 深度优先遍历整棵树，收下 label 以 prefix 开头的那些。 */
 function collect(node: Container, prefix: string, out: Container[]): void {
@@ -81,7 +93,7 @@ export function hitPointsOf(probe: RenderProbe, prefix: string): HitPoint[] {
 
   const points: HitPoint[] = []
   for (const target of targets) {
-    for (const local of CANDIDATES) {
+    for (const local of candidatesFor(target)) {
       const global = target.toGlobal(local)
       /*
        * 验的是**取整之后**那个点。
