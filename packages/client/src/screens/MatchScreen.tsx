@@ -4,7 +4,7 @@
  * driver 是首页（联机时是房间页）建好之后放进 `MatchSession` 的——放在路由之上才跨得过
  * 那次跳转。直接刷新 `/match` 会读不到 driver（这一局本来就不存盘），这时跳回首页。
  *
- * 这一页自己只做画布**之外**的五件事：背景音乐、离开确认、终局结算、记胜场，
+ * 这一页自己只做画布**之外**的五件事：背景音乐、离开确认、终局结算、记胜场（顺带开包），
  * 以及联机时那行连接状态字（正在重连、对方掉线，判据见 matchStatus.ts）。
  * 画布里面那一整套（版式、演出、拖牌、选目标）归 `DuelStage` 接线，那里一行界面代码都没有。
  *
@@ -12,6 +12,7 @@
  *（架构 5.6）。只有两处按 `mode` 分岔，各自都写了理由：测试面板挂不挂、离开之后回哪一页。
  */
 
+import type { CardId } from '@ai-duel/core'
 import { Dialog } from '@ai-duel/ui'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useLocation } from 'wouter'
@@ -28,6 +29,7 @@ import { DuelStage } from './DuelStage'
 import { type MatchOutcome, MatchResult } from './MatchResult'
 import { outcomeOf, resultTitleOf } from './matchOutcome'
 import { linkStatusOf } from './matchStatus'
+import { packPathOf } from './packRoute'
 import './matchScreen.css'
 
 /**
@@ -78,6 +80,11 @@ function Match({ driver }: { driver: MatchDriver }) {
   const [, navigate] = useLocation()
   const view = useMatch(driver)
   const [leaving, setLeaving] = useState(false)
+  /**
+   * 这一局赢下来抽到的新卡。抽不到（现在恒抽不到，见 content 的 collection.ts）就是 null，
+   * 那时结算页照常只有「再来一局 / 回首页」。
+   */
+  const [drawn, setDrawn] = useState<CardId | null>(null)
 
   // 对局的曲子。回首页时由那边换成 beginning，所以这里不用在卸载时停。
   useEffect(() => {
@@ -117,7 +124,7 @@ function Match({ driver }: { driver: MatchDriver }) {
   useEffect(() => {
     if (mode === 'test' || outcome !== 'victory' || recorded.has(driver)) return
     recorded.add(driver)
-    recordWin(platform, Math.random())
+    setDrawn(recordWin(platform, Math.random()).drawn)
   }, [platform, mode, outcome, driver])
 
   const leave = (to: string): void => {
@@ -138,6 +145,8 @@ function Match({ driver }: { driver: MatchDriver }) {
    * 而他刚打完一局，多半就是想接着来。
    */
   const exitTo = mode === 'online' ? '/room' : '/'
+  /** 抽到牌才有这个地址，没抽到就是 null——结算页照它决定摆不摆「开卡包」。 */
+  const packPath = packPathOf(drawn)
 
   return (
     <div className="match">
@@ -165,6 +174,11 @@ function Match({ driver }: { driver: MatchDriver }) {
           // 真正的「原班人马再来一局」要服务端支持重开房间，那还没有。
           onPlayAgain={() => leave(exitTo)}
           onHome={() => leave('/')}
+          /*
+           * 抽到新卡才多一颗「开卡包」，它是这一屏的主操作（赢了一局最想看的就是这个）。
+           * 开包页只需要一个卡 id，走查询串带过去（理由见 screens/PackScreen.tsx）。
+           */
+          onOpenPack={packPath === null ? undefined : () => leave(packPath)}
         />
       )}
 
