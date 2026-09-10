@@ -1,6 +1,17 @@
-# 《正式版架构》6.1 的「快档」：每个 PR 都跑，时限 10 分钟。
-# 慢档（三浏览器一致性、端到端、四端构建、性能的时间指标）还没建，见 6.1 的表。
+# 《正式版架构》6.1 的「快档」：每个 PR 都跑。
 #
+# 「10 分钟」这条口径从「整条流水线 10 分钟」改成了「**每个并行 job 各自 10 分钟**」。
+# 原因是第 18 条把真对局场景接进来之后，串成一条已经到 8 分 56 秒（其中目录页截图回归
+# 一步就占 6.8 分钟），再往上加任何一条检查都会顶破。现在拆成三个互不依赖的 job：
+#   check        类型、lint、设计令牌、单元测试        —— 不开浏览器
+#   catalog      组件目录页的截图回归                  —— 装 Chromium
+#   scene        对局场景的交互回归 + 剧本关键帧截图    —— 装 Chromium
+# 三个并排跑，墙钟时间取最慢的那一个。
+#
+# **确定性性能指标不在这一档**：第 18 条实测整批 17 分钟、最慢一条 12.9 分钟（M2 上），
+# ubuntu 跑机只会更慢，10 分钟的快档装不下。它挪到了慢档（slow.yml）。
+#
+# 慢档（三浏览器一致性、端到端、四端构建、性能的时间指标）见 6.1 的表，还没建全。
 # 部署是另一条流水线（deploy.yml），这里只做检查，不碰线上。
 name: CI 快档
 
@@ -17,13 +28,13 @@ concurrency:
 
 jobs:
   check:
+    name: 类型 / Lint / 单元测试
     runs-on: ubuntu-latest
     # 6.1 给快档定的时限就是 10 分钟。超了不是"再等等"，是这档该瘦身或者挪进慢档。
     #
-    # 临时放宽到 15：第 18 条加了六条全屏对局场景的目录页条目，截图回归那一步单独就要
-    # 七分多钟，整条超过了 10 分钟。第 19-20 条把截图回归拆成并行的独立 job 之后
-    # 每个 job 各自回到 10 分钟，这一行到时改回去。
-    timeout-minutes: 15
+    # 第 18 条那次临时放宽到 15 已经改回来了：截图回归拆进下面的 catalog / scene 两个 job 之后，
+    # 这个 job 只剩不开浏览器的那几步，回到 10 分钟绰绰有余。
+    timeout-minutes: 10
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -60,13 +71,34 @@ jobs:
       # `pnpm -r test` 只进有 test 脚本的包，现在是 core、content、protocol、design、platform、
       # canvas、bench 和 legacy-client。
       # bench 的 test 脚本只跑 Node 侧纯逻辑的 vitest，不开浏览器——
-      # 性能剧本本身要拉起 Chromium，属于慢档，等迁移第 20 条再接进来。
+      # 要浏览器的那几组在下面 scene 那个 job 和慢档里。
       # 骨架包没有 test 脚本，会被直接跳过——别为了"看着整齐"给它们加空脚本，
       # 那样一个空跑的绿色会盖住"这个包其实一条测试都没有"。
       - name: 测试
         run: pnpm test
 
-      # 组件目录页的截图回归（迁移第 10 条，对应 6.6 和 6.8 里那两条「拿目录页当输入」）。
+  catalog:
+    name: 组件目录页截图回归
+    runs-on: ubuntu-latest
+    # 本机（M 系列）跑一遍约 3 分钟，CI 那台两核跑机上实测 6.8 分钟。留 10 分钟是快档的口径，
+    # 再顶不住就该把目录页拆成两半跑，而不是把这个数往上调。
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
       # 只装 Chromium：快档就一个浏览器，三浏览器一致性是慢档的事（第 34 条）。
       # --with-deps 装的是无头浏览器要的那些系统库，ubuntu 镜像里默认没有。
       - name: 安装 Chromium
@@ -110,3 +142,69 @@ jobs:
         with:
           name: catalog-diff
           path: packages/client/test-results
+
+  scene:
+    name: 对局场景交互 / 关键帧
+    runs-on: ubuntu-latest
+    # 本机（M2）整组：交互 7 条 1.5 分钟、关键帧 8 条 2.7 分钟，加起来四分多钟。
+    # 两核跑机上按两倍估还在 10 分钟内；真顶破了要做的是减关键帧条数，
+    # 不是把这个数往上调（快档的口径就是 10 分钟）。
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 卡面图集同样由 Playwright 的 globalSetup 自己打（src/node/ensureAtlas.ts）。
+      #
+      # 交互回归（6.6 第 2 条）：真指针拖拽出牌、点选目标，断言场景发出的指令。
+      # 它不量任何指标，所以放在快档——这类回归越早发现越好，而且几分钟就跑完。
+      - name: 交互回归
+        run: pnpm --filter @ai-duel/bench interaction
+
+      # 剧本关键帧的截图回归（6.6）：演出途中的几拍和 baselines/linux 逐像素比。
+      #
+      # 和目录页那一步同样的两分支写法，理由也一样：基线按平台分目录，而 linux 那份只能在
+      # Linux 上生成。仓库里没有 linux 基线时这一步**只生成不比对**，把生成的传成 artifact，
+      # 人下载下来看过再提交；有了之后它就一直走正常比对那条。
+      # 平时怎么刷新见 packages/bench/README.md 的「基线怎么刷新」——**别指望这一步帮你生成**，
+      # 有基线的时候它只比对，红了只会给你一份 keyframes-diff。
+      - name: 剧本关键帧截图回归
+        id: keyframes
+        run: |
+          if [ -d packages/bench/baselines/linux ]; then
+            pnpm --filter @ai-duel/bench keyframes
+          else
+            echo "::warning::仓库里还没有关键帧的 linux 基线，本次只生成不比对。把 keyframes-baselines-linux 这个 artifact 里的图提交到 packages/bench/baselines/linux/ 之后，这一步就会开始真的比对。"
+            pnpm --filter @ai-duel/bench keyframes:update
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 上传新生成的关键帧 linux 基线
+        if: steps.keyframes.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keyframes-baselines-linux
+          path: packages/bench/baselines/linux
+
+      # 对不上的时候把「拍到的」和「差异图」带出来。
+      - name: 上传关键帧差异
+        if: failure() && steps.keyframes.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keyframes-diff
+          path: packages/bench/test-results
