@@ -14,12 +14,13 @@
  *
  * ## 视口和启动参数为什么写在这里
  *
- * 用例自己开浏览器，配置里 `use` 那几项（viewport、trace、launchOptions）就管不到它们了，
- * 所以这里要自己给全。视口尤其要紧：房间页那几颗钮的坐标是按 1280×900 算出来的
- *（见 roomPage.ts），换个视口就全点空了。
+ * 用例自己开浏览器，配置里 project 那几项（`launchOptions`、`viewport`）就管不到了，
+ * 所以这里自己给全，并且和跑批器配置共用同一份常量——两处对不上的话最先出事的是坐标：
+ * 房间页那几颗钮的位置是按 1280×900 算出来的（见 roomPage.ts），换个视口就全点空了。
  *
- * trace 这里一律不录：我们自己开的上下文默认就不录，而这两页的界面一个 DOM 节点都没有，
- * trace 里只有一个空的 `<canvas>`，本来也看不出什么（真要查问题看用例打出来的那份状态）。
+ * 注意 **trace 不在这一档里**。`@playwright/test` 导出的 `chromium` 是被跑批器包过的，
+ * 在用例里开出来的上下文照样归它的 artifacts 那套管，所以关 trace 要在用例文件里
+ * `test.use({ trace: 'off' })`（为什么非关不可，见 online.spec.ts 的那段说明）。
  */
 
 import { type Browser, chromium, type Page } from '@playwright/test'
@@ -40,7 +41,12 @@ export const VIEWPORT = { width: 1280, height: 900 }
 export interface Player {
   browser: Browser
   page: Page
-  /** 把这一端断网 / 恢复。断的是整个上下文，连 WebSocket 一起。 */
+  /**
+   * 把这一端断网 / 恢复。
+   *
+   * 是浏览器那一层的模拟：新请求发不出去，**已经建好的那条 TCP 不会被拆掉**。
+   * 所以客户端要靠心跳自己判死，而服务端那头什么都察觉不到（见 online.spec.ts 那条用例）。
+   */
   setOffline(offline: boolean): Promise<void>
   close(): Promise<void>
 }
