@@ -16,6 +16,7 @@ import { gsap } from 'gsap'
 import { Container, Sprite, Text, Texture, Ticker, WebGLRenderer } from 'pixi.js'
 import type { BenchScene, BenchSceneOptions, DuelSceneCounters } from './contract'
 import { mulberry32 } from './random'
+import { configureGsap } from './stubGsap'
 import { boardSlot, deckAnchor, fanSlot, TIERS } from './stubLayout'
 
 interface CardView {
@@ -29,26 +30,6 @@ type Vars = Record<string, unknown> & { duration: number }
 
 /** `restart` 摆几张手牌。够 `play10` 连着打十次还剩两张。 */
 const RESTART_HAND = 12
-
-/** gsap 的根时间轴当前是不是由我们手动推。模块级的，因为 gsap 本身就是单例。 */
-let gsapDetached = false
-
-/**
- * 手动时钟下必须把 gsap 自己的 rAF 循环摘掉，否则它会在 step() 之外偷偷推进补间，
- * 剧本就不再是确定性的了。这是 gsap 官方给的手动驱动写法。
- */
-function configureGsap(manual: boolean) {
-  gsap.ticker.lagSmoothing(0)
-  if (manual && !gsapDetached) {
-    gsap.ticker.remove(gsap.updateRoot)
-    gsap.ticker.sleep()
-    gsapDetached = true
-  } else if (!manual && gsapDetached) {
-    gsap.ticker.add(gsap.updateRoot)
-    gsap.ticker.wake()
-    gsapDetached = false
-  }
-}
 
 class StubScene implements BenchScene {
   private readonly stage = new Container()
