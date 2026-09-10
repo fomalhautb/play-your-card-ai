@@ -19,6 +19,7 @@ import { tokens } from '@ai-duel/design'
 import { autoDetectRenderer, Container, Rectangle, type Renderer } from 'pixi.js'
 import { CardSprite } from '../../components/CardSprite'
 import type { DirectorLocks } from '../../director/director'
+import { bakePlaceholderIcons, type DuelIcons } from '../../fx/controlIcons'
 import { FrameLoop } from '../../runtime/frameLoop'
 import type { DuelCommand, DuelScene, DuelSceneCounters, DuelSceneOptions } from '../duelContract'
 import { warmupScene } from '../warmup'
@@ -35,7 +36,6 @@ import { createDuelInput, type DuelInput } from './input'
 import { pickLayout } from './layout/pickLayout'
 import type { DuelLayout } from './layout/types'
 import { applyPartsLayout, createParts, type DuelParts } from './parts'
-import { bakePlaceholderIcons, type DuelIcons } from './placeholderIcons'
 
 export async function createDuelScene(options: DuelSceneOptions): Promise<DuelScene> {
   const renderer = await autoDetectRenderer({

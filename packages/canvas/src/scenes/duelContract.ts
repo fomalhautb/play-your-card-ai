@@ -91,7 +91,7 @@ export interface DuelSceneOptions {
   seed?: number
   /**
    * 顶栏右端那两颗图标钮的剪影。真图标是美术资源，第 33 条才搬进来；
-   * 不给就用画出来的占位图形（见 scenes/duel/placeholderIcons.ts）。
+   * 不给就用画出来的占位图形（见 fx/controlIcons.ts）。
    */
   icons?: { leave: Texture; mute: Texture }
   /** 顶栏两颗钮按下时叫谁。不给就是这两颗钮点了没反应。 */

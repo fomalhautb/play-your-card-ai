@@ -17,7 +17,9 @@
  * 不认识引擎事件，也不认识 director——把哪条 cue 映射到哪个方法是场景的活。
  * 复合件拆出来的内部件（结算层的顶栏 / 一侧 / 一行、战场的一格）**不导出**：
  * 它们只对自己的父组件负责，拆文件是被 400 行那条上限逼的，不是多了四个可以单独用的组件。
- * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）。
+ * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）：
+ * 现在多了首页和选英雄页要的那批（图片底板按钮、文字钮、星芒花饰、夜色圆章、人物说明栏）。
+ * 迁移第 30 条的首页 scenes/home（含人物的 alpha 命中）。
  *
  * 目录：
  *   components/    Pixi 组件（卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
@@ -29,7 +31,8 @@
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
  *   scenes/        场景装配（对局渲染器 scenes/duel，含两档版式、cue 播放器、输入；
- *                  房间页 scenes/room，迁移第 27 条后半那一版最小可用的联机入口）
+ *                  房间页 scenes/room；首页 scenes/home。
+ *                  每个场景都是「两档版式 + 一份哑状态 + 一组操作回调」，不认识路由和存档）
  *   storyStage.ts  组件目录页那边的约定（本包的 *.stories.ts 和装配层的舞台按它对接）
  *
  * director/ 是唯一依赖 `@ai-duel/core` 的目录：它要读引擎的事件和视图类型。
@@ -40,6 +43,7 @@ export {
   BADGE_COST,
   BADGE_HELP,
   BADGE_NAMEPLATE,
+  BADGE_SOON,
   BADGE_TILE_MARK,
   BADGE_TURN,
   Badge,
@@ -75,8 +79,23 @@ export {
   type DividerOptions,
   type DividerVariant,
 } from './components/Divider'
+export {
+  Flourish,
+  type FlourishDeps,
+  type FlourishOptions,
+  type FlourishSides,
+} from './components/Flourish'
 export { FoeHand, type FoeHandDeps, type FoeHandOptions } from './components/FoeHand'
 export { applyPose, HandFan, type HandFanOptions, type LayoutMode } from './components/HandFan'
+export {
+  INFO_CARD_CAST,
+  INFO_CARD_HERO,
+  InfoCard,
+  type InfoCardDeps,
+  type InfoCardOptions,
+  type InfoCardVariant,
+  type InfoSection,
+} from './components/InfoCard'
 export { Label, type LabelStyle } from './components/Label'
 export { OrnateFrame, type OrnateFrameDeps } from './components/OrnateFrame'
 export {
@@ -92,6 +111,7 @@ export {
   type PanelVariant,
 } from './components/Panel'
 export {
+  PLAQUE_IVORY,
   PLAQUE_NAVY,
   PLAQUE_PAPER,
   PLAQUE_PLAIN,
@@ -105,6 +125,14 @@ export {
   type PlaqueVariant,
 } from './components/PlaqueButton'
 export {
+  PLATE_HOME_START,
+  PLATE_PANEL,
+  PlateButton,
+  type PlateButtonDeps,
+  type PlateButtonOptions,
+  type PlateVariant,
+} from './components/PlateButton'
+export {
   PlayerPanel,
   type PlayerPanelDeps,
   type PlayerPanelOptions,
@@ -115,6 +143,11 @@ export {
   type RevealOverlayOptions,
   type RevealPoint,
 } from './components/RevealOverlay'
+export {
+  SealButton,
+  type SealButtonDeps,
+  type SealButtonOptions,
+} from './components/SealButton'
 export { SettleLayer, type SettleLayerDeps, type SettleSide } from './components/SettleLayer'
 export { SideBar, type SideBarDeps, type SideBarOptions } from './components/SideBar'
 export { type SkillCancelDeps, SkillCancelLayer } from './components/SkillCancelLayer'
@@ -124,6 +157,14 @@ export {
   TargetingLayer,
   type TargetingLayerDeps,
 } from './components/TargetingLayer'
+export {
+  TEXT_BUTTON_BACK,
+  TEXT_BUTTON_NAV,
+  TextButton,
+  type TextButtonDeps,
+  type TextButtonOptions,
+  type TextButtonVariant,
+} from './components/TextButton'
 export { TokenRail, type TokenRailDeps } from './components/TokenRail'
 export { TopBar, type TopBarDeps, type TopBarOptions } from './components/TopBar'
 export type { Cue, CueSides, CueSpec, LockReason, MatchStageCue } from './director/cues'
@@ -135,6 +176,7 @@ export {
   type UserAction,
 } from './director/director'
 export { EVENT_PLAN, type EventPlan } from './director/ignored'
+export { bakeMuteIcons, type MuteIcons } from './fx/controlIcons'
 export { type EffectTier, TIER_CONFIG, type TierConfig } from './fx/effectTier'
 export { bakeUiTextures, type UiTextureKey, type UiTextures } from './fx/uiTextures'
 export {
@@ -199,6 +241,32 @@ export type {
   DuelSceneCounters,
   DuelSceneOptions,
 } from './scenes/duelContract'
+export {
+  type AlphaMask,
+  alphaBBox,
+  CAST_ALPHA_THRESHOLD,
+  CAST_MASK_WIDTH,
+  hitTestMasks,
+  type NormalizedBox,
+} from './scenes/home/castHit'
+export { createHomeScene } from './scenes/home/HomeScene'
+export {
+  type HomeAction,
+  type HomeCastMember,
+  type HomeMenuId,
+  type HomeMenuItem,
+  type HomeScene,
+  type HomeSceneOptions,
+  type HomeTextures,
+  homeMenu,
+} from './scenes/home/homeContract'
+export {
+  HOME_STAGE,
+  type HomeCardSpot,
+  type HomeLayout,
+  type HomeRect,
+  pickHomeLayout,
+} from './scenes/home/homeLayout'
 export { createRoomScene } from './scenes/room/RoomScene'
 export type {
   RoomAction,

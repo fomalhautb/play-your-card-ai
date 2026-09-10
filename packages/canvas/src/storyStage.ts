@@ -12,7 +12,7 @@
  * 一份纯数据的声明，一行 React 都写不出来。
  */
 
-import type { Container, Renderer } from 'pixi.js'
+import type { Container, Renderer, Texture } from 'pixi.js'
 import type { Animator } from './runtime/animator'
 import type { CardTextures } from './scenes/duelContract'
 
@@ -30,6 +30,14 @@ export interface StoryStage {
   height: number
   /** 卡面图集。声明了不要图集的 story 这里是 null。 */
   textures: CardTextures | null
+  /**
+   * 装几张**图集之外**的图（首页那幅画的各层、英雄牌）。返回的键就是传进来的地址。
+   *
+   * 为什么由舞台提供而不是 story 自己 `Assets.load`：资源从哪来是装配层的事
+   *（架构第 2 节第 5 条），而 story 是 canvas 包里的一份纯数据声明。
+   * 加载失败的那一张不在返回值里——目录页少一张图比整条条目起不来好。
+   */
+  loadImages(urls: readonly string[]): Promise<Record<string, Texture>>
   /** 手动推进一帧。想让某段演出停在中途的 story 自己调。 */
   step(deltaMs: number): void
   /**

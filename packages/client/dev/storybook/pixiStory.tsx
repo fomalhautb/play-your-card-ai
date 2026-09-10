@@ -13,7 +13,7 @@
 
 import { Animator, FrameLoop, type StoryStage, type StoryTeardown } from '@ai-duel/canvas'
 import { tokens } from '@ai-duel/design'
-import { autoDetectRenderer, Container } from 'pixi.js'
+import { Assets, autoDetectRenderer, Container, type Texture } from 'pixi.js'
 import { useEffect, useRef, useState } from 'react'
 import { loadCardTextures } from '../../src/match/cardAtlas'
 
@@ -52,6 +52,22 @@ interface PixiStageProps {
   spec: PixiStorySpec
   /** 真实时钟：不做步进，交给 rAF 自己跑，用来看动画。 */
   live: boolean
+}
+
+/**
+ * 装几张图集之外的图（首页那幅画、英雄牌）。地址就是键。
+ *
+ * 一张一张 `allSettled`，失败的那张干脆不进结果：目录页少一张图，条目还画得出来，
+ * 而整条 Promise 挂掉就是一句「这条条目起不来」。story 那边自己判 undefined。
+ */
+async function loadImages(urls: readonly string[]): Promise<Record<string, Texture>> {
+  const results = await Promise.allSettled(urls.map((url) => Assets.load<Texture>(url)))
+  const loaded: Record<string, Texture> = {}
+  urls.forEach((url, index) => {
+    const result = results[index]
+    if (result?.status === 'fulfilled') loaded[url] = result.value
+  })
+  return loaded
 }
 
 /** 舞台建到哪一步了。图集缺失和建场景失败都停在 'failed'，画面上给一句话。 */
@@ -134,6 +150,7 @@ export function PixiStage({ spec, live }: PixiStageProps) {
         width,
         height,
         textures,
+        loadImages,
         step: (deltaMs) => loop?.step(deltaMs),
         onFrame: (advance) => frameHooks.push(advance),
       }

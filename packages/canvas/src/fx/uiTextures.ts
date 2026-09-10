@@ -1,5 +1,5 @@
 /**
- * 界面零件那批预烤纹理：匾额的五层、雕花框的角、渐隐带、两块吊匾、圆章、药丸。
+ * 界面零件那批预烤纹理：匾额的五层、雕花框的角、渐隐带、两块吊匾、圆章、药丸、星芒、箭头。
  *
  * 和 `bakedTextures.ts` 是同一件事的两半——那边是**卡牌**要的几张，这边是**界面**要的一批。
  * 分成两个对象是因为它们的生命周期不一样：卡牌那批只有对局场景要，界面这批首页、组牌、
@@ -8,7 +8,7 @@
  * 每张纹理都是**白色的**，用的时候靠 tint 和 alpha 上色。这样十二套匾额配色只占五张纹理，
  * 换变体、换状态只写属性不重建对象（3.10），全场的界面零件还能合进同一批（3.9）。
  *
- * 形状的画法在三个 *Shapes.ts 里，这里只管「烤、丢了重画、销毁」这三件事。
+ * 形状的画法在四个 *Shapes.ts 里，这里只管「烤、丢了重画、销毁」这三件事。
  */
 
 import { Rectangle, type Renderer, type Texture } from 'pixi.js'
@@ -32,6 +32,7 @@ import {
   drawTurnPlaqueBody,
   drawTurnPlaqueFrame,
 } from './frameShapes'
+import { drawBackArrow, drawSparkle } from './homeShapes'
 import { type Mold, mold } from './mold'
 import {
   drawPlaqueCorner,
@@ -98,6 +99,10 @@ const MOLDS = {
   coinFace: drawCoinFace,
   /** 抛硬币那枚币的两圈边。 */
   coinRim: drawCoinRim,
+  /** 夜色页面上那颗四角星（花饰的中点、首页导航的分隔）。 */
+  sparkle: drawSparkle,
+  /** 返回按钮那支左向箭头。 */
+  backArrow: drawBackArrow,
 } satisfies Record<string, () => Mold>
 
 export type UiTextureKey = keyof typeof MOLDS

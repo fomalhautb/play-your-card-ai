@@ -13,6 +13,7 @@ import { expect, type Page } from '@playwright/test'
 // 这一句同时把 src/dev/debugHook 里那份 `declare global`（window.__aiDuel）带进来。
 import type { RoomDebug } from '../src/dev/debugHook'
 import { readDebug } from './debugBridge'
+import { clickHomeMenu, openHome, waitForScene } from './homePage'
 
 /** 房间页此刻的状态。从调试口子的签名反推，那边改了这里跟着变。 */
 type RoomSnapshot = ReturnType<RoomDebug['view']>
@@ -95,11 +96,18 @@ export async function waitForCanvas(page: Page, selector: string): Promise<void>
   }
 }
 
-/** 从首页走进房间页，等到画布和调试口子都就位。 */
+/**
+ * 从首页走进房间页，等到画布和调试口子都就位。
+ *
+ * 首页也整页画在画布上（迁移第 30 条），所以「点联机」同样是按坐标点的，
+ * 落点由 canvas 导出的版式函数算（见 homePage.ts）。
+ */
 export async function openRoomPage(page: Page): Promise<void> {
-  await page.goto('/')
-  await page.getByRole('button', { name: '联机对战' }).click()
+  await openHome(page)
+  await clickHomeMenu(page, 'online')
   await waitForCanvas(page, '.room-stage canvas')
+  // 元素出现只说明 React 挂上了，场景还要等几个 await 才建得起来（见 waitForScene）。
+  await waitForScene(page, '.room-stage canvas')
   // 进站要先开一个游客号（两三次 HTTP 往返），开出来这一行才有字。
   await untilRoom(page, /"account":"游客/)
 }

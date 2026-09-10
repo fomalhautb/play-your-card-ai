@@ -7,8 +7,8 @@
  *
  * 目录：
  * - `app/`：应用壳（路由表、平台能力和当前对局两个 Context）；
- * - `screens/`：屏幕（首页、对局），画布里那一套由 screens/DuelStage 接线；
- * - `match/`：对局驱动（本地和联机两种），屏幕只认它这一个接口；
+ * - `screens/`：屏幕（首页、选英雄、开包、房间、对局），画布里那一套由各自的 *Stage 接线；
+ * - `match/`：对局驱动（本地和联机两种）和纹理加载，屏幕只认 driver 这一个接口；
  * - `net/`：大厅和房间的 WebSocket 客户端、会话；
  * - `save/`：本机存档（收藏和胜场、牌组），走 `platform.storage`；
  * - `audio/`：音效表、背景音乐、静音开关，走 `platform.audio`；
