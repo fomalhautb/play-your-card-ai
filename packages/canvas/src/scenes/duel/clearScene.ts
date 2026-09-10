@@ -10,8 +10,8 @@
  * 也就是给「马上就要被销毁的下一张」新建了一条补间。所以下面是**先全摘完、再统一销毁**。
  */
 
+import { killAndDestroy } from '../../runtime/dispose'
 import type { DuelContext } from './context'
-import { killAndDestroy } from './disposal'
 
 export function clearScene(ctx: DuelContext): void {
   const { animator } = ctx.deps

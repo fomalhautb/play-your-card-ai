@@ -21,14 +21,23 @@ export function useMatch(driver: MatchDriver): MatchView {
  * 表现是画面直接从空手牌跳到满手牌，发牌动画整段没了。
  *
  * 全局只允许一个订阅者（接口的规矩），所以这个 hook 在一棵组件树里只能挂一次。
+ *
+ * **driver 传 null 表示「先别订」**，这正是那条补发规矩要配合的用法：
+ * 画布场景要等图集下完才建得出来，而 driver 从建出来那一刻就在产事件。
+ * 没准备好就先不订，事件攒在 driverCore 里；准备好了再订，它一次性补发。
+ * 抢先订上的话开局那批会被送进一个还不存在的场景，之后再也补不回来
+ *（表现就是整局都是空场：没有抛硬币、没有发牌、连手牌都不出现）。
  */
 export function useMatchEvents(
-  driver: MatchDriver,
+  driver: MatchDriver | null,
   handler: (batch: MatchEventBatch) => void,
 ): void {
   const handlerRef = useRef(handler)
   handlerRef.current = handler
-  useEffect(() => driver.subscribeEvents((batch) => handlerRef.current(batch)), [driver])
+  useEffect(() => {
+    if (driver === null) return
+    return driver.subscribeEvents((batch) => handlerRef.current(batch))
+  }, [driver])
 }
 
 /**

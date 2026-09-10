@@ -28,6 +28,7 @@ import {
 } from '../director/timings'
 import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
+import { killAndDestroy } from '../runtime/dispose'
 import type { TextTextureCache } from '../runtime/textCache'
 import type { CardSprite } from './CardSprite'
 import { Label } from './Label'
@@ -156,7 +157,7 @@ export class SettleLayer extends Container {
     this.chrome.setQuestion(question.category, question.text)
     for (const squad of Object.values(this.squads)) squad.setCounts(null, false)
     this.buildBottom(null)
-    for (const child of this.confirmSlot.removeChildren()) child.destroy({ children: true })
+    for (const child of this.confirmSlot.removeChildren()) this.drop(child)
     this.layoutSquads()
 
     this.visible = true
@@ -254,7 +255,7 @@ export class SettleLayer extends Container {
    * 返回时长（毫秒），和 `settle-confirm` cue 的 `durationMs` 一致。
    */
   enableConfirm(onConfirm: () => void): number {
-    for (const child of this.confirmSlot.removeChildren()) child.destroy({ children: true })
+    for (const child of this.confirmSlot.removeChildren()) this.drop(child)
     const button = new PlaqueButton(
       { variant: PLAQUE_NAVY, caption: '确认', disabled: true, onActivate: onConfirm },
       this.deps,
@@ -328,15 +329,27 @@ export class SettleLayer extends Container {
   }
 
   private clearRows(): void {
-    for (const row of this.rows.values()) row.destroy({ children: true })
+    for (const row of this.rows.values()) this.drop(row)
     this.rows.clear()
+  }
+
+  /**
+   * 拆掉一个子节点：**先掐整棵子树的补间再拆**。
+   *
+   * 这一层里的东西几乎都在被补间：结算行是逐行升起来的、确认钮是淡入的、底栏两行随比分变。
+   * 而它们的销毁时机（下一轮开场清上一轮的行、重新建确认钮）和补间的收尾是两条时钟上的事，
+   * 直接 destroy 的话 GSAP 下一帧就会往一个已经拆掉的对象上写 y，当场抛错。
+   * 完整理由见 runtime/dispose.ts 的文件头。
+   */
+  private drop(node: Container): void {
+    killAndDestroy(this.deps.animator, node)
   }
 
   /** 底栏那两行：消耗和结论。传 null 就只占位不写字（`open` 那会儿还没算分）。 */
   private buildBottom(
     data: { spent: { mine: number; theirs: number }; verdict: string } | null,
   ): void {
-    for (const child of this.bottom.removeChildren()) child.destroy({ children: true })
+    for (const child of this.bottom.removeChildren()) this.drop(child)
     const top = this.boxHeight - BOTTOM.height
     const spend = new Label(
       data === null

@@ -62,24 +62,23 @@
     },
     "packages/client": {
       /*
-       * 组件目录页那一摊（迁移第 10 条）。这几个文件谁也不 import 谁：
-       * main.ts / preview.tsx 由 Storybook 按约定加载，catalog.spec.ts / ensureAtlas.ts
-       * 由 Playwright 加载，全是各自独立的入口。
-       * 包入口 src/index.ts 和 playwright.config.ts 不用写：前者 knip 从 package.json 的
-       * exports 里认，后者由它的 Playwright 插件认。
+       * 组件目录页那一摊（迁移第 10 条）和端到端那一条（第 21 条）。
+       * 这几个文件谁也不 import 谁：main.ts / preview.tsx 由 Storybook 按约定加载，
+       * catalog.spec.ts / ensureAtlas.ts / localMatch.spec.ts 由 Playwright 加载，
+       * 全是各自独立的入口。
+       * 包入口 src/index.ts 和两份 playwright.config.ts 不用写：前者 knip 从
+       * package.json 的 exports 里认，后者由它的 Playwright 插件认。
+       *
+       * 这个包原来还有一段 ignoreDependencies（canvas、content、core、design、platform、
+       * protocol、react、ui 八条），按上面的到期条款全删光了——装配层把它们全用上了。
        */
       "entry": [
         "dev/storybook/main.ts",
         "dev/storybook/preview.tsx",
         "dev/storybook/catalog.spec.ts",
-        "dev/storybook/ensureAtlas.ts"
-      ],
-      /*
-       * 这一段原来列着 canvas、content、core、design、platform、protocol、react、ui
-       * 八条，现在按上面的到期条款全删光了——装配层（迁移第 21 条）把它们全用上了：
-       * 屏幕是 react + ui，画面是 canvas + design，规则和卡池是 core + content，
-       * 平台能力走 platform，联机指令的形状来自 protocol。
-       */
+        "dev/storybook/ensureAtlas.ts",
+        "e2e/localMatch.spec.ts"
+      ]
     },
     "packages/server": {
       "ignoreDependencies": [

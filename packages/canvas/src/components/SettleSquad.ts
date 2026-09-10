@@ -16,6 +16,7 @@
 import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import type { Animator } from '../runtime/animator'
+import { killAndDestroy } from '../runtime/dispose'
 import type { TextTextureCache } from '../runtime/textCache'
 import { Label } from './Label'
 import type { SettleRow } from './SettleRow'
@@ -75,7 +76,8 @@ export class SettleSquad extends Container {
    * 「正确 0 / 0」比什么都不写更容易被当成「已经判完了，一张没对」。
    */
   setCounts(correct: number | null, leading: boolean): void {
-    for (const child of this.head.removeChildren()) child.destroy({ children: true })
+    // 先掐补间再拆，理由见 runtime/dispose.ts 的文件头。
+    for (const child of this.head.removeChildren()) killAndDestroy(this.deps.animator, child)
     const title = new Label(
       this.mine ? '我方' : '对方',
       TYPE.head,

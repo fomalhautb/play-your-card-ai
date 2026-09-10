@@ -90,6 +90,14 @@ export function DuelStage({
   /** 已经摆给场景的那一份视图。同一份不重复摆（两条路都会送过来，见下面）。 */
   const appliedRef = useRef<PlayerView | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * 场景和编排层都就位了没有。
+   *
+   * 它决定什么时候去订事件流：图集要现下，场景因此比 driver 晚好几百毫秒才建得出来，
+   * 而 driver 从建出来那一刻就在产事件。没就位就先不订，让 driverCore 替我们攒着
+   *（见 match/useMatch.ts 的 `useMatchEvents`）。
+   */
+  const [ready, setReady] = useState(false)
 
   const view = useMatch(driver)
 
@@ -152,6 +160,8 @@ export function DuelStage({
       sceneRef.current = scene
       directorRef.current = director
       if (outerSceneRef !== undefined) outerSceneRef.current = scene
+      // 就位了才去订事件流，理由见 ready 的注释。
+      setReady(true)
 
       const frame = (stamp: number) => {
         raf = window.requestAnimationFrame(frame)
@@ -193,19 +203,26 @@ export function DuelStage({
       directorRef.current = null
       appliedRef.current = null
       if (outerSceneRef !== undefined) outerSceneRef.current = null
+      setReady(false)
     }
     // 这四样都是建场景和编排层时焊死的，换了任何一样都要整套重建。
   }, [driver, platform, seat, tier, outerSceneRef])
 
-  /** 摆一份视图。两条路都会送过来（事件批和快照），同一份只摆一次。 */
+  /**
+   * 摆一份视图。两条路都会送过来（事件批和快照），同一份只摆一次。
+   *
+   * 场景还没建出来时**什么都不记**：记了的话这一份就再也补不上了，
+   * 而下面那条兜底的路正指望着它还没被记过。
+   */
   const applyView = (next: PlayerView): void => {
-    if (appliedRef.current === next) return
+    const scene = sceneRef.current
+    if (scene === null || appliedRef.current === next) return
     appliedRef.current = next
-    sceneRef.current?.applyView(next)
+    scene.applyView(next)
   }
 
   // 事件批：先摆局面再喂编排层（文件头第 1 条）。
-  useMatchEvents(driver, (batch) => {
+  useMatchEvents(ready ? driver : null, (batch) => {
     applyView(batch.view)
     directorRef.current?.push(batch)
   })

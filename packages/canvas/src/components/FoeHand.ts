@@ -16,6 +16,7 @@ import { Container, Sprite, type Texture } from 'pixi.js'
 import { DEAL_CARD_MS, DEAL_STAGGER_MS } from '../director/timings'
 import { CARD_HEIGHT, CARD_WIDTH, fanTransform, OPPONENT_FAN } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
+import { killAndDestroy } from '../runtime/dispose'
 
 /**
  * 对手那排整体缩到多大，以及新牌从多远的地方飞进来。
@@ -81,8 +82,7 @@ export class FoeHand extends Container {
       // 先掐补间再销毁：这排牌是错开起飞的，被摘掉的那张身上很可能还挂着一条**没开始**的
       // 补间（delay 还没走完）。GSAP 要到它真的开跑那一刻才去读目标的属性，
       // 那时对象已经拆了，读出来是 null，当场抛错。
-      this.deps.animator.killTweensOf(card)
-      card.destroy()
+      killAndDestroy(this.deps.animator, card)
     }
     const added = target - this.cards.length
     for (let i = 0; i < added; i += 1) this.cards.push(this.spawn())
@@ -104,8 +104,7 @@ export class FoeHand extends Container {
     this.cards.splice(index, 1)
     const point = this.fan.toGlobal(card.position)
     const local = this.toLocal(point)
-    this.deps.animator.killTweensOf(card)
-    card.destroy()
+    killAndDestroy(this.deps.animator, card)
     this.layout()
     return { x: local.x, y: local.y }
   }

@@ -57,7 +57,7 @@
 ```bash
 pnpm install
 pnpm dev:legacy         # 黑客松版客户端 http://localhost:5173
-pnpm dev                # 正式版网页壳 apps/web http://localhost:5174（业务还是空的，只有开发页）
+pnpm dev                # 正式版网页壳 apps/web http://localhost:5174（首页两个入口都能进单机对局）
 pnpm dev:server         # 另开一个终端，起 Worker http://localhost:8787
 pnpm storybook          # 组件目录页 http://localhost:6006
 pnpm typecheck          # 全仓类型检查
@@ -65,6 +65,8 @@ pnpm lint               # Biome + dependency-cruiser + knip，任一红则红
 pnpm lint:fix           # 能自动修的都修掉（格式、import 排序）
 pnpm test               # 单元测试：core 规则、答题剧本、canvas 的扇形几何与拖拽判定
 pnpm assets:build       # 打卡面图集（第一次跑正式版开发页之前要先来一次）
+
+pnpm --filter @ai-duel/client e2e   # 端到端：从首页开一局单机，拖牌出牌，打到结算页
 ```
 
 CI 快档跑这三条（typecheck / lint / test），外加组件目录页的截图回归，见
@@ -72,16 +74,23 @@ CI 快档跑这三条（typecheck / lint / test），外加组件目录页的截
 Biome 管格式和单文件行数，dependency-cruiser 管包之间的依赖方向，knip 管没人用的导出和依赖。
 冻结的 `legacy-client` 三个都不看，但它的 typecheck 和测试照跑。
 
+### 正式版现在能玩到哪一步
+
+首页（http://localhost:5174/）上两个入口都通到真对局（迁移第 21 条）：
+「测试对局」是一个人的调试房，右下角挂着测试面板（加牌、代对手出牌、跳到答题）；
+「热座」是一台机器两个人轮流出牌。真首页、房间页、牌组页、英雄页、教程分别是第 28~32 条的事。
+
 ### 开发页
 
-正式版的画布场景还没接进任何界面，先在开发专用页面上看（架构 7.2 第 5 条，生产构建剔除）：
+调试场景放在开发专用页面上（架构 7.2 第 5 条，生产构建剔除）：
 
 | 地址 | 怎么起 | 看什么 |
 |---|---|---|
-| http://localhost:5174/dev/hand-fan | `pnpm dev` | 手牌扇形、拖出出牌、翻面、命中特效（迁移第 1 条） |
+| http://localhost:5174/dev | `pnpm dev` | 开发页索引 |
+| http://localhost:5174/dev/duel | `pnpm dev` | 对局场景：切效果档位、看渲染计数和帧率（迁移第 18、21 条） |
 | http://localhost:6006 | `pnpm storybook` | 组件目录页：所有组件、变体、状态（迁移第 10 条，架构 7.1 第 3 条） |
 
-两个页面都要加载卡面图集，所以先跑一次 `pnpm assets:build`，否则画面上一张牌都没有。
+对局和目录页都要加载卡面图集，所以先跑一次 `pnpm assets:build`，否则画面上一张牌都没有。
 
 组件目录页还是截图回归的输入：每个条目截一张图，样式改动在这里暴露（架构 6.6、6.8）。
 怎么加条目、怎么更新基线、CI 怎么比对，见

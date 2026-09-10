@@ -22,6 +22,7 @@ import { Container, Graphics } from 'pixi.js'
 import { EVOLVE_FX_MS, EVOLVE_STAGGER_MS, POP_IN_MS, REMOVAL_FX_MS } from '../director/timings'
 import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
+import { killAndDestroy } from '../runtime/dispose'
 import type { TextTextureCache } from '../runtime/textCache'
 import { Badge } from './Badge'
 import { BoardTile, type TileMark } from './BoardTile'
@@ -133,7 +134,8 @@ export class BoardGrid extends Container {
       duration,
       ease: 'power2.in',
       onComplete: () => {
-        tile.destroy({ children: true })
+        // 这一格上还挂着另一条缩放补间，格子里的卡和角标也各有各的，所以整棵子树一起掐。
+        killAndDestroy(this.deps.animator, tile)
         this.layoutRow(side)
       },
     })
@@ -216,11 +218,7 @@ export class BoardGrid extends Container {
    * 这个是「换一局」——上一局的场面不该演一遍退场，它压根不该再出现。
    */
   clear(): void {
-    for (const { tile } of this.tiles.values()) {
-      this.deps.animator.killTweensOf(tile)
-      this.deps.animator.killTweensOf(tile.scale)
-      tile.destroy({ children: true })
-    }
+    for (const { tile } of this.tiles.values()) killAndDestroy(this.deps.animator, tile)
     this.tiles.clear()
   }
 
@@ -272,7 +270,7 @@ export class BoardGrid extends Container {
 
   /** 中线正中那枚徽章上印什么（「第 3 轮 · 轮到你出牌」）。传 null 就不挂。 */
   setTurnBadge(text: string | null): void {
-    for (const child of this.badgeSlot.removeChildren()) child.destroy({ children: true })
+    for (const child of this.badgeSlot.removeChildren()) killAndDestroy(this.deps.animator, child)
     if (text !== null) {
       // 字面量 'E' 就是 BADGE_TURN（中线回合徽章）：Badge 的选项是按变体分支的联合类型，
       // 传变量会丢掉分支信息，所以这里和别的调用方一样写字面量。

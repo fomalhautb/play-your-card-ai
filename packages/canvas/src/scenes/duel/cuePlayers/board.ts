@@ -7,8 +7,8 @@
  */
 
 import { SKILL_FLIGHT_MS } from '../../../director/timings'
+import { killAndDestroy } from '../../../runtime/dispose'
 import type { DuelContext } from '../context'
-import { killAndDestroy } from '../disposal'
 import { dropShowcase } from './showcase'
 import type { CuePlayerGroup } from './types'
 
