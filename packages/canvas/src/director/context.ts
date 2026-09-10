@@ -96,6 +96,8 @@ export interface DirectorContext {
   drain(): Cue[]
   /** 掐掉全部排程（对局中断时的一次性清场）。 */
   cancelAll(): void
+  /** 还有没有排着期、还没跑的事。为 false 就说明这一段演出真的完了，不会再自己冒出新的 cue。 */
+  pending(): boolean
 
   // ---------- 四道闸门（旧版 MatchStage 的四个 ref）。任一为真时横幅只入队不播。 ----------
   /** 抛硬币过场立着。 */
@@ -240,6 +242,10 @@ export function createContext(seat: PlayerId, rng: Rng): DirectorContext {
     cancelAll() {
       for (const task of tasks) task.canceled = true
       tasks.length = 0
+    },
+
+    pending() {
+      return tasks.some((task) => !task.canceled)
     },
 
     coinUp: false,

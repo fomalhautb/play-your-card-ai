@@ -98,9 +98,20 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
     feed(result.events)
   }
 
-  /** 等到场景空下来。剧本的 `act` 会一直推帧，直到这个 Promise 兑现。 */
+  /**
+   * 这一段演出真的完了：渲染器闲下来了，**而且**编排层排下的期也跑完了。
+   *
+   * 两个都要看。低效果档不播落地那圈亮环，画面会比编排层先静止下来——
+   * 只看渲染器的话，剧本会在最后一条 cue（放锁）发出来之前就收工，
+   * 那一下于是落进了「空转期间不许再渲染」的窗口里，把 3.6 那条计数器顶穿。
+   */
+  function idle(): boolean {
+    return scene.isIdle() && director.isIdle()
+  }
+
+  /** 等到这一段演完。剧本的 `act` 会一直推帧，直到这个 Promise 兑现。 */
   function untilIdle(): Promise<void> {
-    if (scene.isIdle()) return Promise.resolve()
+    if (idle()) return Promise.resolve()
     return new Promise((resolve) => waiters.push(resolve))
   }
 
@@ -172,14 +183,14 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
       director.advance(delta)
       drain()
       scene.step(delta)
-      if (waiters.length > 0 && scene.isIdle()) {
+      if (waiters.length > 0 && idle()) {
         const pending = waiters
         waiters = []
         for (const resolve of pending) resolve()
       }
     },
 
-    isIdle: () => scene.isIdle(),
+    isIdle: () => idle(),
     counters: () => scene.counters(),
     resize: (width, height) => scene.resize(width, height),
     destroy: () => scene.destroy(),
