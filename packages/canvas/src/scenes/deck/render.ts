@@ -3,10 +3,13 @@
  *
  * 这个文件是**唯一**改零件外观的地方，输入只有上下文，没有指针也没有时钟。
  *
- * 每一轮的第一步是 `beginBorrow`：把上一轮摆出去的卡全部还回回收池，再按这一轮的样子
- * 一张张取回来（见 cards.ts）。看着像「全部重来」，其实一个对象都不新建——
- * 同一张牌还回去又取出来拿到的是同一个精灵。这样写是因为这一页的卡随时在换位置
- *（翻页、加牌、删牌、让位），逐张比对「谁挪到哪儿了」的代码比它长十倍，还容易漏。
+ * 每一轮都是「先 `beginBorrow`，按这一轮的样子一张张取，最后 `endBorrow`」。
+ * 看着像「全部重来」，其实一个对象都不新建，连场景树都基本不动——上一轮借出去的卡
+ * 在这一轮再被要到时会**原样返回**（连带它还挂在原来那一格上），只有真的没人再要的
+ * 才在 `endBorrow` 那一步摘下来（见 cards.ts 和 DeckScene 的 `borrowed`）。
+ *
+ * 这样写是因为这一页的卡随时在换位置（翻页、加牌、删牌、让位），
+ * 逐张比对「谁挪到哪儿了」的代码比它长十倍，还容易漏。
  */
 
 import type { CardSprite } from '../../components/CardSprite'
@@ -73,6 +76,7 @@ export function renderDeckScene(ctx: DeckContext): void {
   renderPool(ctx)
   renderSide(ctx)
   renderDrawer(ctx)
+  ctx.endBorrow()
   ctx.wake()
 }
 
@@ -88,6 +92,16 @@ export function renderDeckScene(ctx: DeckContext): void {
 function renderDrawer(ctx: DeckContext): void {
   const open = ctx.layout.drawer === null || ctx.state.drawerOpen
   ctx.parts.layers.side.y = open ? 0 : ctx.layout.drawerOffset
+  /*
+   * 抽屉展开之后**把卡池整层藏起来**。
+   *
+   * 它本来就被这块不透明的面板盖住了，画了也看不见；而不藏的话那一屏的每个像素要画两遍
+   *（卡池底板加八张大卡，再加抽屉底板加二十张小卡）——纪律 3.2 那条「过度绘制」当场顶穿
+   *（实测 4.26，上限 3）。桌面档没有抽屉，两块并排摆，这一行对它是恒真。
+   */
+  const covered = ctx.layout.drawer !== null && open
+  ctx.parts.layers.pool.visible = !covered
+  ctx.parts.layers.poolCards.visible = !covered
 }
 
 /** 三排页签：种类、阵营、牌组。内容没变的那几排不会被重建（见 Tabs.setItems）。 */

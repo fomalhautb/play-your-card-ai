@@ -52,8 +52,13 @@ export interface DeckContext {
    * 这一张由输入层自己在松手时 `releaseCard`。
    */
   holdCard(cardId: CardId, tag: string): CardSprite
-  /** 把上一轮借出去的卡全部还回去。每次重排画面的第一步。 */
+  /**
+   * 开始新一轮借卡。上一轮借出去的先**记着**（不摘下来），
+   * 这一轮再要同一张时原样还给它——那张卡因此留在原来的位置上，一次重挂都不用。
+   */
   beginBorrow(): void
+  /** 这一轮借完了。上一轮借过、这一轮没再要的那些，到这里才真的还回去。 */
+  endBorrow(): void
   /** 单独还一张（拖拽结束时那张不走 `beginBorrow` 那条路）。 */
   releaseCard(card: CardSprite, cardId: CardId): void
 

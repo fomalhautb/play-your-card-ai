@@ -6,6 +6,16 @@
 
 import type { BenchScene } from '../scene/contract'
 
+/**
+ * 一段剧本跑在哪个场景上。
+ *
+ * 默认 `duel`（6.9 表里绝大多数剧本量的都是对局）。`deck` 是构筑页那一段，
+ * `stub` 是测量骨架自测那条冒烟用例。跑批那边按它决定 `init` 时建哪个场景
+ *（见 tests/harness.ts 的 `sceneOf`）——**登记新剧本时别忘了填**，
+ * 填错的表现是场景建出来之后拿不到它要的动作，当场抛。
+ */
+export type SceneKind = 'stub' | 'duel' | 'deck'
+
 /** 一帧 16.667 毫秒，也就是 60Hz。剧本只用这一个步长，不用真实时间。 */
 export const FRAME_MS = 1000 / 60
 
@@ -29,6 +39,8 @@ export interface ScenarioContext {
 export interface Scenario {
   name: string
   description: string
+  /** 跑在哪个场景上。不填就是对局场景。 */
+  scene?: SceneKind
   /** 摆好初始状态。这一段不进指标——它是被测动作的前置条件，不是被测的动作。 */
   setup?(ctx: ScenarioContext): Promise<void>
   run(ctx: ScenarioContext): Promise<void>

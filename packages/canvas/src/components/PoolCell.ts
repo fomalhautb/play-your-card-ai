@@ -86,11 +86,8 @@ export class PoolCell extends Container {
    * 它随时可能被拖出去、飞回来，格子只是借来摆一会儿。
    */
   setCard(card: CardSprite | null): void {
-    /*
-     * **不做「同一张就跳过」的短路**：调用方每一轮都会先把卡全部还回回收池
-     *（那一步会把它从这里摘出去），再原样取回来，所以「同一个对象」并不等于
-     *「它还挂在这一格上」。短路一次，这一格就空了。
-     */
+    // 同一张、而且还挂在这一格上：什么都不用做。翻页之外的绝大多数重排走的都是这条。
+    if (card === this.card && (card === null || card.parent === this.slot)) return
     this.slot.removeChildren()
     this.card = card
     // 整格显不显示归调用方（这一页没排满、或者这张正被拖着），组件不替它决定。

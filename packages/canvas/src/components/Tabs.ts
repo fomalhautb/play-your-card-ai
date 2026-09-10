@@ -89,9 +89,11 @@ export interface TabRect {
 
 interface TabEntry {
   id: string
+  /** 这一项印的字。用来判「这一排换内容了没有」，见 `sameItems`。 */
+  label: string
   node: Container
   plate: Graphics
-  label: Label
+  text: Label
   width: number
 }
 
@@ -120,10 +122,20 @@ export class Tabs extends Container {
   }
 
   /**
-   * 换掉整排内容。**会重建每一项**（字要现烤纹理），所以只在内容真的变了的时候调。
-   * 只想换高亮的那一项走 `setSelected`。
+   * 换掉整排内容。
+   *
+   * 内容一模一样时**只换高亮的那一项**就返回：调用方（构筑页的 render.ts）是每次重排画面
+   * 都无脑调一遍的，而这一排的内容其实很少变。不挡这一下的话，每翻一页、每拖一格都要
+   * 把整排的字重烤一遍、把底重画一遍——6.9 那条「稳态每帧堆分配接近 0」当场顶穿
+   *（实测就是被这一处顶到 32 KB/帧的）。
+   *
+   * 真的换内容时会重建每一项：字是烤成纹理的，换内容就得换一个 Label（见它的文件头）。
    */
   setItems(items: readonly TabItem[], selectedId: string | null = this.selectedId): void {
+    if (this.sameItems(items)) {
+      this.setSelected(selectedId)
+      return
+    }
     for (const child of this.removeChildren()) child.destroy({ children: true })
     this.entries = []
     this.selectedId = selectedId
@@ -148,11 +160,20 @@ export class Tabs extends Container {
         if (!this.disabled) this.onSelect?.(item.id)
       })
       this.addChild(node)
-      this.entries.push({ id: item.id, node, plate, label, width })
+      this.entries.push({ id: item.id, label: item.label, node, plate, text: label, width })
       x += width + this.gap
     }
     this.boxWidth = Math.max(0, x - this.gap)
     this.paint()
+  }
+
+  /** 这一排现在装的是不是同一批内容（id 和字都一样）。 */
+  private sameItems(items: readonly TabItem[]): boolean {
+    if (items.length !== this.entries.length) return false
+    return items.every(
+      (item, index) =>
+        this.entries[index]?.id === item.id && this.entries[index]?.label === item.label,
+    )
   }
 
   /** 换高亮的那一项。只改 tint 和 alpha，一个对象都不重建（3.10）。 */
@@ -193,7 +214,7 @@ export class Tabs extends Container {
       const active = entry.id === this.selectedId
       entry.plate.clear()
       this.paintPlate(entry, active)
-      entry.label.setColor(this.inkOf(active))
+      entry.text.setColor(this.inkOf(active))
     }
   }
 

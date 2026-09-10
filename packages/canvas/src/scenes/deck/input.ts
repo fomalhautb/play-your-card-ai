@@ -26,7 +26,7 @@ import type { DeckContext } from './context'
 import { insertIndexAt } from './logic/insert'
 import { addBlockReason } from './logic/legality'
 import { renderDeckScene, shownDeck, visiblePool } from './render'
-import { addCard, currentCards, removeAt } from './state'
+import { addCard, currentCards, removeAt, setDrawerOpen } from './state'
 
 /** 一次按下走到现在的账。松手时按它判「这是拖还是点」。 */
 interface Press {
@@ -69,6 +69,14 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
    */
   const slotsReachable = (): boolean => ctx.layout.drawer === null || ctx.state.drawerOpen
 
+  /**
+   * 卡池现在够不够得着。
+   *
+   * 手机档抽屉一展开就把卡池整层藏起来了（见 render.ts 的 `renderDrawer`）。
+   * 藏起来的东西不该还能被抓到——不挡的话，指针在抽屉上一划就会「抓到」底下一张看不见的牌。
+   */
+  const poolReachable = (): boolean => ctx.layout.drawer === null || !ctx.state.drawerOpen
+
   /** 指针底下压着哪张卡（先看牌组栏，再看卡池——牌组栏在手机档是浮在卡池上的抽屉）。 */
   const cardUnder = (x: number, y: number): Press['origin'] | null => {
     const point = { x, y }
@@ -81,7 +89,7 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
       }
       return null
     }
-    if (insideGrid(ctx.layout.poolGrid, point)) {
+    if (poolReachable() && insideGrid(ctx.layout.poolGrid, point)) {
       const shown = visiblePool(ctx)
       const hit = nearestCell(ctx.layout.poolGrid, point, shown.length)
       const entry = hit === null ? undefined : shown[hit.index]
@@ -96,6 +104,17 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
   const beginDrag = (state: Press, x: number, y: number): void => {
     state.dragging = true
     ctx.dragging = state.origin
+    /*
+     * 手机档：从卡池抓起一张牌，抽屉**自己升起来**。
+     *
+     * 不这么做的话这一档根本拖不动——抽屉收着时牌组栏在屏幕外面，而它一旦展开又盖住了卡池，
+     * 玩家永远没法「一手抓着卡、一眼看见要放哪儿」。抓起来那一刻就升，
+     * 比「拖到屏幕底边再升」更好猜：不用摸索到某条看不见的线才有反应。
+     * 放完不自动收回去——刚加进去的那张就在眼前，多半还想接着看看。
+     */
+    if (state.origin.from === 'pool' && ctx.layout.drawer !== null && !ctx.state.drawerOpen) {
+      ctx.state = setDrawerOpen(ctx.state, true)
+    }
     const ghost = ctx.holdCard(state.origin.cardId, `drag:${state.origin.cardId}`)
     state.ghostScale = dragScaleOf(state.origin.from) * DRAG_SCALE
     ghost.scale.set(state.ghostScale)

@@ -92,8 +92,15 @@ class DeckSceneImpl {
   private layout: DeckLayout
   private parts: DeckParts
   private input: DeckInput
-  /** 这一轮借出去摆着的卡。下一轮 `beginBorrow` 统一还回去，见 render.ts 的文件头。 */
-  private borrowed: { card: CardSprite; cardId: CardId }[] = []
+  /**
+   * 这一轮借出去摆着的卡，以及上一轮那批（`stale`）。
+   *
+   * 「上一轮借过、这一轮还要」的卡从 `stale` 里原样取回来——它因此仍然挂在原来那一格上，
+   * 一次重挂都不用（重排画面是这一页最频繁的事，见 render.ts 的文件头）。
+   * 这一轮没再被要到的，到 `endBorrow` 那一步才真的还回回收池。
+   */
+  private borrowed = new Map<CardSprite, CardId>()
+  private stale = new Map<CardSprite, CardId>()
   /** 正放大着的那张，没开就是 null。 */
   private inspecting: { card: CardSprite; cardId: CardId } | null = null
   private pageText = ''
@@ -119,6 +126,8 @@ class DeckSceneImpl {
       seed: options.seed ?? 0,
       back: options.textures.back,
       platform: options.platform,
+      // 这一页的卡不跟指针倾斜，反光层建了也永远不亮，理由见 deps.ts 的 `glare`。
+      glare: false,
       wake: () => this.frameLoop.wake(),
     })
     this.visuals = createCardVisuals(options.catalog, options.textures)
@@ -179,14 +188,25 @@ class DeckSceneImpl {
       dragging: null,
 
       takeCard: (cardId, tag) => {
+        // 上一轮那批里有同一张牌的话原样取回来：它还在原位，谁都不用动。
+        for (const [card, id] of this.stale) {
+          if (id !== cardId) continue
+          this.stale.delete(card)
+          this.borrowed.set(card, cardId)
+          return card
+        }
         const card = this.cards.take(cardId, tag)
-        this.borrowed.push({ card, cardId })
+        this.borrowed.set(card, cardId)
         return card
       },
       holdCard: (cardId, tag) => this.cards.take(cardId, tag),
       beginBorrow: () => {
-        for (const one of this.borrowed) this.cards.release(one.card, one.cardId)
-        this.borrowed = []
+        this.stale = this.borrowed
+        this.borrowed = new Map()
+      },
+      endBorrow: () => {
+        for (const [card, cardId] of this.stale) this.cards.release(card, cardId)
+        this.stale.clear()
       },
       releaseCard: (card, cardId) => this.cards.release(card, cardId),
       setPageLabel: (text) => this.setPageLabel(text),
@@ -370,7 +390,7 @@ class DeckSceneImpl {
   private rebuild(): void {
     const state = this.ctx.state
     this.input.destroy()
-    this.ctx.beginBorrow()
+    this.returnAllCards()
     this.closeInspect()
     for (const child of this.stage.removeChildren()) child.destroy({ children: true })
     this.parts = this.buildParts()
@@ -380,6 +400,12 @@ class DeckSceneImpl {
     this.input = createDeckInput(this.ctx)
     this.bindStage()
     renderDeckScene(this.ctx)
+  }
+
+  /** 把借出去的卡一张不留地还回回收池。换一套零件和拆场景各用一次。 */
+  private returnAllCards(): void {
+    this.ctx.beginBorrow()
+    this.ctx.endBorrow()
   }
 
   private readonly onContextRestored = (): void => {
@@ -396,7 +422,7 @@ class DeckSceneImpl {
     this.destroyed = true
     this.options.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.input.destroy()
-    this.ctx.beginBorrow()
+    this.returnAllCards()
     // 顺序要紧：先掐补间再还 GSAP 的时钟，理由见对局场景 DuelScene 的 destroy。
     destroyDeps(this.deps)
     this.frameLoop.destroy()

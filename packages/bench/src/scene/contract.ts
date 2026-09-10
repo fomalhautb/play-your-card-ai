@@ -54,12 +54,30 @@ export interface BenchSceneOptions {
 }
 
 /**
+ * 构筑页那个场景多出来的两件事（6.9 表里「牌组编辑滚动」那一段）。
+ *
+ * 单独一个接口挂在 `BenchScene.deck` 上，而不是把这两条并进下面那张表：
+ * 对局场景没有「翻页」也没有「把一张牌拖进牌组」，让它去实现两个空方法只会让契约变糊。
+ * 剧本按 `Scenario.scene` 挑场景（见 scenarios/types.ts），拿不到这一份就是登记错了。
+ */
+export interface BenchDeckActions {
+  /** 卡池往后翻 n 页，每翻一页等画面重排完。 */
+  turnPages(count: number): Promise<void>
+  /** 从卡池拖 n 张进牌组栏，一张一张来。 */
+  dragCards(count: number): Promise<void>
+}
+
+/**
  * 剧本能对被测对象做的事。
  *
- * 三个动作对应 6.9 里那三段剧本，语义和验证阶段那一版一致（`deal` / `play10` / `flip`），
- * 只是底下从「原型自己演」换成了「真引擎 + 真编排层 + 真场景」。
+ * 前四个动作对应 6.9 里对局那几段剧本（`deal` / `play10` / `flip` / `settle`），
+ * 底下是「真引擎 + 真编排层 + 真场景」；构筑页那一段的动作在 `deck` 里。
  */
 export interface BenchScene {
+  /**
+   * 构筑页专用的那两件事。只有 `scene: 'deck'` 建出来的场景有，别的都是 undefined。
+   */
+  deck?: BenchDeckActions
   /**
    * 回到「一局都还没开始」的空场，然后重开一局。
    *

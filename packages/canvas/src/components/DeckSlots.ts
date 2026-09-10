@@ -41,6 +41,15 @@ export interface DeckSlotsOptions {
 
 export class DeckSlots extends Container {
   private readonly plate = new Graphics()
+  /**
+   * 让位那一格的金色高亮，**单独一层**。
+   *
+   * 不画在 `plate` 上是因为两者的重画频率差着数量级：20 个格子的底加一圈虚线是一千多条
+   * 路径指令，而拖拽途中让位那一格几乎每挪一下就换一次。混在一起的话每换一次落点
+   * 就要把一千多条指令重新攒一遍——6.9 那条「稳态每帧堆分配接近 0」当场顶穿
+   *（实测就是被这一处顶到 17 KB/帧的）。分开之后换落点只重画一个格子。
+   */
+  private readonly highlight = new Graphics()
   /** 卡挂在这一层，压在格子底之上、「－」之下。 */
   private readonly cardLayer = new Container()
   private readonly removeLayer = new Container()
@@ -55,7 +64,7 @@ export class DeckSlots extends Container {
     super()
     this.grid = options.grid
     this.cardScale = options.cardScale
-    this.addChild(this.plate, this.cardLayer, this.removeLayer)
+    this.addChild(this.plate, this.highlight, this.cardLayer, this.removeLayer)
 
     for (let index = 0; index < cellCount(options.grid); index += 1) {
       const button = new SmallButton(
@@ -87,6 +96,7 @@ export class DeckSlots extends Container {
     this.grid = grid
     this.cardScale = cardScale
     this.paint()
+    this.paintHighlight()
     this.placeButtons()
     this.place(this.entries)
   }
@@ -127,7 +137,7 @@ export class DeckSlots extends Container {
   setGap(gap: number | null): void {
     if (gap === this.gap) return
     this.gap = gap
-    this.paint()
+    this.paintHighlight()
   }
 
   /** 第 index 格的中心（这个容器自己的坐标）。飞行落点按它算。 */
@@ -151,22 +161,34 @@ export class DeckSlots extends Container {
     })
   }
 
-  /** 20 个格子的底。空格是一圈虚线加一层极淡的底，让位那格换成金色。 */
+  /** 20 个格子的底：一层极淡的底加一圈虚线。只在换布局时画一次。 */
   private paint(): void {
     this.plate.clear()
     for (let index = 0; index < cellCount(this.grid); index += 1) {
       const rect = cellRect(this.grid, index)
-      const highlighted = index === this.gap
-      this.plate.roundRect(rect.x, rect.y, rect.width, rect.height, tokens.radius.sm).fill({
-        color: highlighted ? tokens.color.theme.gold : tokens.color.paper.navy,
-        alpha: highlighted ? tokens.opacity.deck.gapHighlight : tokens.opacity.deck.slotEmpty,
-      })
+      this.plate
+        .roundRect(rect.x, rect.y, rect.width, rect.height, tokens.radius.sm)
+        .fill({ color: tokens.color.paper.navy, alpha: tokens.opacity.deck.slotEmpty })
       dashedRoundRect(this.plate, rect)
-      this.plate.stroke({
-        width: 1,
-        color: highlighted ? tokens.color.theme.gold : tokens.color.paper.line,
-      })
+      this.plate.stroke({ width: 1, color: tokens.color.paper.line })
     }
+  }
+
+  /**
+   * 让位那一格：金底加一圈金虚线，压在原来那一格上。
+   *
+   * 虚线的分段是按同一套规则算的，所以它和底下那圈灰虚线**分毫不差地重合**，
+   * 看上去就是那一格换了个颜色，不会露出两圈边。
+   */
+  private paintHighlight(): void {
+    this.highlight.clear()
+    if (this.gap === null) return
+    const rect = cellRect(this.grid, this.gap)
+    this.highlight
+      .roundRect(rect.x, rect.y, rect.width, rect.height, tokens.radius.sm)
+      .fill({ color: tokens.color.theme.gold, alpha: tokens.opacity.deck.gapHighlight })
+    dashedRoundRect(this.highlight, rect)
+    this.highlight.stroke({ width: 1, color: tokens.color.theme.gold })
   }
 }
 

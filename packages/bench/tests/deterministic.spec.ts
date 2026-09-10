@@ -35,6 +35,7 @@ import {
   runOnly,
   runQuiet,
   runSegment,
+  sceneOf,
 } from './harness'
 
 const SEGMENTS = scenarioNames()
@@ -59,7 +60,8 @@ for (const profile of PROFILES) {
         tag: `@${profile.name}-${segment}`,
       }, async ({ page }) => {
         await openBench(page)
-        const opts = initOptions(profile, true)
+        // 每段剧本自己登记要哪个场景（对局那几段是 duel，牌组编辑那段是 deck）。
+        const opts = initOptions(profile, true, sceneOf(segment))
         const client = await page.context().newCDPSession(page)
         const heap = createHeapSampler(client)
 

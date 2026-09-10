@@ -108,7 +108,12 @@ export function createDeckProbe(spec: ProbeSpec = {}): DeckProbe {
   const cells = Array.from({ length: cellCount(layout.poolGrid) }, () => fakeCell())
 
   const parts = {
-    layers: { side: { y: 0 }, drag: { addChild: () => undefined } },
+    layers: {
+      side: { y: 0 },
+      pool: { visible: true },
+      poolCards: { visible: true },
+      drag: { addChild: () => undefined },
+    },
     poolCells: cells,
     kindTabs: { setItems: () => undefined },
     factionTabs: { setItems: () => undefined, setDisabled: () => undefined },
@@ -139,6 +144,7 @@ export function createDeckProbe(spec: ProbeSpec = {}): DeckProbe {
     takeCard: () => fakeCard(),
     holdCard: () => fakeCard(),
     beginBorrow: () => undefined,
+    endBorrow: () => undefined,
     releaseCard: () => undefined,
     setPageLabel: () => undefined,
     setTally: () => undefined,

@@ -9,11 +9,12 @@ import { diffCounters, diffScene, summarize } from '../metrics/diff'
 import type { FrameLoopHandle } from '../metrics/frameLoop'
 import type { GlCounterHandle } from '../metrics/glCounters'
 import type { BenchMetrics, FrameRecord, GlCounters, OverdrawResult } from '../metrics/types'
-import type { FrameDriver } from '../scenarios/index'
+import type { FrameDriver, SceneKind } from '../scenarios/index'
 import { createContext, FRAME_MS, runIdle, SCENARIOS } from '../scenarios/index'
 import type { AtlasOptions } from '../scene/atlas'
 import { DEFAULT_ATLAS } from '../scene/atlas'
 import type { BenchScene, CardTextures, DuelCommand, EffectTier } from '../scene/contract'
+import { createDeckSession } from '../scene/deckSession'
 import { createDuelSession } from '../scene/duelSession'
 import { createStubDuelScene } from '../scene/stubScene'
 import type { LoadedTextures } from '../scene/textures'
@@ -26,7 +27,7 @@ import { captureKeyframes } from './keyframes'
 import { measureOverdraw } from './overdraw'
 import type { RenderProbe } from './renderProbe'
 
-export type SceneKind = 'stub' | 'duel'
+export type { SceneKind } from '../scenarios/index'
 
 export interface BenchInitOptions {
   profile: string
@@ -38,8 +39,10 @@ export interface BenchInitOptions {
   deck: string[]
   manualClock: boolean
   /**
-   * 测哪个场景。默认 'duel'，也就是 canvas 包的真实对局场景——6.9 的指标要的是它的数字。
+   * 测哪个场景。默认 'duel'，也就是 canvas 包的真实对局场景——6.9 的指标大多要的是它的数字。
+   * 'deck' 是构筑页那个场景（scene/deckSession.ts）；
    * 'stub' 是 bench 自带的桩场景，只在自测测量骨架时用（见 scene/stubScene.ts）。
+   * 跑批那边按剧本自己登记的 `Scenario.scene` 传，别手填。
    */
   scene?: SceneKind
   /** 传了就从图集加载纹理，不传就按场景挑默认：真实场景用图集，桩场景用程序生成的纯色卡面。 */
@@ -156,9 +159,16 @@ const MAX_OVERDRAW_SAMPLES = 10
  * 不该依赖一份要先跑 `pnpm assets:build` 才存在的产物。
  */
 async function makeTextures(opts: BenchInitOptions): Promise<LoadedTextures> {
-  const atlas = opts.atlas ?? (opts.scene === 'duel' ? DEFAULT_ATLAS : undefined)
+  // 桩场景之外都走图集：6.9 的「常驻纹理内存」量的必须是真实资源。
+  const atlas = opts.atlas ?? (opts.scene === 'stub' ? undefined : DEFAULT_ATLAS)
   if (atlas) return loadAtlasTextures(opts.deck, atlas)
   return createProceduralTextures(opts.deck)
+}
+
+const SESSIONS: Record<SceneKind, typeof createDuelSession> = {
+  duel: createDuelSession,
+  deck: createDeckSession,
+  stub: createStubDuelScene,
 }
 
 async function makeScene(
@@ -166,7 +176,7 @@ async function makeScene(
   canvas: HTMLCanvasElement,
   textures: CardTextures,
 ): Promise<BenchScene> {
-  const create = opts.scene === 'duel' ? createDuelSession : createStubDuelScene
+  const create = SESSIONS[opts.scene ?? 'duel']
   return create({
     canvas,
     width: opts.width,

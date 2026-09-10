@@ -178,8 +178,8 @@ describe('点「＋」加牌', () => {
   })
 })
 
-describe('手机档：抽屉收着的时候', () => {
-  it('牌组栏够不着，指针划到那一片也抓不到牌', () => {
+describe('手机档的抽屉', () => {
+  it('收着的时候牌组栏够不着，指针划到那一片也抓不到牌', () => {
     const probe = createDeckProbe({ cards: ['a', 'b'], tier: 'mobile' })
     const input = createDeckInput(probe.ctx)
     const at = probe.slotCenter(0)
@@ -190,11 +190,31 @@ describe('手机档：抽屉收着的时候', () => {
     expect(probe.cards()).toEqual(['a', 'b'])
   })
 
-  it('从卡池拖过去也不让位、松手也不加牌', () => {
+  it('从卡池抓起一张牌，抽屉自己升起来', () => {
+    const probe = createDeckProbe({ tier: 'mobile' })
+    const input = createDeckInput(probe.ctx)
+    expect(probe.ctx.state.drawerOpen).toBe(false)
+    const from = probe.poolCenter(0)
+    input.pressAt(from.x, from.y)
+    input.moveTo(from.x + 20, from.y)
+    expect(probe.ctx.state.drawerOpen).toBe(true)
+    input.releaseAt(from.x + 20, from.y)
+  })
+
+  it('升起来之后就能拖进去了——不然这一档根本加不了牌', () => {
     const probe = createDeckProbe({ tier: 'mobile' })
     const input = createDeckInput(probe.ctx)
     drag(input, probe.poolCenter(0), probe.slotCenter(0))
-    expect(probe.ctx.gap).toBeNull()
-    expect(probe.cards()).toEqual([])
+    expect(probe.cards()).toEqual(['gpt-4o'])
+    // 放完不自动收回去：刚加进去的那张就在眼前。
+    expect(probe.ctx.state.drawerOpen).toBe(true)
+  })
+
+  it('桌面档没有抽屉，拖拽不会去动那个开关', () => {
+    const probe = createDeckProbe()
+    const input = createDeckInput(probe.ctx)
+    drag(input, probe.poolCenter(0), probe.slotCenter(0))
+    // 桌面档建状态时就是「摊着」，这一条只是确认拖拽没顺手改它。
+    expect(probe.ctx.state.drawerOpen).toBe(true)
   })
 })
