@@ -13,13 +13,16 @@
  * 改了名字那一格会变成「一条用例都没匹配到」而不是失败，静悄悄地少跑一格。
  */
 
-import { expect, test } from '@playwright/test'
 import { checkLimits, describeViolations, leakVerdict, observedFrom } from '../src/node/checkLimits'
 import { ROW_ATTACHMENT } from '../src/node/deterministicReporter'
 import { PROFILES } from '../src/node/profiles'
 import type { DeterministicRow } from '../src/node/report'
 import { scenarioNames } from '../src/scenarios/index'
 import { LEAK_TOLERANCE, limitsFor } from '../src/thresholds'
+// 每条用例各开一个新浏览器，不共用 worker 那一个——为什么见 freshBrowser.ts。
+// 慢档大部分格子按 --grep 只跑一条，碰不到那个坑，但 guard 那格一次跑两条（@stub 和 @leak），
+// 第二条会正正撞上去。
+import { expect, test } from './freshBrowser'
 import {
   contextSeen,
   createHeapSampler,

@@ -98,9 +98,29 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
 对不齐，一份基线两边一定比不过。两份都要提交进仓库，CI 比的是 `linux` 那份。
 
 - **darwin**：本机 `pnpm --filter @ai-duel/bench keyframes:update`，看过 diff 再提交。
-- **linux**：手动触发 `.github/workflows/bench-baselines.yml`，把它传出来的
-  `keyframes-baselines-linux` artifact 下载下来，覆盖到 `packages/bench/baselines/linux/` 再提交。
+- **linux**：手动触发 `.github/workflows/bench-baselines.yml`：
+
+  ```bash
+  gh workflow run bench-baselines.yml
+  gh run download <run id> -n keyframes-baselines-linux -D packages/bench/baselines/linux
+  ```
+
+  下载下来覆盖到 `packages/bench/baselines/linux/`，看过图再提交。
   快档那一步**不会**帮你生成——有基线的时候它只比对，红了只给你一份 `keyframes-diff`。
+
+**第一份 linux 基线是个例外，`gh workflow run` 那条这时候还用不了。**
+GitHub 按**默认分支上的那一份**工作流文件注册 `workflow_dispatch`，
+所以 `bench-baselines.yml` 只有在自己已经合进 main 之后才手动触发得了；
+在那之前跑这条命令只会得到一句「工作流不存在」。
+这段时间里 linux 基线从**快档 `scene` job 第一次运行**传出来的
+`keyframes-baselines-linux` artifact 里取——仓库里还没有 `baselines/linux/` 时那一步走的是
+「只生成不比对」，正好把整份基线生成出来传上去（见 `.github/workflows/ci.yml`）：
+
+```bash
+gh run download <快档那次的 run id> -n keyframes-baselines-linux -D packages/bench/baselines/linux
+```
+
+基线一提交，那一步下次就自动改走真比对了。
 
 ## 交互回归（6.6 第 2 条）
 
@@ -118,7 +138,7 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
 再用 Pixi 自己的命中测试验一遍那个**整数**坐标真的会命中它。
 手牌扇形里的卡互相压着一大半，自己算包围盒中心多半会落在邻座那张上。
 
-这一组跑得快（本机整组 1.5 分钟），所以进 CI 快档，和 `check`、`catalog` 并列。
+这一组跑得快（本机整组 2.0 分钟），所以进 CI 快档，和 `check`、`catalog` 并列。
 
 ## 时间指标怎么和 main 比
 
@@ -266,6 +286,13 @@ JSON 的形状就是 `src/node/report.ts` 里的 `DeterministicReport` 和 `Timi
 时间指标那两个由用例自己写——两组的并发不一样，原因见上面「跑一遍要多久」。
 
 ## 已知的局限
+
+- **每条 Playwright 用例都得各开一个浏览器进程**（`tests/freshBrowser.ts`）。
+  ubuntu 跑机上（无头 `chrome-headless-shell` + SwiftShader）同一个浏览器里的**第二次**
+  `browser.newContext()` 会一直卡住不返回，而 Playwright 默认是一个 worker 一个浏览器、
+  每条用例在里面新建一个上下文——于是每个 worker 的第一条过、第二条卡死。
+  macOS 上复现不出来。代价是每条多一次浏览器启动（跑机上一两秒），
+  换掉的是「卡两分钟再重启 worker」。`timing` 那组没接，理由见那个文件。
 
 - **无头 Chromium 走 SwiftShader 软件渲染**，所以确定性那一组只测确定性指标，时间快慢在那里没有意义。
   这是有意选的：软件渲染跨机器一致，而 6.9 要求「同一段剧本在任何机器上的确定性指标一模一样」。

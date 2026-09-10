@@ -14,8 +14,9 @@
  * 画面从 Pixi 的 `extract` 抓，不走 `page.screenshot()`，理由见 src/page/grabFrame.ts。
  */
 
-import { expect, test } from '@playwright/test'
 import { PROFILES } from '../src/node/profiles'
+// 每条用例各开一个新浏览器，不共用 worker 那一个——为什么见 freshBrowser.ts。
+import { expect, test } from './freshBrowser'
 import { captureKeyframes, initOptions, initScene, openBench } from './harness'
 
 /**

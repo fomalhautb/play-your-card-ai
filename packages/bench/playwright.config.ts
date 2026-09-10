@@ -127,13 +127,19 @@ export default defineConfig({
     {
       /*
        * 交互回归（6.6 第 2 条）。和确定性那组同样是无头 + SwiftShader，但它不量任何东西，
-       * 所以单条用例几秒就完了，超时走下面那个覆盖而不是顶上那个 15 分钟。
-       * 各条用例各开各的页面，之间没有耦合，照样并行。
+       * 所以一条用例几十秒就完了，超时走下面那个覆盖而不是顶上那个 15 分钟。
+       * 各条用例各开各的浏览器，之间没有耦合，照样并行。
+       *
+       * 3 分钟是按本机最慢那条（47 秒，几个 worker 抢核时）留三倍余量给的。
+       * 两核跑机上一条实测只要 4～6 秒——那儿慢的从来不是这几下点击，
+       * 而是每条都要重新起浏览器、重新加载页面和图集。
+       * 这个数**不是**用来兜「上下文建不出来」那种卡死的：那种情况给多久都不会返回，
+       * 治它的是 tests/freshBrowser.ts。
        */
       name: 'interaction',
       testMatch: /interaction\.spec\.ts/,
       fullyParallel: true,
-      timeout: 120_000,
+      timeout: 180_000,
       use: {
         browserName: 'chromium',
         headless: true,
