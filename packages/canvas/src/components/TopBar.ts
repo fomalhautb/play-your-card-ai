@@ -75,6 +75,13 @@ export interface TopBarOptions {
   width: number
   /** 不给就取桌面档令牌。触屏档由场景传 `size.battle.topbarHeightTouch`。 */
   height?: number
+  /**
+   * 右端那两颗图标钮（静音、离开）摆不摆。默认摆。
+   *
+   * 触屏档传 false：一条 390 宽的顶栏放不下「第 N 轮 + 比分」再加两颗 51 见方的钮，
+   * 正中那块会被压到钮底下。手机上这两件事归设置面板（第 31 条），不占对局顶栏。
+   */
+  actions?: boolean
   onLeave?: () => void
   onToggleMute?: () => void
 }
@@ -106,7 +113,7 @@ export class TopBar extends Container {
       deps,
     )
     this.addChild(this.plate, this.center, this.actions)
-    this.buildActions(options)
+    if (options.actions !== false) this.buildActions(options)
     this.rebuildCenter()
   }
 

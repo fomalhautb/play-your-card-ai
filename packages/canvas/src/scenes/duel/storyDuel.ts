@@ -73,13 +73,19 @@ interface ScriptStep {
  * 时刻是照着 `director/timings.ts` 那几段的长度排的，改那边的数字这里要跟着挪。
  */
 export const STORY_FRAMES = {
-  /** 抛硬币 3.54 秒收尾，紧接着五张牌飞进扇形（0.4 + 4 × 0.12），4.6 秒时全部落位。 */
-  dealt: 4600,
+  /**
+   * 抛硬币 3.54 秒收尾，紧接着五张牌飞进扇形（0.4 + 4 × 0.12），4.5 秒时全部落位。
+   * 要卡在 4.6 秒那条出牌指令**之前**，否则手上已经少一张、Token 也扣过了。
+   */
+  dealt: 4500,
   /** 4.6 秒发出的那张牌飞 0.65 秒，停在飞到一半那一拍。 */
   playing: 5000,
   /** 7 秒双方都结束出牌 → 揭题 → 结算层立起来，8 秒时题面和第一张结果卡都在了。 */
   settling: 8000,
 } as const
+
+/** 第一张牌什么时候打出去。「出牌中」那一帧停在它起飞之后 0.4 秒。 */
+const PLAY_AT = 4600
 
 /** 我方（0 号座位）打第一张、结束出牌；对方直接结束出牌；随后一次性交卷。 */
 function scriptOf(state: GameState): ScriptStep[] {
@@ -87,7 +93,7 @@ function scriptOf(state: GameState): ScriptStep[] {
   const steps: ScriptStep[] = []
   if (mine !== undefined) {
     steps.push({
-      atMs: STORY_FRAMES.dealt,
+      atMs: PLAY_AT,
       command: { type: 'PLAY_CARD', player: 0, instanceId: mine.instanceId },
     })
   }

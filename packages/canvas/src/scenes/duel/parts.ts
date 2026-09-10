@@ -109,6 +109,8 @@ export function createParts(options: PartsOptions): DuelParts {
     {
       width: layout.width,
       height: layout.topBarHeight,
+      // 手机档不摆右端那两颗钮，理由见 TopBarOptions.actions。
+      actions: layout.tier === 'desktop',
       onLeave: options.onLeave,
       onToggleMute: options.onToggleMute,
     },
