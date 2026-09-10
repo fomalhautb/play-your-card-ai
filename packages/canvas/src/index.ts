@@ -28,7 +28,8 @@
  *   interaction/   交互（拖拽判定的纯函数、手牌的指针状态机）
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
- *   scenes/        场景装配（对局渲染器 scenes/duel，含两档版式、cue 播放器、输入）
+ *   scenes/        场景装配（对局渲染器 scenes/duel，含两档版式、cue 播放器、输入；
+ *                  房间页 scenes/room，迁移第 27 条后半那一版最小可用的联机入口）
  *   storyStage.ts  组件目录页那边的约定（本包的 *.stories.ts 和装配层的舞台按它对接）
  *
  * director/ 是唯一依赖 `@ai-duel/core` 的目录：它要读引擎的事件和视图类型。
@@ -198,4 +199,13 @@ export type {
   DuelSceneCounters,
   DuelSceneOptions,
 } from './scenes/duelContract'
+export { createRoomScene } from './scenes/room/RoomScene'
+export type {
+  RoomAction,
+  RoomPhase,
+  RoomReady,
+  RoomScene,
+  RoomSceneOptions,
+  RoomView,
+} from './scenes/room/roomContract'
 export type { StoryStage, StoryTeardown } from './storyStage'

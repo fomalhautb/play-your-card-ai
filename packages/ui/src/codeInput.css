@@ -1,0 +1,55 @@
+/*
+ * 输入框 A（纸面数字框）的样式。样式跟着组件走（《正式版架构》7.2 第 4 条）。
+ * 颜色、间距、字体一律读设计令牌的 CSS 变量（7.1 第 4 条）。
+ */
+
+.ui-code-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.ui-code-input__label {
+  color: var(--color-paper-ink-muted);
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-lg);
+  letter-spacing: 0.16em;
+}
+
+/*
+ * 四个数字一格一格地排开：字距撑到 0.5em，末字右边多出来的那一格靠 text-indent
+ * 把整串往右推半格补回来（同 ui-button__caption 那条负外边距的理由，方向相反）。
+ * 字体仍用全站那一套衬线体——设计令牌里没有等宽栈，为一个框单独引一种字体不划算。
+ */
+.ui-code-input__field {
+  width: 100%;
+  max-width: 260px;
+  padding: 10px 0 10px 0.5em;
+  border: 1px solid var(--color-paper-line-dark);
+  border-radius: 4px;
+  background-color: var(--color-paper-shade);
+  color: var(--color-paper-ink);
+  font-family: var(--font-family-serif);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.5em;
+  text-align: center;
+  text-indent: 0.5em;
+}
+
+.ui-code-input__field:focus-visible {
+  border-color: var(--color-plaque-navy-default-fill);
+  outline: none;
+}
+
+.ui-code-input__field[aria-invalid="true"] {
+  border-color: var(--color-status-error);
+}
+
+.ui-code-input__error {
+  margin: 0;
+  color: var(--color-status-error);
+  font-family: var(--font-family-serif);
+  font-size: var(--font-size-base);
+}
