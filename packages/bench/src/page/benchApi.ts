@@ -13,11 +13,13 @@ import type { FrameDriver } from '../scenarios/index'
 import { createContext, FRAME_MS, runIdle, SCENARIOS } from '../scenarios/index'
 import type { AtlasOptions } from '../scene/atlas'
 import { DEFAULT_ATLAS } from '../scene/atlas'
-import type { BenchScene, CardTextures, EffectTier } from '../scene/contract'
+import type { BenchScene, CardTextures, DuelCommand, EffectTier } from '../scene/contract'
 import { createDuelSession } from '../scene/duelSession'
 import { createStubDuelScene } from '../scene/stubScene'
 import type { LoadedTextures } from '../scene/textures'
 import { createProceduralTextures, createWhiteTexture, loadAtlasTextures } from '../scene/textures'
+import type { HitPoint } from './hitPoints'
+import { hitPointsOf } from './hitPoints'
 import { measureOverdraw } from './overdraw'
 import type { RenderProbe } from './renderProbe'
 
@@ -43,6 +45,11 @@ export interface BenchInitOptions {
   idleFrames?: number
   /** 每隔多少帧采一次过度绘制，0 表示只在剧本结束后采一次。 */
   overdrawSampleEvery?: number
+  /**
+   * 这一局用哪副牌组。不给就用剧本自己那副。
+   * 只有交互用例会传（它要摸到一张技能牌），理由见 scene/duelScript.ts。
+   */
+  duelDeck?: string[]
 }
 
 export interface GpuReport {
@@ -64,6 +71,29 @@ interface RunOptions {
 export interface BenchApi {
   init(opts: BenchInitOptions): Promise<void>
   run(segment: string, options?: RunOptions): Promise<void>
+  /**
+   * 开一局，并把开局那段演出（抛硬币、发牌）推完。
+   *
+   * 交互用例用它把画面摆到「手牌就在屏幕上、锁也放开了」那一刻，之后才轮到真指针上场。
+   * 和 `run('deal')` 的区别是不热身、不记指标——那两样是给性能剧本的。
+   */
+  deal(): Promise<void>
+  /**
+   * 一直推到场景闲下来。
+   *
+   * 手动时钟下没人替我们推帧，而真指针那几下之间是有演出要演的（牌飞出去、目标层立起来）。
+   * 推不完（演出卡住了）会抛，不会静悄悄地挂着。
+   */
+  settle(): Promise<void>
+  /** 场景自 init 以来发出的指令。交互用例断言的就是这张表。 */
+  commands(): readonly DuelCommand[]
+  /** 我方此刻的手牌。交互用例靠它认出哪一张是技能牌。 */
+  handCards(): readonly { instanceId: string; cardId: string }[]
+  /**
+   * 场景图里 label 以 `prefix` 开头的对象，各给一个点得到的视口坐标。
+   * 卡是 `card:<实例 id>`、战场格子是 `tile:<实例 id>`（见各组件的构造函数）。
+   */
+  hitPoints(prefix: string): HitPoint[]
   metrics(): BenchMetrics
   overdraw(): OverdrawResult
   reset(): Promise<void>
@@ -120,6 +150,7 @@ async function makeScene(
     seed: opts.seed,
     textures,
     manualClock: opts.manualClock,
+    ...(opts.duelDeck === undefined ? {} : { deck: opts.duelDeck }),
   })
 }
 
@@ -284,6 +315,19 @@ export function createBenchApi(
       canvas.remove()
       frames = []
     },
+
+    async deal() {
+      const current = need()
+      await createContext(current.scene, driver()).act(() => current.scene.restart())
+    },
+
+    async settle() {
+      await createContext(need().scene, driver()).settle()
+    },
+
+    commands: () => need().scene.commands(),
+    handCards: () => need().scene.handCards(),
+    hitPoints: (prefix) => hitPointsOf(probe, prefix),
 
     segments: () => Object.keys(SCENARIOS),
     counters: () => glCounters.snapshot(),

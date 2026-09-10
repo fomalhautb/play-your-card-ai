@@ -319,6 +319,19 @@ class StubScene implements BenchScene {
   /** 桩场景没有文字要热身，这一档对它没有意义，收下就扔。 */
   setWarmup(_warm: boolean): void {}
 
+  /**
+   * 桩场景没有输入层，也就永远发不出指令，恒为空。
+   * 契约里有这一条是给交互用例用的，那条用例只跑真实场景（见 contract.ts）。
+   */
+  commands(): [] {
+    return []
+  }
+
+  /** 桩场景的"手牌"只是几个精灵，没有牌面身份。同上，这一条只给交互用例。 */
+  handCards(): [] {
+    return []
+  }
+
   step(deltaMs: number): void {
     this.elapsedMs += deltaMs
     if (this.opts.manualClock) gsap.updateRoot(this.elapsedMs / 1000)

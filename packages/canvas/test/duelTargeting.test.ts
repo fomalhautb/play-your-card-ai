@@ -79,7 +79,7 @@ describe('技能牌选战场目标', () => {
     const tile = fakeTile('u2')
     input.bindTile(asTile(tile))
     dragToZone(input, probe, 'h1')
-    tile.tap()
+    probe.tapTile(tile)
     expect(probe.commands).toEqual([
       { type: 'PLAY_CARD', player: 0, instanceId: 'h1', targetInstanceId: 'u2' },
     ])
@@ -88,15 +88,15 @@ describe('技能牌选战场目标', () => {
     expect(probe.calls).toContain('board.clearTargets')
   })
 
-  it('点没亮的那一格什么都不发，也不会退出选目标', () => {
+  it('点没亮的那一格不发指令，这一下按取消算', () => {
     const { probe, input } = boardCase()
-    // 己方场上那一格不在「打对面」的名单里。
+    // 己方场上那一格不在「打对面」的名单里，格子自己不受理；冒泡到舞台就是一次取消。
     const mine = fakeTile('mine')
     input.bindTile(asTile(mine))
     dragToZone(input, probe, 'h1')
-    mine.tap()
+    probe.tapTile(mine)
     expect(probe.commands).toEqual([])
-    expect(probe.calls).not.toContain('targeting.end')
+    expect(probe.actions.at(-1)).toEqual({ kind: 'targeting-cancel' })
   })
 
   it('选目标期间点一格不再是放大查看', () => {
@@ -104,17 +104,26 @@ describe('技能牌选战场目标', () => {
     const mine = fakeTile('mine')
     input.bindTile(asTile(mine))
     dragToZone(input, probe, 'h1')
-    mine.tap()
+    probe.tapTile(mine)
     expect(probe.actions.some((one) => one.kind === 'inspect-open')).toBe(false)
   })
 
-  it('点选目标层的空白处是取消', () => {
+  it('点空白处是取消', () => {
     const { probe, input } = boardCase()
     dragToZone(input, probe, 'h1')
-    probe.tapTargetingLayer()
+    probe.tapEmpty()
     expect(probe.commands).toEqual([])
     expect(probe.actions).toEqual([{ kind: 'targeting-begin' }, { kind: 'targeting-cancel' }])
     expect(probe.calls).toContain('board.clearTargets')
+  })
+
+  it('把牌拖进落区那一下的松手不算取消', () => {
+    const { probe, input } = boardCase()
+    dragToZone(input, probe, 'h1')
+    // 真事件里松手之后 Pixi 还会补一次 tap（按下的是手牌、松手时指针在战场上，
+    // 共同祖先就是舞台）。那一下前面没有「选目标态下的按下」，所以不该算取消。
+    probe.tapStageOnly()
+    expect(probe.actions).toEqual([{ kind: 'targeting-begin' }])
   })
 
   it('取消之后那一格又变回放大查看', () => {
@@ -122,8 +131,8 @@ describe('技能牌选战场目标', () => {
     const tile = fakeTile('u1')
     input.bindTile(asTile(tile))
     dragToZone(input, probe, 'h1')
-    probe.tapTargetingLayer()
-    tile.tap()
+    probe.tapEmpty()
+    probe.tapTile(tile)
     expect(probe.commands).toEqual([])
     expect(probe.actions.at(-1)).toEqual({
       kind: 'inspect-open',
@@ -134,7 +143,7 @@ describe('技能牌选战场目标', () => {
 
   it('没进选目标态时点空白处不会误发一次取消', () => {
     const { probe } = boardCase()
-    probe.tapTargetingLayer()
+    probe.tapEmpty()
     expect(probe.actions).toEqual([])
   })
 
@@ -162,7 +171,7 @@ describe('技能牌选战场目标', () => {
     // 编排层在「玩家开始选目标」那一刻就把手牌冻上了（见 director/locks.ts），
     // 这一下要是被锁挡住，玩家就会卡在一屏亮着的格子上谁都点不动。
     input.refresh(openLocks({ actionsLocked: true }), false)
-    tile.tap()
+    probe.tapTile(tile)
     expect(probe.commands).toEqual([
       { type: 'PLAY_CARD', player: 0, instanceId: 'h1', targetInstanceId: 'u1' },
     ])
@@ -176,7 +185,7 @@ describe('技能牌选战场目标', () => {
     // 战场马上就被答题那层盖住了，留着选目标态只会让玩家点到看不见的东西。
     input.refresh(openLocks({ quizWait: true }), false)
     expect(probe.calls).toContain('targeting.end')
-    tile.tap()
+    probe.tapTile(tile)
     expect(probe.commands).toEqual([])
   })
 

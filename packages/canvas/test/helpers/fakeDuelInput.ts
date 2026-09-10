@@ -176,8 +176,18 @@ export interface InputProbe {
   cards: FakeCard[]
   /** 按实例 id 取一张手牌。 */
   card(instanceId: InstanceId): FakeCard
-  /** 点一下选目标层的空白处（`TargetingLayer` 的 pointertap，约定是「点哪儿都算取消」）。 */
-  tapTargetingLayer(): void
+  /**
+   * 点一下空白处：舞台上先来一次按下、再来一次 tap。
+   * 真事件里这两下是同一次点击的两拍，选目标那道「要新按一次才算取消」的闸认的就是它们。
+   */
+  tapEmpty(): void
+  /**
+   * 点一下某一格：格子自己的 pointertap 先跑，再冒泡到舞台。
+   * 分两步是照着 Pixi 的传播顺序来的——格子在 AT_TARGET，舞台在冒泡阶段。
+   */
+  tapTile(tile: FakeTile): void
+  /** 只在舞台上发一次 tap，前面没有按下。用来验「松手那一下不算取消」。 */
+  tapStageOnly(): void
 }
 
 export function createInputProbe(view: PlayerView): InputProbe {
@@ -187,7 +197,8 @@ export function createInputProbe(view: PlayerView): InputProbe {
   const cards = view.self.hand.map((one) => fakeCard(one.instanceId))
   /** 被拖出扇形的那几张。`all()` 要照实排除它们，压暗候选牌那段才对得上。 */
   const detached = new Set<InstanceId>()
-  let targetingTap: (() => void) | null = null
+  const stageHandlers = new Map<string, () => void>()
+  const fireStage = (event: string) => stageHandlers.get(event)?.()
 
   const fan = {
     all: () => cards.filter((card) => !detached.has(card.instanceId)),
@@ -217,7 +228,16 @@ export function createInputProbe(view: PlayerView): InputProbe {
       if (found === undefined) throw new Error(`手牌里没有 ${instanceId}`)
       return found
     },
-    tapTargetingLayer: () => targetingTap?.(),
+    tapEmpty() {
+      fireStage('pointerdown')
+      fireStage('pointertap')
+    },
+    tapTile(tile) {
+      fireStage('pointerdown')
+      tile.tap()
+      fireStage('pointertap')
+    },
+    tapStageOnly: () => fireStage('pointertap'),
   }
 
   const parts = {
@@ -226,10 +246,6 @@ export function createInputProbe(view: PlayerView): InputProbe {
     targeting: {
       begin: (name: string) => calls.push(`targeting.begin(${name})`),
       end: () => calls.push('targeting.end'),
-      on: (event: string, handler: () => void) => {
-        if (event === 'pointertap') targetingTap = handler
-      },
-      removeAllListeners: () => undefined,
     },
     reveal: { on: () => undefined, removeAllListeners: () => undefined },
     board: {
@@ -247,9 +263,15 @@ export function createInputProbe(view: PlayerView): InputProbe {
   probe.ctx = {
     seat: 0,
     catalog: INPUT_CATALOG,
-    // 舞台上那几条监听（globalpointermove / pointerup）在测试里用不到：
-    // 合成入口 pressAt / moveTo / releaseAt 直接调状态机，不经过事件系统。
-    stage: { on: () => undefined, off: () => undefined },
+    /*
+     * 舞台。指针状态机挂在它身上的那几条（globalpointermove / pointerup）测试里用不到——
+     * 合成入口 pressAt / moveTo / releaseAt 直接调状态机，不经过事件系统。
+     * 留着 on/off 是为了 input.ts 挂在舞台上的「点空白处取消」那两条，见 tapEmpty。
+     */
+    stage: {
+      on: (event: string, handler: () => void) => stageHandlers.set(event, handler),
+      off: (event: string) => stageHandlers.delete(event),
+    },
     parts,
     deps: {
       animator: {

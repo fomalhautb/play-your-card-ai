@@ -12,6 +12,7 @@
     "dev": "vite",
     "test": "vitest run",
     "bench": "playwright test --project=deterministic",
+    "interaction": "playwright test --project=interaction",
     "timing": "playwright test --project=timing"
   },
   "dependencies": {

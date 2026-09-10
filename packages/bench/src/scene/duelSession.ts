@@ -26,7 +26,7 @@ import {
   getCard,
   viewFor,
 } from '@ai-duel/core'
-import type { BenchScene, BenchSceneOptions } from './contract'
+import type { BenchScene, BenchSceneOptions, DuelCommand } from './contract'
 import { BENCH_CATALOG, BENCH_DECK, BENCH_QUESTIONS } from './duelScript'
 
 /** 剧本从 0 号座位看这一局。 */
@@ -48,8 +48,15 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
     seed: options.seed,
     manualClock: options.manualClock,
   })
-  // 剧本自己发指令，场景发出来的那些丢掉——不丢的话玩家点一下会被算两次。
-  scene.onCommand(() => undefined)
+  /*
+   * 场景发出来的指令只记账、不执行。
+   *
+   * 三段确定性剧本自己按脚本发指令，场景那边发出来的执行了就等于同一下算了两次；
+   * 而交互用例（tests/interaction.spec.ts）一条指令都不发，它要的正是这张表——
+   * 「玩家这一串真指针操作，最后让场景发出了什么」。
+   */
+  const commands: DuelCommand[] = []
+  scene.onCommand((command) => commands.push(command))
   scene.onUserAction(() => undefined)
   scene.onTutorialCue(() => undefined)
 
@@ -61,14 +68,17 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
       questionPool: BENCH_QUESTIONS,
       questions: BENCH_QUESTIONS,
       players: [
-        { name: '甲', deck: [...BENCH_DECK], hero: null },
-        { name: '乙', deck: [...BENCH_DECK], hero: null },
+        { name: '甲', deck: [...deck], hero: null },
+        { name: '乙', deck: [...deck], hero: null },
       ],
       firstPlayer: SEAT,
       noShuffle: true,
     })
     return { state: started.state, events: started.events }
   }
+
+  /** 这一局的牌组。交互用例会换一副带技能牌的（见 contract.ts 的 `deck`）。 */
+  const deck: readonly string[] = options.deck ?? BENCH_DECK
 
   let opening = startGame()
   let state: GameState = opening.state
@@ -191,6 +201,9 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
     },
 
     isIdle: () => idle(),
+    commands: () => commands,
+    handCards: () =>
+      state.players[SEAT].hand.map(({ instanceId, cardId }) => ({ instanceId, cardId })),
     counters: () => scene.counters(),
     resize: (width, height) => scene.resize(width, height),
     destroy: () => scene.destroy(),

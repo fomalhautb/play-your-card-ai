@@ -163,12 +163,35 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     ctx.userAction({ kind: 'inspect-open', source: 'tile', flipId: instanceId })
   }
 
-  // 点选目标层的任何位置都是取消（组件的约定，见 TargetingLayer 的文件头）。
-  ctx.parts.targeting.on('pointertap', () => {
+  /**
+   * 取消要等一次**新的**按下之后才算数。
+   *
+   * 进选目标态那一下本身是一次松手（牌拖进落区），Pixi 紧跟着会把它当成一次 tap
+   * 派发上来——按下的是手牌、松手时指针在战场上，共同祖先就是舞台。
+   * 不设这道闸的话，选目标刚立起来就被自己那一下取消掉了。
+   */
+  let cancelArmed = false
+
+  /*
+   * 「点空白处取消」挂在**舞台**上，不挂在选目标层上。
+   *
+   * 选目标层铺满全屏而且在最上面，它要是吃指针事件，被它盖住的候选格和候选手牌就全点不动了
+   *（那正是这一步要玩家点的东西）。所以那一层只管压暗和提示条，不接事件（见 TargetingLayer），
+   * 取消这一下由舞台兜底：点中候选的那一下会先在格子 / 手牌那儿被处理掉并收场，
+   * 冒泡到这里时 targeting 已经是 null；没点中任何候选的才落到这里，一律算取消。
+   */
+  const onStageDown = (): void => {
+    if (targeting !== null) cancelArmed = true
+  }
+  const onStageTap = (): void => {
+    if (!cancelArmed) return
+    cancelArmed = false
     if (targeting === null) return
     endTargeting()
     ctx.userAction({ kind: 'targeting-cancel' })
-  })
+  }
+  ctx.stage.on('pointerdown', onStageDown)
+  ctx.stage.on('pointertap', onStageTap)
   // 点展示遮罩关掉放大查看。强制展示期间编排层不受理这一下，所以这里无脑发就行。
   ctx.parts.reveal.on('pointertap', () => ctx.userAction({ kind: 'inspect-close' }))
 
@@ -198,7 +221,10 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     cancelTargeting: endTargeting,
     destroy() {
       pointer.destroy()
-      ctx.parts.targeting.removeAllListeners()
+      // 舞台上只摘自己挂的这两条：指针状态机也在同一个舞台上听事件，
+      // removeAllListeners() 会把它那几条一起摘掉。
+      ctx.stage.off('pointerdown', onStageDown)
+      ctx.stage.off('pointertap', onStageTap)
       ctx.parts.reveal.removeAllListeners()
     },
   }

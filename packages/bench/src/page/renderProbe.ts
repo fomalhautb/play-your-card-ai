@@ -81,10 +81,21 @@ export function installRenderProbe(): RenderProbe {
   holder.render = function patched(this: WebGLRenderer, ...args: unknown[]) {
     const first = args[0]
     lastRenderer = this
-    lastStage =
-      first instanceof Container
-        ? first
-        : ((first as { container?: Container } | undefined)?.container ?? null)
+    /*
+     * 只记**画到屏幕上**的那次，带 `target` 的一概不记。
+     *
+     * 烤纹理走的是同一个 render（`renderer.render({ container, target })`：文字缓存、
+     * 界面底图、过度绘制自己那趟调试渲染都是），而那些容器只有几个节点。
+     * 不区分的话，随便一句新文字被烤出来，`stage()` 就从整棵场景树变成那几个节点，
+     * 之后问「场景里有什么」得到的是空的——而且下一帧一渲染又自己好了，现场极难查。
+     */
+    const target = (first as { target?: unknown } | undefined)?.target
+    if (target === undefined || target === null) {
+      lastStage =
+        first instanceof Container
+          ? first
+          : ((first as { container?: Container } | undefined)?.container ?? null)
+    }
     beginQuery()
     try {
       return original.apply(this, args)

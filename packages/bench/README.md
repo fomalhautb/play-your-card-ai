@@ -8,13 +8,14 @@
 ## 怎么跑
 
 ```bash
-pnpm --filter @ai-duel/bench test     # Node 侧纯逻辑的单元测试，不开浏览器
-pnpm --filter @ai-duel/bench bench    # 确定性指标 + 稳态堆分配 + 泄漏（无头）
-pnpm --filter @ai-duel/bench timing   # 时间指标（有头、开 GPU、录 trace）
-pnpm --filter @ai-duel/bench dev      # 只把测量页面跑起来，手动在控制台调 window.__bench
+pnpm --filter @ai-duel/bench test         # Node 侧纯逻辑的单元测试，不开浏览器
+pnpm --filter @ai-duel/bench bench        # 确定性指标 + 稳态堆分配 + 泄漏（无头）
+pnpm --filter @ai-duel/bench interaction  # 交互回归：真指针拖拽出牌、点选目标（无头）
+pnpm --filter @ai-duel/bench timing       # 时间指标（有头、开 GPU、录 trace）
+pnpm --filter @ai-duel/bench dev          # 只把测量页面跑起来，手动在控制台调 window.__bench
 ```
 
-`bench` 和 `timing` 都由 Playwright 拉起 Vite（`playwright.config.ts` 的 `webServer`），不用先手动开服务器。
+`bench`、`interaction` 和 `timing` 都由 Playwright 拉起 Vite（`playwright.config.ts` 的 `webServer`），不用先手动开服务器。
 卡面图集不在位时也由 Playwright 的 `globalSetup` 自己跑一遍 `pnpm assets:build`（见 `src/node/ensureAtlas.ts`）。
 第一次跑要先 `pnpm exec playwright install chromium`。
 
@@ -51,6 +52,22 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
 每个 worker 是独立进程，各写各的只会互相覆盖，报告里只剩一个 worker 那几行。
 现在用例把自己那行挂成附件，由跑在主进程的 reporter 收齐了再写（`src/node/deterministicReporter.ts`）。
 
+## 交互回归（6.6 第 2 条）
+
+`tests/interaction.spec.ts` 不量任何指标，它借这里现成的骨架（页面、图集、手动时钟、
+`window.__bench`）做**真指针**的回归：拖一张牌进落区、拖到区外、技能牌选目标、点空白取消，
+外加触屏的拖拽和轻点各一条。断言的是场景发出的指令（`window.__bench.commands()`）。
+
+纯逻辑那一半在 canvas 的 `test/duelInput.test.ts` / `test/duelTargeting.test.ts`（vitest，
+组件是替身）。两边分工：那边保证「判定对」，这边保证「点得到」——第一版跑起来就抓到两处
+只有真浏览器才暴露得出来的问题（选目标层吃掉了候选的点击、命中点落在卡牌命中区的边线上）。
+
+「按屏幕哪个坐标点得到某张卡」由 `src/page/hitPoints.ts` 回答：从场景树上按 label 找到目标
+（卡是 `card:<实例 id>`、格子是 `tile:<实例 id>`），再用 Pixi 自己的命中测试验一遍那个**整数**坐标
+真的会命中它。手牌扇形里的卡互相压着一大半，自己算包围盒中心多半会落在邻座那张上。
+
+这一组跑得快（本机整组约 3 分钟），所以进 CI 快档，和 `check`、`catalog` 并列。
+
 ## 结构
 
 ```
@@ -62,14 +79,15 @@ src/
   node/        跑在 Node 里：判阈值、解析 trace、出报告（纯逻辑）
   thresholds.ts  6.9 表的全部上限，只在这里改
 test/          vitest 单元测试（pnpm test 只跑这里）
-tests/         Playwright 用例（deterministic / timing 两个 project）
+tests/         Playwright 用例（deterministic / interaction / timing 三个 project）
 scripts/       frames.py：从 Chrome trace 里取帧
 ```
 
 被测场景通过 `src/scene/contract.ts` 的契约接进来，契约的真身在 `@ai-duel/canvas`，
 这个文件只是重新导出，好让 bench 里的模块都不直接 import canvas。
 
-默认跑的是 canvas 包的**真实对局场景**（`createDuelPrototype`），纹理从 `public/atlas/` 的卡面图集加载。
+默认跑的是 canvas 包的**真实对局场景**（`createDuelScene`，外面套一层 `scene/duelSession.ts`
+把「开局发牌」这类剧本动作翻译成引擎指令），纹理从 `public/atlas/` 的卡面图集加载。
 另有一个**桩场景**（`stubScene.ts`，几十个 Pixi 精灵、程序生成的纯色卡面）：它是测量骨架自测的固定物，
 真实场景一改所有数字都会跟着变，那时候分不清是场景退步了还是计数器坏了，桩场景是唯一不跟着变的对照组。
 切换方式两条，都不用改代码：页面 URL 加 `?scene=stub`，或者 `init()` 时传 `scene: 'stub'`

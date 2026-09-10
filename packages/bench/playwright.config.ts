@@ -100,6 +100,24 @@ export default defineConfig({
       },
     },
     {
+      /*
+       * 交互回归（6.6 第 2 条）。和确定性那组同样是无头 + SwiftShader，但它不量任何东西，
+       * 所以单条用例几秒就完了，超时走下面那个覆盖而不是顶上那个 15 分钟。
+       * 各条用例各开各的页面，之间没有耦合，照样并行。
+       */
+      name: 'interaction',
+      testMatch: /interaction\.spec\.ts/,
+      fullyParallel: true,
+      timeout: 120_000,
+      use: {
+        browserName: 'chromium',
+        headless: true,
+        launchOptions: {
+          args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+        },
+      },
+    },
+    {
       name: 'timing',
       testMatch: /timing\.spec\.ts/,
       use: {
