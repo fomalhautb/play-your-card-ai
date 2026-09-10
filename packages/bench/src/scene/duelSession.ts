@@ -23,6 +23,7 @@ import type {
   GameEvent,
   GamePhase,
   GameState,
+  HeroId,
   PlayerId,
 } from '@ai-duel/core'
 import {
@@ -75,7 +76,8 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
       questionPool: BENCH_QUESTIONS,
       questions: BENCH_QUESTIONS,
       players: [
-        { name: '甲', deck: [...deck], hero: null },
+        // 只有我方那一端可能配英雄：那颗「发动」钮本来也只长在我方面板上。
+        { name: '甲', deck: [...deck], hero },
         { name: '乙', deck: [...deck], hero: null },
       ],
       firstPlayer: SEAT,
@@ -86,6 +88,8 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
 
   /** 这一局的牌组。交互用例会换一副带技能牌的（见 contract.ts 的 `deck`）。 */
   const deck: readonly string[] = options.deck ?? BENCH_DECK
+  /** 我方英雄。同样只有交互用例会传，理由见 contract.ts 的 `hero`。 */
+  const hero = (options.hero ?? null) as HeroId | null
 
   let opening = startGame()
   let state: GameState = opening.state

@@ -53,6 +53,11 @@ export interface BenchInitOptions {
    * 只有交互用例会传（它要摸到一张技能牌），理由见 scene/duelScript.ts。
    */
   duelDeck?: string[]
+  /**
+   * 我方这一端选哪位英雄。不给就是不选英雄。
+   * 同样只有交互用例会传（它要按到侧栏那颗「发动」钮），理由见 scene/contract.ts 的 `hero`。
+   */
+  duelHero?: string
 }
 
 export interface GpuReport {
@@ -81,6 +86,14 @@ export interface BenchApi {
    * 和 `run('deal')` 的区别是不热身、不记指标——那两样是给性能剧本的。
    */
   deal(): Promise<void>
+  /**
+   * 照脚本打出 n 张牌，把局面推到「场上真有单位」那一步。
+   *
+   * 交互用例里的英雄技能要有目标才按得动，而它自己用真指针打出的那一下**不会真的执行**
+   *（场景发出来的指令在这里只记账，见 scene/duelSession.ts），所以场上的单位只能由脚本摆。
+   * 和 `run('play10')` 的区别同 `deal`：不热身、不记指标。
+   */
+  play(count: number): Promise<void>
   /**
    * 一直推到场景闲下来。
    *
@@ -164,6 +177,7 @@ async function makeScene(
     textures,
     manualClock: opts.manualClock,
     ...(opts.duelDeck === undefined ? {} : { deck: opts.duelDeck }),
+    ...(opts.duelHero === undefined ? {} : { hero: opts.duelHero }),
   })
 }
 
@@ -332,6 +346,11 @@ export function createBenchApi(
     async deal() {
       const current = need()
       await createContext(current.scene, driver()).act(() => current.scene.restart())
+    },
+
+    async play(count) {
+      const current = need()
+      await createContext(current.scene, driver()).act(() => current.scene.playCards(count))
     },
 
     async settle() {

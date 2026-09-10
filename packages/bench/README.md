@@ -136,16 +136,21 @@ cp /tmp/kf/*/*.png packages/bench/baselines/linux/
 
 `tests/interaction.spec.ts` 不量任何指标，它借这里现成的骨架（页面、图集、手动时钟、
 `window.__bench`）做**真指针**的回归：拖一张牌进落区、拖到区外、技能牌选目标、点空白取消、
-点「结束出牌」按钮，外加触屏的拖拽和轻点各一条。
+点「结束出牌」按钮、按侧栏的英雄技能钮再点一格，外加触屏的拖拽和轻点各一条。
 断言的是场景发出的指令（`window.__bench.commands()`）。
 
-纯逻辑那一半在 canvas 的 `test/duelInput.test.ts` / `test/duelTargeting.test.ts`（vitest，
-组件是替身）。两边分工：那边保证「判定对」，这边保证「点得到」——第一版跑起来就抓到两处
+英雄技能那一条要先有个单位在场上，而**真指针发出的指令在这里只记账、不执行**
+（见 `src/scene/duelSession.ts`），所以它先用 `window.__bench.play(1)` 照脚本打出一张，
+再用指针去按那颗钮。同一条用例还要给我方配一位有主动技能的英雄（`duelHero`），
+三段确定性剧本一律不配——多一颗钮，指标就跟着变。
+
+纯逻辑那一半在 canvas 的 `test/duelInput.test.ts` / `test/duelTargeting.test.ts` /
+`test/duelHeroSkill.test.ts`（vitest，组件是替身）。两边分工：那边保证「判定对」，这边保证「点得到」——第一版跑起来就抓到两处
 只有真浏览器才暴露得出来的问题（选目标层吃掉了候选的点击、命中点落在卡牌命中区的边线上）。
 
 「按屏幕哪个坐标点得到某张卡」由 `src/page/hitPoints.ts` 回答：从场景树上按 label 找到目标
-（卡是 `card:<实例 id>`、格子是 `tile:<实例 id>`、「结束出牌」是 `button:end-play`），
-再用 Pixi 自己的命中测试验一遍那个**整数**坐标真的会命中它。
+（卡是 `card:<实例 id>`、格子是 `tile:<实例 id>`、「结束出牌」是 `button:end-play`、
+英雄技能钮是 `button:hero-skill`），再用 Pixi 自己的命中测试验一遍那个**整数**坐标真的会命中它。
 手牌扇形里的卡互相压着一大半，自己算包围盒中心多半会落在邻座那张上。
 
 这一组跑得快（本机整组 2.0 分钟），所以进 CI 快档，和 `check`、`catalog` 并列。

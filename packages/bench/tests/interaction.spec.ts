@@ -17,10 +17,18 @@
 import type { Page } from '@playwright/test'
 import { DECK, SEED } from '../src/node/profiles'
 import type { BenchInitOptions } from '../src/page/benchApi'
-import { INTERACTION_DECK, INTERACTION_SKILL } from '../src/scene/duelScript'
+import { INTERACTION_DECK, INTERACTION_HERO, INTERACTION_SKILL } from '../src/scene/duelScript'
 // 每条用例各开一个新浏览器，不共用 worker 那一个——为什么见 freshBrowser.ts。
 import { expect, test } from './freshBrowser'
-import { dealHand, handCards, hitPoints, openBench, sceneCommands, settleScene } from './harness'
+import {
+  dealHand,
+  handCards,
+  hitPoints,
+  openBench,
+  playScripted,
+  sceneCommands,
+  settleScene,
+} from './harness'
 
 /**
  * 两档画布尺寸。
@@ -35,8 +43,13 @@ const MOBILE = { width: 390, height: 844 }
 /** 画布上方还有一行状态文字（见 index.html），所以视口要比画布高出一截。 */
 const CHROME_HEIGHT = 80
 
-function initOptionsFor(size: { width: number; height: number }): BenchInitOptions {
+function initOptionsFor(
+  size: { width: number; height: number },
+  /** 配不配英雄。只有英雄技能那条用例要，理由见 scene/duelScript.ts 的 INTERACTION_HERO。 */
+  hero = false,
+): BenchInitOptions {
   return {
+    ...(hero ? { duelHero: INTERACTION_HERO } : {}),
     profile: 'interaction',
     width: size.width,
     height: size.height,
@@ -63,12 +76,13 @@ async function canvasOrigin(page: Page): Promise<{ x: number; y: number }> {
 async function openDealt(
   page: Page,
   size: { width: number; height: number },
+  hero = false,
 ): Promise<{ x: number; y: number }> {
   await page.setViewportSize({ width: size.width + 40, height: size.height + CHROME_HEIGHT })
   await openBench(page)
   await page.evaluate(
     async (options) => window.__bench.init(options as BenchInitOptions),
-    initOptionsFor(size),
+    initOptionsFor(size, hero),
   )
   await dealHand(page)
   return canvasOrigin(page)
@@ -222,6 +236,38 @@ test.describe('鼠标', () => {
 
     await page.mouse.click(origin.x + button.x, origin.y + button.y)
     expect(await sceneCommands(page)).toEqual([{ type: 'END_PLAY', player: 0 }])
+  })
+
+  /*
+   * 英雄技能那颗「发动」钮，同「结束出牌」一样只有真浏览器这边测得到全程：
+   * 钮是玩家面板自己建的（canvas 的 PlayerPanel.setHeroSkill），vitest 那边它是个替身。
+   *
+   * 场上那个单位由**脚本**打出来，不是用指针打的：真指针发出的指令在 bench 里只记账、
+   * 不执行（见 scene/duelSession.ts），照那条路走场上永远是空的，钮也就永远没有目标。
+   */
+  test('按侧栏的英雄技能钮再点一格，场景发出 USE_HERO_SKILL', async ({ page }) => {
+    const origin = await openDealt(page, DESKTOP, true)
+    await playScripted(page, 1)
+    await settleScene(page)
+
+    const button = (await hitPoints(page, 'button:hero-skill'))[0]
+    if (button === undefined) throw new Error('英雄技能钮现在点不到')
+    await page.mouse.click(origin.x + button.x, origin.y + button.y)
+    // 第一步只进选目标态：战场亮起来了，指令还没发。
+    expect(await sceneCommands(page)).toEqual([])
+
+    /*
+     * 这里**不能**再 settle 一次：亮起来的格子带一条 `repeat: -1` 的呼吸补间
+     *（见 canvas 的 BoardTile.setTarget），场景在选目标期间永远闲不下来。
+     * 也用不着——那一格早就在场上，亮不亮都点得到。
+     */
+    const tile = (await hitPoints(page, 'tile:'))[0]
+    if (tile === undefined) throw new Error('战场上一格都点不到')
+    const targetInstanceId = tile.label.slice('tile:'.length)
+    await page.mouse.click(origin.x + tile.x, origin.y + tile.y)
+    expect(await sceneCommands(page)).toEqual([
+      { type: 'USE_HERO_SKILL', player: 0, targetInstanceId },
+    ])
   })
 
   test('选目标时点空白处，取消掉，一条指令都不发', async ({ page }) => {

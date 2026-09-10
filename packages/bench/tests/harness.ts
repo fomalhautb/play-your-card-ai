@@ -137,6 +137,11 @@ export async function dealHand(page: Page): Promise<void> {
   await page.evaluate(() => window.__bench.deal())
 }
 
+/** 照脚本打出 n 张牌。英雄技能那条用例要靠它先在场上摆出一个单位。 */
+export async function playScripted(page: Page, count: number): Promise<void> {
+  await page.evaluate((n) => window.__bench.play(n as number), count)
+}
+
 /** 把演出推完。真指针那几下之间要靠它——手动时钟下没人替我们推帧。 */
 export async function settleScene(page: Page): Promise<void> {
   await page.evaluate(() => window.__bench.settle())
