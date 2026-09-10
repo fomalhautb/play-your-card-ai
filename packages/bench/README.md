@@ -96,6 +96,9 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
   要补回来得先让这一组变快。
 - 帧号写在 spec 的 `PLANS` 里。改了 `director/timings.ts` 的时长，那些帧号可能落到别的一拍上，
   基线要跟着重拍——这正是它该拦下来的那种改动。
+- **CI 快档里按剧本段拆成四个并行 job**（`.github/workflows/ci.yml`）。桌面档一条在两核跑机上
+  要三四分钟，八条挤一台机器十三四分钟，一格一台才装得进快档的 10 分钟。
+  每条用例挂了 `@剧本段` 标签，那是工作流的接口，改名字会让那一格静悄悄地少跑。
 
 ### 基线怎么刷新
 
@@ -117,15 +120,17 @@ worker 数取核数的三分之一——SwiftShader 的光栅化自己是多线�
 GitHub 按**默认分支上的那一份**工作流文件注册 `workflow_dispatch`，
 所以 `bench-baselines.yml` 只有在自己已经合进 main 之后才手动触发得了；
 在那之前跑这条命令只会得到一句「工作流不存在」。
-这段时间里 linux 基线从**快档 `keyframes` job 第一次运行**传出来的
-`keyframes-baselines-linux` artifact 里取——仓库里还没有 `baselines/linux/` 时那一步走的是
-「只生成不比对」，正好把整份基线生成出来传上去（见 `.github/workflows/ci.yml`）：
+这段时间里 linux 基线从**快档 `keyframes` job 第一次运行**传出来的 artifact 里取——
+仓库里还没有 `baselines/linux/` 时那一步走的是「只生成不比对」，正好把整份基线生成出来
+传上去（见 `.github/workflows/ci.yml`）。快档那个 job 按剧本段拆成了四格，
+每格各传一份 artifact（同名 artifact 一次运行里只允许一个），所以要四份都取下来：
 
 ```bash
-gh run download <快档那次的 run id> -n keyframes-baselines-linux -D packages/bench/baselines/linux
+gh run download <快档那次的 run id> -p "keyframes-baselines-linux-*" -D /tmp/kf
+cp /tmp/kf/*/*.png packages/bench/baselines/linux/
 ```
 
-基线一提交，那一步下次就自动改走真比对了。
+基线一提交，那四格下次就自动改走真比对了。
 
 ## 交互回归（6.6 第 2 条）
 

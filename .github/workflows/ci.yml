@@ -6,8 +6,8 @@
 #   check        类型、lint、设计令牌、单元测试        —— 不开浏览器
 #   catalog      组件目录页的截图回归                  —— 装 Chromium
 #   scene        对局场景的交互回归                    —— 装 Chromium
-#   keyframes    剧本关键帧的截图回归                  —— 装 Chromium
-# 四个并排跑，墙钟时间取最慢的那一个。
+#   keyframes    剧本关键帧的截图回归                  —— 装 Chromium，按剧本段拆成四格
+# 并排跑，墙钟时间取最慢的那一个。
 #
 # scene 和 keyframes 一开始是同一个 job（两步跑在一台机器上），第一次真跑就顶破了 10 分钟：
 # 交互那步 2 分 34 秒跑完，关键帧那步再跑六分四十四秒、八条一条都没完，
@@ -77,7 +77,7 @@ jobs:
       # `pnpm -r test` 只进有 test 脚本的包，现在是 core、content、protocol、design、platform、
       # canvas、bench 和 legacy-client。
       # bench 的 test 脚本只跑 Node 侧纯逻辑的 vitest，不开浏览器——
-      # 要浏览器的那几组在下面 scene 那个 job 和慢档里。
+      # 要浏览器的那几组在下面 scene / keyframes 那两个 job 和慢档里。
       # 骨架包没有 test 脚本，会被直接跳过——别为了"看着整齐"给它们加空脚本，
       # 那样一个空跑的绿色会盖住"这个包其实一条测试都没有"。
       - name: 测试
@@ -185,13 +185,19 @@ jobs:
         run: pnpm --filter @ai-duel/bench interaction
 
   keyframes:
-    name: 剧本关键帧截图
+    name: 剧本关键帧截图 ${{ matrix.segment }}
     runs-on: ubuntu-latest
-    # 和交互回归分开一台机器跑，因为两个加起来装不进 10 分钟（见文件开头）。
-    # 关键帧这半自己就是快档里最重的一步：桌面档一帧是 2880×1620 的软件光栅，
-    # 两核跑机上比本机慢好几倍。每段只停一帧之后才勉强坐得进来（见 keyframes.spec.ts）。
-    # 再顶破要做的是继续**减关键帧**（只留手机档，或者挪进慢档），不是把这个数往上调。
+    # 关键帧是快档里最重的一步，而且重得离谱：桌面档一帧是 2880×1620 的软件光栅，
+    # 两核跑机上一条要三四分钟，八条挤一台机器实测十三四分钟——每段只停一帧之后仍然装不下。
+    # 所以照慢档那套**按剧本段拆成一格一格的并行 job**（slow.yml 拆的是「视口 × 剧本」）：
+    # 一格一台跑机、一格两条用例（两档视口各一条），最慢的 settle 那格约 6 分钟。
+    # 再顶破要做的是继续减（只留一档视口，或者整组挪进慢档），不是把这个数往上调。
     timeout-minutes: 10
+    strategy:
+      # 一格对不上不该把别的格掐掉：一次跑完能看到全部差异。
+      fail-fast: false
+      matrix:
+        segment: [deal, play10, flip, settle]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -220,22 +226,29 @@ jobs:
       # 人下载下来看过再提交；有了之后它就一直走正常比对那条。
       # 平时怎么刷新见 packages/bench/README.md 的「基线怎么刷新」——**别指望这一步帮你生成**，
       # 有基线的时候它只比对，红了只会给你一份 keyframes-diff。
+      #
+      # `--grep` 按标签筛出这一格那两条用例。标签在 packages/bench/tests/keyframes.spec.ts 上，
+      # 形如 `@settle`——**它是这个工作流的接口**，改了名字这一格会变成
+      # 「一条用例都没匹配到」而不是失败，静悄悄地少跑一格。
       - name: 剧本关键帧截图回归
         id: keyframes
         run: |
           if [ -d packages/bench/baselines/linux ]; then
-            pnpm --filter @ai-duel/bench keyframes
+            pnpm --filter @ai-duel/bench keyframes --grep "@${{ matrix.segment }}"
           else
-            echo "::warning::仓库里还没有关键帧的 linux 基线，本次只生成不比对。把 keyframes-baselines-linux 这个 artifact 里的图提交到 packages/bench/baselines/linux/ 之后，这一步就会开始真的比对。"
-            pnpm --filter @ai-duel/bench keyframes:update
+            echo "::warning::仓库里还没有关键帧的 linux 基线，本次只生成不比对。把 keyframes-baselines-linux-* 这几个 artifact 里的图都提交到 packages/bench/baselines/linux/ 之后，这一步就会开始真的比对。"
+            pnpm --filter @ai-duel/bench keyframes:update --grep "@${{ matrix.segment }}"
             echo "generated=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # artifact 名字带上这一格：v4 不允许两个 job 传同一个名字。
+      # 人要的是完整的一份基线，所以下载时按 keyframes-baselines-linux-* 把四格都取下来，
+      # 命令见 packages/bench/README.md 的「基线怎么刷新」。
       - name: 上传新生成的关键帧 linux 基线
         if: steps.keyframes.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: keyframes-baselines-linux
+          name: keyframes-baselines-linux-${{ matrix.segment }}
           path: packages/bench/baselines/linux
 
       # 对不上的时候把「拍到的」和「差异图」带出来。
@@ -243,5 +256,5 @@ jobs:
         if: failure() && steps.keyframes.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: keyframes-diff
+          name: keyframes-diff-${{ matrix.segment }}
           path: packages/bench/test-results

@@ -13,8 +13,10 @@
  *
  * 画面从 Pixi 的 `extract` 抓，不走 `page.screenshot()`，理由见 src/page/grabFrame.ts。
  *
- * 进 CI **快档**的 `keyframes` job，单独占一台跑机：它是快档里最重的一步，
- * 和交互回归挤在一起装不进 10 分钟（见 .github/workflows/ci.yml）。
+ * 进 CI **快档**，而且按剧本段拆成四个并行 job（见 .github/workflows/ci.yml）：
+ * 它是快档里最重的一步，八条挤在一台两核跑机上要十三四分钟，一格一台才装得进 10 分钟。
+ * 每条用例挂了一个 `@剧本段` 的标签，**那是工作流的接口**：改了名字那一格会变成
+ * 「一条用例都没匹配到」而不是失败，静悄悄地少跑一格（和 deterministic.spec.ts 同一个约定）。
  */
 
 import { PROFILES } from '../src/node/profiles'
@@ -54,7 +56,9 @@ const PLANS: readonly { segment: string; stops: readonly number[] }[] = [
 
 for (const profile of PROFILES) {
   for (const plan of PLANS) {
-    test(`${profile.name}/${plan.segment}：关键帧和基线一致`, async ({ page }) => {
+    test(`${profile.name}/${plan.segment}：关键帧和基线一致`, {
+      tag: `@${plan.segment}`,
+    }, async ({ page }) => {
       await openBench(page)
       await initScene(page, initOptions(profile, true))
 
