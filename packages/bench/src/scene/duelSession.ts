@@ -17,7 +17,14 @@ import {
   type DuelScene,
   Rng,
 } from '@ai-duel/canvas'
-import type { Command, GameEvent, GameState, PlayerId } from '@ai-duel/core'
+import type {
+  AnswerResult,
+  Command,
+  GameEvent,
+  GamePhase,
+  GameState,
+  PlayerId,
+} from '@ai-duel/core'
 import {
   createGame,
   effectivePlayCost,
@@ -182,6 +189,40 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
       director.userAction({ kind: 'inspect-close' })
       drain()
       await untilIdle()
+    },
+
+    /**
+     * 走完一轮结算。
+     *
+     * 答案由这里直接编（不查 content 的离线回答表——bench 不依赖 content，见 duelScript.ts）：
+     * 我方全对、对方全错，好让结算层上「对」「错」两种判定和比分变化都演到。
+     * 每一步之间都等演出收完再发下一条，和玩家的节奏一致（同 playCards 的理由）。
+     */
+    async settleRound() {
+      // 走函数读阶段：`run()` 会整个换掉 state，而 TypeScript 看不出闭包里那次赋值，
+      // 直接读 state.phase 会被上一次比较收窄成一个不可能再变的字面量。
+      const phaseNow = (): GamePhase => state.phase
+      while (phaseNow() === 'play') {
+        run({ type: 'END_PLAY', player: state.activePlayer })
+        await untilIdle()
+      }
+      if (phaseNow() !== 'quiz') return
+      const results: AnswerResult[] = [...state.players[0].board, ...state.players[1].board].map(
+        (ai) => ({
+          instanceId: ai.instanceId,
+          correct: ai.owner === SEAT,
+          answer: ai.owner === SEAT ? '剧本里的正确回答' : '剧本里的错误回答',
+          reasoning: '剧本用的占位推理，两行以内。',
+        }),
+      )
+      run({ type: 'SUBMIT_ANSWERS', results })
+      await untilIdle()
+      // 双方都确认过这一轮才真的翻页，结算层也才退场。
+      for (const player of [0, 1] as const) {
+        if (phaseNow() !== 'settle') break
+        run({ type: 'CONFIRM_ROUND', player })
+        await untilIdle()
+      }
     },
 
     setWarmup(next) {

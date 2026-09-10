@@ -14,7 +14,7 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, Sprite, TextStyle } from 'pixi.js'
+import { Container, Sprite, TextStyle, Texture } from 'pixi.js'
 import type { TextTextureCache } from '../runtime/textCache'
 
 export interface LabelStyle {
@@ -73,6 +73,11 @@ export class Label extends Container {
   readonly textHeight: number
 
   private readonly sprite: Sprite
+  /**
+   * 只露出左边一截时用的那张纹理：和烤好的那张共用同一份 source，只是自己带一个可改的取样框。
+   * 没调过 `setReveal` 的 Label 不建它。
+   */
+  private revealTexture: Texture | null = null
 
   constructor(
     content: string,
@@ -103,5 +108,51 @@ export class Label extends Container {
   /** 换个颜色。走 tint，不重建纹理。 */
   setColor(color: string): void {
     this.sprite.tint = color
+  }
+
+  /**
+   * 只露出左边这一段（0 到 1），右边裁掉。打字机效果就是把它从 0 补到 1。
+   *
+   * 做法是改**取样框**，不是上遮罩。遮罩两条路都不能走：
+   * 用 Sprite 当遮罩 Pixi 会走 AlphaMask，那是一趟离屏渲染（纪律 3.1 要求离屏为 0）；
+   * 用 Graphics 当遮罩走 StencilMask，离屏是没有了，但每帧要动一次模板缓冲——
+   * 无头软件渲染下实测一帧从几十毫秒涨到几百毫秒，性能剧本里的结算那段直接跑不完。
+   * 改取样框只是换四个 uv，画的还是同一个四边形，一分钱不多花。
+   *
+   * 纹理里的字是从左往右排的，所以裁右边就等于「还没打到那儿」。
+   * 只对**靠左对齐**（`align: 'left'`）的 Label 有意义：居中的锚点在中间，裁窄之后
+   * 是从两边一起缩，不是从右边擦。现在也只有结算层的打字机在用它。
+   */
+  setReveal(fraction: number): void {
+    const texture = this.revealTexture ?? this.makeRevealTexture()
+    // 宽度不能是 0：Pixi 会拿它算 uv，除下来是 NaN。留一个像素，视觉上等同于没露出来。
+    texture.frame.width = Math.max(
+      1,
+      Math.round(this.textWidth * Math.min(1, Math.max(0, fraction))),
+    )
+    texture.update()
+  }
+
+  /**
+   * 建那张自带取样框的纹理。
+   *
+   * `orig` 不单独传：Pixi 的 `Texture` 在没给 `orig` 时会让它和 `frame` 指同一个矩形，
+   * 于是改一处宽度，取样框和「这张图有多大」一起变——精灵的尺寸才会跟着缩，
+   * 而不是把原图横向压扁。`dynamic` 也必须开，否则精灵不会订阅纹理的更新。
+   */
+  private makeRevealTexture(): Texture {
+    const base = this.sprite.texture
+    // frame 传原来那个就行：`Texture` 的构造函数是 copyFrom 进自己那份的，不会写到别人身上。
+    const texture = new Texture({ source: base.source, frame: base.frame, dynamic: true })
+    this.revealTexture = texture
+    this.sprite.texture = texture
+    return texture
+  }
+
+  /** 自己那张取样框纹理归自己销毁；底下的 source 是缓存里共用的，不能跟着销毁。 */
+  override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    this.revealTexture?.destroy(false)
+    this.revealTexture = null
+    super.destroy(options)
   }
 }
