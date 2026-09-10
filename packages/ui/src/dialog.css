@@ -1,0 +1,102 @@
+/*
+ * 弹窗 A（纸面对话框）的样式。样式跟着组件走（《正式版架构》7.2 第 4 条）。
+ * 数值读设计令牌，理由同 button.css。
+ */
+
+.ui-dialog {
+  position: fixed;
+  inset: 0;
+  /* 顶到最上层：它是传送到 body 的，同层可能还有别的东西。 */
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 四边让开刘海和底部横条。安全区在这里够得着，是因为整层是真 DOM，不是画布里的东西。 */
+  padding: calc(var(--space-xxl) + env(safe-area-inset-top))
+    calc(var(--space-xxl) + env(safe-area-inset-right))
+    calc(var(--space-xxl) + env(safe-area-inset-bottom))
+    calc(var(--space-xxl) + env(safe-area-inset-left));
+}
+
+/*
+ * 遮罩。它是一颗铺满整层的按钮（点它等于退掉，见 Dialog.tsx 的文件头），
+ * 所以要先把浏览器给按钮的默认外观全部清掉。
+ */
+.ui-dialog__scrim {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: var(--color-overlay-dialog);
+  opacity: var(--opacity-overlay-dialog);
+  cursor: default;
+}
+
+.ui-dialog__panel {
+  position: relative;
+  /* min 里那个 100% 是响应式：手机上弹窗跟着屏宽缩，不许横向溢出。 */
+  width: min(var(--size-dialog-width), 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /*
+   * 内边距和纵向间距是**组件私有**的（30 / 30 / 24 / 16），不进令牌：
+   * 它们只服务这一个组件，收进令牌就是给一组没人复用的数起全局名字
+   *（同 canvas 的 PlaqueButton 那批字号，见 design 的 README「明确不收什么」）。
+   * 底部比顶部小一档，是因为下面那排按钮本身带着视觉重量。
+   */
+  gap: 16px;
+  padding: 30px 30px 24px;
+  border: 1px solid var(--color-paper-line-dark);
+  background: var(--color-paper-base);
+  box-shadow: 0 18px 48px rgb(6 10 20 / 45%);
+  color: var(--color-paper-ink);
+  font-family: var(--font-family-serif);
+  text-align: center;
+}
+
+.ui-dialog__title {
+  margin: 0;
+  font-size: 22px; /* 组件私有字号，理由同上。 */
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  /* 字距加在每个字右边，末字那一格会让整行看着偏左，缩回来。 */
+  text-indent: 0.3em;
+}
+
+.ui-dialog__body {
+  margin: 0;
+  color: var(--color-paper-ink-muted);
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.ui-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  justify-content: center;
+  /* 两颗按钮各 224 宽，420 的面板里放不下并排两颗，所以这一排自己缩一号。 */
+  width: 100%;
+}
+
+/*
+ * 一排两颗时各占一半。用 flex 而不是给按钮写死宽度：按钮自己的宽是
+ * `min(224px, 100%)`，父容器一给出 100% 以内的空间它就跟着缩。
+ */
+.ui-dialog__actions > * {
+  flex: 1 1 40%;
+}
+
+/*
+ * 就地渲染那一档，只有组件目录页会用（见 Dialog.tsx 的 `inline`）。
+ *
+ * 固定一个尺寸而不是铺满：目录页拍的是条目那一块，`position: fixed` 的话那一块的
+ * 布局尺寸是 0，截图会拍到一片空。
+ */
+.ui-dialog[data-inline="true"] {
+  position: relative;
+  inset: auto;
+  width: 520px;
+  min-height: 320px;
+}

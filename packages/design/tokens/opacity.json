@@ -223,6 +223,11 @@
         "$value": 0.62,
         "$type": "number",
         "$description": "选目标层压暗的不透明度。来源：styles.css 的 .battle__targeting。"
+      },
+      "dialog": {
+        "$value": 0.82,
+        "$type": "number",
+        "$description": "纸面对话框遮罩的不透明度。比过场那两层重，理由见 color.overlay.dialog。来源：styles.css 的 .leave-ask。"
       }
     }
   }

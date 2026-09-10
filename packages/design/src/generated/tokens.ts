@@ -304,6 +304,8 @@ export const tokens = {
       reveal: "#000000",
       /** 选目标层的压暗。偏蓝的深色而不是纯黑：这一层压着的是战场，纯黑会把场上小卡的暖色压成灰。来源：styles.css 的 .battle__targeting。 */
       targeting: "#060b16",
+      /** 纸面对话框（需求单弹窗 A）底下那层遮罩的底色。旧样式里三处对话框写的是同一个 rgb(12 16 26 / 82%)，这里按 design 的规矩拆成颜色加 opacity.overlay.dialog。和 overlay.veil 分开是因为这一层要把整个界面挡死（后面那层战场不该还看得清），而那两层是过场，背景还得认得出来。来源：styles.css 的 .leave-ask、.fs-prompt、.rotate-notice。 */
+      dialog: "#0c101a",
     },
   },
   duration: {
@@ -524,6 +526,8 @@ export const tokens = {
       reveal: 0.66,
       /** 选目标层压暗的不透明度。来源：styles.css 的 .battle__targeting。 */
       targeting: 0.62,
+      /** 纸面对话框遮罩的不透明度。比过场那两层重，理由见 color.overlay.dialog。来源：styles.css 的 .leave-ask。 */
+      dialog: 0.82,
     },
   },
   radius: {
@@ -616,6 +620,10 @@ export const tokens = {
       urgeHeight: 48,
       /** 小一档匾额（结束出牌、打出、催一催）的左右内边距。旧样式里这三处是 14~16px，取最小的那档，最长的文案也排得开。来源：styles.css 的 .battle__end-turn .plaque-button padding: 0 14px。 */
       padXSmall: 14,
+    },
+    dialog: {
+      /** 纸面对话框（需求单弹窗 A）的宽。旧样式三处写的都是 min(420px, 100%)，那个 min 是响应式写法、留在组件的 CSS 里，令牌只收 420 这个设计值。来源：styles.css 的 .leave-ask__panel、.fs-prompt__panel、.rotate-notice__panel。 */
+      width: 420,
     },
     frame: {
       /** 双线雕花框每条边的盒子厚度（线本身只有 1px）。旧版留这么厚是给手绘滤镜的位移让地方，Pixi 这边不挂滤镜，它就是外线到内线之间的间距。来源：styles.css 的 --of-band。 */

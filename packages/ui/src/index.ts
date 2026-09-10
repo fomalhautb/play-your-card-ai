@@ -6,7 +6,16 @@
  * 允许依赖：`design`（令牌）、`platform`（平台能力）。
  * 不依赖 `canvas`——两套组件库并列，互相不引用。
  *
- * 组件从迁移第 31 条开始补，目录页在第 10 条。现在只有骨架。
+ * 现在装着的是迁移第 21 条那批：按钮 A（墨蓝匾额）和弹窗 A（纸面对话框），
+ * 也就是对局界面在画布之外唯一要用到的两样（离开确认那个弹窗）。
+ * 其余变体按需求单（docs/design/组件需求单.md）在用到时补，不先建完整再用。
+ *
+ * 每个组件的样式跟着组件走（同名 .css，7.2 第 4 条），数值一律读 `@ai-duel/design`
+ * 的 CSS 变量。变量要由应用壳 import 一次 `@ai-duel/design/tokens.css` 挂到 :root 上，
+ * 这个包自己不 import 它——那样每个用到组件的页面都会重复引一遍同一份变量。
  */
 
-export {}
+export type { ButtonProps, ButtonState, ButtonVariant } from './Button'
+export { Button } from './Button'
+export type { DialogAction, DialogProps } from './Dialog'
+export { Dialog } from './Dialog'

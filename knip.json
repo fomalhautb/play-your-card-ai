@@ -36,15 +36,15 @@
       // 迁移第 17 条的匾额按钮按下时要调触感和音效（见 components/PlaqueButton.ts）。
     },
     "packages/ui": {
-      // 同 canvas：目录页条目也是入口。现在这里只有令牌一览那一条。
+      // 同 canvas：目录页条目也是入口。
       "entry": ["src/**/*.stories.tsx"],
-      "ignoreDependencies": [
-        // design、react、@types/react 三条按上面的到期条款删掉了：
-        // 令牌一览那条目录页条目已经在用它们。剩下这三条还没有调用方。
-        "@ai-duel/platform",
-        "react-dom",
-        "@types/react-dom"
-      ]
+      /*
+       * react-dom 和 @types/react-dom 两条按上面的到期条款删掉了：
+       * 弹窗 A 要把自己传送到 body（迁移第 21 条，见 Dialog.tsx 的文件头）。
+       * design、react、@types/react 早先就被令牌一览那条目录页条目用上了。
+       * 剩 platform 一个还没有调用方——这个包里还没有要碰音频 / 存储 / 全屏的组件。
+       */
+      "ignoreDependencies": ["@ai-duel/platform"]
     },
     "packages/bench": {
       /*

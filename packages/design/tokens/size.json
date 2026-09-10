@@ -170,6 +170,14 @@
         "$description": "小一档匾额（结束出牌、打出、催一催）的左右内边距。旧样式里这三处是 14~16px，取最小的那档，最长的文案也排得开。来源：styles.css 的 .battle__end-turn .plaque-button padding: 0 14px。"
       }
     },
+    "dialog": {
+      "width": {
+        "$value": "420px",
+        "$type": "dimension",
+        "$description": "纸面对话框（需求单弹窗 A）的宽。旧样式三处写的都是 min(420px, 100%)，那个 min 是响应式写法、留在组件的 CSS 里，令牌只收 420 这个设计值。来源：styles.css 的 .leave-ask__panel、.fs-prompt__panel、.rotate-notice__panel。"
+      }
+    },
+
     "frame": {
       "band": {
         "$value": "8px",
