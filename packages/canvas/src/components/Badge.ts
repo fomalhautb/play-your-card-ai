@@ -1,6 +1,6 @@
 /**
  * 徽章：需求单的徽章 A（费用圆章）、B（问号帮助圆章）、C（卡面铭牌）、
- * D（卡角状态角标）、E（中线回合徽章）。
+ * D（卡角状态角标）、E（中线回合徽章）、I（敬请期待角标）。
  *
  * A 和 C 原本只长在 CardSprite 里，现在**形状**搬去了 fx/badgeShapes.ts，两边共用一份定义。
  * 搬的只有形状，不是显示对象：卡面上的每一层都要过透视投影、是四边形网格
@@ -10,23 +10,29 @@
  * D 和 E 是同一颗药丸换配色：底 + 一圈描边 + 一行字，全靠 tint 和 alpha 上色。
  * 药丸用九宫格（Pixi 自带的 NineSliceSprite），高固定 20、只横向拉伸，
  * 圆头永远是正圆——纯拉伸会把它压成椭圆。
+ *
+ * I 不走药丸那条路：它的圆角只有 3.6px，用药丸的九宫格画出来是一颗胶囊，
+ * 而设计稿上它是一块方方正正的小牌。这一枚直接用 Graphics 画一个圆角矩形，
+ * 建的时候画一次、之后不再动（3.10 管的是动画期间，不是建对象那一下）。
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, NineSliceSprite, Sprite, type Texture } from 'pixi.js'
+import { Container, Graphics, NineSliceSprite, Sprite, type Texture } from 'pixi.js'
 import { PILL_BASE, PILL_INSET } from '../fx/badgeShapes'
 import type { UiTextures } from '../fx/uiTextures'
 import type { TextTextureCache } from '../runtime/textCache'
 import { Label } from './Label'
 
 /** 编号变体。语义名见下面的别名常量。 */
-export type BadgeVariant = 'A' | 'B' | 'C' | 'D' | 'E'
+export type BadgeVariant = 'A' | 'B' | 'C' | 'D' | 'E' | 'I'
 
 export const BADGE_COST: BadgeVariant = 'A'
 export const BADGE_HELP: BadgeVariant = 'B'
 export const BADGE_NAMEPLATE: BadgeVariant = 'C'
 export const BADGE_TILE_MARK: BadgeVariant = 'D'
 export const BADGE_TURN: BadgeVariant = 'E'
+/** 「敬请期待」：压在还没实装的英雄卡上的那块米色小牌。 */
+export const BADGE_SOON: BadgeVariant = 'I'
 
 /**
  * 卡角角标的四档配色。
@@ -71,6 +77,8 @@ const TURN_FONT_SIZE = tokens.font.size.md
 const HELP_FONT_RATIO = 0.68
 /** 费用数字的字号，按圆章直径取比例。和 CardSprite 用的是同一个比例。 */
 const COST_FONT_RATIO = 0.52
+/** 「敬请期待」那块小牌的设计尺寸，抄需求单徽章 I 那条（103×31、圆角 3.6、13.7px 字）。 */
+const SOON = { height: 31, padX: 16, radius: 3.6, fontSize: 13.7 } as const
 
 export interface BadgeDeps {
   ui: UiTextures
@@ -88,6 +96,11 @@ export type BadgeOptions =
   | { variant: 'D'; text: string; tone: BadgeTone }
   /** 中线回合徽章。 */
   | { variant: 'E'; text: string }
+  /**
+   * 敬请期待角标。`scale` 是整块相对设计稿（103×31）的倍数——
+   * 英雄卡在两档版式下大小差一倍多，角标要跟着卡一起缩才压得住。
+   */
+  | { variant: 'I'; text: string; scale?: number }
 
 export class Badge extends Container {
   readonly variant: BadgeVariant
@@ -156,6 +169,34 @@ export class Badge extends Container {
           tone.line,
           tone.lineAlpha,
         )
+        break
+      }
+      case 'I': {
+        const scale = options.scale ?? 1
+        const label = new Label(
+          options.text,
+          {
+            fontSize: SOON.fontSize * scale,
+            weight: '600',
+            letterSpacing: SOON.fontSize * scale * 0.2,
+          },
+          deps,
+          tokens.color.soon.ink,
+        )
+        this.boxWidth = Math.round(label.textWidth) + SOON.padX * 2 * scale
+        this.boxHeight = SOON.height * scale
+        const plate = new Graphics()
+          .roundRect(0, 0, this.boxWidth, this.boxHeight, SOON.radius * scale)
+          .fill({ color: tokens.color.soon.fill })
+          .stroke({
+            width: 1,
+            color: tokens.color.soon.line,
+            alpha: tokens.opacity.soon.line,
+            alignment: 1,
+          })
+        this.addChild(plate)
+        label.position.set(this.boxWidth / 2, this.boxHeight / 2)
+        this.addChild(label)
         break
       }
       case 'E': {

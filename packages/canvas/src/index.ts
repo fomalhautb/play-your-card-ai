@@ -19,7 +19,7 @@
  * 它们只对自己的父组件负责，拆文件是被 400 行那条上限逼的，不是多了四个可以单独用的组件。
  * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）：
  * 现在多了首页和选英雄页要的那批（图片底板按钮、文字钮、星芒花饰、夜色圆章、人物说明栏）。
- * 迁移第 30 条的首页 scenes/home（含人物的 alpha 命中）。
+ * 迁移第 30 条的首页 scenes/home（含人物的 alpha 命中），以及归 canvas 的选英雄页 scenes/hero。
  *
  * 目录：
  *   components/    Pixi 组件（卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
@@ -31,7 +31,7 @@
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
  *   scenes/        场景装配（对局渲染器 scenes/duel，含两档版式、cue 播放器、输入；
- *                  房间页 scenes/room；首页 scenes/home。
+ *                  房间页 scenes/room；首页 scenes/home；选英雄页 scenes/hero。
  *                  每个场景都是「两档版式 + 一份哑状态 + 一组操作回调」，不认识路由和存档）
  *   storyStage.ts  组件目录页那边的约定（本包的 *.stories.ts 和装配层的舞台按它对接）
  *
@@ -249,6 +249,16 @@ export {
   hitTestMasks,
   type NormalizedBox,
 } from './scenes/home/castHit'
+export { createHeroScene } from './scenes/hero/HeroScene'
+export type {
+  HeroAction,
+  HeroEntry,
+  HeroScene,
+  HeroSceneOptions,
+  HeroView,
+} from './scenes/hero/heroContract'
+export type { HeroLayout, HeroRect } from './scenes/hero/heroLayout'
+export { pickHeroLayout } from './scenes/hero/heroLayout'
 export { createHomeScene } from './scenes/home/HomeScene'
 export {
   type HomeAction,

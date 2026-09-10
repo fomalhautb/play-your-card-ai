@@ -10,7 +10,7 @@
  * 没有 loader、没有嵌套路由那一套——这个应用的页面之间没有数据依赖关系，
  * 「匹配 → 选卡组 → 选英雄」那种流程是在**同一条路由内换 phase**（旧版就是这么做的）。
  *
- * 现在有首页、房间页、对局和开发页。牌组页、选英雄页、教程、设置和关于分别是
+ * 现在有首页、选英雄页、房间页、对局和开发页。牌组页、开包、教程、设置和关于分别是
  * 第 28~32 条的事，到时候各自往下面这张表里加一行——
  * 首页菜单上那几颗钮已经指着它们的路由了，现在点进去会落到兜底那一条（「没有这一页」）。
  */
@@ -21,6 +21,7 @@ import { Route, Switch } from 'wouter'
 import { MatchSessionProvider } from './app/MatchSession'
 import { PlatformProvider } from './app/platform'
 import { AuthProvider } from './auth/useSession'
+import { HeroScreen } from './screens/HeroScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { MatchScreen } from './screens/MatchScreen'
 import { RoomScreen } from './screens/RoomScreen'
@@ -53,6 +54,7 @@ export function App({ platform }: { platform: Platform }) {
         <MatchSessionProvider>
           <Switch>
             <Route path="/" component={HomeScreen} />
+            <Route path="/hero" component={HeroScreen} />
             <Route path="/room" component={RoomScreen} />
             <Route path="/match" component={MatchScreen} />
             {DEV_ROUTES.map(([path, Page]) => (

@@ -1,7 +1,7 @@
 /**
- * 匾额按钮：需求单里的按钮 A（墨蓝）、B（纸白）、C（陶橙）、K（纸面无底图标钮）。
+ * 匾额按钮：需求单里的按钮 A（墨蓝）、B（纸白）、C（陶橙）、D（象牙）、K（纸面无底图标钮）。
  *
- * A~C 是**同一颗按钮**换三组颜色，不是三个组件——去重记录第 1 条已经把这件事写死了，
+ * A~D 是**同一颗按钮**换四组颜色，不是四个组件——去重记录第 1 条已经把这件事写死了，
  * `color.plaque.<变体>.<状态>.<部位>` 那批令牌也是按这个结构存的。所以这里只有一个类，
  * 变体只挑令牌，不挑代码路径。K 是"不画底板"的那一档：纸上贴一枚深色圆章会重得像块补丁，
  * 所以它只有一枚实心墨色剪影加两档透明度。
@@ -25,24 +25,24 @@ import type { TextTextureCache } from '../runtime/textCache'
 import { Label } from './Label'
 
 /** 编号变体。语义名见下面的别名常量，界面代码只在这几个里挑（7.1 第 2 条）。 */
-export type PlaqueVariant = 'A' | 'B' | 'C' | 'K'
+export type PlaqueVariant = 'A' | 'B' | 'C' | 'D' | 'K'
 
 export const PLAQUE_NAVY: PlaqueVariant = 'A'
 export const PLAQUE_PAPER: PlaqueVariant = 'B'
 export const PLAQUE_TERRACOTTA: PlaqueVariant = 'C'
+/** 象牙匾额：夜色页面上的主操作键，比纸白更暖更实，才压得住星空底（选英雄页在用）。 */
+export const PLAQUE_IVORY: PlaqueVariant = 'D'
 export const PLAQUE_PLAIN: PlaqueVariant = 'K'
 
 export type PlaqueButtonState = 'default' | 'hover' | 'pressed' | 'disabled'
 
 /**
- * 四个尺寸档各自匾上那行字的字号和字距（px）。
+ * 五个尺寸档各自匾上那行字的字号和字距（px）。
  *
- * 这一批**不进设计令牌**：它们是旧样式里就地写的中号字（24 / 20 / 18 / 19px），
- * 四个数互不相同也不成阶梯，只服务这一个组件，收进令牌就是给一个没人复用的数起个全局名字
+ * 这一批**不进设计令牌**：它们是旧样式里就地写的中号字（24 / 20 / 18 / 19 / 24.8px），
+ * 五个数互不相同也不成阶梯，只服务这一个组件，收进令牌就是给一个没人复用的数起个全局名字
  *（design 的 README「明确不收什么」里「组件私有字号」那条说的就是它们）。
- * 集中成一张表而不是分散写进下面四个尺寸对象里，是为了「不进令牌」这件事有一处交代得清——
- * 散开写的话，下一个人只会看到四处零散的魔法数字，看不出它们是同一类东西。
- *
+ * 集中成一张表而不是分散写进下面五个尺寸对象里，是为了「不进令牌」这件事有一处交代得清。
  * 字距是把旧样式的 em 值乘开的结果：0.25em × 24px = 6，0.22em × 18px = 3.96，以此类推。
  */
 const PLAQUE_TYPE = {
@@ -50,9 +50,10 @@ const PLAQUE_TYPE = {
   endTurn: { fontSize: 20, letterSpacing: 4 },
   play: { fontSize: 18, letterSpacing: 3.96 },
   urge: { fontSize: 19, letterSpacing: 4.56 },
+  hero: { fontSize: 24.8, letterSpacing: 6.2 },
 } as const
 
-/** 四个尺寸档。宽高和左右内边距从令牌取，字号和字距取上面那张表。 */
+/** 五个尺寸档。宽高和左右内边距从令牌取，字号和字距取上面那张表。 */
 export const PLAQUE_SIZES = {
   /** 全站主操作键的默认档。 */
   default: {
@@ -75,6 +76,13 @@ export const PLAQUE_SIZES = {
     padX: tokens.size.plaque.padXSmall,
     ...PLAQUE_TYPE.play,
   },
+  /** 选英雄页的「确认英雄 / 返回」。这一页整版比对局大一号，匾额也跟着大一档。 */
+  hero: {
+    width: tokens.size.plaque.heroWidth,
+    height: tokens.size.plaque.heroHeight,
+    padX: tokens.size.plaque.padX,
+    ...PLAQUE_TYPE.hero,
+  },
   /** 等对方出牌时的「催一催」。 */
   urge: {
     width: tokens.size.plaque.urgeWidth,
@@ -86,7 +94,13 @@ export const PLAQUE_SIZES = {
 
 export type PlaqueSizeName = keyof typeof PLAQUE_SIZES
 
-/** 一个变体的全部配色。K 没有底板，所以它不在这张表里。 */
+/**
+ * 一个变体的全部配色。K 没有底板，所以它不在这张表里。
+ *
+ * 四个变体各有默认 / 悬停 / 禁用三档。象牙（D）那档的禁用色在令牌里是纸白档的别名——
+ * 旧样式压根没写过它的禁用态（那两颗钮点了就跳页，见需求单按钮 D 的状态行），
+ * 复用纸白那一档比另拍一套没人验证过的灰色靠谱。
+ */
 const PALETTES = {
   A: {
     states: tokens.color.plaque.navy,
@@ -105,6 +119,12 @@ const PALETTES = {
     trim: tokens.color.plaque.terracotta,
     lineAlpha: tokens.opacity.plaqueLine.terracotta,
     cornerAlpha: tokens.opacity.plaqueCorner.terracotta,
+  },
+  D: {
+    states: tokens.color.plaque.ivory,
+    trim: tokens.color.plaque.ivory,
+    lineAlpha: tokens.opacity.plaqueLine.ivory,
+    cornerAlpha: tokens.opacity.plaqueCorner.ivory,
   },
 } as const
 
@@ -359,11 +379,6 @@ export class PlaqueButton extends Container {
     }
     const palette = PALETTES[this.variant]
     const colorState = COLOR_STATE[this.state]
-    /*
-     * 四个变体的三档配色现在都齐了（米白那档的禁用色见 color.plaque.ivory.disabled）。
-     * 但米白（按钮 D）还没接进这个类：它只出现在英雄页，那一页还没做，
-     * 接上之前不先加一条没人走的代码路径。
-     */
     const colors = palette.states[colorState]
     for (const { sprite, role } of this.layers) {
       switch (role) {

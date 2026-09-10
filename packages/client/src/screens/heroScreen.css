@@ -1,0 +1,47 @@
+/*
+ * 选英雄页只需要一块铺满的地方：背景、两排卡、详情浮层全在画布里
+ *（版式见 canvas 的 scenes/hero/heroLayout.ts）。
+ * 这里剩下的只有等图时那一屏，和首页那一屏是同一套（临时的，第 31 条整个换掉）。
+ */
+
+.hero {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * 等图那一屏。**临时**：正式的加载页（需求单条 B）是第 31 条的事，那时这一整段删掉。
+ * 所以它没有进 `ui` 的组件库——为一个确定要被换掉的东西加一个编号变体，
+ * 只会让下一个人以为它是正式的。
+ */
+.hero--loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xxl);
+}
+
+.hero__loading-text {
+  margin: 0;
+  color: var(--color-home-ink);
+  font-size: var(--font-size-xl);
+  letter-spacing: 0.2em;
+  /* 字距会在最后一个字后面也留一份，整行看着偏左，补回来一半。 */
+  text-indent: 0.2em;
+}
+
+.hero__loading-bar {
+  width: 220px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-paper-line-dark);
+}
+
+.hero__loading-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--color-home-ink);
+  transition: width var(--duration-button-hover) linear;
+}
