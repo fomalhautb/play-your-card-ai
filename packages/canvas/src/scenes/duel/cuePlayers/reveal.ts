@@ -123,7 +123,6 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
     const restore = () => {
       if (instanceId !== null) ctx.parts.board.tile(instanceId)?.setHeld(false)
       dropShowcase(ctx)
-      ctx.wake()
     }
     const point = instanceId === null ? null : ctx.tilePoint(instanceId)
     if (cue.durationMs === 0 || point === null) {

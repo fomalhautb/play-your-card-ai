@@ -40,6 +40,5 @@ export const overlayPlayers: CuePlayerGroup<
     ctx.parts.board.clearTargets()
     dropShowcase(ctx)
     ctx.inspectingTile = null
-    ctx.wake()
   },
 }

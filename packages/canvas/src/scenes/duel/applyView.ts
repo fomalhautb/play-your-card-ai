@@ -17,6 +17,8 @@ import type { AiInstance, PlayerView } from '@ai-duel/core'
 import type { BoardSide } from '../../components/BoardGrid'
 import { applyPose } from '../../components/HandFan'
 import type { DuelContext } from './context'
+import { killAndDestroy } from './disposal'
+import { CATEGORY_LABELS } from './labels'
 import { fanToWorld } from './layout/types'
 import { tileMarksOf } from './tileMarks'
 
@@ -40,7 +42,10 @@ function syncChrome(ctx: DuelContext, view: PlayerView): void {
   panels.theirs.setScore(view.opponent.score)
   // 「下一题」纸匾只有桌面档的侧栏有；手机档折叠掉了它（见 mobileLayout 的文件头）。
   const question = view.questions[view.round - 1]
-  if (sideBar !== null && question !== undefined) sideBar.setNextCategory(question.category)
+  // 纸匾上写的是译好的中文，组件自己不查表（见 SideBar.setNextCategory）。
+  if (sideBar !== null && question !== undefined) {
+    sideBar.setNextCategory(CATEGORY_LABELS[question.category])
+  }
   board.setTurnBadge(turnBadgeOf(view, view.viewer))
 }
 
@@ -151,7 +156,6 @@ export function applyView(ctx: DuelContext, view: PlayerView): void {
 export function reconcile(ctx: DuelContext): void {
   const view = ctx.view
   if (view === null) return
-  let changed = false
 
   if (ctx.pendingHand.length > 0) {
     const from = ctx.deckPose()
@@ -161,32 +165,25 @@ export function reconcile(ctx: DuelContext): void {
       ctx.bindHandCard(card)
     }
     ctx.parts.fan.layout('reflow')
-    changed = true
   }
 
   for (const [instanceId, leaving] of ctx.leaving) {
     ctx.leaving.delete(instanceId)
-    leaving.card.destroy({ children: true, texture: false, textureSource: false })
-    changed = true
+    killAndDestroy(ctx.deps.animator, leaving.card)
   }
 
   for (const instanceId of ctx.hiddenTiles) {
     ctx.parts.board.tile(instanceId)?.setHeld(false)
-    changed = true
   }
   ctx.hiddenTiles.clear()
 
   for (const instanceId of ctx.doomedTiles) {
     ctx.parts.board.remove(instanceId)
-    changed = true
   }
   ctx.doomedTiles.clear()
 
   if (ctx.parts.foeHand.count !== view.opponent.handCount) {
     ctx.parts.foeHand.setCount(view.opponent.handCount)
     ctx.pendingFoeDeal = 0
-    changed = true
   }
-
-  if (changed) ctx.wake()
 }
