@@ -17,6 +17,15 @@ export interface FakeSocket extends SocketHandle {
   readonly sent: readonly string[]
   /** 每次（重）连时算出来的地址，最新的在最后。 */
   readonly urls: readonly string[]
+  /**
+   * 每次（重）连时取到的子协议名，下标和 `urls` 对齐。
+   *
+   * 取子协议是异步的（换凭据要走一次请求），所以这一项要等一个微任务才填得上；
+   * 在那之前是空数组。真实现里 partysocket 会等它取完才发起连接，
+   * 假实现不等——`acceptConnection()` 什么时候调由测试说了算，
+   * 再模拟一道等待只会让每条测试都多一步 await。
+   */
+  readonly protocols: readonly (readonly string[])[]
   /** 假装连上了。 */
   acceptConnection(): void
   /** 假装收到一帧。 */
@@ -70,20 +79,28 @@ function createFakeSocket(options: SocketOptions): FakeSocket {
 
   const sent: string[] = []
   const urls: string[] = []
+  const protocols: string[][] = []
   /** 连接没通时攒下的帧，连上就按顺序补发。 */
   const queued: string[] = []
   let state: 'connecting' | 'open' | 'closed' = 'connecting'
 
-  /** 开始一次连接尝试：地址现算一次。 */
+  /** 开始一次连接尝试：地址和子协议各现取一次。 */
   function connect(): void {
     state = 'connecting'
+    // 先占好这一次的位置再去异步取子协议，这样连着重连几次也不会把两个数组的下标错开。
+    const attempt = urls.length
     urls.push(options.url())
+    protocols[attempt] = []
+    void Promise.resolve(options.protocols?.() ?? []).then((list) => {
+      protocols[attempt] = list
+    })
   }
   connect()
 
   return {
     sent,
     urls,
+    protocols,
     get state() {
       return state
     },

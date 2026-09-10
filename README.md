@@ -96,14 +96,16 @@ Biome 管格式和单文件行数，dependency-cruiser 管包之间的依赖方�
 pnpm assets:build
 ```
 
-它做三件事：把 `packages/legacy-client/public/cards` 下的原画统一缩到 512×768、
-按 `models` / `skills` / `backs` 三组各打一张图集（页面 2048×2048，输出 webp），
-再把产物复制到 `apps/web/public/atlas/` 和 `packages/bench/public/atlas/`。
+它做四件事：把 `assets/source/cards` 下的原画统一缩到 512×768、
+按 `models` / `skills` / `backs` 三组各打一张图集（页面 2048×2048，输出 webp）、
+把产物复制到 `apps/web/public/atlas/` 和 `packages/bench/public/atlas/`，
+再把界面底图和音频原样复制到 `apps/web/public/` 下（音频落在 `audio/music/`）。
 三组分开打是为了按场景装卸——对局只要 models 和 backs。
 
-产物（`assets/dist/` 和两处 `public/atlas/`）都在 `.gitignore` 里：源头是那些原画，
-随时能重打，进仓库只会让每次改图都变成一次几兆的 diff。
-换了原画、加了新卡、改了图集参数之后重跑一次即可。
+全部素材的源在 `assets/source/`，产物（`assets/dist/` 和 `apps/web/public/` 整个目录）
+都在 `.gitignore` 里：源头是那些原画和音频，随时能重打，进仓库只会让每次改图都变成
+一次几兆的 diff。换了原画、加了新卡、改了图集参数之后重跑一次即可。
+三个 public 目录的关系见 `assets/README.md`。
 
 ## 技术栈
 

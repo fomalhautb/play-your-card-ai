@@ -5,8 +5,17 @@
     // Worker 跑在 workerd 里，不是 Node：没有 process、fs 这些东西，
     // 有的是 WebSocketPair、DurableObject 这些运行时类型。
     // worker-configuration.d.ts 是 `pnpm --filter @ai-duel/server types` 生成的，
-    // 里面是 wrangler.jsonc 那些绑定（ASSETS、ROOM）对应的 Env 接口。
-    "types": ["@cloudflare/workers-types", "./worker-configuration.d.ts"]
+    // 里面是 wrangler.jsonc 那些绑定（ASSETS、ROOM、MATCH_ROOM）对应的 Env 接口；
+    // 密钥那半份在手写的 env.d.ts 里。
+    // @cloudflare/vitest-pool-workers/types 是 `cloudflare:test` 那个虚拟模块的类型
+    // （env、SELF、runInDurableObject）。只有 test/ 下用得到，但 types 是整个项目一份，放这儿就行。
+    "types": [
+      "@cloudflare/workers-types",
+      "@cloudflare/vitest-pool-workers/types",
+      "./worker-configuration.d.ts"
+    ]
   },
-  "include": ["src", "test", "worker-configuration.d.ts"]
+  // env.d.ts 是手写的那半份 Env（密钥），worker-configuration.d.ts 是生成的那半份，
+  // 两个 `interface Env` 靠 TypeScript 的接口合并拼成一个。
+  "include": ["src", "test", "env.d.ts", "worker-configuration.d.ts"]
 }

@@ -51,6 +51,18 @@ jobs:
         if: steps.credentials.outputs.ready == 'true'
         run: pnpm --filter @ai-duel/legacy-client build
 
+      # 账号库的建表要走在部署前面：新代码一上线就会去查 user / session / jwks 这几张表，
+      # 表还没建的话第一个来登录的人直接报 500。
+      # 反过来（先建表再部署）最多是库里多几张暂时没人用的表，没有风险。
+      # 这条命令是幂等的，wrangler 按 d1_migrations 表记账，已经跑过的不会再跑一遍。
+      - name: 应用账号库迁移
+        if: steps.credentials.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: packages/server
+          command: d1 migrations apply AUTH_DB --remote
+
       - name: 部署 Worker
         if: steps.credentials.outputs.ready == 'true'
         uses: cloudflare/wrangler-action@v3
