@@ -14,11 +14,12 @@
  * 真实时间源、真实时钟下没有动画就停帧循环（3.6）；上下文丢失时把烤出来的纹理重画一遍（4.3）。
  */
 
-import type { CardId, InstanceId } from '@ai-duel/core'
+import type { CardId, HeroId, InstanceId } from '@ai-duel/core'
 import { tokens } from '@ai-duel/design'
-import { autoDetectRenderer, Container, Rectangle, type Renderer } from 'pixi.js'
+import { autoDetectRenderer, Container, Rectangle, type Renderer, Sprite } from 'pixi.js'
 import { CardSprite } from '../../components/CardSprite'
 import type { DirectorLocks } from '../../director/director'
+import { CARD_HEIGHT, CARD_WIDTH } from '../../layout/fanMath'
 import { FrameLoop } from '../../runtime/frameLoop'
 import type { DuelCommand, DuelScene, DuelSceneCounters, DuelSceneOptions } from '../duelContract'
 import { warmupScene } from '../warmup'
@@ -184,6 +185,7 @@ class DuelSceneImpl {
       inspectingTile: null,
 
       makeCard: (cardId, instanceId) => this.makeCard(cardId, instanceId),
+      makeHero: (heroId) => this.makeHero(heroId),
       tilePoint: (instanceId) => tilePointOf(this.layout, this.parts.board, instanceId),
       cardIdOf: (instanceId) => this.cardIdOf(instanceId),
       after: (delayMs, run) => this.clock.after(delayMs, run),
@@ -194,12 +196,33 @@ class DuelSceneImpl {
       userAction: (action) => this.onUserActionCb?.(action),
       command: (command) => this.onCommandCb?.(command),
       tutorial: (cue) => this.onTutorialCb?.(cue),
+      beginHeroSkill: () => this.input.beginHeroSkill(),
       refreshLocks: () => this.refreshLocks(),
     }
   }
 
   private makeCard(cardId: CardId, instanceId: string): CardSprite {
     return new CardSprite(this.visuals.visualOf(cardId, instanceId), this.deps.cardDeps)
+  }
+
+  /**
+   * 侧栏那张英雄牌：一张原画，按卡面基准尺寸（150×225）摆好，原点在底边中点。
+   *
+   * 原点跟着 `CardSprite` 的坐标约定走，玩家面板才能不管里面装的是哪一种东西
+   *（它只写 position 和 scale，见 PlayerPanel 的 layout）。
+   * 外面再包一层 Container 是因为面板会写 `scale`，而尺寸是靠精灵自己的 scale 撑出来的，
+   * 两者写在同一个对象上会互相覆盖。
+   */
+  private makeHero(heroId: HeroId): Container | null {
+    const texture = this.options.textures.heroes?.[heroId]
+    if (texture === undefined) return null
+    const sprite = new Sprite(texture)
+    sprite.anchor.set(0.5, 1)
+    sprite.width = CARD_WIDTH
+    sprite.height = CARD_HEIGHT
+    const holder = new Container()
+    holder.addChild(sprite)
+    return holder
   }
 
   /** 场上（或手上）那个实例现在是哪张牌。 */
