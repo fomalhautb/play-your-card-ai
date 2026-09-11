@@ -84,6 +84,15 @@
         "e2e/online.spec.ts"
       ]
     },
+    "apps/steam": {
+      /*
+       * 两个谁也不 import 的入口。
+       * preload.ts 是 Electron 按**路径字符串**加载的（见 src/window.ts 的 webPreferences），
+       * 源码里没有任何一行 import 它；smoke.spec.ts 由 Playwright 加载，而它那份配置在
+       * e2e/ 下面、不是默认位置，knip 的 Playwright 插件扫不到（同 packages/client）。
+       */
+      "entry": ["src/preload.ts", "e2e/smoke.spec.ts"]
+    },
     "packages/server": {
       "ignoreDependencies": [
         // cloudflare:workers 是 Workers 运行时的内建模块，不是 npm 包。

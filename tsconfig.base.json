@@ -3,9 +3,11 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    // 仓库里没有任何一个包经过 tsc 产出 JS：apps/* 和 legacy-client 交给 Vite、server 交给 wrangler，
+    // 几乎没有包经过 tsc 产出 JS：apps/web 和 legacy-client 交给 Vite、server 交给 wrangler，
     // 其余包的 exports 直接指向 src/index.ts，被上面这些当源码引用。
     // 所以这里按打包器的解析规则来，tsc 只当类型检查器用。
+    // 唯一的例外是 apps/steam 的主进程和 preload（Electron 要的是磁盘上能直接 require 的文件），
+    // 它自己的 tsconfig 把 noEmit、module、moduleResolution 三项都覆盖掉了。
     "moduleResolution": "Bundler",
     "moduleDetection": "force",
     "verbatimModuleSyntax": true,

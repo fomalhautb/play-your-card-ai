@@ -2,5 +2,34 @@
   "name": "@ai-duel/steam",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "description": "出牌吧AI 的 Steam 版外壳",
+  "author": "play-your-card-ai",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && vite build",
+    "dev": "vite",
+    "start": "tsc -p tsconfig.json && electron . --dev-url=http://localhost:5175",
+    "preview": "pnpm build && electron .",
+    "pack:dir": "pnpm build && electron-builder --dir",
+    "pack:linux": "pnpm build && electron-builder --linux AppImage",
+    "smoke": "playwright test -c e2e/playwright.config.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.renderer.json && tsc --noEmit -p e2e"
+  },
+  "dependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "devDependencies": {
+    "@ai-duel/client": "workspace:*",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.0",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
 }

@@ -1,0 +1,43 @@
+{
+  // 主进程和 preload。渲染进程那半边在 tsconfig.renderer.json 里（它是 ESM + JSX，
+  // 一份配置装不下两种模块格式）。
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 主进程跑在 Node 里，没有 DOM。preload 虽然挂在渲染进程上，但它碰的只有
+    // contextBridge 和 ipcRenderer，也用不着 DOM 的类型。
+    "lib": ["ES2022"],
+    "types": ["node"],
+
+    /*
+     * 整个壳（主进程 + preload）编译成 **CommonJS**，所以这个包的 package.json 里
+     * 没有 `"type": "module"`。
+     *
+     * 不是偷懒，是被 preload 逼的：它跑在沙箱里（`sandbox: true`，见 src/window.ts），
+     * 而沙箱里的 preload 只认 CommonJS。要让它用 ESM 就得把沙箱关掉——
+     * 那是拿渲染进程的操作系统级隔离换一种模块语法，不划算。
+     * 主进程本来 ESM 也行，但一个包里两种格式只会让人每次都要先想「这个文件是哪一种」。
+     *
+     * `module: node16` 而不是 `CommonJS`：TypeScript 7 里模块格式按 package.json 的 `type`
+     * 逐文件判定，这个包没有 `"type"` 字段，所以每个文件都是 CommonJS。
+     * `verbatimModuleSyntax` 必须跟着关掉：它的意思是「import 语句原样输出」，
+     * 和「输出 CommonJS」直接冲突（开着的话每一行 import 都会报错）。
+     */
+    "module": "node16",
+    "moduleResolution": "node16",
+    "verbatimModuleSyntax": false,
+
+    /*
+     * **仓库里唯一一个真的用 tsc 产出 JS 的包**（别处 tsc 只当类型检查器用，
+     * 见 tsconfig.base.json 的说明）。Electron 的主进程要的是磁盘上一个能直接 require 的
+     * 文件，而它一共就几百行、没有任何需要打包的东西，为它再拉一个打包器不值得。
+     */
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist/main",
+    // 崩溃堆栈里要看得见 .ts 的行号，不然只有一串编译后的行号。
+    "sourceMap": true
+  },
+  // 渲染进程那半边排除掉：它由 Vite 编译，模块格式和这里正好相反。
+  "include": ["src"],
+  "exclude": ["src/renderer"]
+}
