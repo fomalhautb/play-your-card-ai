@@ -10,12 +10,58 @@
  * 因此都落在第一轮里，不用穿过回合结算（那一段有打字机效果，不适合当稳态指标的样本）。
  */
 
-import type { Catalog, Question } from '@ai-duel/core'
+import type { Catalog, HeroId, Question } from '@ai-duel/core'
 import { DECK } from '../node/profiles'
 
-/** 卡池：`profiles.ts` 那批贴图名各一张 AI 牌。 */
+/**
+ * 交互用例（tests/interaction.spec.ts）要打的那张技能牌。
+ *
+ * 目标档选 `own-hand-ai`（模型蒸馏那一档）：它的合法目标是**自己手里**的另一张 AI 牌，
+ * 不需要先在场上摆出单位，一局刚发完牌就能走「拖进落区 → 选目标 → 点中」这整条路。
+ * 三段确定性剧本抽不到它（它只在 INTERACTION_DECK 里），所以那边的指标一个数都不会动。
+ */
+export const INTERACTION_SKILL = 'bench-distill'
+
+/**
+ * 交互用例给我方配的英雄：陈丹琦，主动技能是「升己方一个单位一代」。
+ *
+ * 七位英雄里只有她和梅拉妮·珀金斯有主动技能（判据见 canvas 的 scenes/duel/skillTargets.ts），
+ * 选升级那一位是因为她打的是**自己**场上的单位——一局刚开局只要自己打出一张牌就有目标了，
+ * 不用先等对手也上场。
+ *
+ * 三段确定性剧本双方都是 `hero: null`（见 duelSession.ts），所以配上这位英雄之后
+ * 那边一个数都不会动：没有英雄就没有那颗钮，也没有任何一条 cue 会变。
+ */
+export const INTERACTION_HERO: HeroId = 'danqi-chen'
+
+/**
+ * 同代际的下一张牌，键是上一代。抄 content 的四条真链（GPT / Claude / DeepSeek / Kimi）。
+ *
+ * 只有升得动（或降得动）的单位才是英雄技能的合法目标，而那一条最终问的是卡定义上的
+ * `evolvesTo`（见 core 的 upgradeTargetOf）。剧本卡池要是一条链都没有，
+ * 交互用例点开那颗钮只会看到空空的一片，测不到任何东西。
+ * 三段确定性剧本读不到这个字段（引擎只在结算英雄技能时查它），所以指标不受影响。
+ */
+const EVOLVES_TO: Readonly<Record<string, string>> = {
+  'gpt-2': 'gpt-3-5',
+  'gpt-3-5': 'gpt-4o',
+  'gpt-4o': 'chatgpt-5-6-sol',
+  'claude-5-sonnet': 'claude-fable-5',
+  'deepseek-r1': 'deepseek-v4',
+  'kimi-k2-6': 'kimi-k3',
+}
+
+/** 卡池：`profiles.ts` 那批贴图名各一张 AI 牌，外加交互用例要的那张技能牌。 */
 function makeCatalog(): Catalog {
   const cards: Catalog['cards'] = {}
+  cards[INTERACTION_SKILL] = {
+    kind: 'skill',
+    id: INTERACTION_SKILL,
+    name: '剧本用的技能牌',
+    tokenCost: 1,
+    text: '交互用例专用：打自己手里的一张 AI 牌。',
+    target: 'own-hand-ai',
+  }
   for (const id of DECK) {
     cards[id] = {
       kind: 'ai',
@@ -27,13 +73,28 @@ function makeCatalog(): Catalog {
       openrouter: null,
       tokenCost: 1,
       text: '剧本用的占位卡面文案。',
+      ...(EVOLVES_TO[id] === undefined ? {} : { evolvesTo: EVOLVES_TO[id] }),
     }
   }
   /*
-   * 英雄一个都不带（双方都是 `hero: null`，引擎因此一次都不会去查这张表）。
-   * `Catalog.heroes` 的类型要求七位齐全，编七份假英雄只是为了让类型过关。
+   * 英雄表里只放交互用例要的那一位。
+   *
+   * `Catalog.heroes` 的类型要求七位齐全，编七份假英雄只是为了让类型过关，所以这里断言一下：
+   * 引擎只在 `hero !== null` 时查这张表（见 core 的 createGame），而三段确定性剧本双方都是
+   * `hero: null`，一次都查不到。
    */
-  return { cards, heroes: {} as Catalog['heroes'] }
+  const heroes = {
+    [INTERACTION_HERO]: {
+      kind: 'hero',
+      id: INTERACTION_HERO,
+      name: '剧本用的英雄',
+      enName: 'Bench Hero',
+      text: '交互用例专用。',
+      skillName: '精准检索',
+      skillText: '把己方场上一个单位升一代。',
+    },
+  } as unknown as Catalog['heroes']
+  return { cards, heroes }
 }
 
 export const BENCH_CATALOG: Catalog = makeCatalog()
@@ -53,3 +114,11 @@ export const BENCH_QUESTIONS: Question[] = [1, 2, 3].map((round) => ({
  * 所以最先摸到的那几张写在最后。这里一律用同一批牌，谁先谁后不影响指标。
  */
 export const BENCH_DECK = [...DECK, ...DECK].slice(0, 24)
+
+/**
+ * 交互用例的牌组：和 `BENCH_DECK` 一样，只是把最先摸到的那张换成技能牌。
+ *
+ * 抽牌从数组**末尾**取，所以末尾那张是开局第一张。开局发五张，剩下四张都是 AI 牌，
+ * 正好当那张技能牌的候选目标。
+ */
+export const INTERACTION_DECK = [...BENCH_DECK.slice(0, -1), INTERACTION_SKILL]

@@ -1,0 +1,117 @@
+# 《正式版架构》6.1 的「慢档」：合进 main 之后跑，也能手动触发。
+#
+# 现在只有一样东西在这里：**性能剧本的确定性指标**（6.9）。它本来是想放快档的，
+# 第 18 条接上真对局场景之后实测整批 17 分钟、最慢一条 12.9 分钟（M2 上，无头软件渲染），
+# 两核的 ubuntu 跑机只会更慢，10 分钟的快档装不下。
+#
+# 拆法是**按「视口 × 剧本」开成一格一格的并行 job**：每条用例各开各的页面和渲染进程，
+# 之间没有任何耦合（同一段剧本的数字和跑得快慢无关，见 playwright.config.ts），
+# 所以拆开只是把墙钟时间从"最慢那一条 + 排队"压到"最慢那一条"。
+# 一格红了只说明那一格超限，别的格照跑（fail-fast: false）。
+#
+# 时间指标（帧时间 p50/p95、主线程脚本时间、GPU 每帧耗时）**不在这里**：
+# 它机器相关、只出数不设门禁，而 GitHub 跑机既没 GPU 又跑在软件渲染上，量出来没有参考价值。
+# 那一组只在开发者本机跑，怎么跑和怎么和 main 比见 packages/bench/README.md。
+name: CI 慢档
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 同一个分支上连着推几次时掐掉旧的：慢档一跑十几分钟，排队跑几个月前的提交没有意义。
+concurrency:
+  group: slow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bench:
+    name: 确定性指标 ${{ matrix.profile }}/${{ matrix.segment }}
+    runs-on: ubuntu-latest
+    # 最慢的两格是 desktop/play10（M2 上单独跑 6.8 分钟）和 desktop/settle（同机 7.1 分钟，
+    # 那还是和另一格抢着核跑出来的）。两核跑机按三倍估约 20 分钟。
+    # 给 20 分钟是"跑得完"的下限，不是余量——顶破了要查的是剧本为什么变长了。
+    #
+    # 第 28 条加的 deckScroll（牌组编辑）是最轻的两格：M2 上桌面档 1.8 分钟、手机档 15 秒
+    # ——那一页没有演出，帧数（291 / 336）几乎全是「动作之间等真人的那点反应时间」。
+    timeout-minutes: 20
+    strategy:
+      # 一格超限不该把别的格掐掉：一次跑完能看到全部超限项，比一条一条试快得多。
+      fail-fast: false
+      matrix:
+        profile: [desktop, mobile]
+        segment: [deal, play10, flip, settle, deckScroll]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      # 顺序不能反：setup-node 的 cache: pnpm 要先能找到 pnpm 才知道去哪儿找 store。
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 按标签筛出这一格那条用例。标签在 packages/bench/tests/deterministic.spec.ts 上，
+      # 形如 `@desktop-play10`——**它是这个工作流的接口**，改了名字这一格会变成
+      # 「一条用例都没匹配到」而不是失败，静悄悄地少跑一格，所以下面那条 --pass-with-no-tests 的
+      # 反面（默认行为：没匹配到就退非零）是有意留着的。
+      - name: 确定性指标
+        run: pnpm --filter @ai-duel/bench bench --grep "@${{ matrix.profile }}-${{ matrix.segment }}"
+
+      # 超限的时候把报告目录带出来：里面有逐帧记录和超限条目，光看日志里那几行数字不够查。
+      - name: 上传报告
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ matrix.profile }}-${{ matrix.segment }}
+          path: |
+            packages/bench/results
+            packages/bench/test-results
+
+  guard:
+    name: 测量骨架自测与泄漏
+    runs-on: ubuntu-latest
+    # 桩场景那条几十秒；泄漏那条要连开二十多轮场景，本机约 3 分钟，两核跑机按三倍估。
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 这两条不按视口 × 剧本分格：桩场景是测量骨架的对照组，泄漏是连跑十轮比堆基线，
+      # 两条都只在一个视口上跑一遍就够（见 deterministic.spec.ts 各自的说明）。
+      - name: 桩场景与泄漏
+        run: pnpm --filter @ai-duel/bench bench --grep "@stub|@leak"
+
+      - name: 上传报告
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-guard
+          path: |
+            packages/bench/results
+            packages/bench/test-results

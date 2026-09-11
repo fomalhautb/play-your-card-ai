@@ -115,14 +115,14 @@ export function HomeScreen() {
       case 'online':
         navigate('/room')
         break
-      // 牌组页是第 28 条、关于和设置是第 31 条。路由不在时 wouter 会走兜底那一条，
-      // 玩家看到的是「没有这一页」——比把入口藏起来好：这几页确实要有，只是还没做。
       case 'deck':
         navigate('/deck')
         break
       case 'hero':
         navigate('/hero')
         break
+      // 关于和设置是第 31 条，那两条路由还不在。路由不在时 wouter 会走兜底那一条，
+      // 玩家看到的是「没有这一页」——比把入口藏起来好：这几页确实要有，只是还没做。
       case 'about':
         navigate('/about')
         break

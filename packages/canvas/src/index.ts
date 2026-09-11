@@ -10,6 +10,8 @@
  * 迁移第 16 条的对局演出编排层；
  * 迁移第 18 条的对局渲染器（scenes/duel）：它消费编排层的 cue，是**唯一**认得
  * 「哪条 cue 该让哪个组件演什么」的地方；
+ * 迁移第 28 条的牌组编辑器（scenes/deck）：分页的卡池、20 个卡位的牌组栏、拖拽增删，
+ * 那一页的分页 / 落点 / 让位 / 合法性全在 scenes/deck/logic 里，是不碰 Pixi 的纯函数；
  * 以及迁移第 17 条那批对局用的组件，分两层：
  * 基础件（匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字）和拿它们拼出来的复合件
  *（顶栏、侧栏、玩家面板、Token 细条、战场、对手手牌、横幅、抛硬币、抵消层、展示层、
@@ -32,7 +34,8 @@
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
  *   scenes/        场景装配（对局渲染器 scenes/duel，含两档版式、cue 播放器、输入；
- *                  房间页 scenes/room；首页 scenes/home；选英雄页 scenes/hero；开包 scenes/pack。
+ *                  牌组编辑 scenes/deck；房间页 scenes/room；首页 scenes/home；
+ *                  选英雄页 scenes/hero；开包 scenes/pack。
  *                  每个场景都是「两档版式 + 一份哑状态 + 一组操作回调」，不认识路由和存档）
  *   storyStage.ts  组件目录页那边的约定（本包的 *.stories.ts 和装配层的舞台按它对接）
  *
@@ -72,6 +75,7 @@ export {
 export { CardSprite, type CardSpriteDeps, type CardVisual } from './components/CardSprite'
 export { CoinToss, type CoinTossDeps } from './components/CoinToss'
 export { CardTilt } from './components/cardTilt'
+export { DeckSlots, type DeckSlotsDeps, type DeckSlotsOptions } from './components/DeckSlots'
 export {
   DIVIDER_GEM,
   DIVIDER_MIDLINE,
@@ -88,6 +92,7 @@ export {
 } from './components/Flourish'
 export { FoeHand, type FoeHandDeps, type FoeHandOptions } from './components/FoeHand'
 export { applyPose, HandFan, type HandFanOptions, type LayoutMode } from './components/HandFan'
+export { HintBar, type HintBarDeps, type HintBarOptions, type HintTone } from './components/HintBar'
 export {
   INFO_CARD_CAST,
   INFO_CARD_HERO,
@@ -100,7 +105,9 @@ export {
 export { Label, type LabelStyle } from './components/Label'
 export { OrnateFrame, type OrnateFrameDeps } from './components/OrnateFrame'
 export {
+  PANEL_CARD_POOL,
   PANEL_NEXT_PLAQUE,
+  PANEL_PAGE,
   PANEL_SIDEBAR,
   PANEL_SKILL_BACK,
   PANEL_TOKEN_RAIL,
@@ -138,6 +145,7 @@ export {
   type PlayerPanelDeps,
   type PlayerPanelOptions,
 } from './components/PlayerPanel'
+export { ProgressBar, type ProgressBarOptions } from './components/ProgressBar'
 export {
   RevealOverlay,
   type RevealOverlayDeps,
@@ -152,6 +160,27 @@ export {
 export { SettleLayer, type SettleLayerDeps, type SettleSide } from './components/SettleLayer'
 export { SideBar, type SideBarDeps, type SideBarOptions } from './components/SideBar'
 export { type SkillCancelDeps, SkillCancelLayer } from './components/SkillCancelLayer'
+export {
+  type SealGlyph,
+  SMALL_BACK,
+  SMALL_SEAL,
+  SMALL_WIRE,
+  SmallButton,
+  type SmallButtonDeps,
+  type SmallButtonOptions,
+  type SmallButtonVariant,
+} from './components/SmallButton'
+export {
+  TABS_CHIP,
+  TABS_DECK_PILL,
+  TABS_PAPER,
+  type TabItem,
+  type TabRect,
+  Tabs,
+  type TabsDeps,
+  type TabsOptions,
+  type TabsVariant,
+} from './components/Tabs'
 export {
   CASTING_DIM,
   CASTING_LIFT,
@@ -215,6 +244,17 @@ export {
   tiltHalfExtent,
 } from './layout/fanMath'
 export {
+  type CellRect,
+  cellCenter,
+  cellCount,
+  cellRect,
+  type GridSpec,
+  gridSize,
+  insideGrid,
+  type NearestCell,
+  nearestCell,
+} from './layout/gridMath'
+export {
   DEAL_STAGGER,
   ENTER_SINK,
   HOVER_BOTTOM,
@@ -231,6 +271,21 @@ export { Animator } from './runtime/animator'
 export { FrameLoop, type FrameLoopCounters, type FrameLoopOptions } from './runtime/frameLoop'
 export { Rng } from './runtime/rng'
 export { TextTextureCache } from './runtime/textCache'
+export { createDeckScene } from './scenes/deck/DeckScene'
+export { pickDeckLayout, pickDeckTier } from './scenes/deck/layout/pickLayout'
+export type { DeckLayout, DeckLayoutTier } from './scenes/deck/layout/types'
+export { DEFAULT_DECK_RULES } from './scenes/deck/logic/types'
+export type {
+  CreateDeckScene,
+  DeckManageAction,
+  DeckRules,
+  DeckScene,
+  DeckSceneCounters,
+  DeckSceneOptions,
+  DeckView,
+  PoolCard,
+  PoolKind,
+} from './scenes/deckContract'
 export { createDuelScene } from './scenes/duel/DuelScene'
 export { pickLayout, pickTier, TOUCH_BREAKPOINT } from './scenes/duel/layout/pickLayout'
 export type { DuelLayout, LayoutTier } from './scenes/duel/layout/types'

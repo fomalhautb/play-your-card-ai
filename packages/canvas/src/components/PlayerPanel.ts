@@ -231,6 +231,14 @@ export class PlayerPanel extends Container {
         },
         this.deps,
       )
+      /*
+       * 在场景树上给它留个名字，命名跟卡（`card:`）和「结束出牌」（`button:end-play`）一路。
+       * 真浏览器的交互回归靠它找到「按哪儿」（bench 的 src/page/hitPoints.ts）。
+       *
+       * 名字在这里给而不是像「结束出牌」那样由装配处给：这颗钮是面板自己建自己收的
+       *（见上面的说明），外面根本拿不到它。
+       */
+      this.skill.label = 'button:hero-skill'
       this.skillSlot.addChild(this.skill)
     }
     this.layout()

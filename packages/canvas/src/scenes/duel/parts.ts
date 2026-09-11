@@ -147,6 +147,14 @@ export function createParts(options: PartsOptions): DuelParts {
     },
     deps,
   )
+  /*
+   * 在场景树上给它留个名字。
+   *
+   * PlaqueButton 是通用组件，一颗按钮是干什么的只有装配处知道，所以名字在这里给。
+   * 真浏览器的交互回归靠它找到「按哪儿」（bench 的 src/page/hitPoints.ts），
+   * 命名跟卡（`card:`）和格子（`tile:`）一个路子。
+   */
+  endPlay.label = 'button:end-play'
 
   const banner = new Banner(deps)
   const coin = new CoinToss(deps)

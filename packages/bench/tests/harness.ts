@@ -9,6 +9,10 @@ import type { CDPSession, Page } from '@playwright/test'
 import type { BenchMetrics, OverdrawResult } from '../src/metrics/types'
 import { DECK, type Profile, SEED } from '../src/node/profiles'
 import type { BenchApi, BenchInitOptions, GpuReport, SceneKind } from '../src/page/benchApi'
+import type { HitPoint } from '../src/page/hitPoints'
+import type { KeyframeShots } from '../src/page/keyframes'
+import { sceneOfScenario } from '../src/scenarios/index'
+import type { DuelCommand } from '../src/scene/contract'
 
 declare global {
   interface Window {
@@ -23,7 +27,12 @@ export interface SegmentRun {
   textureBytes: number
 }
 
-/** @param scene 默认测 canvas 包的真实场景；'stub' 只给测量骨架自测那条冒烟用例用。 */
+/** 这一段剧本要建哪个场景。剧本自己登记的（见 scenarios/types.ts 的 `Scenario.scene`）。 */
+export function sceneOf(segment: string): SceneKind {
+  return sceneOfScenario(segment)
+}
+
+/** @param scene 默认测 canvas 包的真实对局场景；剧本各自要哪个场景走 `sceneOf`。 */
 export function initOptions(
   profile: Profile,
   manualClock: boolean,
@@ -121,6 +130,64 @@ export async function enableGpuTiming(page: Page): Promise<boolean> {
 
 export async function gpuReport(page: Page): Promise<GpuReport> {
   return page.evaluate(() => window.__bench.gpu())
+}
+
+/**
+ * 交互用例那几件事（见 tests/interaction.spec.ts）。
+ *
+ * 和上面那些一样，`page.evaluate` 全集中在这个文件里：页面 API 一改，只有这里要跟着改。
+ */
+
+/** 开一局并把开局演出推完：手牌摆上屏幕、锁放开，可以开始点了。 */
+export async function dealHand(page: Page): Promise<void> {
+  await page.evaluate(() => window.__bench.deal())
+}
+
+/** 照脚本打出 n 张牌。英雄技能那条用例要靠它先在场上摆出一个单位。 */
+export async function playScripted(page: Page, count: number): Promise<void> {
+  await page.evaluate((n) => window.__bench.play(n as number), count)
+}
+
+/** 把演出推完。真指针那几下之间要靠它——手动时钟下没人替我们推帧。 */
+export async function settleScene(page: Page): Promise<void> {
+  await page.evaluate(() => window.__bench.settle())
+}
+
+/** 场景到现在为止发出的指令。 */
+export async function sceneCommands(page: Page): Promise<DuelCommand[]> {
+  return page.evaluate(() => window.__bench.commands() as DuelCommand[])
+}
+
+/** 我方手牌，用来认出哪一张是技能牌。 */
+export async function handCards(page: Page): Promise<{ instanceId: string; cardId: string }[]> {
+  return page.evaluate(() => window.__bench.handCards().map((one) => ({ ...one })))
+}
+
+/**
+ * 场景里 label 以 prefix 开头的那些对象，各给一个点得到的坐标。
+ * 返回的是**画布内**坐标，加上画布在视口里的位置才是 page.mouse 要的那个点（见 viewportPoint）。
+ */
+export async function hitPoints(page: Page, prefix: string): Promise<HitPoint[]> {
+  return page.evaluate((value) => window.__bench.hitPoints(value as string), prefix)
+}
+
+/**
+ * 跑一段剧本，在指定帧号上各抓一张 PNG。
+ * 返回的是解码好的 buffer——`toMatchSnapshot` 收的是二进制，不是 data URL。
+ */
+export async function captureKeyframes(
+  page: Page,
+  segment: string,
+  stops: readonly number[],
+): Promise<{ shots: Buffer[]; frames: number }> {
+  const result = (await page.evaluate(
+    async ([name, frames]) => window.__bench.keyframes(name as string, frames as number[]),
+    [segment, [...stops]] as const,
+  )) as KeyframeShots
+  return {
+    frames: result.frames,
+    shots: result.shots.map((one) => Buffer.from(one.split(',')[1] ?? '', 'base64')),
+  }
 }
 
 /** DevTools 协议的堆采样：一段剧本期间总共分配了多少字节。 */

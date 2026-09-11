@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SegmentSummary } from '../src/metrics/types'
 import { checkLimits, describeViolations, leakVerdict, observedFrom } from '../src/node/checkLimits'
 import type { Limits } from '../src/thresholds'
-import { LIMITS, limitsFor, placeholderKeys } from '../src/thresholds'
+import { LIMITS, limitsFor, pendingLimits } from '../src/thresholds'
 
 const summary = (patch: Partial<SegmentSummary> = {}): SegmentSummary => ({
   segment: 'deal',
@@ -74,12 +74,19 @@ describe('checkLimits', () => {
   })
 })
 
-describe('placeholderKeys', () => {
-  it('两档都没有占位值了', () => {
-    // 迁移第 3 条已经用真实场景的验证结果把 6.9 表里那几行填实。
-    // 这条断言反过来看门：以后新加的指标如果先用占位值糊上，这里会立刻显出来。
+describe('pendingLimits', () => {
+  it('两档欠着账的都只有合批那一条', () => {
+    /*
+     * 这张表上没有占位值了（迁移第 3 条用真实场景的结果全部填实），现在挂着 `todo` 的
+     * 只有合批那一条——它被结算层的文字顶上去，等文字共享图集做完要压回来（见 thresholds.ts）。
+     *
+     * 这条断言两头看门：新加的指标先拿占位值糊上会在这里显出来；
+     * 而合批那条哪天真被压回去了、`todo` 摘掉了，这里也会红，提醒把这句话一起改掉。
+     */
     for (const profile of Object.keys(LIMITS) as Array<keyof typeof LIMITS>) {
-      expect(placeholderKeys(LIMITS[profile])).toEqual([])
+      const pending = pendingLimits(LIMITS[profile])
+      expect(pending.map((one) => one.key)).toEqual(['batchBreaksPerFrame'])
+      expect(pending[0]?.todo).toContain('图集')
     }
   })
 })

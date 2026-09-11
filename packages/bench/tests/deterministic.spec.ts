@@ -7,15 +7,22 @@
  *   3. 连跑十段之后强制 GC，堆和常驻纹理内存回到基线 5% 以内。
  *
  * 跑法：`pnpm --filter @ai-duel/bench bench`。用例之间没有耦合，并行跑（见 playwright.config.ts）。
+ *
+ * 每条都挂了一个标签（`@视口-剧本`、`@stub`、`@leak`），CI 慢档按它把整组拆成一格一格的
+ * 并行 job（`.github/workflows/slow.yml`）。**标签是工作流的接口，不能随手改**：
+ * 改了名字那一格会变成「一条用例都没匹配到」而不是失败，静悄悄地少跑一格。
  */
 
-import { expect, test } from '@playwright/test'
 import { checkLimits, describeViolations, leakVerdict, observedFrom } from '../src/node/checkLimits'
 import { ROW_ATTACHMENT } from '../src/node/deterministicReporter'
 import { PROFILES } from '../src/node/profiles'
 import type { DeterministicRow } from '../src/node/report'
 import { scenarioNames } from '../src/scenarios/index'
 import { LEAK_TOLERANCE, limitsFor } from '../src/thresholds'
+// 每条用例各开一个新浏览器，不共用 worker 那一个——为什么见 freshBrowser.ts。
+// 慢档大部分格子按 --grep 只跑一条，碰不到那个坑，但 guard 那格一次跑两条（@stub 和 @leak），
+// 第二条会正正撞上去。
+import { expect, test } from './freshBrowser'
 import {
   contextSeen,
   createHeapSampler,
@@ -28,6 +35,7 @@ import {
   runOnly,
   runQuiet,
   runSegment,
+  sceneOf,
 } from './harness'
 
 const SEGMENTS = scenarioNames()
@@ -48,9 +56,12 @@ async function reportRow(row: DeterministicRow): Promise<void> {
 for (const profile of PROFILES) {
   test.describe(`${profile.name} ${profile.width}×${profile.height}@${profile.resolution}`, () => {
     for (const segment of SEGMENTS) {
-      test(`${segment}：指标不超上限，且两遍完全一致`, async ({ page }) => {
+      test(`${segment}：指标不超上限，且两遍完全一致`, {
+        tag: `@${profile.name}-${segment}`,
+      }, async ({ page }) => {
         await openBench(page)
-        const opts = initOptions(profile, true)
+        // 每段剧本自己登记要哪个场景（对局那几段是 duel，牌组编辑那段是 deck）。
+        const opts = initOptions(profile, true, sceneOf(segment))
         const client = await page.context().newCDPSession(page)
         const heap = createHeapSampler(client)
 
@@ -73,6 +84,20 @@ for (const profile of PROFILES) {
           heapBytesPerFrame,
         }
         const violations = checkLimits(observed, limits)
+        /*
+         * 先把这一行交给报告，再断言。
+         *
+         * 反过来写的话，超限时 `expect` 当场抛出，报告里就没有这一行——而那正是最需要看到
+         * 数字的时候（超了多少、别的指标各是什么样）。断言失败照样会让这条用例红。
+         */
+        await reportRow({
+          profile: profile.name,
+          segment,
+          summary,
+          overdraw: first.overdraw.average,
+          heapBytesPerFrame,
+          violations,
+        })
         expect(violations, describeViolations(violations)).toEqual([])
 
         // 下面四条是「假绿」的防线：计数器没接上、剧本一帧没渲染、根本没空转，
@@ -90,15 +115,6 @@ for (const profile of PROFILES) {
         expect(second.metrics.summary).toEqual(summary)
         expect(second.metrics.frames).toEqual(first.metrics.frames)
         expect(second.overdraw).toEqual(first.overdraw)
-
-        await reportRow({
-          profile: profile.name,
-          segment,
-          summary,
-          overdraw: first.overdraw.average,
-          heapBytesPerFrame,
-          violations,
-        })
         await client.detach()
       })
     }
@@ -113,7 +129,7 @@ for (const profile of PROFILES) {
  * 所以这里留一条：计数器接上了、剧本渲染了、空转停了、两遍一模一样。
  * 上限不在这里判：桩场景是刻意做得每条计数器都会动的固定物，不是要达标的东西。
  */
-test('桩场景：测量骨架自身跑得通，且两遍完全一致', async ({ page }) => {
+test('桩场景：测量骨架自身跑得通，且两遍完全一致', { tag: '@stub' }, async ({ page }) => {
   await openBench(page)
   const profile = PROFILES.find((p) => p.name === 'mobile') ?? PROFILES[0]
   if (!profile) throw new Error('没有可用的视口档位')
@@ -131,7 +147,7 @@ test('桩场景：测量骨架自身跑得通，且两遍完全一致', async ({
   expect(second.overdraw).toEqual(first.overdraw)
 })
 
-test('泄漏：连跑十段之后堆和常驻纹理内存回到基线', async ({ page }) => {
+test('泄漏：连跑十段之后堆和常驻纹理内存回到基线', { tag: '@leak' }, async ({ page }) => {
   await openBench(page)
   const client = await page.context().newCDPSession(page)
   await client.send('Runtime.enable')

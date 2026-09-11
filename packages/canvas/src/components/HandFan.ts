@@ -117,7 +117,7 @@ export class HandFan extends Container {
   remove(card: CardSprite): void {
     const index = this.cards.indexOf(card)
     if (index >= 0) this.cards.splice(index, 1)
-    this.detached.delete(card.cardId)
+    this.detached.delete(card.instanceId)
     if (this.hoverIndex >= this.laid().length) this.hoverIndex = -1
     this.layout('reflow')
   }
@@ -129,15 +129,15 @@ export class HandFan extends Container {
    * 剩下的牌按"少了一张"重算，手牌当场合拢。
    */
   detach(card: CardSprite): void {
-    if (this.detached.has(card.cardId)) return
-    this.detached.add(card.cardId)
+    if (this.detached.has(card.instanceId)) return
+    this.detached.add(card.instanceId)
     this.hoverIndex = -1
     this.layout('reflow')
   }
 
   /** 放回排布（拖拽取消，牌要飞回扇形）。 */
   reattach(card: CardSprite): void {
-    if (!this.detached.delete(card.cardId)) return
+    if (!this.detached.delete(card.instanceId)) return
     this.layout('reflow')
   }
 
@@ -168,7 +168,7 @@ export class HandFan extends Container {
 
   /** 这张牌现在是不是被摘出去了。 */
   isDetached(card: CardSprite): boolean {
-    return this.detached.has(card.cardId)
+    return this.detached.has(card.instanceId)
   }
 
   /**
@@ -209,7 +209,7 @@ export class HandFan extends Container {
       const pose = poses[index]
       if (pose === undefined) return
       const hovered = index === this.hoverIndex
-      const delay = delays?.get(card.cardId) ?? 0
+      const delay = delays?.get(card.instanceId) ?? 0
       this.animator.tween(card, {
         x: pose.x,
         y: pose.y,
@@ -258,7 +258,7 @@ export class HandFan extends Container {
 
   /** 参与排布的牌，按左到右。 */
   laid(): CardSprite[] {
-    return this.cards.filter((card) => !this.detached.has(card.cardId))
+    return this.cards.filter((card) => !this.detached.has(card.instanceId))
   }
 
   /** 全部手牌，含摘出去的。 */

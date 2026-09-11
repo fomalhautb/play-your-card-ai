@@ -1,6 +1,23 @@
-# 《正式版架构》6.1 的「快档」：每个 PR 都跑，时限 10 分钟。
-# 慢档（三浏览器一致性、端到端、四端构建、性能的时间指标）还没建，见 6.1 的表。
+# 《正式版架构》6.1 的「快档」：每个 PR 都跑。
 #
+# 「10 分钟」这条口径从「整条流水线 10 分钟」改成了「**每个并行 job 各自 10 分钟**」。
+# 原因是第 18 条把真对局场景接进来之后，串成一条已经到 8 分 56 秒（其中目录页截图回归
+# 一步就占 6.8 分钟），再往上加任何一条检查都会顶破。现在拆成四个互不依赖的 job：
+#   check        类型、lint、设计令牌、单元测试        —— 不开浏览器
+#   catalog      组件目录页的截图回归                  —— 装 Chromium，按条目拆成两片
+#   scene        对局场景的交互回归                    —— 装 Chromium
+#   keyframes    剧本关键帧的截图回归                  —— 装 Chromium，按剧本段拆成四格
+# 并排跑，墙钟时间取最慢的那一个。
+#
+# scene 和 keyframes 一开始是同一个 job（两步跑在一台机器上），第一次真跑就顶破了 10 分钟：
+# 交互那步 2 分 34 秒跑完，关键帧那步再跑六分四十四秒、八条一条都没完，
+# 整个 job 被 timeout-minutes 掐掉（第 34477014105 次运行）。
+# 拆开是 PR 里预留的两条办法之一，另一条（每段少停一帧）也一起做了，见 keyframes.spec.ts。
+#
+# **确定性性能指标不在这一档**：第 18 条实测整批 17 分钟、最慢一条 12.9 分钟（M2 上），
+# ubuntu 跑机只会更慢，10 分钟的快档装不下。它挪到了慢档（slow.yml）。
+#
+# 慢档（三浏览器一致性、端到端、四端构建、性能的时间指标）见 6.1 的表，还没建全。
 # 部署是另一条流水线（deploy.yml），这里只做检查，不碰线上。
 name: CI 快档
 
@@ -17,13 +34,13 @@ concurrency:
 
 jobs:
   check:
+    name: 类型 / Lint / 单元测试
     runs-on: ubuntu-latest
     # 6.1 给快档定的时限就是 10 分钟。超了不是"再等等"，是这档该瘦身或者挪进慢档。
     #
-    # 临时放宽到 15：第 18 条加了六条全屏对局场景的目录页条目，截图回归那一步单独就要
-    # 七分多钟，整条超过了 10 分钟。第 19-20 条把截图回归拆成并行的独立 job 之后
-    # 每个 job 各自回到 10 分钟，这一行到时改回去。
-    timeout-minutes: 15
+    # 第 18 条那次临时放宽到 15 已经改回来了：截图回归拆进下面的 catalog / scene 两个 job 之后，
+    # 这个 job 只剩不开浏览器的那几步，回到 10 分钟绰绰有余。
+    timeout-minutes: 10
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -60,13 +77,42 @@ jobs:
       # `pnpm -r test` 只进有 test 脚本的包，现在是 core、content、protocol、design、platform、
       # canvas、bench 和 legacy-client。
       # bench 的 test 脚本只跑 Node 侧纯逻辑的 vitest，不开浏览器——
-      # 性能剧本本身要拉起 Chromium，属于慢档，等迁移第 20 条再接进来。
+      # 要浏览器的那几组在下面 scene / keyframes 那两个 job 和慢档里。
       # 骨架包没有 test 脚本，会被直接跳过——别为了"看着整齐"给它们加空脚本，
       # 那样一个空跑的绿色会盖住"这个包其实一条测试都没有"。
       - name: 测试
         run: pnpm test
 
-      # 组件目录页的截图回归（迁移第 10 条，对应 6.6 和 6.8 里那两条「拿目录页当输入」）。
+  catalog:
+    name: 组件目录页截图回归 ${{ matrix.shard }}/2
+    runs-on: ubuntu-latest
+    # 整页一条用例跑到过 9 分 08 秒 ~ 9 分 43 秒（两核跑机，本机 M 系列约 3 分钟），
+    # 离 10 分钟的快档口径只剩一线，而第 28 条一次就要往目录页加几十条条目。
+    # 所以照 keyframes 那套**按分片开成并行 job**：一格一台跑机，各拍一半条目。
+    # 分片规则和「为什么不按 Canvas / UI 分」见 packages/client/dev/storybook/catalog.spec.ts。
+    # 再顶破要做的是把 2 改大（那边的 SHARDS 和这里的 matrix 要一起改），不是调这个时限。
+    timeout-minutes: 10
+    strategy:
+      # 一片对不上不该把另一片掐掉：一次跑完能看到全部差异。
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
       # 只装 Chromium：快档就一个浏览器，三浏览器一致性是慢档的事（第 34 条）。
       # --with-deps 装的是无头浏览器要的那些系统库，ubuntu 镜像里默认没有。
       - name: 安装 Chromium
@@ -85,22 +131,30 @@ jobs:
       # artifact 下载覆盖到 baselines/linux/ 再提交。命令见
       # packages/client/dev/storybook/README.md 的「更新基线」。**别指望这一步帮你生成**——
       # 有基线的时候它只比对不生成，红了只会给你一份 catalog-diff。
+      #
+      # `--grep` 按标签筛出这一片。标签在 catalog.spec.ts 上，形如 `@shard1`——
+      # **它是这个工作流的接口**，改了名字这一格会变成「一条用例都没匹配到」而不是失败，
+      # 静悄悄地少拍一半条目。
       - name: 组件目录页截图回归
         id: catalog
         run: |
           if [ -d packages/client/dev/storybook/baselines/linux ]; then
-            pnpm --filter @ai-duel/client catalog:test
+            pnpm --filter @ai-duel/client catalog:test --grep "@shard${{ matrix.shard }}"
           else
-            echo "::warning::仓库里还没有 linux 基线，本次只生成不比对。把 catalog-baselines-linux 这个 artifact 里的图提交到 packages/client/dev/storybook/baselines/linux/ 之后，这一步就会开始真的比对。"
-            pnpm --filter @ai-duel/client catalog:update
+            echo "::warning::仓库里还没有 linux 基线，本次只生成不比对。把 catalog-baselines-linux-* 这几个 artifact 里的图都提交到 packages/client/dev/storybook/baselines/linux/ 之后，这一步就会开始真的比对。"
+            pnpm --filter @ai-duel/client catalog:update --grep "@shard${{ matrix.shard }}"
             echo "generated=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # artifact 名字带上这一片：v4 不允许两个 job 传同一个名字。
+      # 人要的是完整的一份基线，所以下载时按 catalog-baselines-linux-* 把两片都取下来。
+      # 走到这一步说明目录本来就是空的，所以每格传出去的只有自己那一片，合并没有先后之分
+      # （catalog-baselines.yml 那条要靠先清空目录才有这个性质，理由在那边）。
       - name: 上传新生成的 linux 基线
         if: steps.catalog.outputs.generated == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: catalog-baselines-linux
+          name: catalog-baselines-linux-${{ matrix.shard }}
           path: packages/client/dev/storybook/baselines/linux
 
       # 对不上的时候把「拍到的」和「差异图」带出来，不然只知道数字对不上、看不见差在哪。
@@ -108,5 +162,117 @@ jobs:
         if: failure() && steps.catalog.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
-          name: catalog-diff
+          name: catalog-diff-${{ matrix.shard }}
           path: packages/client/test-results
+
+  scene:
+    name: 对局场景交互
+    runs-on: ubuntu-latest
+    # 两核跑机上实测 3 分 34 秒左右（当时 7 条，每条 32～37 秒）。本机（M2）8 条 1.9 分钟。
+    #
+    # 跑机上一条 30 多秒而本机差不多，不是这几下点击慢：每条用例都要重新起一个浏览器、
+    # 重新加载页面和图集（为什么非这样不可见 packages/bench/tests/freshBrowser.ts）。
+    # 顶破了就该查是不是又多加了用例，10 分钟是快档的口径。
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 卡面图集同样由 Playwright 的 globalSetup 自己打（src/node/ensureAtlas.ts）。
+      #
+      # 交互回归（6.6 第 2 条）：真指针拖拽出牌、点选目标，断言场景发出的指令。
+      # 它不量任何指标，所以放在快档——这类回归越早发现越好，而且几分钟就跑完。
+      - name: 交互回归
+        run: pnpm --filter @ai-duel/bench interaction
+
+  keyframes:
+    name: 剧本关键帧截图 ${{ matrix.segment }}
+    runs-on: ubuntu-latest
+    # 关键帧是快档里最重的一步，而且重得离谱：桌面档一帧是 2880×1620 的软件光栅，
+    # 两核跑机上一条要三四分钟，八条挤一台机器实测十三四分钟——每段只停一帧之后仍然装不下。
+    # 所以照慢档那套**按剧本段拆成一格一格的并行 job**（slow.yml 拆的是「视口 × 剧本」）：
+    # 一格一台跑机、一格两条用例（两档视口各一条）。四格实测：
+    # deal 3 分 05 秒、flip 3 分 10 秒、play10 4 分 41 秒、settle 4 分 44 秒（最慢的一格）。
+    # 每格里贵的都是桌面档那条（settle 那格 3.0 分钟 vs 手机档 1.3 分钟）。
+    # 再顶破要做的是继续减（只留一档视口，或者整组挪进慢档），不是把这个数往上调。
+    timeout-minutes: 10
+    strategy:
+      # 一格对不上不该把别的格掐掉：一次跑完能看到全部差异。
+      fail-fast: false
+      matrix:
+        segment: [deal, play10, flip, settle]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 卡面图集同样由 Playwright 的 globalSetup 自己打（src/node/ensureAtlas.ts）。
+      #
+      # 剧本关键帧的截图回归（6.6）：演出途中的几拍和 baselines/linux 逐像素比。
+      #
+      # 和目录页那一步同样的两分支写法，理由也一样：基线按平台分目录，而 linux 那份只能在
+      # Linux 上生成。仓库里没有 linux 基线时这一步**只生成不比对**，把生成的传成 artifact，
+      # 人下载下来看过再提交；有了之后它就一直走正常比对那条。
+      # 平时怎么刷新见 packages/bench/README.md 的「基线怎么刷新」——**别指望这一步帮你生成**，
+      # 有基线的时候它只比对，红了只会给你一份 keyframes-diff。
+      #
+      # `--grep` 按标签筛出这一格那两条用例。标签在 packages/bench/tests/keyframes.spec.ts 上，
+      # 形如 `@settle`——**它是这个工作流的接口**，改了名字这一格会变成
+      # 「一条用例都没匹配到」而不是失败，静悄悄地少跑一格。
+      - name: 剧本关键帧截图回归
+        id: keyframes
+        run: |
+          if [ -d packages/bench/baselines/linux ]; then
+            pnpm --filter @ai-duel/bench keyframes --grep "@${{ matrix.segment }}"
+          else
+            echo "::warning::仓库里还没有关键帧的 linux 基线，本次只生成不比对。把 keyframes-baselines-linux-* 这几个 artifact 里的图都提交到 packages/bench/baselines/linux/ 之后，这一步就会开始真的比对。"
+            pnpm --filter @ai-duel/bench keyframes:update --grep "@${{ matrix.segment }}"
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # artifact 名字带上这一格：v4 不允许两个 job 传同一个名字。
+      # 人要的是完整的一份基线，所以下载时按 keyframes-baselines-linux-* 把四格都取下来，
+      # 命令见 packages/bench/README.md 的「基线怎么刷新」。
+      - name: 上传新生成的关键帧 linux 基线
+        if: steps.keyframes.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keyframes-baselines-linux-${{ matrix.segment }}
+          path: packages/bench/baselines/linux
+
+      # 对不上的时候把「拍到的」和「差异图」带出来。
+      - name: 上传关键帧差异
+        if: failure() && steps.keyframes.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: keyframes-diff-${{ matrix.segment }}
+          path: packages/bench/test-results

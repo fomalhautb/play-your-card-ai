@@ -12,7 +12,7 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, Graphics, Sprite, Texture } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
 import {
   SETTLE_ANSWER_CHAR_MS,
   SETTLE_LOADER_FADE_MS,
@@ -251,24 +251,21 @@ export class SettleRow extends Container {
     )
     slot.addChild(label)
 
-    const mask = new Sprite(Texture.WHITE)
-    mask.anchor.set(0, 0.5)
-    // 遮罩要比字高一点：字形的上下沿会探出纹理的中线一截，贴着切会削掉笔画。
-    mask.setSize(label.textWidth, label.textHeight * 1.6)
     /*
-     * 白色纹理是 1×1 的，「铺满这段字」本身就是靠 scale 做到的：setSize 之后 scale.x
-     * 等于字的像素宽，不是 1。补间的终点得取这个数——写死 1 的话打完字只露出一个像素。
+     * 打字机走的是「裁掉右边」而不是上一层遮罩，理由见 Label.setReveal：
+     * Sprite 遮罩要离屏渲染（违反 3.1），Graphics 遮罩要每帧动模板缓冲（软件渲染下慢十倍）。
+     *
+     * GSAP 补的是一个数字代理，再由 onUpdate 把它交给 Label——`steps()` 缓动让这个数
+     * 一格一格跳，跳几格就是几个字，和逐字打出来是同一件事。
      */
-    const full = mask.scale.x
-    mask.scale.x = 0
-    slot.addChild(mask)
-    label.mask = mask
-
-    this.deps.animator.tween(mask.scale, {
-      x: full,
+    label.setReveal(0)
+    const progress = { value: 0 }
+    this.deps.animator.tween(progress, {
+      value: 1,
       duration: Math.max(duration, 0.001),
       delay,
       ease: `steps(${content.length})`,
+      onUpdate: () => label.setReveal(progress.value),
     })
   }
 

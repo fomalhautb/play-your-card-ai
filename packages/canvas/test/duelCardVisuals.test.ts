@@ -41,7 +41,7 @@ describe('卡池 → 卡面展示数据', () => {
       expect(visual.cost).toBe(CATALOG.cards[id]?.tokenCost)
       // 扇形和战场按这个 id 认牌，所以它必须是**实例** id 而不是卡牌 id：
       // 手上两张同名的牌否则会互相顶掉。
-      expect(visual.id).toBe(`i-${id}`)
+      expect(visual.instanceId).toBe(`i-${id}`)
     }
   })
 

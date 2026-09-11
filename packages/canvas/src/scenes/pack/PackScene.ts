@@ -123,7 +123,9 @@ class PackSceneImpl {
   private setView(view: PackView): void {
     const before = this.view
     this.view = view
-    if (before === null || before.card.id !== view.card.id) {
+    // 只有换了牌才重建：翻面那一步也是调这个方法，重建会把正在播的翻面掐掉。
+    // 牌的身份看 instanceId（CardVisual 的实例标识），不是卡牌 id。
+    if (before === null || before.card.instanceId !== view.card.instanceId) {
       this.rebuild(view)
       return
     }

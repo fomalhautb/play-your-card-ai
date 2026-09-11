@@ -91,8 +91,8 @@ function visualOf(
 ): CardVisual {
   const card = CARDS[id]
   return {
-    // 同一张牌在这一页只出现一次，但 id 仍带一个序号，和对局那边的实例 id 一个路数。
-    id: `${id}#${index}`,
+    // 同一张牌在这一页只出现一次，但仍带一个序号，和对局那边的实例 id 一个路数。
+    instanceId: `${id}#${index}`,
     name: card?.name ?? id,
     cost: card?.tokenCost ?? 0,
     face: faces[id] ?? back,

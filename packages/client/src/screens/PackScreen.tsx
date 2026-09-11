@@ -54,7 +54,8 @@ export function PackScreen() {
       setView({
         phase: 'closed',
         card: {
-          id: card,
+          // 这一页一次只摆一张牌，实例 id 直接用卡牌 id 就够认（见 CardVisual.instanceId）。
+          instanceId: card,
           name: CARDS[card]?.name ?? card,
           cost: CARDS[card]?.tokenCost ?? 0,
           face: textures.faces[card] ?? textures.back,

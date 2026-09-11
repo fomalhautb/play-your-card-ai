@@ -109,6 +109,24 @@ export const tokens = {
       /** 「敬请期待」角标上的字。来源：hero.css 的 .hero__card-soon color。 */
       ink: "#2b2119",
     },
+    deck: {
+      /** 纸面页底四周的暗角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-page 那条 radial-gradient 的终点色 rgb(122 106 74 / 19%)，透明度拆到 opacity.deck.pageVignette。 */
+      pageVignette: "#7a6a4a",
+      /** 构筑页卡池那块夜色底板的底。来源：legacy-client/src/screens/deck.css 的 .deck-pool background。旧版底上还铺了一张战场背景图，那属于素材（第 33 条），令牌只收纯色那一层。 */
+      poolBase: "#26334c",
+      /** 夜色卡池底板的一圈描边。来源：deck.css 的 .deck-pool border。 */
+      poolLine: "#4a5169",
+      /** 夜色卡池底板内缘那道高光。来源：deck.css 的 .deck-pool 那条 inset box-shadow，透明度拆到 opacity.deck.poolInset。 */
+      poolInset: "#ffffff",
+      /** 卡池头部阵营胶囊上的字。来源：deck.css 的 .deck-faction color。 */
+      chipInk: "#f3e2b8",
+      /** 牌组进度条满档时的填充色。来源：deck.css 的 .deck-progress__fill--full。 */
+      progressFill: "#35604d",
+      /** 灰卡正中那块「即将上线 / 暂未接入」牌子上的字。来源：deck.css 的 .deck-pool-card__blocked color。 */
+      blockedInk: "#ffeec5",
+      /** 灰卡那块牌子的底。来源：deck.css 的 .deck-pool-card__blocked background rgb(10 15 26 / 88%)，透明度拆到 opacity.deck.blockedBase。 */
+      blockedBase: "#0a0f1a",
+    },
     plaque: {
       navy: {
         default: {
@@ -503,6 +521,30 @@ export const tokens = {
     },
     /** 匾额左右两颗星芒的透明度。四个变体共用这一档，旧样式里没有一处覆盖它。来源：styles.css 的 .plaque-button__spark。 */
     plaqueSpark: 0.72,
+    deck: {
+      /** 纸面页底暗角最深处有多深。来源：paper.css 的 .paper-page radial-gradient 终点 alpha。 */
+      pageVignette: 0.19,
+      /** 夜色卡池底板内缘高光的强度。来源：deck.css 的 .deck-pool inset box-shadow alpha。 */
+      poolInset: 0.06,
+      /** 牌组里空卡位那层底的深浅。来源：deck.css 的 .deck-slot--empty background rgb(35 47 75 / 7%)。 */
+      slotEmpty: 0.07,
+      /** 药丸卡组页签选中时那层底的深浅。来源：deck.css 的 .deck-tab[data-current] background rgb(192 122 82 / 16%)。 */
+      tabActiveFill: 0.16,
+      /** 描边胶囊筛选没被选中时那圈边的深浅。来源：deck.css 的 .deck-faction border。 */
+      chipLine: 0.35,
+      /** 面板内嵌提示条压在夜色底板上时那层底的深浅。来源：deck.css 的 .deck-pool__hint background。 */
+      hintBase: 0.25,
+      /** 药丸卡组页签选中时那圈描边的深浅。来源：deck.css 的 .deck-tab[data-current] border。 */
+      tabActiveLine: 0.62,
+      /** 拖拽让位时那一格金色底的深浅。来源：deck.css 的 .deck-slot[data-gap] background rgb(217 164 65 / 10%)。 */
+      gapHighlight: 0.1,
+      /** 灰卡那块牌子底的不透明度。来源：deck.css 的 .deck-pool-card__blocked background alpha。 */
+      blockedBase: 0.88,
+      /** 灰卡整张压暗到多少。旧版用的是 filter: grayscale(1) brightness(0.48)，而纪律 3.1 不许挂 Filter，改成整张调透明度——目的一样：一眼看出它不能选。 */
+      blockedCard: 0.42,
+      /** 同名已经带满份数的卡压暗到多少。比灰卡浅一档：它只是这一副带够了，换一副还能选。来源同上，旧版是 grayscale(0.72) brightness(0.66)。 */
+      fullCard: 0.66,
+    },
     control: {
       /** 纸面无底图标钮的常态透明度。纸上贴一枚实心墨色剪影会重得像块补丁，压一档才压得住。来源：styles.css「顶栏那一行右端的控件」一节。 */
       idle: 0.72,

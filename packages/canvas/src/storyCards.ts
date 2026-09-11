@@ -154,7 +154,7 @@ export function cardVisualOf(
   const hash = hashOf(key)
   const accent = ACCENT_PALETTE[hash % ACCENT_PALETTE.length] ?? ACCENT_PALETTE[0] ?? 0x304e70
   return {
-    id: `${key}#${instance}`,
+    instanceId: `${key}#${instance}`,
     name: displayNameOf(key),
     cost: MIN_COST + ((hash >>> 8) % (MAX_COST - MIN_COST + 1)),
     face,

@@ -30,8 +30,8 @@ const noopAnimator = { tween: () => undefined } as unknown as Animator
 
 function makeCard(id: string): CardSprite {
   const card = new Container()
-  // 扇形认牌只看 cardId，替身补上这一个字段就能进出扇形。
-  return Object.assign(card, { cardId: id }) as unknown as CardSprite
+  // 扇形认牌只看实例 id，替身补上这一个字段就能进出扇形。
+  return Object.assign(card, { instanceId: id }) as unknown as CardSprite
 }
 
 function makeFan(count: number): { fan: HandFan; cards: CardSprite[] } {
@@ -44,7 +44,7 @@ function makeFan(count: number): { fan: HandFan; cards: CardSprite[] } {
 
 /** 扇形容器此刻的子节点顺序，用牌的 id 表示。 */
 function order(fan: HandFan): string[] {
-  return fan.children.map((child) => (child as unknown as CardSprite).cardId)
+  return fan.children.map((child) => (child as unknown as CardSprite).instanceId)
 }
 
 describe('HandFan：拖起再放回后的层级', () => {
