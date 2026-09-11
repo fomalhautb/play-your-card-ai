@@ -1,6 +1,6 @@
 {
   // 测试单独一份配置，只为了给它们 Node 的全局类型：
-  // 资源引用那条测试要扫 legacy-client 的 public/ 目录（node:fs），
+  // 资源引用那条测试要扫 assets/source/ 这个目录（node:fs），
   // 而 src 必须能在浏览器和 workerd 里原样跑，不能把 node 类型开给它
   // （开了就没人拦着谁在数据模块里写 process.env）。
   "extends": "./tsconfig.json",

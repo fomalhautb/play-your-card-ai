@@ -21,9 +21,6 @@
       "!**/node_modules",
       "!**/dist",
       "!**/.wrangler",
-      // 旧客户端已冻结，不加功能也不整改，整包排除在 lint 之外（迁移第 7 条）。
-      // 它的 typecheck 和测试照常在 CI 里跑——它还是线上跑着的那一版。
-      "!packages/legacy-client",
       // wrangler types 生成的，改了也会被下次生成覆盖。
       "!packages/server/worker-configuration.d.ts",
       // 设计令牌的产物，由 packages/design/sd.config.mjs 从 tokens/*.json 生成（迁移第 8 条）。
@@ -42,7 +39,7 @@
       // 格式由生成器定，重排了也会被下次 sync 覆盖。壳自己的代码（src/、两份配置）照常检查。
       "!apps/mobile/android",
       "!apps/mobile/ios",
-      // 美术和音频的源目录（迁移第 33 条从 legacy-client 的 public 搬过来的）。
+      // 美术和音频的源目录。
       // 里面的 svg 是站点图标，是美术资源不是界面代码——a11y 那条「svg 要有 title」
       // 说的是页面里的图形，图标文件加个 title 只会被下次导出覆盖。
       "!assets/source",

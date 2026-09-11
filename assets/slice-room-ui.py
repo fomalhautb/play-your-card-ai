@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 把 /room 匹配房的整张 UI 素材图切成一张张独立的元素图，输出到素材源目录
-assets/source/room/，供旧客户端的 RoomScreen.tsx / room.css 直接当 <img> 用
-（旧客户端的 public/ 是指向 assets/source 的符号链接，见 assets/README.md）。
+assets/source/room/。`pnpm assets:build` 会把它们原样复制到 apps/web/public/room/，
+房间页从那里取（见 assets/README.md）。
 
 素材图 assets/room-ui-sheet.png 是 3344x1882（去掉了背景和文字），正好是页面
 1672x941 舞台的 2 倍，且每个元素都画在它在页面上应处的位置。所以切片的包围盒
@@ -63,7 +63,7 @@ PANEL_HOLLOW = (390, 512, 2961, 1186)
 # 下面注掉的读数就是量出来的安全范围。
 #
 # 左上角的返回箭头（原图 100,92~217,201）不在这张表里：它已经改画成矢量了
-# （见 legacy-client 的 ui/BackButton.tsx），切出来也没人用。
+# （见黑客松版的 ui/BackButton.tsx），切出来也没人用。
 REGIONS: list[tuple[str, tuple[int, int, int, int], bool]] = [
     ("book", (2809, 92, 2968, 209), True),
     ("flourish-l", (844, 184, 1246, 301), True),

@@ -28,7 +28,7 @@ import { PlayerPanel, type PlayerPanelDeps } from './PlayerPanel'
 
 /**
  * 纸匾上那两行字的字号和字距（px）。组件私有，理由见 design 的 README。
- * 来源：legacy-client/src/styles.css 的 `.battle__next-plaque-eyebrow` / `-title`。
+ * 来源：黑客松版的 src/styles.css 的 `.battle__next-plaque-eyebrow` / `-title`。
  */
 const TYPE = {
   eyebrow: { fontSize: tokens.font.size.md, letterSpacing: 2.4 },

@@ -1,5 +1,5 @@
 /**
- * 全屏能力的网页实现。整套特性检测和降级从 legacy-client/src/ui/fullscreen.ts 搬过来。
+ * 全屏能力的网页实现。整套特性检测和降级从黑客松版的 src/ui/fullscreen.ts 搬过来。
  *
  * 一律走特性检测，不判 UA：安卓那边内核碎片化（各家浏览器、微信 XWeb），
  * 能不能用只有真机说了算；iOS 上不管壳是 Safari 还是 Chrome，底下都是同一个 WebKit。

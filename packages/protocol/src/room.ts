@@ -111,7 +111,7 @@ export const roomResyncSchema = z.strictObject({
 /**
  * 催一催：告诉对面这一下喊的是哪句，两边同时放同一段录音、弹同一句气泡。
  *
- * **只带 id 不带文字**，和旧协议一样（见 legacy-client 的 `urgeLines.ts`）：
+ * **只带 id 不带文字**，和旧协议一样（见黑客松版的 `urgeLines.ts`）：
  * 文案两端代码一致，没必要来回搬字符串，也就没人能借它往对方屏幕上打任意文字。
  * id 合不合法由服务端查内容表定（那张表在 content 里，protocol 够不着），
  * 查不到就回 `room:error` 的 `'unknown-urge'`，不转发。

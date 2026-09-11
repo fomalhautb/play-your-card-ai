@@ -5,7 +5,7 @@
  * 而现成的加载器（Pixi Assets 那类）会把纹理和渲染引擎一起绑进来，platform 不该认识引擎。
  * 「一批图怎么等」那部分在 ../imageBatch.ts，和假实现共用。
  *
- * 和旧代码（legacy-client/src/ui/preloadAssets.ts）最大的差别是解码这一步：
+ * 和旧代码（黑客松版的 src/ui/preloadAssets.ts）最大的差别是解码这一步：
  * 旧版用 `new Image()` + `decode()`，而 decode() 在页面切到后台时会一直不结算——不是慢，
  * 是真的不返回，串行的后台预载会整条队停在那儿。旧版为此加了「下完了、页面在后台就别等解码」
  * 那段绕。createImageBitmap 不吃这个亏，那段绕就不用抄过来了。

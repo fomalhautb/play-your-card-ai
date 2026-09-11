@@ -31,7 +31,7 @@ import { PLAQUE_PLAIN, PlaqueButton } from './PlaqueButton'
  *
  * 按 design 的 README「组件私有字号和字距」那条留在组件里：这几个数只服务顶栏，
  * 互不相同也不成阶梯。字距是把旧样式的 em 值乘开的（0.18em × 18px ≈ 3.24）。
- * 来源：legacy-client/src/styles.css 的 `.battle-topbar__*` 一族。
+ * 来源：黑客松版的 src/styles.css 的 `.battle-topbar__*` 一族。
  */
 const TYPE = {
   /** 「第 … 轮」那两个标签字。 */

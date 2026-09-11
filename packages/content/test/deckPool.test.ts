@@ -1,11 +1,11 @@
 /**
- * 构筑页卡池的用例，整批从旧客户端搬过来（`legacy-client/test/deckCardPool.test.ts`
+ * 构筑页卡池的用例，整批从旧客户端搬过来（黑客松版的 `test/deckCardPool.test.ts`
  * 和 `deckFactions.test.ts`），是第 28 条唯一原样保留的一份测试。
  *
  * 搬家时改了三处：
  * 1. 查卡定义从旧的全局 `getCard(id)` 换成 content 自己的 `CARDS`（新的 `getCard` 要一份 catalog）；
  * 2. 「阵营归堆」「卡池筛选」原来在两个文件里，这里并成一份——它们查的是同一张卡表；
- * 3. 旧版还有一条「卡背文案不会印成『还没实装』」，那读的是 legacy 的 `ui/cardText.ts`，
+ * 3. 旧版还有一条「卡背文案不会印成『还没实装』」，那读的是黑客松版的 `ui/cardText.ts`，
  *    正式版的卡背文案是第 29 条的事，等那边落地再补。
  */
 

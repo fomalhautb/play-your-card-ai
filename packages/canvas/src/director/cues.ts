@@ -25,7 +25,7 @@ import type {
 /**
  * 舞台演出信号：对局界面里那几段「演完了」的时刻，教程的每一句提示都挂在其中一个上。
  *
- * 原样抄自旧版 `legacy-client/src/ui/matchStageTutorial.ts` 的 `MatchStageCue`，
+ * 原样抄自黑客松版的 `src/ui/matchStageTutorial.ts` 的 `MatchStageCue`，
  * 教程状态机本身还没迁（迁移第 32 条），这里只负责把这七个信号按原来的时机发出来。
  * 加新信号之前先问一句「哪一步在等它」，没有答案就别加。
  */

@@ -1,7 +1,7 @@
 /**
  * 首页人物 alpha 命中判定的纯函数（`scenes/home/castHit.ts`）。
  *
- * 用例照搬旧版 `legacy-client/test/castHitTest.test.ts` 的思路：手搓几张小掩码，
+ * 用例照搬黑客松版的 `test/castHitTest.test.ts` 的思路：手搓几张小掩码，
  * 断言包围盒、叠放优先级、遮挡层、越界。掩码从纹理烤出来那一步要 GPU，不在这里测——
  * 那一段由目录页的截图回归兜着（人物高亮那条条目亮的就是它算出来的那个人）。
  */

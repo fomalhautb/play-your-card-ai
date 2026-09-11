@@ -4,7 +4,7 @@
       "serif": {
         "$value": ["EB Garamond", "Noto Serif SC", "Songti SC", "STSong", "SimSun", "serif"],
         "$type": "fontFamily",
-        "$description": "全站唯一的字体栈。EB Garamond 管拉丁字母和数字，Noto Serif SC 管中文，两者都从 Google Fonts 拿；后面三个本地宋体是兜底，断网或字体没加载成功时至少还是衬线体，不会掉回黑体把古典调子毁掉。来源：legacy-client/src/styles.css 的 :root font-family。"
+        "$description": "全站唯一的字体栈。EB Garamond 管拉丁字母和数字，Noto Serif SC 管中文，两者都从 Google Fonts 拿；后面三个本地宋体是兜底，断网或字体没加载成功时至少还是衬线体，不会掉回黑体把古典调子毁掉。来源：黑客松版的 styles.css 的 :root font-family。"
       }
     },
     "weight": {

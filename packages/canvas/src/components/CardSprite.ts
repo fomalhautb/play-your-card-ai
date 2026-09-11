@@ -202,7 +202,7 @@ export class CardSprite extends Container {
    * ——转到 90° 时卡正好侧对观察者、投影宽度为零，转过头之后近的那一侧还会更大，
    * 这是旧版「压扁到 cos θ」那种二维模拟给不出来的。
    * 正反面在跨过 90° 那一刻硬切：那时卡宽是 0，切换看不见（旧版 DOM 那边也是这么切的，
-   * 理由见 legacy 的 flipCard.ts——backface-visibility 在补间途中判断不可靠）。
+   * 理由见黑客松版的 flipCard.ts——backface-visibility 在补间途中判断不可靠）。
    */
   setFlipAngle(angleDeg: number): void {
     if (angleDeg === this.flipAngle) return

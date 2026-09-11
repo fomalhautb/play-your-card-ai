@@ -4,14 +4,14 @@
       "layout": {
         "$value": "0.4s",
         "$type": "duration",
-        "$description": "手牌重排（加牌、减牌、改窗口大小）的时长。两侧手牌共用同一个值，加减牌时上下两排的节奏才是一套的。来源：legacy-client/src/ui/fanMath.ts 的 LAYOUT_DUR，HandFan 和 OpponentFan 都读它。"
+        "$description": "手牌重排（加牌、减牌、改窗口大小）的时长。两侧手牌共用同一个值，加减牌时上下两排的节奏才是一套的。来源：黑客松版的 ui/fanMath.ts 的 LAYOUT_DUR，HandFan 和 OpponentFan 都读它。"
       }
     },
     "card": {
       "zoomIn": {
         "$value": "0.55s",
         "$type": "duration",
-        "$description": "卡牌放大查看的进场时长。来源：legacy-client/src/ui/CardZoomOverlay.tsx 的 ZOOM_IN_DUR，CardZoomOverlay、HeroScreen、DeckScreen 三处共用。"
+        "$description": "卡牌放大查看的进场时长。来源：黑客松版的 ui/CardZoomOverlay.tsx 的 ZOOM_IN_DUR，CardZoomOverlay、HeroScreen、DeckScreen 三处共用。"
       },
       "zoomOut": {
         "$value": "0.6s",
