@@ -82,8 +82,8 @@ async function targets(page: Page): Promise<DebugRect[]> {
   return await page.evaluate(() => window.__aiDuel?.tutorial?.targets() ?? [])
 }
 
-/** 某个语义锚点现在占哪一块。只有对战那一段答得上来。 */
-async function anchor(page: Page, name: string): Promise<DebugRect | null> {
+/** 某个语义锚点现在占哪一块，**答不上来就是 null，不等**。只有对战那一段答得上来。 */
+export async function anchorRect(page: Page, name: string): Promise<DebugRect | null> {
   return await page.evaluate((one) => window.__aiDuel?.tutorial?.anchor(one) ?? null, name)
 }
 
@@ -105,7 +105,7 @@ async function waitForRect(
 }
 
 /** 点某一块的正中。 */
-async function clickRect(page: Page, rect: DebugRect): Promise<void> {
+export async function clickRect(page: Page, rect: DebugRect): Promise<void> {
   await page.mouse.click(rect.x + rect.w / 2, rect.y + rect.h / 2)
 }
 
@@ -121,6 +121,6 @@ export async function clickFirstTarget(page: Page): Promise<void> {
 
 /** 点某个语义锚点的正中（对战那一段的「结束出牌」「对方战场」都走它）。 */
 export async function clickAnchor(page: Page, name: string): Promise<void> {
-  const rect = await waitForRect(page, () => anchor(page, name), `锚点 ${name}`)
+  const rect = await waitForRect(page, () => anchorRect(page, name), `锚点 ${name}`)
   await clickRect(page, rect)
 }

@@ -15,8 +15,10 @@ import { cellCenter, pickDeckLayout } from '@ai-duel/canvas'
 import { expect, type Page, test } from '@playwright/test'
 import { VIEWPORT } from './players'
 import {
+  anchorRect,
   clickAnchor,
   clickFirstTarget,
+  clickRect,
   enterTutorial,
   tutorialState,
   untilStep,
@@ -78,40 +80,26 @@ async function firstTargetSpot(page: Page): Promise<{ x: number; y: number }> {
 }
 
 /**
- * 结算层那颗「确认」的中心（视口坐标）。
- *
- * 公式抄自 canvas 的 components/SettleLayer.ts：那一层按 **1672×941 的设计尺寸**排好，
- * 再整块等比缩放并在视口里居中（`resize`）；按钮横向居中、竖向压在底栏（高 96）的正中，
- * 也就是设计坐标的 `(836, 941 − 48)`。
- * 和房间页那三颗钮一样，这是画布界面做端到端绕不开的代价（见 e2e/roomPage.ts）。
- */
-const SETTLE_CONFIRM = (() => {
-  const design = { width: 1672, height: 941 }
-  const scale = Math.min(VIEWPORT.width / design.width, VIEWPORT.height / design.height)
-  const left = (VIEWPORT.width - design.width * scale) / 2
-  const top = (VIEWPORT.height - design.height * scale) / 2
-  return {
-    x: left + (design.width / 2) * scale,
-    y: top + (design.height - 96 / 2) * scale,
-  }
-})()
-
-/**
- * 局面停在结算阶段、而玩家还没确认的话，点一下那颗「确认」。
+ * 局面停在结算阶段、而玩家还没确认的话，点一下结算层那颗「确认」。
  *
  * **必须点真按钮，不能直接发指令**：直接发的话引擎当场翻篇，而编排层看到阶段离开 settle
  * 就把整条结算演出掐掉（见 canvas 的 director/settleTimeline.ts 的 exitSettle），
  * 于是 `quiz-rows-done` / `quiz-score-shown` 这几条教程等着的信号一条都不会发出来——
  * 教程会卡在「等揭晓演完」那一步上，而画面看着一切正常。
  *
- * 按钮要等演出走到「⑥按钮淡入」才可点，在那之前点下去是空的（钮是灰的），下一轮再点就是。
+ * 落点问场景要（锚点 `settleConfirm`）。那颗钮画在画布里、位置由结算层自己那套
+ *「按设计尺寸排好再整块缩放」算出来，在这儿抄一遍那套换算迟早和它对不上。
+ * 答不上来就是「这一刻没这颗钮」（层还没立起来、或者演出还没走到「按钮淡入」那一拍），
+ * 那就什么都不做，下一轮再问。
  */
 async function confirmIfSettling(page: Page): Promise<void> {
   const settling = await page.evaluate(() => {
     const view = window.__aiDuel?.match?.view().view
     return view?.phase === 'settle' && !view.settleConfirmed[0]
   })
-  if (settling) await page.mouse.click(SETTLE_CONFIRM.x, SETTLE_CONFIRM.y)
+  if (!settling) return
+  const rect = await anchorRect(page, 'settleConfirm')
+  if (rect !== null) await clickRect(page, rect)
 }
 
 /** 引擎那边此刻走到哪儿了。只进日志，用例不拿它做判断。 */

@@ -71,6 +71,13 @@ export function anchorRectOf(ctx: DuelContext, name: DuelAnchorName): AnchorRect
       return boardHalf(ctx, 'mine')
     case 'battlefieldFoe':
       return boardHalf(ctx, 'theirs')
+    case 'settleConfirm':
+      /*
+       * 结算层整层的可见性要**单独判**：`boundsOf` 只看目标节点自己，而那颗钮是挂在
+       * 结算层里的，层退场之后钮本身仍然是 `visible`（退场改的是整层）。
+       * 不判的话，战场早就露出来了，这里还会报一个钮的位置。
+       */
+      return parts.settle.visible ? boundsOf(parts.settle.confirmButton) : null
   }
 }
 
