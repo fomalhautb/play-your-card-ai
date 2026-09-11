@@ -10,23 +10,37 @@
  * 没有 loader、没有嵌套路由那一套——这个应用的页面之间没有数据依赖关系，
  * 「匹配 → 选卡组 → 选英雄」那种流程是在**同一条路由内换 phase**（旧版就是这么做的）。
  *
- * 现在有首页、选英雄页、开包、牌组页、房间页、对局和开发页。设置和关于是第 31 条、
- * 教程是第 32 条的事，到时候各自往下面这张表里加一行——
- * 首页菜单上那几颗钮已经指着它们的路由了，现在点进去会落到兜底那一条（「没有这一页」）。
+ * 现在有首页、选英雄页、开包、牌组页、房间页、对局、三个文字页（设置 / 账号 / 关于）
+ * 和开发页。只剩教程（第 32 条）还没有，首页菜单上那颗「开始游戏」在没走过教程时
+ * 会指向它，现在点进去会落到兜底那一条（「没有这一页」）。
+ *
+ * ## 应用壳开机时要做的三件事
+ *
+ * 装回静音状态、装回「减少动效」、把竖屏提示和全屏入口挂上。前两件是**上一次的选择**
+ *（存在本机上），不装回去的话玩家每次进站都要重新关一遍声音；后两件是两层常驻的浮层，
+ * 它们和当前在哪一页无关，所以挂在路由外面（见 screens/OrientationNotice.tsx）。
  */
 
 import type { Platform } from '@ai-duel/platform'
-import { type ComponentType, lazy, Suspense } from 'react'
+import { type ComponentType, lazy, Suspense, useEffect } from 'react'
 import { Route, Switch } from 'wouter'
 import { MatchSessionProvider } from './app/MatchSession'
 import { PlatformProvider } from './app/platform'
+import { applyReducedMotion } from './app/reducedMotion'
+import { restoreMuted } from './audio/mute'
 import { AuthProvider } from './auth/useSession'
+import { loadSave } from './save/saveStore'
+import { AccountScreen } from './screens/AccountScreen'
 import { DeckScreen } from './screens/DeckScreen'
+import { FullscreenEntry } from './screens/FullscreenEntry'
 import { HeroScreen } from './screens/HeroScreen'
 import { HomeScreen } from './screens/HomeScreen'
+import { InfoScreen } from './screens/InfoScreen'
 import { MatchScreen } from './screens/MatchScreen'
+import { OrientationNotice } from './screens/OrientationNotice'
 import { PackScreen } from './screens/PackScreen'
 import { RoomScreen } from './screens/RoomScreen'
+import { SettingsScreen } from './screens/SettingsScreen'
 // 设计令牌的 CSS 变量，全应用只在这里 import 一次挂到 :root 上——
 // 每个组件各引一遍的话同一份变量会被打进包里好几次（见 ui 包的 index.ts）。
 import '@ai-duel/design/tokens.css'
@@ -50,6 +64,16 @@ const DEV_PAGES: Record<string, ComponentType> = import.meta.env.DEV
 const DEV_ROUTES = Object.entries(DEV_PAGES)
 
 export function App({ platform }: { platform: Platform }) {
+  /*
+   * 把上一次存下来的两项选择装回去。放在 effect 里而不是模块顶层：
+   * 它们都要碰浏览器（存储、document），而这个组件在测试里也会被渲染。
+   * 依赖只有 platform——这两项一次会话只该装一遍，之后由设置页自己改。
+   */
+  useEffect(() => {
+    restoreMuted(platform)
+    applyReducedMotion(loadSave(platform).reducedMotion)
+  }, [platform])
+
   return (
     <PlatformProvider platform={platform}>
       <AuthProvider>
@@ -61,6 +85,9 @@ export function App({ platform }: { platform: Platform }) {
             <Route path="/deck" component={DeckScreen} />
             <Route path="/room" component={RoomScreen} />
             <Route path="/match" component={MatchScreen} />
+            <Route path="/settings" component={SettingsScreen} />
+            <Route path="/account" component={AccountScreen} />
+            <Route path="/info" component={InfoScreen} />
             {DEV_ROUTES.map(([path, Page]) => (
               <Route key={path} path={path}>
                 {/* 开发页是懒加载的，第一帧还没到手；这一行字只在本地闪一下，不进生产包。 */}
@@ -74,6 +101,12 @@ export function App({ platform }: { platform: Platform }) {
               <p className="app-notice">没有这一页</p>
             </Route>
           </Switch>
+          {/*
+            两层常驻浮层，挂在 Switch 外面：它们和当前在哪一页无关，
+            跟着路由重挂的话每换一页竖屏提示都会重新弹一次。
+          */}
+          <OrientationNotice />
+          <FullscreenEntry platform={platform} />
         </MatchSessionProvider>
       </AuthProvider>
     </PlatformProvider>

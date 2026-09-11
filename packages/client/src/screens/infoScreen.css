@@ -1,0 +1,74 @@
+/*
+ * 关于页：一张铺满的底图，上面压着 `ui` 的文字页外壳。
+ * 版式归 `Page`（页宽、页眉、安全区），这里只管底图和正文里那几种段落。
+ * 数值读设计令牌（架构 7.1 第 4 条）。
+ */
+
+.info {
+  position: absolute;
+  inset: 0;
+  background: var(--color-page-background);
+}
+
+/*
+ * 底图。`cover` 会裁掉边缘，但这张图的四角本来就是渐隐的星空，裁掉不影响；
+ * 换成 `contain` 的话宽屏上左右会露出两条底色，比裁掉难看得多。
+ */
+.info__bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 外壳自己带底色（它要铺满整屏），这一页要让底图透出来，所以就地去掉。 */
+.info .ui-page {
+  background: none;
+}
+
+.info__heading {
+  margin: 32px 0 12px;
+  color: var(--color-hero-gold);
+  font-size: 21px;
+  font-weight: 600;
+  /* 行高写死：`normal` 由字体度量决定，换台机器就换一档。 */
+  line-height: 1.5;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+}
+
+/* 第一段标题紧贴页眉，不要那 32px 的上边距。 */
+.info__heading:first-child {
+  margin-top: 8px;
+}
+
+.info__rules {
+  margin: 0;
+  padding-left: 1.4em;
+  font-size: 16px;
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+}
+
+.info__rules > li {
+  margin-bottom: var(--space-sm);
+}
+
+.info__line {
+  margin: 0 0 var(--space-md);
+  font-size: 16px;
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+}
+
+/* 名单那一行亮一档：它是这一段里唯一要被认出来的内容。 */
+.info__names {
+  margin: 0 0 var(--space-xl);
+  color: var(--color-home-ink-lit);
+  font-size: 18px;
+  line-height: 1.8;
+  letter-spacing: 0.16em;
+}

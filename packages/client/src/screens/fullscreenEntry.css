@@ -1,0 +1,30 @@
+/*
+ * 全屏入口那颗圆章的位置，以及引导里那两段文字。
+ * 圆章自己的长相归 `ui` 的 `SealButton`，这里只管它摆在哪儿。
+ * 数值读设计令牌（架构 7.1 第 4 条）。
+ */
+
+/*
+ * 左下角。为什么不是右下角：对局那一档版式的右下角是「结束出牌」和「催一催」两颗钮
+ *（见 canvas 的 mobileLayout 的 endPlay），压上去会挡住玩家最常按的地方。
+ * 左下角在两档版式里都是手牌扇形的左端，那里没有可点的东西。
+ */
+.fs-entry {
+  position: fixed;
+  z-index: 900;
+  bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
+  left: calc(var(--space-lg) + env(safe-area-inset-left));
+}
+
+.fs-entry__text {
+  margin: 0;
+  /* 行高写死：`normal` 由字体度量决定，换台机器就换一档。 */
+  line-height: 1.75;
+}
+
+.fs-entry__steps {
+  margin: var(--space-lg) 0 0;
+  padding-left: 1.5em;
+  line-height: 1.9;
+  text-align: left;
+}

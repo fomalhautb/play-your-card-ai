@@ -17,12 +17,13 @@ import {
   resetSave,
   saveHero,
   saveOwnedOrder,
+  setReducedMotion,
 } from '../src/save/saveStore'
 
 /** 和 saveStore.ts 里的存档位对得上（名字 + 版本号，见 platform 的 storageKeyOf）。 */
-const SAVE_KEY = 'ai-duel-save.v1'
+const SAVE_KEY = 'ai-duel-save.v2'
 /** 上一个版本号。存档不做迁移，换号就等于旧档整份作废。 */
-const OLD_SAVE_KEY = 'ai-duel-save.v0'
+const OLD_SAVE_KEY = 'ai-duel-save.v1'
 
 /**
  * 随便挑一位技能还没实装的英雄，用来测「存档里存着她时要当作没选过」。
@@ -104,6 +105,7 @@ describe('本地存档', () => {
       wins: 0,
       savedHero: null,
       tutorialDone: false,
+      reducedMotion: false,
     })
     expect(platform.storage.entries.has(SAVE_KEY)).toBe(false)
   })
@@ -150,6 +152,25 @@ describe('本地存档', () => {
     expect(save.savedHero).toBe('grace-hopper')
     expect(save.ownedCards).toEqual(before.ownedCards)
     expect(save.wins).toBe(before.wins)
+  })
+
+  // 「减少动效」这一位的三条：默认关、写进去能读回来、写坏了按关算。
+  // 默认关是安全的那一档——系统级的 prefers-reduced-motion 走 CSS，不经过存档。
+  it('新号默认不开减少动效', () => {
+    expect(loadSave(platform).reducedMotion).toBe(false)
+  })
+
+  it('开了减少动效之后读得回来，别的字段不受影响', () => {
+    saveHero(platform, 'ada-lovelace')
+    setReducedMotion(platform, true)
+    const save = loadSave(platform)
+    expect(save.reducedMotion).toBe(true)
+    expect(save.savedHero).toBe('ada-lovelace')
+  })
+
+  it('减少动效那一位不是布尔值时按「没开」算', () => {
+    writeRaw(SAVE_KEY, { ownedCards: [...INITIAL_COLLECTION], wins: 0, reducedMotion: '开' })
+    expect(loadSave(platform).reducedMotion).toBe(false)
   })
 
   // 存档写坏或缺字段时宁可多放一次教程，也别把新手直接丢进匹配房。

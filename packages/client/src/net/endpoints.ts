@@ -59,3 +59,13 @@ export function signInAnonymousUrl(origin: string): string {
 export function tokenUrl(origin: string): string {
   return `${httpBase(origin)}${AUTH_BASE}/token`
 }
+
+/**
+ * 登出：让服务端把会话 cookie 清掉。账号页那颗「登出」走它。
+ *
+ * 和上面三条一样必须同源——清的是 cookie，跨源的话浏览器根本不会带着它发过去。
+ * 清完之后**要整页重载**，理由见 screens/AccountScreen.tsx 的文件头。
+ */
+export function signOutUrl(origin: string): string {
+  return `${httpBase(origin)}${AUTH_BASE}/sign-out`
+}

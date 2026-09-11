@@ -26,10 +26,10 @@ import { isServerDriver } from '../match/serverDriver'
 import { useMatch } from '../match/useMatch'
 import { recordWin } from '../save/saveStore'
 import { DuelStage } from './DuelStage'
-import { type MatchOutcome, MatchResult } from './MatchResult'
-import { outcomeOf, resultTitleOf } from './matchOutcome'
+import { type MatchOutcome, outcomeOf, resultTitleOf } from './matchOutcome'
 import { linkStatusOf } from './matchStatus'
 import { packPathOf } from './packRoute'
+import { ResultScreen } from './ResultScreen'
 import './matchScreen.css'
 
 /**
@@ -166,10 +166,11 @@ function Match({ driver }: { driver: MatchDriver }) {
       />
 
       {outcome === null ? null : (
-        <MatchResult
+        <ResultScreen
           outcome={outcome}
           title={resultTitleOf(outcome, view.abortReason)}
           score={scoreOf(view, outcome)}
+          rounds={roundsOf(view, outcome)}
           // 「再来一局」也只是回上一页：这一局的房间已经收摊了（`room:closed`），
           // 真正的「原班人马再来一局」要服务端支持重开房间，那还没有。
           onPlayAgain={() => leave(exitTo)}
@@ -200,6 +201,16 @@ function Match({ driver }: { driver: MatchDriver }) {
       </Dialog>
     </div>
   )
+}
+
+/**
+ * 打了几轮。中断局不报——那一半局面根本没打完，报一个数只会让人以为它打完了。
+ *
+ * 报的是 `view.round`，也就是**最后一轮的编号**：打完的那一局里它就等于总轮数。
+ */
+function roundsOf(view: ReturnType<typeof useMatch>, outcome: MatchOutcome): number | null {
+  if (outcome === 'aborted' || view.view === null) return null
+  return view.view.round
 }
 
 /** 最终比分。中断局没有比分可言（那一半局面根本没打完）。 */
