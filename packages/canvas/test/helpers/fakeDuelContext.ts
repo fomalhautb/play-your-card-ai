@@ -149,6 +149,8 @@ export function createFakeDuelContext(): { ctx: DuelContext; calls: FakeCalls } 
     handCardIds: new Map([['h1', 'fake-ai']]),
     markKeys: new Map<string, string>(),
     locks: new Set<number>(),
+    // 教程那份逐张锁：这些用例都不在教程里，恒为 null。
+    blockedCards: null,
     showcased: null,
     inspectingTile: 'u1',
 
@@ -174,6 +176,7 @@ export function createFakeDuelContext(): { ctx: DuelContext; calls: FakeCalls } 
     userAction: () => names.push('userAction'),
     command: () => names.push('command'),
     tutorial: () => names.push('tutorial'),
+    blocked: () => names.push('blocked'),
     refreshLocks: () => names.push('refreshLocks'),
   }
 

@@ -4,7 +4,7 @@
   "configurations": [
     {
       "name": "web",
-      "note": "网页壳 apps/web：首页三个入口（测试对局、热座、联机对战）。联机那条要同时起 relay。",
+      "note": "网页壳 apps/web：首页那颗「开始」第一次进站先走新手教程，之后直接进联机房；菜单里另有测试对局和联机对战。联机那条要同时起 relay。",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "dev"
