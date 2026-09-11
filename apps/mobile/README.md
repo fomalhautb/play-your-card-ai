@@ -16,10 +16,14 @@ capacitor.config.ts   appId、appName、webDir、系统栏、开发期的 server
 index.html            viewport-fit=cover（安全区的前提）
 vite.config.mts       网页构建，产物落在 dist/
 src/
-  main.tsx            入口，和 apps/web 那份只差一行
+  main.tsx            入口，和 apps/web 那份只差平台实现那一处
 android/              `cap add android` 生成的 Gradle 工程
 ios/                  `cap add ios` 生成的 Xcode 工程（SPM，不用 CocoaPods）
 ```
+
+平台实现从 **`@ai-duel/client/capacitor`** 取，不是主入口：这套实现底下挂着有副作用的
+`@capacitor/core`（打包器摇不掉），搁在主入口上会让网页壳和 Steam 壳白背一份用不到的运行时
+（实测 `apps/web` 多 8.2 kB / gzip 3.1 kB）。见 `packages/client/src/capacitor.ts` 的文件头。
 
 两个原生工程**进仓库**，构建产物不进（`android/.gitignore`、`ios/.gitignore` 是
 `cap add` 自己写的，已经把 `build/`、`.gradle/`、`App/Pods`、`xcuserdata`、

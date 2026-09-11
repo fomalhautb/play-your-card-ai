@@ -13,8 +13,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { createCapacitorPlatform } from '../src/capacitor/index'
 import type { HttpRequestOptions, SocketHandle, SocketOptions } from '../src/index'
-import { createCapacitorPlatform } from '../src/index'
 
 const SITE = 'https://playyourcardai.online'
 

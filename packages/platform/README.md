@@ -103,7 +103,17 @@
 
 ## capacitor 实现
 
-`createCapacitorPlatform()`（迁移第 36 条，`src/capacitor/`）。同样**以网页实现为底**，换三项：
+`createCapacitorPlatform()`（迁移第 36 条，`src/capacitor/`）。同样**以网页实现为底**，换三项。
+
+**它不在包的主入口里**，在第二个入口 `@ai-duel/platform/capacitor`
+（`package.json` 的 `exports` 里声明的）。理由只有一条：它 import 了 `@capacitor/core`，
+而那个包是有副作用的（模块一加载就往 window 上挂东西），打包器摇不掉。
+挂在主入口上的话，网页壳的产物里会白白多出一份用不到的 Capacitor 运行时——
+实测 `apps/web` 从 1,026.84 kB 涨到 1,035.03 kB（gzip 319.07 → 322.21）。
+壳那边也隔了一层：`apps/` 下的壳只许依赖 client，所以手机壳走的是
+`@ai-duel/client/capacitor`（见 `packages/client/src/capacitor.ts`）。
+
+三项是：
 
 - `network`：三件事。**地址**要改指线上——手机壳里页面的源是 `capacitor://localhost`
   （iOS 的 WKWebView 不让给 https 注册协议处理器，只能用非标准 scheme），而客户端是照
