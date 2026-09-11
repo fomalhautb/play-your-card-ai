@@ -1,4 +1,4 @@
-# 前端静态资源和 WebSocket 转发器部署成同一个 Worker，所以只有这一条部署流水线。
+# 前端静态资源和服务端部署成同一个 Worker，所以只有这一条部署流水线。
 name: 部署到 Cloudflare Workers
 
 on:
@@ -45,11 +45,18 @@ jobs:
         if: steps.credentials.outputs.ready == 'true'
         run: pnpm install --frozen-lockfile
 
-      # 必须先构建：wrangler.jsonc 里 assets.directory 指向 packages/legacy-client/dist，
+      # 必须先构建：wrangler.jsonc 里 assets.directory 指向 apps/web/dist，
       # 这个目录是 gitignore 掉的，仓库里没有。
+      #
+      # 卡面图集和界面底图是 `pnpm assets:build` 的产物，落在 apps/web/public 下，
+      # 同样不进仓库，所以也得在这儿现打一份——少了它页面起来是空的。
+      - name: 打图集和素材
+        if: steps.credentials.outputs.ready == 'true'
+        run: pnpm assets:build
+
       - name: 构建前端
         if: steps.credentials.outputs.ready == 'true'
-        run: pnpm --filter @ai-duel/legacy-client build
+        run: pnpm --filter @ai-duel/web build
 
       # 账号库的建表要走在部署前面：新代码一上线就会去查 user / session / jwks 这几张表，
       # 表还没建的话第一个来登录的人直接报 500。

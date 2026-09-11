@@ -6,8 +6,7 @@ import { AUTH_BASE_PATH, createAuth } from './betterAuth'
  * 它自己认得游客登录、拿会话、换 JWT、公钥集这些路由，我们不在外面再抄一层路由表——
  * 抄一层的下场是每次升级 better-auth 都要跟着补路径。
  *
- * 形状和旧转发器的 `handleLegacyRequest` 一样：不是自己的路径返回 null 交给上层，
- * 这样总路由那边只是一串 `if`，谁先谁后一眼能看出来。
+ * 不是自己的路径就返回 null 交给上层，这样总路由那边只是一串 `if`，谁先谁后一眼能看出来。
  */
 export async function handleAuthRequest(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url)

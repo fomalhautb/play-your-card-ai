@@ -17,7 +17,7 @@
  *    音频不需要任何转换（源文件已经是 AAC/m4a），这一步只是「把源搬成产物」，
  *    好让 apps/web/public 下一件手写的东西都没有，整个目录都能进 .gitignore。
  *
- * 输入是 `assets/source/`（迁移第 33 条搬过来的，legacy-client 的 public/ 现在是指向它的符号链接）。
+ * 输入是 `assets/source/`，是全部美术和音频的唯一源头（见那个目录下的 README）。
  */
 
 import { cp, mkdir, readdir, rm } from 'node:fs/promises'
@@ -43,9 +43,9 @@ const atlasDir = join(distDir, 'atlas')
 const SOURCES = [
   { group: 'models{tps}', from: join(cards, 'models'), pick: () => true },
   { group: 'skills{tps}', from: join(cards, 'skills'), pick: () => true },
-  // 牌背取的是 mid/ 那一档：它本来就是给中等尺寸准备的版本，缩到 512 宽刚好，
-  // 而同名的原画档（1024 宽）缩下来并不会更清楚。
-  { group: 'backs{tps}', from: join(cards, 'mid'), pick: (name) => name.startsWith('card-back-') },
+  // 牌背和卡面原画不在同一个目录：models/ 和 skills/ 是按卡牌 id 命名的一张一张卡，
+  // 牌背是整副牌共用的两张，直接躺在 cards/ 底下，所以要按前缀挑出来。
+  { group: 'backs{tps}', from: cards, pick: (name) => name.startsWith('card-back-') },
 ]
 
 /** 复制产物的去处。目录可能还不存在（bench 刚建骨架），所以要能自己建。 */

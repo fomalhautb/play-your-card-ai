@@ -205,7 +205,6 @@ module.exports = {
      */
     exclude: {
       path: [
-        '^packages/legacy-client/',
         /*
          * node_modules **不在**这里。以前它被整个摘掉，结果是「指向第三方的边根本不在图里」，
          * 于是 core 只许 pure-rand、canvas 不碰 react、ui 不碰 pixi 这三条一次都没触发过，

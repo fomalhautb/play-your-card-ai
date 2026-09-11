@@ -6,10 +6,6 @@
   // Biome 认的是扩展名，所以 biome.jsonc 里给这个文件单独开了 allowComments。
   "$schema": "./node_modules/knip/schema.json",
 
-  // 旧客户端已冻结，排除在 lint 之外（迁移第 7 条）。
-  // 它的 typecheck 和测试照常在 CI 里跑。
-  "ignoreWorkspaces": ["packages/legacy-client"],
-
   "workspaces": {
     // 仓库根目录本身不是一个包，只有 scripts/ 下几个一次性脚本。
     // 它们是各自独立的入口（命令行直接 node 跑），不写进来会被当成没人要的死文件。

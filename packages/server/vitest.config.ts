@@ -63,7 +63,7 @@ export default defineConfig({
          *
          * 这个 pool 自带一份 workerd，它认得的最新兼容日期比 wrangler.jsonc 里写的那个早
          *（不压的话 workerd 起不来，报「requires compatibility date ... newest supported is ...」）。
-         * 线上那个日期不动：旧转发器还在线上跑，改它是动线上行为。
+         * 线上那个日期不动：改它是动线上行为，而这里要的只是让测试跑得起来。
          * 等 pool 跟上新的 workerd，把这一行删掉。
          */
         compatibilityDate: '2026-08-22',

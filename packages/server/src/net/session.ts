@@ -83,7 +83,7 @@ export function hasOtherConnection(
  *
  * 调用顺序要紧：**先 accept 新连接再顶旧的**，这样旧连接的 close 回调查
  * 「这个人还有别的连接吗」时能查到新的那条，一次重连就不会被当成掉线
- * （旧转发器踩过这个坑，见 legacy/room.ts）。
+ * （黑客松那版转发器踩过这个坑：它先顶旧的再 accept，一次重连被当成掉线通知了对面。）
  */
 export function supersede(
   ctx: DurableObjectState,
@@ -155,7 +155,7 @@ export function upgradeResponse(request: Request, client: WebSocket): Response {
  * 握手成功、但业务上不让这个人进：先把 101 回出去，再发一条说明，然后关连接。
  *
  * 为什么不直接回 4xx：浏览器的 WebSocket 对象拿不到失败握手的响应体和状态码，
- * 「房间满了」还是「token 过期了」就没地方说（协议 README「认证」那一节，旧转发器同理）。
+ * 「房间满了」还是「token 过期了」就没地方说（协议 README「认证」那一节）。
  * 所以一律先 101 建起来，把 `session:rejected` 发出去，再带着关闭码关掉——
  * 消息万一没送到，客户端还能从 `CloseEvent.code` 认出大类。
  *

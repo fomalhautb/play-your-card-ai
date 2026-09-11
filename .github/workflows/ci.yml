@@ -64,7 +64,6 @@ jobs:
         run: pnpm typecheck
 
       # biome、dependency-cruiser、knip 依次跑，任何一个红整步就红。
-      # 冻结的 legacy-client 三个工具都不看，但它上面的 typecheck 和测试照跑——它还是线上那一版。
       - name: Lint
         run: pnpm lint
 
@@ -75,7 +74,7 @@ jobs:
         run: pnpm --filter @ai-duel/design check
 
       # `pnpm -r test` 只进有 test 脚本的包，现在是 core、content、protocol、design、platform、
-      # canvas、bench 和 legacy-client。
+      # canvas、ui、client、server 和 bench。
       # bench 的 test 脚本只跑 Node 侧纯逻辑的 vitest，不开浏览器——
       # 要浏览器的那几组在下面 scene / keyframes 那两个 job 和慢档里。
       # 骨架包没有 test 脚本，会被直接跳过——别为了"看着整齐"给它们加空脚本，

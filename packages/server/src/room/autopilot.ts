@@ -6,7 +6,7 @@
  * 所以它连解析层都过不去（`matchCommandSchema` 只认玩家那四种）。
  * 由服务端在进答题阶段之后隔一小会儿自己发。
  *
- * 旧版这一层在客户端（legacy-client 的 `match/quizAutopilot.ts`），用的是 `setTimeout`。
+ * 旧版这一层在客户端（黑客松版的 `match/quizAutopilot.ts`），用的是 `setTimeout`。
  * 搬过来之后定时器换成 Durable Object 的 alarm：房间对象在没有消息进出时会休眠，
  * 内存里的 `setTimeout` 醒来就没了，alarm 由运行时保管，休眠期间照样到点。
  *

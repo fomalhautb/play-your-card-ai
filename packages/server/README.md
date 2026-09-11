@@ -1,22 +1,17 @@
 # @ai-duel/server
 
-Cloudflare Worker 加 Durable Object。一个脚本里**并排跑着两套服务端**：
+Cloudflare Worker 加 Durable Object。三块东西并排跑在同一个脚本里：
 
-| | 路径 | DO 绑定 | 目录 | 状态 |
-|---|---|---|---|---|
-| 旧转发器 | `/api/room`、`/room/:code` | `ROOM` → `Room` | `src/legacy/` | 冻结，线上还在用 |
-| 新房间 | `/match/:code` | `MATCH_ROOM` → `MatchRoom` | `src/room/` | 在写 |
-| 新大厅 | `/lobby` | `LOBBY` → `Lobby` | `src/lobby/` | 在写 |
-| 账号 | `/api/auth/*` | `AUTH_DB`（D1，不是 DO） | `src/auth/` | 在写 |
+| | 路径 | 绑定 | 目录 |
+|---|---|---|---|
+| 房间 | `/match/:code` | `MATCH_ROOM` → `MatchRoom` | `src/room/` |
+| 大厅 | `/lobby` | `LOBBY` → `Lobby` | `src/lobby/` |
+| 账号 | `/api/auth/*` | `AUTH_DB`（D1，不是 DO） | `src/auth/` |
 
-旧的是黑客松那版**纯消息转发器**：没有权威状态，规则跑在房主客户端里。
-线上的 legacy-client 仍然靠它打联机，`deploy.yml` 每次合并 main 就部署，
-所以在《正式版架构》迁移第 38 条（删掉 legacy-client）之前，
-`src/legacy/` 里**一行行为都不要改**——类名 `Room` 和绑定名 `ROOM` 更不能改，
-Durable Object 是按类名找实例的。
+这是**权威服务端**（需求第 6 条）：规则只在服务端跑，客户端只发指令、
+只收过了 `filterEvent` 的事件和自己那份裁剪视图。
 
-新的是**权威服务端**（需求第 6 条）：规则只在服务端跑，客户端只发指令、
-只收过了 `filterEvent` 的事件和自己那份裁剪视图。两套互不相干，各走各的路径和绑定。
+类名和绑定名都不能改：Durable Object 是按类名找实例的，改名等于把正在打的房间全丢了。
 
 部署、域名、免费额度、Hibernation 的取舍写在 `docs/deploy.md`。
 电线上的消息长什么样、序号怎么算、JWT 怎么带，全部以 `packages/protocol/README.md` 为准。
@@ -25,17 +20,14 @@ Durable Object 是按类名找实例的。
 
 ```
 src/
-  index.ts            总路由：旧路径进 legacy，/api/auth/* 进账号系统，
-                      /match/:code 和 /lobby 进新代码，其余交静态资源
+  index.ts            总路由：/api/auth/* 进账号系统，/match/:code 和 /lobby 进房间和大厅，
+                      其余交静态资源
   devMode.ts          「现在跑的是不是本地开发」这一个判断（判据是 .dev.vars 里的 DEV）
   auth/
     betterAuth.ts     账号系统：better-auth 配 D1，开了游客登录和 jwt 两个插件
     routes.ts         /api/auth/* 原样交给 better-auth 的 handler
     verify.ts         验握手那张 JWT 认出 userId：从 D1 读公钥，带缓存
   net/session.ts      大厅和房间共用的连接层：附件、发消息、101 回显、顶号、session:hello
-  legacy/
-    room.ts           旧转发器的 Room 类（冻结）
-    routes.ts         旧转发器的两条 HTTP 路由（冻结）
   room/
     MatchRoom.ts      房间 DO：连接生命周期 + 消息分发 + alarm 回调，不留任何内存状态
     session.ts        房间特有的连接细节：座位标签、按座位发、座位在不在线
@@ -62,8 +54,6 @@ test/
   cheat.test.ts       作弊：借座位、DEBUG_*、SUBMIT_ANSWERS、冒充重连……全部要被拒
   autopilot.test.ts   答题 alarm 和空房超时
   lobby.test.ts       排队配对、私人开房、按码加入、房间码回收
-  legacy.test.ts      旧转发器最关键的几条时序，防止改新的时改坏旧的
-  smoke.mjs           打真的 wrangler dev 或线上的端到端脚本（不在 CI 里）
 ```
 
 ## 一局是怎么走的
@@ -217,8 +207,8 @@ cp packages/server/.dev.vars.example packages/server/.dev.vars
 线上那份走 `wrangler secret put BETTER_AUTH_SECRET`，不写进 `wrangler.jsonc`。
 
 ```bash
-pnpm --filter @ai-duel/legacy-client build   # 先出静态资源，assets.directory 指着它
-pnpm dev:server                              # 先建账号库的表，再 wrangler dev（127.0.0.1:8787）
+pnpm --filter @ai-duel/web build   # 先出静态资源，assets.directory 指着它
+pnpm dev:server                    # 先建账号库的表，再 wrangler dev（127.0.0.1:8787）
 ```
 
 `pnpm dev:server` 里那一步建表是 `wrangler d1 migrations apply AUTH_DB --local`，
@@ -284,21 +274,11 @@ D1 也是真的：miniflare 按 `AUTH_DB` 那条绑定现建一个内存库，
 但 JWT 是自包含的（验签只看签名和 `sub`，不查账号表），所以上一条用例拿到的 token
 在下一条里照样能用。密钥那一行是在 setup 里生成的，回滚不掉。
 
-`test/smoke.mjs` 是另一回事——它打真的 `wrangler dev` 或线上，
-覆盖面比 vitest 那几个宽（静态资源回退、CORS、跨房间释放），但不在 CI 里：
-
-```bash
-pnpm --filter @ai-duel/server smoke
-SMOKE_BASE=https://playyourcardai.online pnpm --filter @ai-duel/server smoke
-```
-
 ## 还没做的
 
 - 账号只有游客一种：邮箱 / OAuth 绑定还没接，Steam 票据换 JWT 是第 35 条。
   换句话说现在**换个浏览器就是另一个人**，清了 cookie 也一样。
   正式版客户端就是这么用的：进站自动开一个游客号（见 client 的 `src/auth/session.ts`）。
-- `room:urge` 的 id 查表：那张喊话表还在 legacy-client 里（第 33 条搬进 content），
-  搬过来之前只转发不校验，查不到该回的 `unknown-urge` 还发不出来。
 - 显示名：`createGame` 的 `name` 暂时直接用账号 id。better-auth 的 `user` 表里
   其实有一列 `name`（游客登录时随机生成一个），但那要按 `sub` 回查一次 D1，
   而房间对象现在一次 D1 都不查——等真要显示昵称时再一起接（第 27、31 条）。
