@@ -76,6 +76,8 @@
         "noNonNullAssertion": "off",
         // 7.2 第 3 条：单文件不超过 400 行，lint 卡死。
         // 含测试文件——测试一样会长到没人愿意读。
+        // **全仓一个豁免都没有**（core 那三个超标文件在迁移第 38 条拆完了）。
+        // 撞上限时的出路是拆文件，不是往下面 overrides 里加一条白名单。
         "noExcessiveLinesPerFile": {
           "level": "error",
           "options": { "maxLines": 400 }
@@ -225,30 +227,6 @@
                 ]
               }
             }
-          }
-        }
-      }
-    },
-    {
-      // 白名单豁免：core 这三个文件现在就超 400 行。
-      //
-      // 到期条款：第三阶段（迁移第 12-15 条）重做 core 时把它们拆掉，
-      // 顺手删掉这段 override。在那之前它们不许再长——新代码请开新文件。
-      //   engine.ts       规则引擎主体。第 12 条把卡牌、题库、答题剧本搬去 content 之后它并没有变短：
-      //                   引擎本来就不存数据，只是把 import 数据换成了查状态里的目录（GameState.catalog）。
-      //                   真要瘦下来得把技能牌结算和答题结算拆成单独文件。
-      //   types.ts        类型定义。卡牌、英雄、题目的类型**留在这里不搬**：content 依赖 core 拿类型，
-      //                   反过来就把依赖方向拧了（第 12 条定的）。第 14 条会把协议相关的搬去 protocol。
-      //   engine.test.ts  跟着 engine.ts 一起拆
-      "includes": [
-        "packages/core/src/engine.ts",
-        "packages/core/src/types.ts",
-        "packages/core/test/engine.test.ts"
-      ],
-      "linter": {
-        "rules": {
-          "style": {
-            "noExcessiveLinesPerFile": "off"
           }
         }
       }

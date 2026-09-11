@@ -11,7 +11,7 @@ import { createCatalog, QUESTION_POOL } from '@ai-duel/content'
 import type { CardId, ExecuteResult, HeroId, PlayerId, Question } from '../../src/index'
 import { createGame } from '../../src/index'
 
-/** 目录是只读的，全套测试共用一份就够（引擎一个字都不改它，见 src/types.ts 的 Catalog）。 */
+/** 目录是只读的，全套测试共用一份就够（引擎一个字都不改它，见 src/cards.ts 的 Catalog）。 */
 export const CATALOG = createCatalog()
 
 const QUESTIONS_BY_ID = new Map<string, Question>(QUESTION_POOL.map((q) => [q.id, q]))

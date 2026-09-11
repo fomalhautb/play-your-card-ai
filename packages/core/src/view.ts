@@ -24,7 +24,7 @@
  *
  * ## 公开的（别顺手也遮掉）
  *
- * - 整个卡池 `catalog`：本来就是公开数据（见 types.ts 的 `Catalog`）。
+ * - 整个卡池 `catalog`：本来就是公开数据（见 cards.ts 的 `Catalog`）。
  * - 双方的场上单位，连同身上的 `interference` / `safePassed` / `affectedBy` 这些标记：
  *   技能牌是当着两个人的面打出去的，命中了谁、留下什么效果都得看得见，
  *   否则客户端画不出战场小卡上那排角标。
@@ -38,21 +38,111 @@
  * 题库是随包发布的公开数据（`content` 的 questions.json）。真想作弊的人拿着整份题库、
  * 照出牌阶段就公开的那几个关键词，反查得到答案。这里遮的是"这一刻该不该给"，
  * 挡不住"自己去翻题库"。要连这条也堵上，得让题库只留在服务端，那是以后的事。
+ *
+ * ## 视图那几个类型也在这份文件里
+ *
+ * `PlayerView` / `SelfView` / `OpponentView` / `PlayerSideView` / `QuestionView` 没跟别的
+ * 数据形状一起放进 types.ts 那一组（卡牌、状态、指令、事件）。它们只有 `viewFor` 这一个产出方，
+ * 而"每个字段为什么给到这个程度"的理由就是上面这份清单——摆在一起，
+ * 改哪一边都不必翻到另一个文件去对照。
  */
 
-import { other } from './engine'
-import type {
-  GameEvent,
-  GamePhase,
-  GameState,
-  PlayerId,
-  PlayerSideView,
-  PlayerState,
-  PlayerView,
-  PublicQuestion,
-  Question,
-  QuestionView,
-} from './types'
+import type { Catalog, HeroId } from './cards'
+import { other } from './engineUtils'
+import type { GameEvent } from './events'
+import type { PublicQuestion, Question, QuestionCategory } from './question'
+import type { AiInstance, CardInstance, GamePhase, GameState, PlayerId, PlayerState } from './state'
+
+/**
+ * 裁剪视图里的一道题，按揭晓到哪一步分三档（完整口径见本文件的文件头）。
+ *
+ * - `'keywords'`：本轮还在出牌阶段。只有类别和关键词——题面等双方出完牌才揭晓
+ *   （见 `Question.keywords`）。连 `id` 都不给：题库是随包发布的公开数据，
+ *   而 id 是「q-dante」这种指得回原题的名字，这一档给出去等于提前泄题。
+ * - `'text'`：本轮已经进答题阶段（`QUESTION_REVEALED`），题面公开，答案和解析还遮着。
+ * - `'answer'`：本轮已经结算（`ROUND_SCORED`），以及所有已经打过的轮次——整题公开。
+ *
+ * 用 `reveal` 当判别标签而不是一堆可选字段：界面必须为这三档各写一套排版
+ *（牌匾只写类别、全屏题面、结算大字答案），可选字段会让"还没揭晓"和"忘了填"长得一样。
+ */
+export type QuestionView =
+  | { reveal: 'keywords'; category: QuestionCategory; keywords: string[] }
+  | ({ reveal: 'text' } & PublicQuestion)
+  | ({ reveal: 'answer' } & Question)
+
+/**
+ * 视图里一方**双方都看得见**的那部分，自己和对手共用。
+ *
+ * 场上单位、弃牌堆、分数、Token 这些界面上本来就两边都显示，一个字段都不用遮；
+ * 真正分自己和对手的只有手牌那一项，所以差别放在下面两个接口里。
+ */
+export interface PlayerSideView {
+  id: PlayerId
+  name: string
+  score: number
+  shielded?: true
+  costReduction: number
+  tokens: number
+  spentThisRound: number
+  tokenMax: number
+  /**
+   * 牌堆张数。**内容和顺序一律不给，自己的也不给**：下一张抽到什么是悬念，
+   * 客户端不该有能力提前知道（见本文件的文件头）。
+   */
+  deckCount: number
+  board: AiInstance[]
+  discard: CardInstance[]
+  hero: HeroId | null
+  heroSkillUsed: boolean
+}
+
+/** 视图里自己这一方：手牌完整给出。 */
+export interface SelfView extends PlayerSideView {
+  hand: CardInstance[]
+}
+
+/** 视图里对手那一方：手牌只给张数，连实例 id 都不给（为什么见本文件的文件头）。 */
+export interface OpponentView extends PlayerSideView {
+  handCount: number
+}
+
+/**
+ * 裁剪后发给某一方的局面快照，`viewFor(state, player)` 的产物。
+ *
+ * 和 `GameState` 平行，但把隐藏字段换成了公开的形态：对手手牌变张数、双方牌堆变张数、
+ * 题序按揭晓程度裁剪、`rngSeed` 和 `seq` 整个不给。
+ *
+ * 双方不是对称的，所以这里写成 `self` / `opponent` 而不是照 `GameState` 那样按座位号排成
+ * 一个二元组：二元组会逼出一个"这一格到底是自己还是对手"的联合类型，每处读手牌都要先收窄一次；
+ * 拆成两个字段之后，"对手手牌"这个字段压根不存在，泄漏在类型上就无处安放。
+ * 谁是几号座位由 `self.id` / `opponent.id` 交代，按座位号排的那几项
+ *（`settleConfirmed`、事件里的 `gains` / `scores`）仍然照座位号读。
+ */
+export interface PlayerView {
+  /** 这份视图是给谁看的，等于 `self.id`。 */
+  viewer: PlayerId
+  /** 公开卡池，原样带上（见 Catalog）。 */
+  catalog: Catalog
+  round: number
+  /**
+   * 最多能打几轮。以后轮次的题一个字都不给，所以这个数就是对手方唯一能知道的
+   *「还剩几轮」的依据。
+   */
+  totalRounds: number
+  firstPlayer: PlayerId
+  activePlayer: PlayerId
+  phase: GamePhase
+  /**
+   * 已经开始过的轮次的题，`questions[i]` 是第 i + 1 轮那道，长度等于 `round`。
+   * 还没轮到的题连关键词都不在里面（见 QuestionView）。
+   */
+  questions: QuestionView[]
+  self: SelfView
+  opponent: OpponentView
+  winner: PlayerId | 'draw' | null
+  /** 按座位号排，和 `GameState.settleConfirmed` 一样。 */
+  settleConfirmed: [boolean, boolean]
+}
 
 /**
  * 算出某一方能看到的局面快照。纯函数，不改传入的 state。
@@ -65,7 +155,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
   return {
     viewer,
     // 目录不拷贝：引擎一个字都不改它，所有对局共用 content 的那一份
-    //（同 engine.ts 的 clone）。几十 KB 的卡面文案没必要每次视图都复制一遍。
+    //（同 engineUtils.ts 的 clone）。几十 KB 的卡面文案没必要每次视图都复制一遍。
     catalog: state.catalog,
     round: state.round,
     totalRounds: state.totalRounds,
@@ -147,7 +237,7 @@ export function filterEvent(event: GameEvent, viewer: PlayerId): GameEvent | nul
     // 终局。原样公开。
     case 'GAME_OVER':
       return event
-    // 指令回执，不是局面上发生的事，不进广播（口径见 types.ts 的 COMMAND_REJECTED）。
+    // 指令回执，不是局面上发生的事，不进广播（口径见 events.ts 的 COMMAND_REJECTED）。
     // 服务端把它直接回给发指令的那条连接；本地 driver 同理，先把这一条挑出来给发起方，
     // 剩下的再过一遍这个函数。
     case 'COMMAND_REJECTED':
@@ -155,7 +245,7 @@ export function filterEvent(event: GameEvent, viewer: PlayerId): GameEvent | nul
   }
 }
 
-/** 视图里自己和对手共用的那部分（口径见 types.ts 的 `PlayerSideView`）。 */
+/** 视图里自己和对手共用的那部分（口径见本文件上面的 `PlayerSideView`）。 */
 function sideOf(player: PlayerState): PlayerSideView {
   return {
     id: player.id,
@@ -236,7 +326,7 @@ function publicQuestionOf(question: Question | PublicQuestion): PublicQuestion {
 }
 
 /**
- * JSON 深拷贝，理由同 engine.ts 的 clone：视图是一份快照，改它不该改到状态；
+ * JSON 深拷贝，理由同 engineUtils.ts 的 clone：视图是一份快照，改它不该改到状态；
  * 顺带钉死"视图必须可 JSON 序列化"这条（它是要走网络的）。
  */
 function copy<T>(value: T): T {

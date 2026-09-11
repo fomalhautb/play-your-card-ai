@@ -1,7 +1,7 @@
 /**
  * fast-check 属性测试的确定性那一半：同 seed 同结果，以及状态 JSON 往返之后什么都没丢。
  *
- * 这两条守的是 docs/architecture.md 第 3 节那两句约定——
+ * 这两条守的是 docs/legacy/architecture.md 第 3 节那两句约定（文档整体已废弃，规则那一节仍然有效）——
  * 「同样的 state + 同样的 command 永远得到同样的结果」和「GameState 必须全程可 JSON 序列化」。
  * 联机就靠它们成立：房主广播完快照，客人手上那份状态重放出来的画面必须和房主一模一样。
  *
