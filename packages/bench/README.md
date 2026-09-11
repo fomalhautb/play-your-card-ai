@@ -13,17 +13,20 @@ pnpm --filter @ai-duel/bench bench            # 确定性指标 + 稳态堆分�
 pnpm --filter @ai-duel/bench interaction      # 交互回归：真指针拖拽出牌、点选目标（无头）
 pnpm --filter @ai-duel/bench keyframes        # 剧本关键帧的截图回归（无头）
 pnpm --filter @ai-duel/bench keyframes:update # 重新生成本平台的关键帧基线
+pnpm --filter @ai-duel/bench cross-browser    # 三浏览器一致性：webkit / firefox 和 chromium 比
 pnpm --filter @ai-duel/bench timing           # 时间指标（有头、开 GPU、录 trace）
 pnpm --filter @ai-duel/bench dev              # 只把测量页面跑起来，手动在控制台调 window.__bench
 ```
 
-四组 Playwright 用例哪一组进哪一档 CI：`interaction` 和 `keyframes` 进**快档**（都是几分钟、
-每个 PR 都该跑），`bench`（确定性指标）进**慢档**并按「视口 × 剧本」拆成一格一格的并行 job，
+哪一组进哪一档 CI：`interaction` 和 `keyframes` 进**快档**（都是几分钟、每个 PR 都该跑），
+`bench`（确定性指标）和 `cross-browser`（三浏览器一致性）进**慢档**，各自拆成一格一格的
+并行 job——前者按「视口 × 剧本」，后者按「浏览器 × 剧本」。
 `timing` 两档都不进，只在本机跑（见下面「时间指标怎么和 main 比」）。
 
-这四组都由 Playwright 拉起 Vite（`playwright.config.ts` 的 `webServer`），不用先手动开服务器。
+这几组都由 Playwright 拉起 Vite（`playwright.config.ts` 的 `webServer`），不用先手动开服务器。
 卡面图集不在位时也由 Playwright 的 `globalSetup` 自己跑一遍 `pnpm assets:build`（见 `src/node/ensureAtlas.ts`）。
-第一次跑要先 `pnpm exec playwright install chromium`。
+第一次跑要先 `pnpm exec playwright install chromium`；跑三浏览器那组还要
+`pnpm exec playwright install webkit firefox`。
 
 跑批默认**不复用**已经在跑的 Vite。端口是写死的（`vite.config.ts` 的 `strictPort`），
 另一个 git 工作树里开着同端口的 bench 服务器时，复用等于静悄悄测了那份代码，
@@ -141,6 +144,45 @@ cp /tmp/kf/*/*.png packages/bench/baselines/linux/
 
 基线一提交，那四格下次就自动改走真比对了。
 
+**刷新基线会连带影响三浏览器一致性那条**（见下一节）：它拿的就是这里的 chromium 基线
+当参照物。所以刷完之后顺手在本机跑一遍 `pnpm --filter @ai-duel/bench cross-browser`，
+比例还在容差里就没事——真出问题的话，问题多半在新基线本身。
+
+## 三浏览器一致性（6.10，迁移第 34 条）
+
+`tests/crossBrowser.spec.ts` 把关键帧那几拍在 **webkit 和 firefox** 各拍一遍，
+和 **chromium 拍的同一帧**逐像素比。进慢档，按「浏览器 × 剧本段」拆成八格
+（`.github/workflows/slow.yml` 的 `cross-browser`）。
+
+几个决定：
+
+- **参照物是 `baselines/{平台}/` 里的 chromium 关键帧基线，不是三家各存一套。**
+  那份基线在快档里每个 PR 都被重拍并逐像素比过（容差 0.001），所以它就是「此刻 chromium
+  画出来的样子」，拿来比不用再跑一遍最贵的软件光栅。
+  各存一套的做法**特意没做**：浏览器一升级整套就红，刷一遍谁也没看，那条检查就废了。
+  这里要回答的是另一个问题——**有没有哪一家把这一帧画错了**（整块没画出来、颜色错、层级压反）。
+- **容差单独一档：0.006**（`CROSS_BROWSER_DIFF_RATIO`）。同浏览器那两条截图回归照旧 0.001，
+  一个没放宽。0.006 是按实测定的：本机（M2）十六次比对里最大的一次是 firefox 桌面档
+  `settle` 的 0.342%，×1.5 取整。那张的差异图看过，红点全落在文字笔画上。
+- **抗锯齿像素不计入**（pixelmatch 自带的抗锯齿检测，见 `src/node/imageDiff.ts`）。
+  不这么做的话比例几乎全是字形光栅化贡献的，真要抓的那类岔子反而淹没在里面。
+- **比对自己做一遍，不走 `toMatchSnapshot`。** 后者会在 `--update-snapshots` 时拿 webkit
+  的图把 chromium 的基线覆盖掉；而且自己做才能**不管过没过都把实测比例打进日志**——
+  阈值就是靠这些数定的。
+- **这两家不加任何软件渲染开关。** 三家各走各的后端正是这条检查的前提：本机上 chromium 走
+  ANGLE 的 SwiftShader（mediump 只有 10 位），webkit 和 firefox 走真 GPU（mediump 是 23 位）。
+  firefox 那边只设了 `webgl.force-enabled` / `webgl.disabled`，那是给没有显卡的 Linux 跑机
+  绕开图形黑名单用的，macOS 上开不开都一样。
+- **Linux 跑机上的数还没验过**：那边三家都落到各自的软件光栅、字体走 fontconfig 而不是
+  CoreText，差异构成和本机不一样。慢档第一次真跑完之后照日志里的比例按同样口径重定
+  （先看差异图确认红的仍然只是文字，别顺手调到刚好能过）。
+
+跑单独一格（工作流里就是这么跑的）：
+
+```bash
+pnpm --filter @ai-duel/bench exec playwright test --project=keyframes-webkit --grep "@settle"
+```
+
 ## 交互回归（6.6 第 2 条）
 
 `tests/interaction.spec.ts` 不量任何指标，它借这里现成的骨架（页面、图集、手动时钟、
@@ -195,10 +237,11 @@ src/
   scenarios/   剧本：驱动循环 + 对局那三段
   metrics/     WebGL 计数器、rAF 计数器、差分与汇总（纯逻辑）
   page/        跑在浏览器里：装计数器、建场景、量过度绘制，产出 window.__bench
-  node/        跑在 Node 里：判阈值、解析 trace、出报告（纯逻辑）
+  node/        跑在 Node 里：判阈值、比图、解析 trace、出报告（纯逻辑）
   thresholds.ts  6.9 表的全部上限，只在这里改
 test/          vitest 单元测试（pnpm test 只跑这里）
-tests/         Playwright 用例（deterministic / keyframes / interaction / timing 四个 project）
+tests/         Playwright 用例（deterministic / keyframes / keyframes-webkit /
+               keyframes-firefox / interaction / timing 六个 project）
 scripts/       frames.py：从 Chrome trace 里取帧
 ```
 
@@ -320,6 +363,9 @@ JSON 的形状就是 `src/node/report.ts` 里的 `DeterministicReport` 和 `Timi
 
 - **无头 Chromium 走 SwiftShader 软件渲染**，所以确定性那一组只测确定性指标，时间快慢在那里没有意义。
   这是有意选的：软件渲染跨机器一致，而 6.9 要求「同一段剧本在任何机器上的确定性指标一模一样」。
+- **三浏览器一致性的容差只在 macOS 上验过**。webkit / firefox 在 ubuntu 跑机上的 WebGL 后端是什么、
+  字体（走 fontconfig 而不是 CoreText）差多少，都要等慢档第一次真跑完才知道——
+  没有 Linux 机器就复现不了那套组合。第一次红了照日志里的比例按同样口径重定，做法见上面那节。
 - **时间指标默认在 4 倍 CPU 节流下测**（6.9 要求四到六倍，近似 2018 年中端安卓）。
   它不节流 GPU，所以只约束 JS 一侧。要不节流地跑一遍：`BENCH_CPU_THROTTLE=1 pnpm --filter @ai-duel/bench timing`。
 - **帧时间取的是上屏间隔，不是管线延迟**。`PipelineReporter` 自己的时长是一帧从 BeginFrame 到上屏的延迟，
