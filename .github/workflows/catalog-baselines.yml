@@ -10,7 +10,7 @@
 # 让工作流直接推提交的话，一次误触就把基线洗成了当时那一版的样子，谁都没看过。
 #
 # 分片和 ci.yml 的 catalog 一样按 `@shard<n>` 标签拆（规则见 catalog.spec.ts）：
-# 一格只重拍自己那一片，所以要把两格的 artifact 都下下来才凑得齐这一趟的全部改动。
+# 一格只重拍自己那一片，所以要把三格的 artifact 都下下来才凑得齐这一趟的全部改动。
 # 每格传的只有**自己这一趟改过的那几张**（怎么挑见下面那一步），
 # 两份合并到同一个目录不会互相盖，谁先谁后都一样。
 # 一片一张都没变时那一格不产出 artifact，这是对的：那一片本来就不用动。
@@ -21,16 +21,16 @@ on:
 
 jobs:
   baselines:
-    name: 生成第 ${{ matrix.shard }}/2 片
+    name: 生成第 ${{ matrix.shard }}/3 片
     runs-on: ubuntu-latest
     # 只跑截图那一步，但比快档慢：生成基线时每条条目要**连拍两张一样的**才算数
     # （快档手上有基线，一张比过就完事），最重的几条一条就要二十多秒。
-    # 整页一百多条实测 5 分多钟，分片之后一格约一半，再加上装依赖和装 Chromium，留 25 分钟。
+    # 整页一百多条实测 5 分多钟，分片之后一格约三分之一，再加上装依赖和装 Chromium，留 25 分钟。
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -61,7 +61,7 @@ jobs:
       # 只挑这一趟真正改过的图，不传整个 baselines/linux。
       #
       # 传整个目录会出事：这一格只重写自己那一片，另一片的**旧图**原样留在目录里跟着传出去，
-      # 两格的 artifact 合并到同一个目录时，后拷进去的旧图把前一份刚生成的新图顶回了上一版。
+      # 几格的 artifact 合并到同一个目录时，后拷进去的旧图把前一份刚生成的新图顶回了上一版。
       # 第 28 条的 ui-designtokens--overview 就是这么被顶回去的，CI 于是拿一张过期的基线去比，
       # 红了还看不出问题出在基线上。
       #
@@ -84,11 +84,13 @@ jobs:
           files=$( { git diff --name-only -- "$base"; \
                      git ls-files --others --exclude-standard -- "$base"; } | sort -u )
           for f in $files; do cp "$f" "$out/"; done
-          echo "这一趟改过 $(ls -1 "$out" | wc -l) 张："
+          # 数张数用 find 不用 `ls | wc -l`：shellcheck 的 SC2012 会拦下后者
+          #（文件名里有换行时 ls 数出来是错的），而 actionlint 把 shellcheck 一起跑了。
+          echo "这一趟改过 $(find "$out" -type f | wc -l) 张："
           ls -1 "$out"
 
       # artifact 名字带上这一片：v4 不允许两个 job 传同一个名字。
-      # 传的是上一步挑出来的那几张，两格下下来拷进 baselines/linux 就是这一趟的全部改动。
+      # 传的是上一步挑出来的那几张，三格下下来拷进 baselines/linux 就是这一趟的全部改动。
       - name: 上传 linux 基线
         if: always()
         uses: actions/upload-artifact@v4
@@ -99,7 +101,7 @@ jobs:
       # 失败时连 Playwright 的现场一起传：里面有实拍图和 trace.zip
       # （`playwright show-trace` 能一步步回看它到底卡在哪一步）。
       # 不传的话，超时这类失败在日志里只有一句「Timeout exceeded」，没有别的线索。
-      # 名字同样带上这一片：两格都失败时重名的 artifact v4 会直接报错。
+      # 名字同样带上这一片：几格同时失败时重名的 artifact v4 会直接报错。
       - name: 上传失败现场
         if: failure()
         uses: actions/upload-artifact@v4

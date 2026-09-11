@@ -139,6 +139,7 @@ pnpm --filter @ai-duel/client catalog:update    # 重新生成基线
 pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
 ```
 
+现在是三片（迁移第 31 条从两片改的：两片已经跑到 8 分 43 秒 / 7 分 54 秒，贴着 10 分钟）。
 **改 `SHARDS` 要同时改 ci.yml 和 catalog-baselines.yml 的 matrix**——工作流按标签筛用例，
 多出来的那一片会变成「一条用例都没匹配到」而不是失败，静悄悄地少拍一批条目。
 不按 `Canvas/*` 和 `UI/*` 分是因为两边条目数差得太远，分完仍然是一片扛住九成的时间。
@@ -226,9 +227,9 @@ gh workflow run catalog-baselines.yml --ref <你的分支>
 gh run list --workflow=catalog-baselines.yml --limit 1
 
 # 3. 下载覆盖到 linux 基线目录（在仓库根目录跑）
-# 基线按分片生成（见下面「分片」），两格的 artifact 都要下，拷进同一个目录。
+# 基线按分片生成（见下面「分片」），三格的 artifact 都要下，拷进同一个目录。
 # 每格传的只有**它这一趟改过的那几张**（工作流拿 git 挑出来的），
-# 所以两份直接合并就行，谁先拷谁后拷都一样，不会互相盖。
+# 所以几份直接合并就行，谁先拷谁后拷都一样，不会互相盖。
 # 某一片一张都没变时那一格不产出 artifact，下下来只有一份是正常的。
 gh run download <run-id> -p 'catalog-baselines-linux-*' -D /tmp/catalog-linux
 cp /tmp/catalog-linux/*/*.png packages/client/dev/storybook/baselines/linux/
