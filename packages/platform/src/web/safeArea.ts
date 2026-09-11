@@ -136,11 +136,23 @@ function probeElement(): HTMLElement | null {
   const parent = document.body ?? document.documentElement
   if (parent === null) return null
   const element = document.createElement('div')
-  // 不占位、不吃事件、不可见，只为了让浏览器把 env() 算出来给我们读。
+  /*
+   * 不占位、不吃事件、不可见，只为了让浏览器把 env() 算出来给我们读。
+   *
+   * 每条都是 `max(env(...), var(--safe-area-inset-*, 0px))`，两个来源取大的那个：
+   * - `env()` 是标准写法，浏览器和 iOS 的 WKWebView（配 viewport-fit=cover）报得准；
+   * - `--safe-area-inset-*` 是 Capacitor 在**安卓**上注入的一组变量
+   *   （`plugins.SystemBars.insetsHandling: 'css'`，默认开着）。安卓 WebView 的 env()
+   *   在边到边模式下会报 0，那时刘海和底部手势条就没人让位了。
+   * 取大的：哪一边量不出来都是 0，不会把另一边压下去。`var()` 的默认值写成 0px 是必须的
+   * ——变量没定义时整条 max() 会失效，连带整条 padding 声明被丢掉。
+   */
   element.style.cssText =
     'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
-    'padding:env(safe-area-inset-top) env(safe-area-inset-right) ' +
-    'env(safe-area-inset-bottom) env(safe-area-inset-left);'
+    'padding:max(env(safe-area-inset-top),var(--safe-area-inset-top,0px)) ' +
+    'max(env(safe-area-inset-right),var(--safe-area-inset-right,0px)) ' +
+    'max(env(safe-area-inset-bottom),var(--safe-area-inset-bottom,0px)) ' +
+    'max(env(safe-area-inset-left),var(--safe-area-inset-left,0px));'
   parent.appendChild(element)
   probe = element
   return element

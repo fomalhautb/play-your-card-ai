@@ -59,11 +59,11 @@
 - **图片交出 `ImageBitmap`。** Pixi 拿它直接建纹理，不用再解码一次；接口里不出现 Pixi 的任何类型。
   界面要地址时用 `displayUrl`，别拿 `url` 自己拼——将来壳从本地读图时它会变。
 - **触感是唯一凭空定的一项。** 旧代码全站没有用过 `navigator.vibrate`。接口照 Capacitor Haptics
-  的最小面来定，将来第 36 条接原生插件时是一一对应的转发。
+  的最小面来定，第 36 条接原生插件时果然是一一对应的转发，接口一个字没改。
 
 ## web 实现用了什么库
 
-`createWebPlatform()`。网页壳和 Capacitor 壳用它，Electron 壳以它为底再换掉两项（见下一节）。
+`createWebPlatform()`。网页壳直接用它，另外两个壳以它为底再各换掉三项（见下面两节）。
 
 - **网络：[partysocket](https://github.com/partykit/partysocket)。** Cloudflare 维护的重连
   WebSocket，API 和原生一样，断线重连、退避、连接超时、断线期间的发送队列都在里面。
@@ -101,7 +101,33 @@
 桥不在的时候（没有 preload——端到端用例、直接用浏览器打开构建产物）`createElectronPlatform()`
 退回纯网页实现，`platform.steam` 于是是 undefined，客户端走游客登录那条路。
 
-Capacitor 的实现留到迁移第 36 条（原生触感、系统安全区），同样是「以 web 实现为底，换掉其中几项」。
+## capacitor 实现
+
+`createCapacitorPlatform()`（迁移第 36 条，`src/capacitor/`）。同样**以网页实现为底**，换三项：
+
+- `network`：三件事。**地址**要改指线上——手机壳里页面的源是 `capacitor://localhost`
+  （iOS 的 WKWebView 不让给 https 注册协议处理器，只能用非标准 scheme），而客户端是照
+  `window.location.origin` 拼地址的；Steam 壳那招「把本地产物挂到线上那个源上」在这儿做不到，
+  理由见 `src/capacitor/origin.ts`。**HTTP 走原生**（`CapacitorHttp`，核心自带不用装插件）：
+  改完地址请求就是跨源的，而会话是一个 cookie；原生 HTTP 不经过 WebView 的同源策略，
+  cookie 存在系统的罐子里。只换 `requestJson` 这一个口子，不开那个会把全局 `fetch` 整个换掉的
+  开关。**前后台**听 `@capacitor/app` 的 `appStateChange`，因为 iOS 的 WKWebView 切后台时
+  不保证发 `visibilitychange`。
+- `fullscreen`：全屏 = 藏系统状态栏和导航栏（`SystemBars`，也在核心里）。页面全屏在 WebView 里
+  调了什么也看不出来——WebView 本来就铺满整个窗口。方向锁恒为 false：横屏是原生工程里写死的，
+  没有运行时那一步。
+- `haptics`：转发给 `@capacitor/haptics`。网页那份在 iPhone 上什么都做不了（iOS Safari 至今
+  不支持 `navigator.vibrate`），安卓上也只有「震多少毫秒」一个旋钮。
+
+**`safeArea` 没有换**，虽然它是手机上最要紧的一项：探针那条 padding 是
+`max(env(safe-area-inset-*), var(--safe-area-inset-*, 0px))`，两个来源取大的那个——
+iOS 报得准的是前者，安卓靠 Capacitor 注入的后者（`plugins.SystemBars.insetsHandling: 'css'`）。
+一份实现两边都对。
+
+不在原生壳里跑的时候（浏览器里打开同一份产物、测试）`createCapacitorPlatform()` 退回纯网页实现。
+
+还没解决的那半个问题——跨源的会话 cookie 在 better-auth 的来源检查那关能不能过——
+写在 `apps/mobile/README.md` 的「同源这件事」。
 
 ## 假实现
 
