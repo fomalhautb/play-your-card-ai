@@ -58,6 +58,12 @@ test('组件目录页每个条目都和基线一致', async ({ page, baseURL }) 
     // 字体没加载完就拍的话，第一次是兜底字体、第二次是真字体，两次拍出来的不一样。
     await page.evaluate(() => document.fonts.ready)
     /*
+     * 时限按条目走：绝大多数条目用 playwright.config.ts 里统一的那一档，个别特别重的
+     * （首页那三条，理由见 HomeScene.stories.ts）自己声明一个更长的。没声明就没有这个属性。
+     */
+    const declared = await frame.getAttribute(TIMEOUT_ATTR)
+    const options = declared === null ? {} : { timeout: Number(declared) }
+    /*
      * 只拍这个条目本身那一块，不拍整页。
      *
      * 整页拍的是 1280×900 的视口，而一张卡只占中间那一小块——差异比例的分母被空白撑大十几倍，
@@ -66,13 +72,6 @@ test('组件目录页每个条目都和基线一致', async ({ page, baseURL }) 
      *
      * 文件名就是 story id：id 由「title + 导出名」生成，改了名字基线跟着改名，一目了然。
      */
-    /*
-     * 时限按条目走：绝大多数条目用 playwright.config.ts 里统一的那一档，
-     * 个别特别重的（首页那三条：九张 3344×1882 的图 + 建场景时九次 GPU 回读）
-     * 自己声明一个更长的。放宽的只是「愿意等多久」，阈值一点没动。
-     */
-    const declared = await frame.getAttribute(TIMEOUT_ATTR)
-    const options = declared === null ? {} : { timeout: Number(declared) }
     await expect.soft(frame).toHaveScreenshot(`${story.id}.png`, options)
   }
 
