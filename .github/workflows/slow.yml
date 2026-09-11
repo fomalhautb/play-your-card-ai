@@ -126,7 +126,7 @@ jobs:
     name: Steam 壳构建 ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
     # 三格里最重的是打包那一步：electron-builder 要现下一份 Electron（一百多兆），
-    # 再把三百多兆的产物压成 artifact。本机（M2）整条 1.5 分钟，跑机按几倍估。
+    # 再把几百兆的产物落到磁盘上。本机（M2）整条 1.5 分钟，跑机按几倍估。
     # 20 分钟是慢档的口径，顶破了要查的是构建为什么变长了。
     timeout-minutes: 20
     strategy:
@@ -135,18 +135,21 @@ jobs:
       matrix:
         include:
           # Linux 出 AppImage（单文件，下下来就能跑）。Steam Deck 上跑的其实是 Windows 版
-          # （Proton），这一格的意义是「在 Linux 上也能完整打一次包」。
+          # （Proton），这一格的意义是「在 Linux 上也能完整打一次包」，顺带给出一个能上手试的产物。
           - os: ubuntu-latest
             label: linux
             script: pack:linux
+            upload: true
           # mac 和 Windows 只出解包后的目录，不打 dmg / 安装器：那两步都要签名证书，
           # 而 Steam 发行本来就是「把目录传上去」。见 apps/steam/electron-builder.yml。
           - os: macos-latest
             label: mac
             script: pack:dir
+            upload: false
           - os: windows-latest
             label: windows
             script: pack:dir
+            upload: false
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -178,14 +181,23 @@ jobs:
           # 这一步本来就不签名（见 apps/steam/electron-builder.yml），干脆关掉自动探测。
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      # 产物几百兆，只留七天：它的用处是「这一次构建出来的东西能不能跑」，
-      # 而不是当发布归档——真要发布是另一条流水线的事。
-      - name: 上传产物
+      # **只有 Linux 这一格上传**，而且只留三天。
+      #
+      # 仓库是私有的，私有仓库的 artifact 存储是按配额计费的，超了之后**上传这一步会直接失败**
+      # ——也就是说传大产物的代价不是多花点钱，是几次合并之后慢档整个变红。
+      # 三格都传的话一轮就是将近一个 G（mac 的 .app 和 Windows 的目录各三百多兆）。
+      #
+      # 少传的两格没有损失：mac 和 Windows 这两格的意义本来就是「构建能过」
+      #（《正式版架构》6.11：构建能过本身就是测试），产物没人会下下来——
+      # 真要在 mac 上试就在自己机器上 `pnpm --filter @ai-duel/steam pack:dir`。
+      # Linux 那份留着是因为 AppImage 是单文件、下下来双击就能跑，是三格里唯一能顺手上手试的。
+      - name: 上传 AppImage
+        if: matrix.upload
         uses: actions/upload-artifact@v4
         with:
           name: steam-${{ matrix.label }}
           path: apps/steam/release
-          retention-days: 7
+          retention-days: 3
           # 打包这一步过了却一个文件都没有，说明 electron-builder 的输出目录改了。
           # 不设这一条的话它只会警告一句，静悄悄地传一个空包。
           if-no-files-found: error
