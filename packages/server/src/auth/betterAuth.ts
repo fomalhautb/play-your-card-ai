@@ -16,11 +16,41 @@ import { JWT_ALGORITHM } from './verify'
  * 房间和大厅**不 import 这个文件**：它们只需要 `verify.ts` 里那个读公钥的验签函数。
  * 私钥、会话表、cookie 全部只在 `/api/auth/*` 这条路径上出现。
  *
- * 跨源那道门（`trustedOrigins`）只在本地开发时放宽，见下面 `devTrustedOrigins`。
+ * 跨源那道门（`trustedOrigins`）有两份名单：手机壳那两个源**线上也信任**
+ *（见 `MOBILE_TRUSTED_ORIGINS`），本地开发的回环地址只在开发时放宽（见 `devTrustedOrigins`）。
  */
 
 /** better-auth 的全部路由都挂在这个前缀下面。 */
 export const AUTH_BASE_PATH = '/api/auth'
+
+/**
+ * 手机壳（Capacitor）页面的源。**线上也在名单里**，这一点和下面那份开发名单不同。
+ *
+ * 为什么非信任不可：手机壳里页面的源是 WebView 自己那个，改不成线上域名——
+ * iOS 的 WKWebView 不允许给 https 注册自定义协议处理器（`server.iosScheme` 只能是
+ * `capacitor` 这类非标准 scheme），安卓填 `server.hostname` 又会让 Capacitor 的本地服务器
+ * 连 `/api/*` 一起拦进本地产物。详见 apps/mobile/README.md 的「同源这件事」。
+ * 于是账号那几条请求对服务端来说天生是跨源的，不把这两个源放进来，
+ * 带着会话 cookie 的请求（登出、以及将来任何 POST）会被整条回 403 `INVALID_ORIGIN`。
+ *
+ * 这两个值就是 Capacitor 8 的默认值，和 `apps/mobile/capacitor.config.ts` 对得上
+ *（那份配置没有覆盖 `hostname` / `iosScheme` / `androidScheme`）：
+ * - iOS：`iosScheme` 默认 `capacitor`，`hostname` 默认 `localhost`；
+ * - 安卓：`androidScheme` 从 Capacitor 5 起默认 `https`，所以是 `https://localhost`。
+ * 哪天改了那份配置，这两行要跟着改——better-auth 只认精确的源，对不上就是 403。
+ *
+ * **没有**开发期那种带端口的手机源（比如 `http://192.168.1.7:5176`）：
+ * 真机调试时 `server.url` 指向 Vite，页面和请求都从 Vite 出去、由它的代理转给 wrangler，
+ * 浏览器眼里是同源的，根本走不到这道门（见 apps/mobile/vite.config.mts 的代理表）。
+ * 把局域网网段放进来只会凭空开一个口子。
+ *
+ * 代价要说清楚：`https://localhost` 在手机上就是这个应用自己的 WebView，
+ * 但在一台**电脑**上它指的是「本机某个 https 服务」。也就是说这条名单意味着
+ * 「跑在自己机器上的 https 页面可以发起带凭据的请求」。
+ * 这是 better-auth 给 Capacitor / Expo 这类壳的官方做法（它的来源匹配专门支持
+ * 非标准 scheme），代价可接受：要利用它，攻击者得先能在受害者机器上起一个服务。
+ */
+const MOBILE_TRUSTED_ORIGINS = ['capacitor://localhost', 'https://localhost']
 
 /**
  * 本地开发时额外信任的来源。**线上返回空数组**（判据见 devMode.ts）。
@@ -62,8 +92,8 @@ export function createAuth(env: Env, baseURL: string) {
     // 默认就是 /api/auth，写出来是因为 wrangler.jsonc 的 run_worker_first 和
     // src/index.ts 的路由前缀都得和它对上，三处改一处就得一起改。
     basePath: AUTH_BASE_PATH,
-    // 线上这一项是空的，也就是只信 baseURL 自己那个源（见 devTrustedOrigins）。
-    trustedOrigins: devTrustedOrigins(env),
+    // 线上是 baseURL 自己那个源加手机壳那两个；本地开发再多两条回环地址。
+    trustedOrigins: [...MOBILE_TRUSTED_ORIGINS, ...devTrustedOrigins(env)],
     secret: env.BETTER_AUTH_SECRET,
     // D1 绑定直接传：better-auth 1.5 起认得 D1（靠 batch/exec/prepare 这几个方法认），
     // 不需要再自己配 kysely-d1 或者 drizzle。

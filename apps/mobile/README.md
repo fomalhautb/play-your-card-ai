@@ -123,34 +123,39 @@ Steam 壳没有这个问题：它用 `protocol.handle('https')` 把本地产物�
   （`WebViewLocalServer.isMainUrl`），填了之后 `/api/*` 也会被拦进本地产物里，
   登录请求根本发不出去。
 
-### 这个 PR 做了什么
+### 怎么做的：三件
 
-两件，都在 `packages/platform/src/capacitor/`：
-
-1. **改地址**。客户端照 `window.location.origin` 拼出来的地址，在平台层被改指到线上那个源
-   （`origin.ts`）。只改主机名是 `localhost` 且**不带端口**的那些，所以开发期指向 Vite 的那条
-   不受影响。
-2. **HTTP 走原生**。`requestJson` 改走 `CapacitorHttp`（核心自带）。原生 HTTP 由系统的网络栈
-   发出，不经过 WebView 的同源策略，因此 CORS 那一关自动没有了；cookie 存在系统的 cookie 罐里
-   （iOS 的 `HTTPCookieStorage`、安卓的 `CookieManager`），跨重启还在。
+1. **改地址**（`packages/platform/src/capacitor/origin.ts`）。客户端照
+   `window.location.origin` 拼出来的地址，在平台层被改指到线上那个源。只改主机名是
+   `localhost` 且**不带端口**的那些，所以开发期指向 Vite 的那条不受影响。
+2. **HTTP 走原生**（同目录 `network.ts`）。`requestJson` 改走 `CapacitorHttp`（核心自带）。
+   原生 HTTP 由系统的网络栈发出，不经过 WebView 的同源策略，因此 CORS 那一关自动没有了；
+   cookie 存在系统的 cookie 罐里（iOS 的 `HTTPCookieStorage`、安卓的 `CookieManager`），
+   跨重启还在。
+3. **服务端信任这两个源**（`packages/server/src/auth/betterAuth.ts` 的
+   `MOBILE_TRUSTED_ORIGINS`）。better-auth 的来源检查会拿请求的 `Origin` / `Referer` 去比
+   `trustedOrigins`，不加的话带着会话 cookie 的 POST 会被整条回 403 `INVALID_ORIGIN`。
+   加的是 `capacitor://localhost` 和 `https://localhost`，**线上也在名单里**。
+   这是 better-auth 给 Capacitor / Expo 这类壳的官方做法——它的来源匹配专门支持非标准 scheme。
+   开发期那种带端口的源**没有**加：真机调试时页面和请求都从 Vite 出去、由它的代理转给
+   wrangler，浏览器眼里是同源的，根本走不到这道门。
 
 两条 WebSocket 只改地址不改别的：WebSocket 不受 CORS 管，握手的凭据是子协议里那张 JWT
 不是 cookie。
 
-### 还剩什么（需要拍板）
+服务端那一侧有测试钉着（`packages/server/test/origin.test.ts`）：两个手机源登得进来、
+带着 cookie 登出也过；陌生源带着 cookie 被 403；以及**没有 Origin 头**时的现状——
+better-auth 对「没有 cookie 的请求」整条跳过来源检查，所以第一次登录进得来，
+但之后带 cookie 的 POST 会被判 `MISSING_OR_NULL_ORIGIN`。
 
-**better-auth 的来源检查。** 它会拿请求的 `Origin` / `Referer` 去比 `trustedOrigins`，
-而手机壳发过来的要么带着 `https://localhost` / `capacitor://localhost`，要么一个都不带。
-两种情况都不是线上那个域名，所以**登录很可能仍然被挡**——这一条在本机验不了，
-要么真机跑一次，要么在服务端把那两个源加进 `trustedOrigins`（一行配置）。
+### 还剩什么（只能真机验）
 
-它属于「服务端的会话机制」，这个 PR 不碰。备选的几条路：
-
-| 路子 | 代价 |
-|---|---|
-| `trustedOrigins` 加上手机壳那两个源 | 一行服务端配置。最省事，但等于承认会话可以从非线上源发起 |
-| 手机端换成不走 cookie 的凭据（比如直接发 JWT） | 客户端、服务端都要改，但顺带把「离线单机」那条路也打开了 |
-| `server.url` 直接指线上域名 | 一行配置就全对了，但那样应用变成一个纯网页外壳：离线打不开、启动要等网络，而且 Capacitor 文档明说 `server.url` 不是给生产用的，App Store 也不欢迎纯外壳 |
+- **原生 HTTP 到底带不带 `Origin` 头。** `CapacitorHttp` 是系统网络栈发的请求，不是浏览器
+  发的。带着 → 上面那份名单正好接住；不带 → 登录能过，但登出这类「带 cookie 的 POST」会
+  403（上面那条测试就是用来钉这个分界的）。真验出来是后一种的话，最省事的补法是让
+  `requestJson` 自己补一个 `Origin: capacitor://localhost`。
+- **Set-Cookie 存不存得住、跨重启还在不在。** 两个系统的 cookie 罐行为不一样，本机验不了。
+- **请求体会不会被原生层再包一层。** `requestJson` 传下去的 `body` 已经是序列化好的字符串。
 
 ## 横屏是怎么锁的
 

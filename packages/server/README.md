@@ -233,10 +233,19 @@ pnpm dev:server                              # 先建账号库的表，再 wrang
 | 开关 | 开发 | 线上 |
 |---|---|---|
 | `room:error malformed` | 回给客户端，好让人知道自己发错了 | 静默丢弃（见 `src/room/session.ts`） |
-| 跨源请求 | 额外信任 `localhost:*` / `127.0.0.1:*` | 只信 `baseURL` 自己那个源（见 `src/auth/betterAuth.ts`） |
+| 跨源请求 | 额外信任 `localhost:*` / `127.0.0.1:*` | 只有 `baseURL` 自己那个源加手机壳那两个（见 `src/auth/betterAuth.ts`） |
 
 跨源那一条本地非有不可：页面来自 Vite，而 `wrangler dev` 会按 `wrangler.jsonc` 里那条
 `routes` 把请求 URL 重写成正式域名，两边的源怎么都对不上。
+
+### 手机壳那两个源（迁移第 36 条）
+
+`trustedOrigins` 里还有 `capacitor://localhost`（iOS）和 `https://localhost`（安卓），
+**线上也在名单里**，不跟着 `DEV` 分岔。手机壳里页面的源是 WebView 自己那个、改不成线上域名
+（两条路为什么都堵死见 `apps/mobile/README.md` 的「同源这件事」），不加的话带着会话 cookie
+的 POST 会被整条回 403 `INVALID_ORIGIN`。这是 better-auth 给 Capacitor / Expo 这类壳的官方
+做法。两个值是 Capacitor 8 的默认源，改了 `apps/mobile/capacitor.config.ts` 里的
+`hostname` / `iosScheme` / `androidScheme` 就要跟着改。`test/origin.test.ts` 钉着这几条。
 
 ### 前端连本地服务端
 

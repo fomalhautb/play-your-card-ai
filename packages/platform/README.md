@@ -126,8 +126,9 @@ iOS 报得准的是前者，安卓靠 Capacitor 注入的后者（`plugins.Syste
 
 不在原生壳里跑的时候（浏览器里打开同一份产物、测试）`createCapacitorPlatform()` 退回纯网页实现。
 
-还没解决的那半个问题——跨源的会话 cookie 在 better-auth 的来源检查那关能不能过——
-写在 `apps/mobile/README.md` 的「同源这件事」。
+跨源那一半在服务端接住：better-auth 的 `trustedOrigins` 里有手机壳这两个源
+（`packages/server/src/auth/betterAuth.ts` 的 `MOBILE_TRUSTED_ORIGINS`，有测试钉着）。
+整条链路和还要真机验的东西写在 `apps/mobile/README.md` 的「同源这件事」。
 
 ## 假实现
 
