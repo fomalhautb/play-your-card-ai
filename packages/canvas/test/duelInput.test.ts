@@ -194,6 +194,25 @@ describe('锁：这一刻许不许动', () => {
     input.refresh(openLocks(), true)
     expect(probe.endPlayDisabled).toBe(true)
   })
+
+  /*
+   * 「催一催」和「结束出牌」摞在右下角同一个位置上（见 layout/types.ts 的 `urge`），
+   * 所以「永远一显一隐」这件事必须有测试守着——两颗同时在场就是两块匾叠在一起，
+   * 而两颗同时不在场就等于右下角空了。
+   */
+  it('等对方出牌时换成「催一催」，「结束出牌」收起来', () => {
+    const { probe, input } = setup()
+    input.refresh(openLocks({ waitingForFoe: true }), false)
+    expect(probe.urgeVisible).toBe(true)
+    expect(probe.endPlayVisible).toBe(false)
+  })
+
+  it('轮到自己出牌时反过来', () => {
+    const { probe, input } = setup()
+    input.refresh(openLocks({ waitingForFoe: false }), false)
+    expect(probe.urgeVisible).toBe(false)
+    expect(probe.endPlayVisible).toBe(true)
+  })
 })
 
 describe('点战场格子', () => {

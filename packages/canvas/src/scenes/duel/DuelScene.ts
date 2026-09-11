@@ -122,6 +122,7 @@ class DuelSceneImpl {
       seed: options.seed ?? 0,
       back: options.textures.back,
       platform: options.platform,
+      reducedMotion: options.reducedMotion === true,
       wake: () => this.frameLoop.wake(),
     })
     this.visuals = createCardVisuals(options.catalog, options.textures)
@@ -146,6 +147,7 @@ class DuelSceneImpl {
         this.onUserActionCb?.({ kind: 'end-play' })
         this.onCommandCb?.({ type: 'END_PLAY', player: this.options.seat })
       },
+      onUrge: this.options.onUrge,
       onLeave: this.options.onLeave,
       onToggleMute: this.options.onToggleMute,
     })

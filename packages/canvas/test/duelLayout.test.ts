@@ -117,6 +117,12 @@ describe.each([
     expect(layout.endPlay.y).toBeLessThan(layout.height)
   })
 
+  // 两颗钮不同时出现，所以摞在同一个位置上（见 layout/types.ts 的 `urge`）。
+  // 哪天有人给「催一催」单独算了一个位置，这条会当场红。
+  it('「催一催」和「结束出牌」在同一个位置上', () => {
+    expect(layout.urge).toEqual(layout.endPlay)
+  })
+
   it('战场在顶栏下面，不被它盖住', () => {
     expect(layout.board.y).toBeGreaterThanOrEqual(layout.topBarHeight)
   })

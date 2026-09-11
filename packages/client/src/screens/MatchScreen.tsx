@@ -12,6 +12,7 @@
  *（架构 5.6）。只有两处按 `mode` 分岔，各自都写了理由：测试面板挂不挂、离开之后回哪一页。
  */
 
+import { pickUrgeId } from '@ai-duel/content'
 import type { CardId } from '@ai-duel/core'
 import { Dialog } from '@ai-duel/ui'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -24,7 +25,7 @@ import type { MatchDriver } from '../match/driver'
 import { isLocalDriver } from '../match/localDriver'
 import { isServerDriver } from '../match/serverDriver'
 import { useMatch } from '../match/useMatch'
-import { recordWin } from '../save/saveStore'
+import { loadSave, recordWin } from '../save/saveStore'
 import { DuelStage } from './DuelStage'
 import { type MatchOutcome, outcomeOf, resultTitleOf } from './matchOutcome'
 import { linkStatusOf } from './matchStatus'
@@ -85,6 +86,11 @@ function Match({ driver }: { driver: MatchDriver }) {
    * 那时结算页照常只有「再来一局 / 回首页」。
    */
   const [drawn, setDrawn] = useState<CardId | null>(null)
+  /*
+   * 「减少动效」现读一次就定死：它是建场景时焊进去的（换了要整套重建，见 DuelStage），
+   * 而设置页在另一条路由上——玩家进得去那一页就说明已经离开了这一局。
+   */
+  const [reducedMotion] = useState(() => loadSave(platform).reducedMotion)
 
   // 对局的曲子。回首页时由那边换成 beginning，所以这里不用在卸载时停。
   useEffect(() => {
@@ -163,6 +169,14 @@ function Match({ driver }: { driver: MatchDriver }) {
         status={linkStatusOf(view)}
         onLeave={() => setLeaving(true)}
         onToggleMute={() => toggleMuted(platform)}
+        /*
+         * 喊哪一句在这儿摇。随机数从这里给而不是让 content 自己摇，理由同 `recordWin`：
+         * content 要保持可复现（见 content 的 urgeLines.ts 的 pickUrgeId）。
+         * 发出去之后本端和对面都会从 `subscribeUrge` 收到它，气泡和那一声由那条路播
+         *（见 DuelStage 的 useMatchUrge）——所以这里只发，不自己播。
+         */
+        onUrge={() => driver.urge(pickUrgeId(Math.random()))}
+        reducedMotion={reducedMotion}
       />
 
       {outcome === null ? null : (
