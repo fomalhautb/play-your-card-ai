@@ -36,6 +36,12 @@
       "!packages/core/test/golden/*.json",
       // 一次性脚本的输出，是数据不是代码。
       "!scripts/out",
+      // 手机壳的两个原生工程（迁移第 36 条）。`pnpm cap add ios android` 生成的，
+      // 之后每次 `cap sync` 还会再改一遍里面几个文件。
+      // Biome 在这儿只会碰到 Xcode 的 Contents.json 和 Capacitor 写的几份 json——
+      // 格式由生成器定，重排了也会被下次 sync 覆盖。壳自己的代码（src/、两份配置）照常检查。
+      "!apps/mobile/android",
+      "!apps/mobile/ios",
       // 美术和音频的源目录（迁移第 33 条从 legacy-client 的 public 搬过来的）。
       // 里面的 svg 是站点图标，是美术资源不是界面代码——a11y 那条「svg 要有 title」
       // 说的是页面里的图形，图标文件加个 title 只会被下次导出覆盖。

@@ -60,6 +60,16 @@ packages/bench/results/
 packages/bench/test-results/
 packages/bench/playwright-report/
 
+# 手机壳的产物（迁移第 36 条）。
+# 两个原生工程本身**要**进仓库（它们是可以手改的源码：AndroidManifest、Info.plist），
+# 构建产物不进——那几条由 `cap add` 自己写的 apps/mobile/android/.gitignore 和
+# apps/mobile/ios/.gitignore 管着（build/、.gradle/、App/Pods、xcuserdata、
+# 以及 cap sync 复制进去的那份网页产物）。这里只补它们没覆盖到的：
+# 网页构建的 dist/ 已经被上面那条 dist/ 盖住了；
+# local.properties 是每台机器各自的 Android SDK 路径，安卓那份 .gitignore 里也有一条，
+# 写在这儿是因为它一旦被提交进来，别人一拉就会拿一个不存在的路径去找 SDK。
+apps/mobile/android/local.properties
+
 # Steam 壳的产物（迁移第 35 条）。
 # release/ 是 electron-builder 打出来的 .app / AppImage，几百兆；
 # 主进程和渲染进程的产物在 apps/steam/dist/ 下，已经被上面那条 dist/ 盖住了。

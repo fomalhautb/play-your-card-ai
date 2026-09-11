@@ -84,6 +84,21 @@
         "e2e/online.spec.ts"
       ]
     },
+    "apps/mobile": {
+      /*
+       * 两个原生插件（迁移第 36 条）。**import 它们的是 `packages/platform`**，这个包一行都没碰，
+       * 所以 knip 看着像"装了没用"。
+       *
+       * 不能只装在 platform 里：Capacitor 的命令行是照**壳自己的 package.json**
+       * 找插件的，只装在依赖里的话 `cap sync` 会报「Found 0 Capacitor plugins」，
+       * 原生工程里压根不会有这两个插件的代码——实测过，不是猜的。
+       * 这不是到期条款，是 Capacitor 的工作方式，插件增减时这份名单要跟着改。
+       *
+       * `@capacitor/android`、`@capacitor/ios`、`@capacitor/core`、`@capacitor/cli`
+       * 不在这儿：knip 自带的 Capacitor 插件认得它们（它会读 capacitor.config.ts）。
+       */
+      "ignoreDependencies": ["@capacitor/app", "@capacitor/haptics"]
+    },
     "apps/steam": {
       /*
        * 两个谁也不 import 的入口。

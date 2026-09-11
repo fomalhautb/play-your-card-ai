@@ -1,0 +1,14 @@
+{
+  // 和 apps/web 那份一模一样，多出来的只有 capacitor.config.ts——它跑在 Node 里
+  //（Capacitor 的命令行读它），和构建配置是同一类东西。
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    // vite.config.mts 和 capacitor.config.ts 跑在 Node 里，和浏览器代码共用一份配置，
+    // 所以两边的全局类型都要带上；vite/client 提供 import './xx.css' 这类资源导入的类型声明。
+    "types": ["node", "vite/client"],
+    "noEmit": true
+  },
+  "include": ["src", "vite.config.mts", "capacitor.config.ts"]
+}
