@@ -40,7 +40,7 @@ import type { MatchDriver } from './driver'
 import { createLocalDriver } from './localDriver'
 
 /** 对手每一步（出一张牌、结束出牌）之间停多久，玩家才看得清它做了什么。 */
-export const TUTORIAL_FOE_STEP_MS = 700
+const TUTORIAL_FOE_STEP_MS = 700
 
 export interface TutorialDriverOptions {
   /** 对手脚本每一步之间的间隔（毫秒）。测试传 0。 */

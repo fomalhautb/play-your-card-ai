@@ -21,7 +21,7 @@ import type {
 const CUTSCENE_TIP = '教学演出还没走完，先看这一段'
 
 /** 过渡态的默认限制：什么都不许做。 */
-export const CUTSCENE_ALLOWANCE: TutorialAllowance = {
+const CUTSCENE_ALLOWANCE: TutorialAllowance = {
   playableCards: [],
   blockTip: CUTSCENE_TIP,
   endPlay: false,
@@ -38,7 +38,7 @@ export function allowanceOf(step: TutorialStep): TutorialAllowance {
  * `by` 要拿本端座位换算：步骤表只说「我方 / 对方」，不写座位号——
  * 教程虽然固定坐 0 号，但这条判定没必要跟着那个约定走。
  */
-export function eventMatches(
+function eventMatches(
   signal: TutorialEventSignal,
   event: GameEvent,
   playerSeat: PlayerId,

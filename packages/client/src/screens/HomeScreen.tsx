@@ -77,8 +77,6 @@ export function HomeScreen() {
     switch (action.kind) {
       case 'start':
         // 新号先走一遍新手教程，走完（或中途跳过）之后每次都直接进联机。
-        // 教程是第 32 条，那条路由还没有——没走过教程的玩家现在会落到 404，
-        // 这是明知的缺口，等第 32 条补上。
         navigate(loadSave(platform).tutorialDone ? '/room' : '/tutorial')
         break
       case 'menu':

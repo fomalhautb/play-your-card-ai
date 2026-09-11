@@ -57,7 +57,7 @@ export function stateOf(driver: TutorialDriver): GameState {
   return driver.peek()
 }
 
-export function handInstance(driver: TutorialDriver, cardId: CardId): InstanceId {
+function handInstance(driver: TutorialDriver, cardId: CardId): InstanceId {
   const instance = stateOf(driver).players[PLAYER].hand.find((item) => item.cardId === cardId)
   if (instance === undefined) throw new Error(`手牌里没有 ${cardId}`)
   return instance.instanceId

@@ -54,7 +54,7 @@ export function tutorialDeckPrefill(): CardId[] {
 export type DeckStepId = 'DECK_INTRO' | 'DECK_AI_1' | 'DECK_AI_2' | 'DECK_SKILL' | 'DECK_READY'
 
 /** 一个高亮目标：要么是页面上的固定锚点，要么是卡池里的某一张卡。 */
-export type DeckHighlight = DeckAnchor
+type DeckHighlight = DeckAnchor
 
 export interface DeckStep {
   id: DeckStepId

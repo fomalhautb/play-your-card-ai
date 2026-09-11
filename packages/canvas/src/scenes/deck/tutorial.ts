@@ -59,7 +59,7 @@ export function blockedByTutorial(ctx: DeckContext, cardId: CardId | null): bool
  * 算的是**当前筛选下**的分页，和界面上看到的完全一致——教学期间筛选停在默认那一档，
  * 所以这里算出来的页码就是玩家翻过去会看到那张卡的那一页。
  */
-export function pageOfCard(ctx: DeckContext, cardId: CardId): number | null {
+function pageOfCard(ctx: DeckContext, cardId: CardId): number | null {
   const shown = filterPool(ctx.pool, ctx.state.kind, ctx.state.faction)
   const index = shown.findIndex((one) => one.cardId === cardId)
   const perPage = ctx.parts.poolCells.length
