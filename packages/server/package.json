@@ -19,7 +19,8 @@
     "@ai-duel/protocol": "workspace:*",
     "better-auth": "^1.7.3",
     "jose": "^6.2.12",
-    "nanoid": "^6.0.1"
+    "nanoid": "^6.0.1",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.22.0",

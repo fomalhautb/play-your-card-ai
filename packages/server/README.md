@@ -124,8 +124,9 @@ test/
 ## 账号与鉴权
 
 账号是 **better-auth 配 Cloudflare D1**（《正式版架构》5.5），全部挂在 `/api/auth/*` 下面。
-现在只开了**游客**一种登录方式：玩家打开就能玩，不填任何东西就有一个账号 id，
-座位、匹配、重连全靠它认人。邮箱 / OAuth 绑定和 Steam 票据换 JWT 是后面的事（第 35 条）。
+两种登录方式：**游客**（打开就能玩，不填任何东西就有一个账号 id）和
+**Steam**（拿 Steam 客户端给的会话票据换会话，迁移第 35 条，见下一节）。
+座位、匹配、重连认的都是同一个账号 id，两条路进来之后完全一样。邮箱 / OAuth 绑定还没做。
 
 一次完整的流程是三步：
 
@@ -176,7 +177,33 @@ rm tmp-auth-config.ts
 ```
 
 插件列表要和 `src/auth/betterAuth.ts` 里的一致，不然生成出来的表会少字段。
+Steam 那个插件（`src/auth/steam.ts`）**不用**加进去：它没有自己的表，
+steamId 记在 better-auth 自带的 `account` 表里（`providerId` 是 `'steam'`）。
 生成的文件没有注释，记得把文件头那段说明补回去。
+
+### Steam 登录
+
+`POST /api/auth/sign-in/steam`，体是 `{ "ticket": "<十六进制>" }`，成功之后会话落在 cookie 里，
+之后和游客那条完全一样（`/api/auth/token` 换 JWT → 握手）。实现分两个文件：
+
+| 文件 | 做什么 |
+|---|---|
+| `src/auth/steamTicket.ts` | 验票据，回一个 steamId。票据本身是不透明的二进制，只有 Valve 验得了 |
+| `src/auth/steam.ts` | better-auth 插件：steamId → 找到或建立账号 → 发会话 |
+
+验票据有三种环境，判据先看密钥再看 `DEV`：
+
+| `STEAM_WEB_API_KEY` | `DEV` | 行为 |
+|---|---|---|
+| 有 | 无所谓 | 真的去问 Valve 的 `ISteamUserAuth/AuthenticateUserTicket` |
+| 没有 | 有 | **开发模式**：任何十六进制票据都收，steamId 由票据摘要出来（前缀 `dev-`） |
+| 没有 | 没有 | 一律拒绝（失败关闭） |
+
+开发模式让本机**没有 Steam 客户端也测得了整条路**：同一张票据永远算出同一个账号，
+不同票据算出不同账号（所以开两个进程就能当两个人对打）。
+线上漏配密钥时是「谁都登不进来」而不是「随便递一段字符串就是一个新账号」。
+
+密钥怎么配见 `docs/deploy.md` 的「Steam 登录」一节；壳那半边（取票据）见 `apps/steam/README.md`。
 
 ## 本地开发
 

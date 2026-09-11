@@ -1,14 +1,17 @@
 import { betterAuth } from 'better-auth'
 import { anonymous, jwt } from 'better-auth/plugins'
 import { isDevEnv } from '../devMode'
+import { steamAuth } from './steam'
 import { JWT_ALGORITHM } from './verify'
 
 /**
  * 账号系统：better-auth 配 Cloudflare D1（《正式版架构》5.5）。
  *
- * 眼下只开了**游客**一种登录方式：游戏打开就能玩，不填任何东西就有一个账号 id，
- * 座位、匹配、重连全靠它认人。邮箱 / OAuth 绑定和 Steam 票据换 JWT 是后面的事
- * （迁移第 35 条），`anonymous` 插件的 `onLinkAccount` 就是留给那一步把游客数据接过去的。
+ * 两种登录方式：**游客**（游戏打开就能玩，不填任何东西就有一个账号 id）和 **Steam**
+ * （拿 Steam 客户端给的会话票据换会话，迁移第 35 条，见 auth/steam.ts）。
+ * 座位、匹配、重连认的都是同一个账号 id，两条路进来之后完全一样。
+ * 邮箱 / OAuth 绑定还没做；`anonymous` 插件的 `onLinkAccount` 是留给
+ *「把游客攒下的服务端数据接到正式账号上」那一步的，现在进度只存在本机，还用不上。
  *
  * 房间和大厅**不 import 这个文件**：它们只需要 `verify.ts` 里那个读公钥的验签函数。
  * 私钥、会话表、cookie 全部只在 `/api/auth/*` 这条路径上出现。
@@ -70,6 +73,8 @@ export function createAuth(env: Env, baseURL: string) {
     telemetry: { enabled: false },
     plugins: [
       anonymous(),
+      // 密钥和 appId 从 env 来，而 env 是 fetch 的参数，所以插件也只能每个请求现造一个。
+      steamAuth(env),
       jwt({
         jwks: {
           // 和 verify.ts 用同一个常量：签发和验签的算法必须是同一种，
