@@ -83,6 +83,12 @@ jobs:
       - name: 测试
         run: pnpm test
 
+      # 6.8 最后一条：size-limit 卡包体。现在只有 `ui` 一个包接了它（迁移第 31 条），
+      # 上限和「为什么是这个数」写在 packages/ui/.size-limit.js 里。
+      # 放在快档而不是慢档：它十几秒就跑完，而包体变胖这件事越早看见越好。
+      - name: 包体上限
+        run: pnpm size
+
   catalog:
     name: 组件目录页截图回归 ${{ matrix.shard }}/3
     runs-on: ubuntu-latest

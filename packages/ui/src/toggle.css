@@ -1,0 +1,132 @@
+/*
+ * 设置开关的样式。样式跟着组件走（《正式版架构》7.2 第 4 条），
+ * 数值读设计令牌，理由同 button.css。
+ *
+ * 三档状态各写两个选择器：伪类那份给真界面，`[data-state]` 那份给组件目录页
+ *（那边没有模拟伪类的插件，见 Toggle.tsx 的文件头）。
+ */
+
+.ui-toggle {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  /* 说明文字和滑块之间至少留这么宽，中间由 `margin-left: auto` 撑开。 */
+  gap: var(--space-xxl);
+  /*
+   * 内边距是**组件私有**的（14 / 4），不进令牌：只服务这一行
+   *（同 dialog.css 那几个数，见 design 的 README「明确不收什么」）。
+   * 左右不留内边距是因为整排开关外面已经有一层页面内边距了，再留一档会让文字缩进去。
+   */
+  padding: 14px 4px;
+  border: 0;
+  /* 一行一行叠起来时靠这道底线分隔，最后一行的由容器去掉（见 .ui-toggle + .ui-toggle）。 */
+  border-bottom: 1px solid var(--color-paper-line-dark);
+  background: none;
+  color: inherit;
+  font-family: var(--font-family-serif);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ui-toggle__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ui-toggle__label {
+  font-size: 17px; /* 组件私有字号，理由同上。 */
+  /* 行高写死：`normal` 由字体度量决定，换台机器就换一档，截图回归比不过
+     （见 client/dev/storybook/README.md 的「确定性」第 5 条）。 */
+  line-height: 1.4;
+  letter-spacing: 0.1em;
+}
+
+.ui-toggle__hint {
+  color: var(--color-paper-ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 滑块推到最右：中间那段空白由它撑出来，不靠 `justify-content: space-between`——
+   那样标题很长时两边会互相挤。 */
+.ui-toggle__track {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 26px;
+  margin-left: auto;
+  border: 1px solid var(--color-paper-line-dark);
+  border-radius: var(--radius-pill);
+  background: var(--color-paper-shade);
+  transition: background-color var(--duration-button-hover) ease-out;
+}
+
+.ui-toggle__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-paper-line-dark);
+  /* 只让 transform 参与过渡，不动 left：改 left 每帧都要重排，transform 只走合成。 */
+  transform: translateX(0);
+  transition:
+    transform var(--duration-button-hover) ease-out,
+    background-color var(--duration-button-hover) ease-out;
+}
+
+/* ---------- 开 ---------- */
+
+.ui-toggle[aria-checked="true"] .ui-toggle__track {
+  border-color: var(--color-theme-gold);
+  background: var(--color-theme-gold);
+}
+
+.ui-toggle[aria-checked="true"] .ui-toggle__knob {
+  background: var(--color-paper-base);
+  /* 46 - 3×2 - 18 = 22：滑到另一端正好和右边留同样的 3px。 */
+  transform: translateX(22px);
+}
+
+/* ---------- 禁用 ---------- */
+
+/*
+ * 三档的顺序是**禁用 → 悬停 → 按下**，不能调换：后两档的选择器带着后代因而特异度更高，
+ * 禁用排在它们后面会被压住。两档瞬态都写了 `:not(:disabled)`，所以排在前面也不误伤禁用态。
+ */
+.ui-toggle:disabled {
+  color: var(--color-paper-ink-muted);
+  /* 掉饱和度而不是加透明度：透明会让底下的东西透出来。同 button.css。 */
+  filter: saturate(0.25);
+  cursor: default;
+}
+
+/* ---------- 悬停 ---------- */
+
+.ui-toggle:hover:not(:disabled) .ui-toggle__track,
+.ui-toggle[data-state="hover"]:not(:disabled) .ui-toggle__track {
+  border-color: var(--color-theme-gold);
+}
+
+/* ---------- 按下 ---------- */
+
+/* 按下只把滑块压扁一点，不动整行：整行位移会让下面几行跟着晃。 */
+.ui-toggle:active:not(:disabled) .ui-toggle__knob,
+.ui-toggle[data-state="pressed"]:not(:disabled) .ui-toggle__knob {
+  transform: translateX(0) scale(0.86);
+  transition-duration: var(--duration-plaque-press);
+}
+
+.ui-toggle[aria-checked="true"]:active:not(:disabled) .ui-toggle__knob,
+.ui-toggle[aria-checked="true"][data-state="pressed"]:not(:disabled) .ui-toggle__knob {
+  transform: translateX(22px) scale(0.86);
+}
+
+/* 焦点圈用一圈金线，不用浏览器默认的蓝色 outline（同 textField.css）。 */
+.ui-toggle:focus-visible {
+  outline: 2px solid var(--color-theme-gold);
+  outline-offset: 2px;
+}

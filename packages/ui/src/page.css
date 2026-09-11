@@ -1,0 +1,142 @@
+/*
+ * 文字页外壳的样式。样式跟着组件走（《正式版架构》7.2 第 4 条），
+ * 数值读设计令牌，理由同 button.css。
+ *
+ * 配色走夜色那一套（页面底色 + 首页那档米色字）：设置、账号、关于三页都是从首页点进来的，
+ * 底色一致才不像换了个应用。纸面那一套留给弹窗和对局内的东西。
+ */
+
+.ui-page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-page-background);
+  color: var(--color-home-ink);
+  font-family: var(--font-family-serif);
+  /* 四边让开刘海和底部横条，理由见 Page.tsx 的文件头。 */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+/* ---------- 页眉 ---------- */
+
+.ui-page__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  /* 内边距是组件私有的（20 / 28），只服务这一层壳，不进令牌（同 dialog.css）。 */
+  padding: 20px 28px;
+}
+
+/*
+ * 左右两侧的占位。宽度写死是为了标题落在**页面**的正中而不是「剩下那段」的正中：
+ * 右边少一颗钮时 space-between 会让标题跟着偏。
+ * 168 是按「返回箭头 + 两个字 + 两颗 34 见方的控件」量的，两边取同一个数。
+ */
+.ui-page__slot {
+  display: flex;
+  width: 168px;
+  flex: none;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.ui-page__slot--end {
+  justify-content: flex-end;
+}
+
+.ui-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border: 0;
+  background: none;
+  color: var(--color-hero-gold-dim);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: color var(--duration-button-hover) ease-out;
+}
+
+.ui-page__back:hover {
+  color: var(--color-home-ink-lit);
+}
+
+.ui-page__back:focus-visible {
+  outline: 2px solid var(--color-theme-gold);
+  outline-offset: 2px;
+}
+
+.ui-page__title {
+  flex: 1;
+  margin: 0;
+  color: var(--color-home-ink-lit);
+  font-size: 34px;
+  font-weight: 600;
+  /* 行高写死：`normal` 由字体度量决定，换台机器就换一档（截图回归的确定性第 5 条）。 */
+  line-height: 1.3;
+  letter-spacing: 0.24em;
+  text-align: center;
+  /* 字距加在每个字右边，末字那一格会让整行看着偏左，缩回来。 */
+  text-indent: 0.24em;
+}
+
+/* ---------- 正文 ---------- */
+
+.ui-page__body {
+  flex: 1;
+  /*
+   * `min-height: 0` 不能省：flex 子项的默认最小高度是内容高，不写这一条的话
+   * 正文一长整块就把页眉顶出屏幕，而且自己也滚不起来。
+   */
+  min-height: 0;
+  overflow-y: auto;
+  /* 手机上惯性滚动，不然拖到底会顿一下。 */
+  overscroll-behavior: contain;
+}
+
+.ui-page__inner {
+  /*
+   * 正文一栏。定死一档宽度居中，不跟着屏宽拉满：一行文字拉到 1600px 宽就没法读了。
+   * `min(…, 100%)` 是响应式，窄屏上整栏跟着缩。
+   */
+  width: min(720px, 100%);
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 0 28px 40px;
+}
+
+/*
+ * 手机档：页眉挤一挤，标题小一号，左右两侧的占位收窄。
+ * 断点认的是视口，而截图回归的视口钉死在 1280×900，所以这一档在目录页里恒定不触发
+ *（除非条目自己声明了别的视口）。
+ */
+@media (max-width: 640px) {
+  .ui-page__head {
+    padding: 12px 14px;
+  }
+
+  .ui-page__slot {
+    width: 96px;
+  }
+
+  .ui-page__back span {
+    /* 手机上只留箭头：两个字加上字距要占掉一半的占位宽。 */
+    display: none;
+  }
+
+  .ui-page__title {
+    font-size: 22px;
+    letter-spacing: 0.16em;
+    text-indent: 0.16em;
+  }
+
+  .ui-page__inner {
+    padding: 0 14px 28px;
+  }
+}

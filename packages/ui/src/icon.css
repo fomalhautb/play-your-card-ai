@@ -1,0 +1,30 @@
+/*
+ * 图标 B / C 的样式。样式跟着组件走（《正式版架构》7.2 第 4 条）。
+ *
+ * 这里只有「线稿怎么画」这一件事，颜色一律取 `currentColor`——图标出现在纸面、
+ * 夜色、匾额三种底上，各自的字色差得很远，把颜色写死就得为每种底再开一档变体。
+ */
+
+.ui-icon {
+  display: block;
+  flex: none;
+  fill: none;
+  stroke: currentcolor;
+  /*
+   * 描边粗细用 viewBox 单位（取景框是 24×24），所以它跟着 `size` 一起缩放：
+   * 一颗 16px 的图标线条按比例细下去，不会显得比 24px 那颗粗。
+   * 1.6 是照旧版那几段内联 svg 量的（它们在 24 的框里用的是 1.5~1.75）。
+   */
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/*
+ * 星芒和菱形是实心的：它们只有 9~21px，描边会把内部空间挤没
+ *（需求单图标 C 的尺寸那一行）。
+ */
+.ui-icon[data-fill="true"] {
+  fill: currentcolor;
+  stroke: none;
+}

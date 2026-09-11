@@ -217,6 +217,10 @@ module.exports = {
         // 测试和构建配置不属于产品依赖图，见文件头的说明。
         '^packages/[^/]+/test/',
         '\\.config\\.(ts|js|cjs|mjs)$',
+        // 包体上限的配置（迁移第 31 条给 ui 加的）。它和上面那条是同一类东西，
+        // 只是 size-limit 认的文件名是 `.size-limit.js` 而不是 `*.config.js`，
+        // 匹配不到上面那条模式，所以单列一行。
+        '(^|/)\\.size-limit\\.js$',
       ],
     },
     /*
