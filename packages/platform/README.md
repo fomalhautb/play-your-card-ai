@@ -22,6 +22,16 @@
 
 `platform.ts` 把七项打成一个 `Platform`，应用入口构造一次往下传。
 
+## 第八项：Steam（可选）
+
+`steam.ts` 的 `SteamCapability`（`isAvailable`、`authTicket`、`personaName`）是**可选的**
+（`Platform.steam?`）——七项能力每个壳都有、只是实现不同，而 Steam 只有 Steam 那个壳有，
+网页和手机壳根本没有对应的东西。所以它不写成「另外两个壳返回恒假的实现」：那样调用方
+分不出「装了 Steam 但没开」和「这个壳压根不是 Steam 版」，而这两种情况界面上要说的话不一样。
+
+票据的用法见《正式版架构》5.5：客户端拿它换服务端的会话，服务端拿它去问 Steam 这张票是谁的。
+客户端自己说的 steamId 一律不算数。
+
 ## 为什么这样切
 
 接口不是凭空设计的，除触感外每一项都是从旧客户端（`packages/legacy-client`，已冻结）
@@ -53,7 +63,7 @@
 
 ## web 实现用了什么库
 
-`createWebPlatform()`。三个壳目前都用它——Electron 渲染进程是 Chromium，Capacitor 是系统 WebView。
+`createWebPlatform()`。网页壳和 Capacitor 壳用它，Electron 壳以它为底再换掉两项（见下一节）。
 
 - **网络：[partysocket](https://github.com/partykit/partysocket)。** Cloudflare 维护的重连
   WebSocket，API 和原生一样，断线重连、退避、连接超时、断线期间的发送队列都在里面。
@@ -71,8 +81,27 @@
 - **全屏、安全区、触感：浏览器 API，没引库。** 特性检测和降级从旧代码搬过来（`ui/fullscreen.ts`、
   `ui/viewportVars.ts`），坑都在注释里。
 
-Electron 和 Capacitor 的实现留到迁移第 35、36 条，那时是「以 web 实现为底，换掉其中几项」
-（Steam 覆盖层、原生触感、系统安全区），不是另起一套。
+## electron 实现
+
+`createElectronPlatform()`（迁移第 35 条，`src/electron/`）。它**以网页实现为底**，只换三项：
+
+- `fullscreen`：要全屏的是**窗口**，不是页面里的那一块。`document.requestFullscreen()` 在
+  Electron 里能用，但标题栏和窗口边框还在；而且玩家按 F11、点窗口按钮、macOS 上用触发角退出时，
+  浏览器那套 `fullscreenchange` 一声不响。状态只能由主进程推过来。
+- `haptics`：桌面上没有可震的东西。不沿用网页实现是因为 `navigator.vibrate` 在 Chromium 里
+  **存在**、调用也不报错，只是什么都不发生——那样设置页会摆出一个按了没反应的开关。
+- `steam`：第八项，只有这个壳有。
+
+这三项底下都是同一座桥：`window.aiDuelShell`，由 `apps/steam/src/preload.ts` 经
+`contextBridge` 挂上去。`steamworks.js` 是原生模块，只能在主进程里加载——要在渲染进程里
+直接 `require` 它就得关掉 `contextIsolation`，那是拿整个渲染进程换一个功能。
+桥的形状在 `src/electron/bridge.ts` 和 preload 里**各写了一份**，改一处要一起改
+（跨包只走包入口，而库不能反过来依赖壳）。
+
+桥不在的时候（没有 preload——端到端用例、直接用浏览器打开构建产物）`createElectronPlatform()`
+退回纯网页实现，`platform.steam` 于是是 undefined，客户端走游客登录那条路。
+
+Capacitor 的实现留到迁移第 36 条（原生触感、系统安全区），同样是「以 web 实现为底，换掉其中几项」。
 
 ## 假实现
 
@@ -88,6 +117,9 @@ Electron 和 Capacitor 的实现留到迁移第 35、36 条，那时是「以 we
 - **全屏**：支持不支持、能不能锁方向、是不是从主屏幕启动，三种设备组合都摆得出来。
 - **安全区**：随手改其中几项，值真的变了才通知。
 - **触感**：记账，设备不支持时不记（和真实现的空操作对齐）。
+- **Steam**：在不在、下一张票据是什么（`null` 表示取票据会失败）、昵称，以及取过几次票据。
+  **默认 `isAvailable()` 是 false**，和另外七项不一样——`createFakePlatform()` 建出来的是一台
+  普通机器，大多数用例要验的正是「没有 Steam 时走游客那条路」。
 
 ## 测试
 

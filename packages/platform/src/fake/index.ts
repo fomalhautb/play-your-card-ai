@@ -24,6 +24,8 @@ import type { FakeNetwork } from './network'
 import { createFakeNetwork } from './network'
 import type { FakeSafeArea } from './safeArea'
 import { createFakeSafeArea } from './safeArea'
+import type { FakeSteam } from './steam'
+import { createFakeSteam } from './steam'
 import type { FakeStorage } from './storage'
 import { createFakeStorage } from './storage'
 
@@ -35,6 +37,12 @@ export interface FakePlatform extends Platform {
   fullscreen: FakeFullscreen
   safeArea: FakeSafeArea
   haptics: FakeHaptics
+  /**
+   * 真 Platform 上这一项是可选的，假平台上**一定**有一份——测试要能随手把它打开。
+   * 它默认 `isAvailable()` 是 false，所以「有这个对象」不等于「这台假机器上有 Steam」
+   *（见 fake/steam.ts）。
+   */
+  steam: FakeSteam
 }
 
 export function createFakePlatform(): FakePlatform {
@@ -46,5 +54,6 @@ export function createFakePlatform(): FakePlatform {
     fullscreen: createFakeFullscreen(),
     safeArea: createFakeSafeArea(),
     haptics: createFakeHaptics(),
+    steam: createFakeSteam(),
   }
 }
