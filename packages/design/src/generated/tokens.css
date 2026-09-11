@@ -460,7 +460,7 @@
   --opacity-overlay-targeting: 0.62;
   /** 纸面对话框遮罩的不透明度。比过场那两层重，理由见 color.overlay.dialog。来源：styles.css 的 .leave-ask。 */
   --opacity-overlay-dialog: 0.82;
-  /** 圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计 黑客松版的 styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。 */
+  /** 圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计黑客松版的 styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。 */
   --radius-xs: 3px;
   /** 圆角阶梯。同一份统计里 4px 出现 7 次。 */
   --radius-sm: 4px;
@@ -580,7 +580,7 @@
   --size-next-plaque-height: 118px;
   /** 「下一题」纸匾两根挂绳的长度。绳子是从屏幕顶边垂下来的，太短看着像贴上去的。来源：styles.css 的 .battle__next-plaque-cords。 */
   --size-next-plaque-cord-length: 26px;
-  /** 间距阶梯。旧样式没有做过间距令牌化，这一档是统计 黑客松版的 styles.css 里 padding / gap / margin 的 px 取值定出来的，6px 出现 13 次，排第 6。 */
+  /** 间距阶梯。旧样式没有做过间距令牌化，这一档是统计黑客松版的 styles.css 里 padding / gap / margin 的 px 取值定出来的，6px 出现 13 次，排第 6。 */
   --space-xs: 6px;
   /** 间距阶梯。同一份统计里 8px 出现 18 次，排第 3。 */
   --space-sm: 8px;
