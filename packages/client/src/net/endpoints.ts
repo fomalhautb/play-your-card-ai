@@ -1,10 +1,10 @@
 /**
- * 服务端地址：两条 WebSocket，加上账号系统那三条 HTTP。
+ * 服务端地址：两条 WebSocket，加上账号系统那五条 HTTP。
  * 路径由 `packages/server/src/index.ts` 的总路由和 better-auth 的 `basePath` 定死。
  *
  * 传进来的是 http(s) 源而不是 ws(s) 源：生产环境前端和服务端是同一个 Worker、
  * 同一个域名，调用方手上现成的就是页面的 origin。本地开发是两个进程
- *（Vite 一个端口、wrangler dev 另一个），但由 Vite 的 `server.proxy` 把这五条路径原样转给
+ *（Vite 一个端口、wrangler dev 另一个），但由 Vite 的 `server.proxy` 把这几条路径原样转给
  * wrangler，所以**浏览器看到的仍然是同源**，调用方照样传页面的 origin。
  *
  * 同源不只是省事：账号的会话在 cookie 里，跨源的话每条请求都要另外处理凭据和 CORS，

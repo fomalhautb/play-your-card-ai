@@ -8,7 +8,7 @@ import { defineConfig } from 'vite'
 const SERVER_URL = process.env.SERVER_URL ?? 'http://127.0.0.1:8787'
 
 /**
- * 转给 wrangler 的四条路径。
+ * 转给 wrangler 的三条路径。
  *
  * 为什么要代理而不是让客户端直接连 8787：账号的会话在 cookie 里，而 cookie 和
  * better-auth 的来源检查都认「同源」。代理之后浏览器眼里只有 Vite 那一个源，
