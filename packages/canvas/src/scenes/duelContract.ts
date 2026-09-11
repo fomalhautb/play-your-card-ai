@@ -25,12 +25,36 @@
  * 换句话说：**演出播完之后，画面必须和最后一份 view 一致**。
  */
 
-import type { Catalog, Command, PlayerId, PlayerView } from '@ai-duel/core'
+import type { Catalog, Command, InstanceId, PlayerId, PlayerView } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
 import type { Texture } from 'pixi.js'
 import type { Cue, MatchStageCue } from '../director/cues'
 import type { DirectorLocks, UserAction } from '../director/director'
 import type { EffectTier } from '../fx/effectTier'
+import type { AnchorRect } from './anchors'
+
+/**
+ * 对局场景答得上来的语义锚点，新手教程的步骤表按这几个名字写高亮（迁移第 32 条）。
+ *
+ * 名字照抄旧版那份 `data-tutorial-anchor` 清单，所以搬过来的步骤表一个字都不用改。
+ * 加名字之前先问一句「哪一步在指它」，没有答案就别加——每多一个名字，
+ * 两档版式各要回答一次「它在哪儿」。
+ */
+export type DuelAnchorName =
+  /** 右下角那颗「结束出牌」。 */
+  | 'endTurnButton'
+  /** 我方那条 Token 细条。 */
+  | 'tokenCounter'
+  /** 「下一题考什么方向」那块纸匾。**手机档没有它**（侧栏整个折叠掉了）。 */
+  | 'questionCategoryPanel'
+  /** 顶栏正中那一块比分。 */
+  | 'scoreBoard'
+  /** 我方手牌那一排（按牌实际占的地方算，不是那条零高的基线）。 */
+  | 'hand'
+  /** 战场下面那一排（我方）。 */
+  | 'battlefieldMine'
+  /** 战场上面那一排（对方）。 */
+  | 'battlefieldFoe'
 
 /** 纹理由调用方加载好传进来：canvas 不管资源从哪来。 */
 export interface CardTextures {
@@ -158,8 +182,32 @@ export interface DuelScene {
    * 编排层要赶在事件回来之前把演出锁上上。
    */
   onUserAction(callback: (action: UserAction) => void): void
-  /** 舞台演出信号（教程要等的那七个时刻，见 MatchStageCue）。教程状态机是第 32 条。 */
+  /** 舞台演出信号（教程要等的那七个时刻，见 MatchStageCue）。 */
   onTutorialCue(callback: (cue: MatchStageCue) => void): void
+  /**
+   * 教程那几步「现在只许打这张牌」的额外锁：手牌实例 id → 点它时说的那句话。
+   * 传 null 解除（正式对局从头到尾都是 null，整套逻辑等于不存在）。
+   *
+   * 和 `DirectorLocks` 分开是因为两者说的不是一回事：那一组是「现在轮不到你 / 演出还没完」，
+   * 整只手一起锁；这一份是**逐张**的，同一时刻手上有的能打、有的不能。
+   *「结束出牌」那一档仍然走编排层（`UserAction` 的 `tutorial-gate` → `endPlayLocked`），
+   * 它本来就是整颗钮的开关，没有「逐张」可言。
+   */
+  setBlockedCards(blocked: ReadonlyMap<InstanceId, string> | null): void
+  /**
+   * 玩家点了一张被上面那份锁挡住的牌。调用方拿它弹一句话——
+   * 锁必须有话说，否则玩家只会觉得界面坏了。
+   */
+  onBlocked(callback: (tip: string) => void): void
+  /**
+   * 某个语义锚点现在占屏幕上哪一块（画布的 CSS 像素坐标）。答不上来返回 null，
+   * 教程那边会把这个目标跳过（比如手机档整个没有侧栏，也就没有「下一题」纸匾）。
+   *
+   * 每帧现量：手牌会重排、卡会飞、侧栏数字会变，慢一帧引导圈就画在空处。
+   */
+  anchorRect(name: DuelAnchorName): AnchorRect | null
+  /** 手上那张牌占哪一块。牌不在手上（打出去了、还没发到）时返回 null。 */
+  handCardRect(instanceId: InstanceId): AnchorRect | null
   /** 手动推进一帧。虚拟时钟按它累加，到点的 cue 在这里播。 */
   step(deltaMs: number): void
   /** 没有在播的动画、也没有排着队的 cue；此时帧循环必须停（3.6）。 */

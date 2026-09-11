@@ -271,17 +271,21 @@ export { Animator } from './runtime/animator'
 export { FrameLoop, type FrameLoopCounters, type FrameLoopOptions } from './runtime/frameLoop'
 export { Rng } from './runtime/rng'
 export { TextTextureCache } from './runtime/textCache'
+export type { AnchorRect } from './scenes/anchors'
 export { createDeckScene } from './scenes/deck/DeckScene'
 export { pickDeckLayout, pickDeckTier } from './scenes/deck/layout/pickLayout'
 export type { DeckLayout, DeckLayoutTier } from './scenes/deck/layout/types'
 export { DEFAULT_DECK_RULES } from './scenes/deck/logic/types'
 export type {
   CreateDeckScene,
+  DeckAnchor,
+  DeckAnchorName,
   DeckManageAction,
   DeckRules,
   DeckScene,
   DeckSceneCounters,
   DeckSceneOptions,
+  DeckTutorialGate,
   DeckView,
   PoolCard,
   PoolKind,
@@ -292,6 +296,7 @@ export type { DuelLayout, LayoutTier } from './scenes/duel/layout/types'
 export type {
   CardTextures,
   CreateDuelScene,
+  DuelAnchorName,
   DuelCommand,
   DuelScene,
   DuelSceneCounters,
@@ -300,6 +305,7 @@ export type {
 export { createHeroScene } from './scenes/hero/HeroScene'
 export type {
   HeroAction,
+  HeroAnchor,
   HeroEntry,
   HeroScene,
   HeroSceneOptions,

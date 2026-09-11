@@ -16,6 +16,14 @@
 
 import type { Platform } from '@ai-duel/platform'
 import type { Texture } from 'pixi.js'
+import type { AnchorRect } from '../anchors'
+
+/** 这一页上新手教程要圈的两处（迁移第 32 条）。 */
+export type HeroAnchor =
+  /** 某一位的那张人物卡。 */
+  | { kind: 'heroCard'; hero: string }
+  /** 技能详情底下那颗「确认英雄」。详情没开着、或者这条入口是纯查看时答不上来。 */
+  | { kind: 'heroConfirm' }
 
 /** 一位英雄。数据来自 `content` 的 HEROES，由装配层查好连原画一起传进来。 */
 export interface HeroEntry {
@@ -96,6 +104,13 @@ export interface HeroScene {
   onAction(callback: (action: HeroAction) => void): void
   /** 静音钮换一枚剪影。 */
   setMuted(muted: boolean): void
+  /**
+   * 某个高亮目标现在占哪一块（画布的 CSS 像素坐标）。答不上来返回 null。
+   *
+   * 这一页没有「教学闸门」那种东西：场景本来就是受控的（选谁、详情开在谁身上都由装配层给），
+   * 挡住其余六位只要装配层不把那条 `open` 摆回来就行（见 client 的 TutorialScreen）。
+   */
+  anchorRect(target: HeroAnchor): AnchorRect | null
   /**
    * 把指针停在第 index 张卡上（null 是不停）。只给目录页用——那边没有真指针。
    */

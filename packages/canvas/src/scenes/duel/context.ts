@@ -80,6 +80,13 @@ export interface DuelContext {
   readonly markKeys: Map<InstanceId, string>
   /** 现在拿着演出锁的那些编号。非空就是手牌整个冻住。 */
   readonly locks: Set<number>
+  /**
+   * 教程那几步的逐张手牌锁：实例 id → 点它时说的那句话。没在教程里就是 null。
+   *
+   * 和 `locks` 分开是因为两者说的不是一回事：那一组是整只手一起冻住，
+   * 这一份是逐张的——同一时刻手上有的能打、有的不能（见 duelContract 的 `setBlockedCards`）。
+   */
+  blockedCards: ReadonlyMap<InstanceId, string> | null
   /** 展示层里那张临时卡（强制展示、我方技能亮相、放大查看共用一张位置）。 */
   showcased: CardSprite | null
   /** 正在放大查看的那一格；关掉时要把格子重新露出来。 */
@@ -133,4 +140,6 @@ export interface DuelContext {
   beginHeroSkill(): boolean
   /** 手牌和按钮现在许不许动。锁变了要重算一次。 */
   refreshLocks(): void
+  /** 玩家点了一张被教程锁住的牌，把那句话转给外面（界面拿它弹一句提示）。 */
+  blocked(tip: string): void
 }

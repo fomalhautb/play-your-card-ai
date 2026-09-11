@@ -11,6 +11,7 @@
 
 import type { CardId } from '@ai-duel/core'
 import type { CardSprite } from '../../components/CardSprite'
+import type { DeckTutorialGate } from '../deckContract'
 import type { DeckLayout } from './layout/types'
 import type { PreviewGap } from './logic/insert'
 import type { DeckRules, PoolCard } from './logic/types'
@@ -38,6 +39,11 @@ export interface DeckContext {
   gap: PreviewGap
   /** 正拖着的是谁，没在拖就是 null。 */
   dragging: DragOrigin | null
+  /**
+   * 新手教程那一段的放行闸门，正式构筑页恒为 null（见 deckContract 的 `DeckTutorialGate`）。
+   * 判它的那几处收在 tutorial.ts，别在这一层散着写。
+   */
+  tutorial: DeckTutorialGate | null
 
   /**
    * 借一张卡出来摆。**借出去的都记着**，下一轮 `beginBorrow` 会统一还回去，
@@ -73,6 +79,8 @@ export interface DeckContext {
   emitChange(): void
   /** 玩家点开了一张卡看大图。 */
   emitInspect(cardId: CardId): void
+  /** 玩家点了被教学闸门挡住的东西，把那句话转出去（界面拿它弹一句提示）。 */
+  blocked(tip: string): void
   /** 玩家要改名 / 新建 / 删除。 */
   emitManage(
     action: { kind: 'rename'; id: string } | { kind: 'delete'; id: string } | { kind: 'create' },

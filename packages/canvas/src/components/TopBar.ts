@@ -139,6 +139,17 @@ export class TopBar extends Container {
     this.layoutCenter()
   }
 
+  /**
+   * 正中那一块（比分，或者顶掉它的那行状态字）。
+   *
+   * 透出来只为一件事：新手教程要圈住「比分在哪儿」（见 scenes/duel/anchors.ts）。
+   * 给的是节点而不是一个算好的矩形——那一块的内容每轮都在换，宽度跟着字走，
+   * 只有量它自己才准。
+   */
+  get centerArea(): Container {
+    return this.center
+  }
+
   /** 第几轮。 */
   setRound(round: number): void {
     if (this.round === round) return
