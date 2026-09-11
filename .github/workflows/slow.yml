@@ -1,8 +1,10 @@
 # 《正式版架构》6.1 的「慢档」：合进 main 之后跑，也能手动触发。
 #
-# 现在只有一样东西在这里：**性能剧本的确定性指标**（6.9）。它本来是想放快档的，
-# 第 18 条接上真对局场景之后实测整批 17 分钟、最慢一条 12.9 分钟（M2 上，无头软件渲染），
-# 两核的 ubuntu 跑机只会更慢，10 分钟的快档装不下。
+# 两样东西在这里：**性能剧本的确定性指标**（6.9），以及**平台壳的构建**（6.11）。
+#
+# 确定性指标本来是想放快档的，第 18 条接上真对局场景之后实测整批 17 分钟、
+# 最慢一条 12.9 分钟（M2 上，无头软件渲染），两核的 ubuntu 跑机只会更慢，
+# 10 分钟的快档装不下。
 #
 # 拆法是**按「视口 × 剧本」开成一格一格的并行 job**：每条用例各开各的页面和渲染进程，
 # 之间没有任何耦合（同一段剧本的数字和跑得快慢无关，见 playwright.config.ts），
@@ -12,6 +14,10 @@
 # 时间指标（帧时间 p50/p95、主线程脚本时间、GPU 每帧耗时）**不在这里**：
 # 它机器相关、只出数不设门禁，而 GitHub 跑机既没 GPU 又跑在软件渲染上，量出来没有参考价值。
 # 那一组只在开发者本机跑，怎么跑和怎么和 main 比见 packages/bench/README.md。
+#
+# 平台壳的构建是 6.11 那条「四端构建都能过」（迁移第 37 条）。现在只有 Steam 那一端
+# （第 35 条），Capacitor 的 iOS / 安卓两端要等第 36 条。
+# 「构建能过本身就是测试」——平台壳最容易在没人看的时候坏掉，而它不像别的包有单元测试守着。
 name: CI 慢档
 
 on:
@@ -115,3 +121,71 @@ jobs:
           path: |
             packages/bench/results
             packages/bench/test-results
+
+  build-steam:
+    name: Steam 壳构建 ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    # 三格里最重的是打包那一步：electron-builder 要现下一份 Electron（一百多兆），
+    # 再把三百多兆的产物压成 artifact。本机（M2）整条 1.5 分钟，跑机按几倍估。
+    # 20 分钟是慢档的口径，顶破了要查的是构建为什么变长了。
+    timeout-minutes: 20
+    strategy:
+      # 一个系统挂了不该把别的掐掉：一次跑完能看到全部三端的结论。
+      fail-fast: false
+      matrix:
+        include:
+          # Linux 出 AppImage（单文件，下下来就能跑）。Steam Deck 上跑的其实是 Windows 版
+          # （Proton），这一格的意义是「在 Linux 上也能完整打一次包」。
+          - os: ubuntu-latest
+            label: linux
+            script: pack:linux
+          # mac 和 Windows 只出解包后的目录，不打 dmg / 安装器：那两步都要签名证书，
+          # 而 Steam 发行本来就是「把目录传上去」。见 apps/steam/electron-builder.yml。
+          - os: macos-latest
+            label: mac
+            script: pack:dir
+          - os: windows-latest
+            label: windows
+            script: pack:dir
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      # 顺序不能反：setup-node 的 cache: pnpm 要先能找到 pnpm 才知道去哪儿找 store。
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 卡面图集和界面底图不进仓库（见 .gitignore），而渲染进程的构建会把它们原样打进产物。
+      # 不打这一步构建照样能过，但打出来的包里一张图都没有——那种"绿"没有意义。
+      - name: 打卡面图集
+        run: pnpm assets:build
+
+      # 主进程（tsc → CommonJS）、渲染进程（Vite）、再 electron-builder 打包，
+      # 三步都在这一条脚本里（见 apps/steam/package.json）。
+      - name: 打包
+        run: pnpm --filter @ai-duel/steam ${{ matrix.script }}
+        env:
+          # mac 跑机上偶尔会摸到一个临时的签名身份，签一半失败反而更难查。
+          # 这一步本来就不签名（见 apps/steam/electron-builder.yml），干脆关掉自动探测。
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      # 产物几百兆，只留七天：它的用处是「这一次构建出来的东西能不能跑」，
+      # 而不是当发布归档——真要发布是另一条流水线的事。
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: steam-${{ matrix.label }}
+          path: apps/steam/release
+          retention-days: 7
+          # 打包这一步过了却一个文件都没有，说明 electron-builder 的输出目录改了。
+          # 不设这一条的话它只会警告一句，静悄悄地传一个空包。
+          if-no-files-found: error

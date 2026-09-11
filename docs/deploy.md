@@ -230,7 +230,38 @@ openssl rand -base64 32 | npx wrangler secret put BETTER_AUTH_SECRET
 D1 免费档是 5GB 存储、每天 500 万行读 / 10 万行写。一个游客账号占三四行，
 握手验签那条查询还带一分钟的内存缓存（`src/auth/verify.ts`），离上限差得远。
 
-## 9. 自动部署
+## 9. Steam 登录（迁移第 35 条）
+
+Steam 版的壳（`apps/steam`）用 Steam 客户端给的**会话票据**换账号会话，
+服务端拿票据去问 Valve「这张票是谁的」（`packages/server/src/auth/steamTicket.ts`）。
+网页版和手机版用不到它，不配也不影响部署。
+
+**要真的验票据，仓库的主人得先做两件事**（都要 Steamworks 后台的权限，别人代劳不了）：
+
+```bash
+cd packages/server
+
+# 1) 发行商 Web API 密钥。Steamworks 后台 → 用户与权限 → 管理 Groups →
+#    你的发行商组 → 「Web API 密钥」。**不是**个人的那把 Steam Web API key，
+#    个人密钥调 AuthenticateUserTicket 会被拒。
+npx wrangler secret put STEAM_WEB_API_KEY
+
+# 2) 这个游戏的 appId。不是凭据，但走同一条路最省事（生成的 Env 类型看不见它，
+#    见 packages/server/env.d.ts）。不配的话默认是 480（Valve 的 SpaceWar 试验田）。
+npx wrangler secret put STEAM_APP_ID
+```
+
+`STEAM_APP_ID` **两处要填同一个数**：这里一份，壳那边的环境变量一份
+（见 `apps/steam/README.md`）。验票据时 Valve 会拿 appId 比对，对不上整张票作废。
+
+没配 `STEAM_WEB_API_KEY` 时的行为按环境分（`src/auth/steamTicket.ts` 里那张表）：
+本地开发（`.dev.vars` 里有 `DEV=1`）走「任何票据都收，steamId 由票据算出来」，
+**线上一律拒绝**——失败关闭，漏配的后果是「谁都登不进来」，
+而不是「随便递一段字符串就是一个新账号」。
+
+所以这两条 secret 是**可选的**：不配，线上的 Steam 登录就是关着的，游客登录照常。
+
+## 10. 自动部署
 
 `.github/workflows/deploy.yml`：push 到 `main` 或者手动触发 → 装依赖 →
 `pnpm --filter @ai-duel/legacy-client build` → 应用账号库迁移 →
@@ -254,7 +285,7 @@ D1 免费档是 5GB 存储、每天 500 万行读 / 10 万行写。一个游客�
 
 没配 secret 时工作流会**跳过部署并显示成功**，不会变红。这样别人 fork 这个仓库不会看到一片红。
 
-## 10. 踩过的坑
+## 11. 踩过的坑
 
 **`exports` 取代了 legacy 的 `migrations`。**
 老教程里的 `"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]` 已经是遗留写法，
@@ -291,7 +322,7 @@ Cloudflare 这么做是为了少算一次计费调用。
 WebSocket 升级请求不是导航请求，所以能正常进到 Worker。
 上面 `run_worker_first` 里列出来的路径不受这条影响。
 
-## 11. 本地跑和验证
+## 12. 本地跑和验证
 
 ```bash
 cp packages/server/.dev.vars.example packages/server/.dev.vars   # 第一次：填 BETTER_AUTH_SECRET
