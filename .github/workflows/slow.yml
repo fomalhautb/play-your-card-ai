@@ -1,10 +1,17 @@
 # 《正式版架构》6.1 的「慢档」：合进 main 之后跑，也能手动触发。
 #
-# 现在只有一样东西在这里：**性能剧本的确定性指标**（6.9）。它本来是想放快档的，
-# 第 18 条接上真对局场景之后实测整批 17 分钟、最慢一条 12.9 分钟（M2 上，无头软件渲染），
-# 两核的 ubuntu 跑机只会更慢，10 分钟的快档装不下。
+# 现在有两样东西在这里：
 #
-# 拆法是**按「视口 × 剧本」开成一格一格的并行 job**：每条用例各开各的页面和渲染进程，
+# - **性能剧本的确定性指标**（6.9）。它本来是想放快档的，第 18 条接上真对局场景之后
+#   实测整批 17 分钟、最慢一条 12.9 分钟（M2 上，无头软件渲染），
+#   两核的 ubuntu 跑机只会更慢，10 分钟的快档装不下。
+# - **三浏览器一致性**（6.10，迁移第 34 条）。它放这里的理由**不是慢**（本机十六条 20 秒），
+#   是它拦的不是 PR 级别的岔子：某一家画错了这种事多半跟着浏览器版本走，
+#   不跟着这一次改动走；而且它要多装两个浏览器（webkit 的 `--with-deps` 在 ubuntu 上
+#   是一大串系统库）。快档因此只留 Chromium 一家，见 ci.yml。
+#
+# 拆法都是**开成一格一格的并行 job**（确定性指标按「视口 × 剧本」，三浏览器按
+# 「浏览器 × 剧本」）：每条用例各开各的页面和渲染进程，
 # 之间没有任何耦合（同一段剧本的数字和跑得快慢无关，见 playwright.config.ts），
 # 所以拆开只是把墙钟时间从"最慢那一条 + 排队"压到"最慢那一条"。
 # 一格红了只说明那一格超限，别的格照跑（fail-fast: false）。
@@ -115,3 +122,69 @@ jobs:
           path: |
             packages/bench/results
             packages/bench/test-results
+
+  cross-browser:
+    name: 三浏览器一致性 ${{ matrix.browser }}/${{ matrix.segment }}
+    runs-on: ubuntu-latest
+    # 本机（M2、真 GPU）十六条一共 20 秒，一格两条各两三秒。这个数**不是**按它给的：
+    # ubuntu 跑机上 webkit 和 firefox 也落到软件光栅，而快档里同样两条用例的
+    # Chromium 软件光栅实测一格 3～5 分钟。按那个量级加上装两个浏览器的时间，
+    # 20 分钟（慢档的口径）留了约四倍余量。第一次真跑完要回来把实测写在这里。
+    timeout-minutes: 20
+    strategy:
+      # 一家画错了不该把另一家掐掉：一次跑完能看到全部差异。
+      fail-fast: false
+      matrix:
+        # chromium 不在这里：它拍的图就是被比的那个参照物（见下面）。
+        browser: [webkit, firefox]
+        segment: [deal, play10, flip, settle]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      # 顺序不能反：setup-node 的 cache: pnpm 要先能找到 pnpm 才知道去哪儿找 store。
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 一格只装自己那一家。--with-deps 装的是这个浏览器要的系统库，ubuntu 镜像里默认没有；
+      # webkit 那串尤其长，它是这个 job 里除跑用例外最花时间的一步。
+      - name: 安装 ${{ matrix.browser }}
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+
+      # 卡面图集是构建产物、不进仓库，Playwright 的 globalSetup 会自己打一份。
+      #
+      # 三浏览器一致性（6.10）：同一段剧本的同一帧在这一家拍一遍，和 **chromium 拍的那张**
+      # 逐像素比。chromium 那张就是 `packages/bench/baselines/linux/` 里的关键帧基线——
+      # 快档每个 PR 都会把它重拍一遍并比对（ci.yml 的 keyframes），所以它就是
+      # 「此刻 chromium 画出来的样子」，这里不用再跑一遍最贵的那个软件光栅。
+      # 反过来说：**这一格依赖仓库里有 linux 基线**，没有时用例会直接抛并告诉你去哪儿生成
+      #（见 packages/bench/tests/crossBrowser.spec.ts）。
+      #
+      # `--project` 和 `--grep` 一起筛出这一格那两条用例（两档视口各一条）。
+      # project 名字（keyframes-webkit / keyframes-firefox）在 playwright.config.ts 上、
+      # `@剧本段` 标签在那个 spec 上，**两个都是这个工作流的接口**：
+      # project 名字改了这一格会直接报错，标签改了这一格会变成「一条用例都没匹配到」
+      # 而不是失败，静悄悄地少跑一格。
+      - name: 三浏览器一致性
+        id: cross
+        run: |
+          pnpm --filter @ai-duel/bench exec playwright test \
+            --project=keyframes-${{ matrix.browser }} --grep "@${{ matrix.segment }}"
+
+      # 超了的时候把「这一家拍到的」和「差异图」带出来：光看日志里那个比例
+      # 说不出是整块没画、偏色还是层级压反，而这三样的处理方式完全不同。
+      - name: 上传截图差异
+        if: failure() && steps.cross.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-browser-${{ matrix.browser }}-${{ matrix.segment }}
+          path: packages/bench/test-results
