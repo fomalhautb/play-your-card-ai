@@ -15,8 +15,10 @@
 # 它机器相关、只出数不设门禁，而 GitHub 跑机既没 GPU 又跑在软件渲染上，量出来没有参考价值。
 # 那一组只在开发者本机跑，怎么跑和怎么和 main 比见 packages/bench/README.md。
 #
-# 平台壳的构建是 6.11 那条「四端构建都能过」（迁移第 37 条）。现在只有 Steam 那一端
-# （第 35 条），Capacitor 的 iOS / 安卓两端要等第 36 条。
+# 平台壳的构建是 6.11 那条「四端构建都能过」（迁移第 37 条）：网页、Steam 三格、安卓一格。
+# **iOS 那一端不在这里**：`xcodebuild` 只能在 macOS 跑机上跑，而 macOS 跑机按十倍计费，
+# 为「构建能不能过」这一条结论天天付这个价不值得。它靠人在本机验，命令写在
+# apps/mobile/README.md 里。
 # 「构建能过本身就是测试」——平台壳最容易在没人看的时候坏掉，而它不像别的包有单元测试守着。
 name: CI 慢档
 
@@ -199,5 +201,68 @@ jobs:
           path: apps/steam/release
           retention-days: 3
           # 打包这一步过了却一个文件都没有，说明 electron-builder 的输出目录改了。
+          # 不设这一条的话它只会警告一句，静悄悄地传一个空包。
+          if-no-files-found: error
+
+  build-android:
+    name: 安卓壳构建
+    runs-on: ubuntu-latest
+    # 只有一格，所以没有 strategy / fail-fast：安卓就在 Linux 上构建，没有别的系统可并排。
+    # iOS 那一端不在这个工作流里，理由见文件头。
+    #
+    # 20 分钟是慢档的口径（和 build-steam 一样）。第一次跑要现下 Gradle 发行版和整套依赖，
+    # 之后 setup-java 的 gradle 缓存会把这段砍掉大半。顶破了要查的是构建为什么变长了。
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      # 顺序不能反：setup-node 的 cache: pnpm 要先能找到 pnpm 才知道去哪儿找 store。
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Capacitor 8 的安卓工程按 JDK 21 编译（见 android/app/capacitor.build.gradle 里的
+      # sourceCompatibility）。跑机默认的 JDK 不一定是这个版本，所以显式装一份。
+      # Android SDK 本身不用装：ubuntu 跑机的镜像自带，许可也已经接受过，
+      # 缺哪个平台版本 AGP 会自己下。
+      - name: 安装 JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 卡面图集和界面底图不进仓库（见 .gitignore），而网页构建会把它们原样打进产物。
+      # 不打这一步构建照样能过，但打出来的包里一张图都没有——那种"绿"没有意义。
+      - name: 打卡面图集
+        run: pnpm assets:build
+
+      # 先出网页产物，再由 cap sync 复制进原生工程并重写那几份生成的 gradle 文件
+      # （它们的路径带着 pnpm store 的版本号，所以**必须**在 install 之后 sync 一次）。
+      - name: 同步原生工程
+        run: pnpm --filter @ai-duel/mobile sync:android
+
+      - name: 构建 debug 包
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: apps/mobile/android
+
+      # apk 只有几十兆，而且是这四端里唯一「下下来装到手机上就能试」的产物，所以这一格传。
+      # 保留期三天、传不到东西就失败，口径和上面 Steam 那格一样（理由见那儿）。
+      - name: 上传 apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-android-debug
+          path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 3
+          # 构建过了却一个文件都没有，说明 Gradle 的输出目录改了。
           # 不设这一条的话它只会警告一句，静悄悄地传一个空包。
           if-no-files-found: error
