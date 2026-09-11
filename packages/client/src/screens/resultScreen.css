@@ -4,6 +4,16 @@
  * 数值读设计令牌（架构 7.1 第 4 条）。
  */
 
+/*
+ * 最外面那一层。它存在只为给暗幕一个铺满的定位祖先——`Veil` 是 `position: absolute`，
+ * 没有定位祖先的话它会铺到视口上（对局那一屏 `.match` 本身是 fixed，但这一层
+ * 将来也可能被别的地方用）。`data-outcome` 写在它上面，见 ResultScreen.tsx。
+ */
+.result {
+  position: absolute;
+  inset: 0;
+}
+
 .result__score {
   margin: 0;
   /* 板子整体的字色跟着结果走（胜金败锈），比分不跟：它是中性信息。 */

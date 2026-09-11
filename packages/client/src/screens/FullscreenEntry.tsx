@@ -26,12 +26,13 @@
  *    `document.fullscreenElement` 和 `matchMedia`（架构第 2 节第 5 条）。
  */
 
-import type { Platform } from '@ai-duel/platform'
 import { Dialog, SealButton } from '@ai-duel/ui'
 import { useEffect, useState } from 'react'
+import { usePlatform } from '../app/platform'
 import './fullscreenEntry.css'
 
-export function FullscreenEntry({ platform }: { platform: Platform }) {
+export function FullscreenEntry() {
+  const platform = usePlatform()
   /** 初值恒为 false、进 effect 再判：首帧不显示，免得它抢在页面画出来之前先糊在角上。 */
   const [enabled, setEnabled] = useState(false)
   /** 浏览器支持什么一开始就定死，只算一次。 */

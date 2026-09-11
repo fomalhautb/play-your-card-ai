@@ -17,6 +17,11 @@
  * 这一页整个是真 DOM，`env(safe-area-inset-*)` 直接就能用，而且它跟着浏览器逐帧更新，
  * 比订阅一次快照再写进 style 更准。`Dialog` 也是这么做的。
  *
+ * ## 底色可以让出去
+ *
+ * 默认铺页面底色；铺了自己底图的页面（关于页）在外层写 `--ui-page-background: transparent`
+ * 就能让底图透出来。这是这个组件对外开放的唯一一个样式旋钮，理由见 page.css。
+ *
  * ## `position: absolute` 铺满
  *
  * 这一层铺的是整屏。用 absolute 而不是 fixed：目录页那条条目要拍得出来，

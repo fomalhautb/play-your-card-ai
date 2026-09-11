@@ -13,8 +13,15 @@
 import type { ReactNode } from 'react'
 import { Notice } from './Notice'
 
+/**
+ * 定宽的一栏，外加夜色页那一档字色。
+ *
+ * 字色不能不给：「补充说明」那一档是跟着上下文的 `currentColor` 走的
+ *（见 notice.css），不给的话它拍到的是 Storybook 预览页自己的默认字色，
+ * 和真界面里的样子对不上。三页文字界面都在夜色底上，所以取首页那档米色。
+ */
 function Frame({ children }: { children: ReactNode }) {
-  return <div style={{ width: 420, padding: 16 }}>{children}</div>
+  return <div style={{ width: 420, padding: 16, color: 'var(--color-home-ink)' }}>{children}</div>
 }
 
 export default {

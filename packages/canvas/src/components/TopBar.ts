@@ -178,16 +178,20 @@ export class TopBar extends Container {
   }
 
   /**
-   * 右端那一簇占掉多宽（含它离右缘的留白）。一颗都没有时是 0。
+   * 右端那一簇要占掉的整块地方：几颗钮 + 它们之间的空隙 + 离右缘的留白，
+   * **再加一份空隙**当它左边的隔离带。一颗都没有时是 0。
    *
-   * 正中那块靠它让位。量的是**已经摆好的**那几颗，不是按变体现算——
-   * 两处各算一遍迟早对不上。
+   * 正中那块靠它让位（见 `layoutCenter`）。左边那份隔离带不能省：正好贴着摆的话，
+   * 末尾那个「对方」会和第一颗钮的剪影挨到一起，看着像糊在一块儿
+   *（手机档那条目录页条目第一次拍出来就是这个样子）。
+   *
+   * 量的是**已经摆好的**那几颗，不是按变体现算——两处各算一遍迟早对不上。
    */
-  private actionsWidth(): number {
+  private actionsKeepOut(): number {
     const buttons = this.actions.children as PlaqueButton[]
     if (buttons.length === 0) return 0
     const total = buttons.reduce((sum, button) => sum + button.boxWidth, 0)
-    return total + ACTION_GAP * (buttons.length - 1) + ACTION_INSET
+    return total + ACTION_GAP * buttons.length + ACTION_INSET
   }
 
   /** 两颗钮从右往左排，整簇纵向居中。 */
@@ -276,9 +280,9 @@ export class TopBar extends Container {
      *
      * 两步而不是一步「在剩下那段里居中」：桌面档宽得很，正中那块离那两颗钮还远着，
      * 按剩下那段居中会让它整体左移七十多个像素，白白偏掉。
-     * 手机档才会真的撞上——那时让多少就让多少，正好贴着。
+     * 手机档才会真的撞上——那时让多少就让多少。
      */
-    const room = this.boxWidth - this.actionsWidth()
+    const room = this.boxWidth - this.actionsKeepOut()
     let x = Math.min((this.boxWidth - total) / 2, room - total)
     const centerY = this.boxHeight / 2
     for (const item of widths) {

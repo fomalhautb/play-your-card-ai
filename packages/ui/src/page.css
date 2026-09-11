@@ -12,7 +12,13 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--color-page-background);
+  /*
+   * 底色留一个口子：铺了自己底图的页面（关于页）把 `--ui-page-background` 设成
+   * transparent，让底图透出来。这是这个组件**唯一**对外开放的样式旋钮——
+   * 用自定义属性而不是让调用方去覆盖 `.ui-page` 这个类，是因为类名是实现细节，
+   * 而这一条是有意留的接口（外面写 `--ui-page-background: transparent` 就行）。
+   */
+  background: var(--ui-page-background, var(--color-page-background));
   color: var(--color-home-ink);
   font-family: var(--font-family-serif);
   /* 四边让开刘海和底部横条，理由见 Page.tsx 的文件头。 */
@@ -74,6 +80,8 @@
 
 .ui-page__title {
   flex: 1;
+  /* 不写这一条的话 flex 子项的最小宽是内容宽，标题挤不动，两侧的占位会被顶出去。 */
+  min-width: 0;
   margin: 0;
   color: var(--color-home-ink-lit);
   font-size: 34px;
@@ -84,6 +92,16 @@
   text-align: center;
   /* 字距加在每个字右边，末字那一格会让整行看着偏左，缩回来。 */
   text-indent: 0.24em;
+  /*
+   * 地方不够时截断，**不换行**。
+   *
+   * 中文没有词边界，换行会一个字一个字往下掉，页眉当场变成一列竖排字
+   *（把这一页塞进 390 宽的盒子里就是那个样子）。截断至少还是一行，
+   * 而真正窄的屏幕上标题本来就会被下面那条媒体查询换成小一号的。
+   */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- 正文 ---------- */

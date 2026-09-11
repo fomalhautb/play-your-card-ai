@@ -16,35 +16,20 @@ import { usePlatform } from '../app/platform'
 import { playTrack } from '../audio/music'
 import { toggleMuted, useMuted } from '../audio/mute'
 import { HERO_IMAGES } from '../preload/manifests'
-import { type PreloadState, preloadAll, preloadState } from '../preload/preload'
+import { useAssets } from '../preload/useAssets'
 import { loadSave, saveHero } from '../save/saveStore'
 import { HeroStage } from './HeroStage'
+import { LoadingScreen } from './LoadingScreen'
 import './heroScreen.css'
 
 export function HeroScreen() {
   const platform = usePlatform()
   const [, navigate] = useLocation()
   const muted = useMuted(platform)
-  const [assets, setAssets] = useState<PreloadState>(() => preloadState(platform, HERO_IMAGES))
+  const assets = useAssets(platform, HERO_IMAGES)
   /** 存档里确认过的那位当初值。之后以玩家在这一页上的选择为准。 */
   const [selectedId, setSelectedId] = useState<HeroId | null>(() => loadSave(platform).savedHero)
   const [detailId, setDetailId] = useState<HeroId | null>(null)
-
-  /*
-   * 不先判「是不是已经就绪」再决定要不要排队：图早就有结果时 `preloadAll` 会立刻
-   * 报一次满格然后 resolve（见 preload/preload.ts），多排这一趟一个请求都不会发。
-   * 反过来，加一句 `if (assets.ready) return` 就等于把 `assets` 拖进依赖，
-   * 于是每报一次进度都要重排一遍队。
-   */
-  useEffect(() => {
-    let alive = true
-    void preloadAll(platform, HERO_IMAGES, (state) => {
-      if (alive) setAssets(state)
-    })
-    return () => {
-      alive = false
-    }
-  }, [platform])
 
   // 选卡组 / 选英雄那一档的曲子。回首页或进对局时由那边换掉。
   useEffect(() => {
@@ -86,14 +71,7 @@ export function HeroScreen() {
   }
 
   if (!assets.ready) {
-    return (
-      <main className="hero hero--loading">
-        <p className="hero__loading-text">正在请他们上场…</p>
-        <div className="hero__loading-bar">
-          <i style={{ width: `${Math.round(assets.progress * 100)}%` }} />
-        </div>
-      </main>
-    )
+    return <LoadingScreen progress={assets.progress} text="正在请他们上场…" />
   }
 
   return (

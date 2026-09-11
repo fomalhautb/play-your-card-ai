@@ -4,16 +4,23 @@
  * 状态矩阵：
  *   普通 ✓ · 悬停 — · 按下 — · 禁用 — · 加载 —
  *   壳本身不是控件，五态全部不适用；页眉上那颗返回和那枚圆章的状态各在
- *   自己的条目里（`UI/SealButton`）。条目分的是**页眉上摆了什么**和**手机档**。
+ *   自己的条目里（`UI/SealButton`）。条目分的是**页眉上摆了什么**。
  *
  * 这个组件在需求单里还没有编号，理由见 Page.tsx 的文件头。
  *
  * 外面那个定尺寸的相对定位盒子是必须的：`Page` 是 `position: absolute`，
  * 没有定位祖先的话它会铺到视口上，而截图回归拍的是条目那一块。
- * 手机档那条把盒子换成 390 宽——但**页面自己的断点认的是视口**，而目录页的视口钉死在
- * 1280×900，所以那一条拍到的仍然是桌面档的页眉，只是被塞进了一个窄盒子里。
- * 这是有意的：把断点改成容器查询就等于让版式跟着容器宽度走，那正是截图回归里
- * 「差一点就换一种排法」的开关（见 client/dev/storybook/README.md 的第 5 条）。
+ *
+ * ## 手机档拍不了
+ *
+ * 这一页的两档版式是靠**媒体查询**分的（认的是视口），而目录页的视口钉死在 1280×900
+ *（见 client/dev/storybook/playwright.config.ts）。把盒子做窄只会得到一种真界面上
+ * 不存在的样子：页眉还是桌面档那套 168 宽的两侧占位，标题被挤到只剩几十像素。
+ * 所以这里不摆「窄栏」那条条目。
+ *
+ * 改成容器查询就能拍了，但那等于让版式跟着容器宽度走，正是截图回归里
+ * 「差一点就换一种排法」的开关（见 client/dev/storybook/README.md 的第 5 条）——
+ * 宁可少一条条目。
  *
  * title 和导出名用英文的理由见同一份 README 的「基线图的文件名」。
  */
@@ -70,19 +77,6 @@ export const NoActions = {
   args: { title: '设置' },
   render: (args: Parameters<typeof Page>[0]) => (
     <Frame width={960}>
-      <Page {...args} />
-    </Frame>
-  ),
-}
-
-/** 塞进手机那么窄的一栏里：正文栏跟着缩，页眉的断点不跟着（理由见文件头）。 */
-export const Narrow = {
-  name: '窄栏',
-  args: {
-    actions: <SealButton icon="unmuted" label="关闭声音" onClick={noop} />,
-  },
-  render: (args: Parameters<typeof Page>[0]) => (
-    <Frame width={390}>
       <Page {...args} />
     </Frame>
   ),

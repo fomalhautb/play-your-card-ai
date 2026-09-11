@@ -102,10 +102,10 @@ export async function playToFinish(pages: Page[], budget = 400): Promise<void> {
 export async function expectSameOutcome(pages: Page[]): Promise<void> {
   for (const page of pages) {
     // 用 waitForSelector 而不是 toBeVisible，理由见 roomPage.ts 的 `waitForCanvas`。
-    await page.waitForSelector('.match-result', { state: 'visible', timeout: 30_000 })
+    await page.waitForSelector('.result', { state: 'visible', timeout: 30_000 })
   }
   const outcomes = await Promise.all(
-    pages.map((page) => page.locator('.match-result').getAttribute('data-outcome')),
+    pages.map((page) => page.locator('.result').getAttribute('data-outcome')),
   )
   const [mine, theirs] = outcomes
   if (mine === 'draw' || theirs === 'draw') {

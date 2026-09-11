@@ -26,6 +26,14 @@
   color: var(--color-status-ok);
 }
 
+/*
+ * 补充说明这一档跟着**上下文**的字色走，不写死一个墨色。
+ *
+ * 另外两档是有语气的（红 / 绿），在纸面和夜色页上都读得出来；这一档的意思是
+ * 「比正文低一级」，而「低一级的墨色」在纸上是灰褐、在夜色页上得是米色压暗——
+ * 写死 `paper.inkMuted` 的话，它在夜色页上会暗到快看不见（设置页和账号页都在那种底上）。
+ */
 .ui-notice[data-tone="info"] {
-  color: var(--color-paper-ink-muted);
+  color: currentcolor;
+  opacity: var(--opacity-home-cast-copy);
 }

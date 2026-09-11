@@ -8,6 +8,12 @@
   position: absolute;
   inset: 0;
   background: var(--color-page-background);
+  /*
+   * 让文字页外壳把底色让出来，好让下面那张底图透上去。
+   * `--ui-page-background` 是 `ui` 的 `Page` 有意留的口子（见 page.css），
+   * 不是伸手去覆盖它的类名。
+   */
+  --ui-page-background: transparent;
 }
 
 /*
@@ -22,11 +28,6 @@
   object-fit: cover;
   pointer-events: none;
   user-select: none;
-}
-
-/* 外壳自己带底色（它要铺满整屏），这一页要让底图透出来，所以就地去掉。 */
-.info .ui-page {
-  background: none;
 }
 
 .info__heading {

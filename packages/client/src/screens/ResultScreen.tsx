@@ -71,20 +71,27 @@ export function ResultScreen({
   onOpenPack,
 }: ResultScreenProps) {
   return (
-    <Veil>
-      <Sheet title={title} tone={TONE[outcome]} background={ART[outcome]}>
-        {score === null ? null : (
-          <p className="result__score">
-            最终比分 <strong>{`${score.mine} : ${score.theirs}`}</strong>
-          </p>
-        )}
-        {rounds === null ? null : <p className="result__rounds">{`这一局打了 ${rounds} 轮`}</p>}
-        <div className="result__actions">
-          {onOpenPack === undefined ? null : <Button onClick={onOpenPack}>开卡包</Button>}
-          <Button onClick={onPlayAgain}>再来一局</Button>
-          <Button onClick={onHome}>回首页</Button>
-        </div>
-      </Sheet>
-    </Veil>
+    /*
+     * 外面这一层只做两件事：给暗幕一个铺满的定位祖先（`Veil` 是 `position: absolute`），
+     * 以及把「这一局怎么收场的」写成一个属性——端到端用例靠它认结算页，
+     * 而板子上那三档语气（`data-tone`）里中断局和平局是同一档，分不出来。
+     */
+    <div className="result" data-outcome={outcome}>
+      <Veil>
+        <Sheet title={title} tone={TONE[outcome]} background={ART[outcome]}>
+          {score === null ? null : (
+            <p className="result__score">
+              最终比分 <strong>{`${score.mine} : ${score.theirs}`}</strong>
+            </p>
+          )}
+          {rounds === null ? null : <p className="result__rounds">{`这一局打了 ${rounds} 轮`}</p>}
+          <div className="result__actions">
+            {onOpenPack === undefined ? null : <Button onClick={onOpenPack}>开卡包</Button>}
+            <Button onClick={onPlayAgain}>再来一局</Button>
+            <Button onClick={onHome}>回首页</Button>
+          </div>
+        </Sheet>
+      </Veil>
+    </div>
   )
 }

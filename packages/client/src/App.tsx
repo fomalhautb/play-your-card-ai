@@ -106,7 +106,7 @@ export function App({ platform }: { platform: Platform }) {
             跟着路由重挂的话每换一页竖屏提示都会重新弹一次。
           */}
           <OrientationNotice />
-          <FullscreenEntry platform={platform} />
+          <FullscreenEntry />
         </MatchSessionProvider>
       </AuthProvider>
     </PlatformProvider>

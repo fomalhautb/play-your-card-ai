@@ -10,9 +10,18 @@
  * 那几张是 `pnpm assets:build` 的产物。图没打过的话这几条会拍成纯纸面——
  * 和 `needsAtlas` 那套一样，跑比对前先 `pnpm assets:build`。
  *
+ * ## 外面那个定宽的盒子不能省
+ *
+ * 板子的宽是 `min(775px, 100%)`，而 Storybook 的居中版式给的是一个**收缩到内容**的容器：
+ * 那时 `100%` 要拿「内容有多宽」去算，算出来是三百多，标题于是断成两行、按钮也挤掉了。
+ * 套一个写死 820 宽的盒子，板子才按设计尺寸摆开。
+ * 宽度写死而不是跟着容器走，也正是目录页的确定性要求
+ *（见 client/dev/storybook/README.md 的第 5 条）。
+ *
  * title 和导出名用英文的理由见 client/dev/storybook/README.md 的「基线图的文件名」。
  */
 
+import type { ReactNode } from 'react'
 import { Button } from './Button'
 import { Sheet } from './Sheet'
 
@@ -53,6 +62,15 @@ export default {
   component: Sheet,
   // 「实时」开关是给画布条目用的，React 条目用不上，从面板上关掉。
   argTypes: { live: { control: false, table: { disable: true } } },
+  decorators: [
+    (Story: () => ReactNode) => (
+      // 820 比板宽 775 再宽一点，好让 `min(775px, 100%)` 有个确定的 100% 可算；
+      // 多出来的那 45px 空在右边，不影响这条条目要看的东西（理由见文件头）。
+      <div style={{ width: 820 }}>
+        <Story />
+      </div>
+    ),
+  ],
 }
 
 export const Victory = {
