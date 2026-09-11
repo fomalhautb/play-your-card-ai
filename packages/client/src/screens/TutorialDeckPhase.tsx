@@ -24,6 +24,7 @@ import {
   tutorialDeckPrefill,
 } from '../tutorial/deckSteps'
 import { useBlockTip } from '../tutorial/useBlockTip'
+import { useTutorialDebug } from '../tutorial/useTutorialDebug'
 import { type DeckAnchors, DeckStage } from './DeckStage'
 import { measureRects } from './tutorialAnchors'
 
@@ -49,6 +50,20 @@ export function TutorialDeckPhase({ platform, onDone, onLeave }: TutorialDeckPha
   const step = deckStep(stepId)
   const { tip, notify } = useBlockTip()
   const anchorsRef = useRef<DeckAnchors | null>(null)
+
+  /** 这一步要圈的那几块。引导层和端到端用例问的是同一个函数，两边看到的一定一样。 */
+  const targets = () => measureRects(step.highlight, (one) => anchorsRef.current?.anchorRect(one))
+
+  // 开发构建下把「停在哪一步、要圈哪儿」挂出去给端到端用例读。
+  useTutorialDebug(() => ({
+    phase: 'deck',
+    step: step.id,
+    // 组牌这一段没有「等一段演出」这回事，提示进入就出场。
+    ready: true,
+    targets,
+    // 语义锚点那一路只有对战那一段有（它要按「结束出牌」那颗钮）。
+    anchor: () => null,
+  }))
 
   // 开场那句只靠计时往下走；其余几步等玩家把指定的牌加进去（见下面的 onChange）。
   useEffect(() => {
@@ -96,12 +111,7 @@ export function TutorialDeckPhase({ platform, onDone, onLeave }: TutorialDeckPha
         onBlocked={notify}
         anchorsRef={anchorsRef}
       />
-      <TutorialOverlay
-        instruction={step.instruction}
-        measure={() => measureRects(step.highlight, (one) => anchorsRef.current?.anchorRect(one))}
-        active
-        blockTip={tip}
-      />
+      <TutorialOverlay instruction={step.instruction} measure={targets} active blockTip={tip} />
     </>
   )
 }

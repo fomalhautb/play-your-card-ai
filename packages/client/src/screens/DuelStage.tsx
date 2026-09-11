@@ -128,6 +128,13 @@ export interface DuelStageProps {
   /** 玩家点了一张被教学锁挡住的牌。调用方拿它弹一句话。 */
   onBlocked?(tip: string): void
   /**
+   * 那组派生锁变了就报一次（只在**变化时**报，不是每帧）。
+   *
+   * 教程要的是里面的 `cutscene`：引导层必须给全屏过场让位，
+   * 而新版过场是画在画布里的，DOM 那层盖不住它（理由见 canvas 的 `DirectorLocks.cutscene`）。
+   */
+  onLocks?(locks: DirectorLocks): void
+  /**
    * 把「问场景要锚点」这两条透给外面，给教程的引导层每帧现量用。
    *
    * 只透这两个取值方法，不像 `sceneRef` 那样把整个句柄交出去：引导层要的就是
@@ -155,6 +162,7 @@ export function DuelStage({
   blockedCards = null,
   endPlayBlocked = false,
   onBlocked,
+  onLocks,
   anchorsRef,
 }: DuelStageProps) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -178,8 +186,8 @@ export function DuelStage({
    * 两颗钮的回调存 ref：它们每次渲染都是新函数，而场景是建的时候把它们焊进去的。
    * 不存 ref 的话要么场景每渲染一次就重建，要么按钮永远调的是第一次那一版闭包。
    */
-  const handlers = useRef({ onLeave, onToggleMute, onUrge, onTutorialCue, onBlocked })
-  handlers.current = { onLeave, onToggleMute, onUrge, onTutorialCue, onBlocked }
+  const handlers = useRef({ onLeave, onToggleMute, onUrge, onTutorialCue, onBlocked, onLocks })
+  handlers.current = { onLeave, onToggleMute, onUrge, onTutorialCue, onBlocked, onLocks }
 
   useEffect(() => {
     const host = hostRef.current
@@ -255,6 +263,7 @@ export function DuelStage({
         if (!sameLocks(locks, next)) {
           locks = next
           scene.setLocks(next)
+          handlers.current.onLocks?.(next)
         }
         scene.step(deltaMs)
       }

@@ -18,6 +18,7 @@ import { toggleMuted, useMuted } from '../audio/mute'
 import { saveHero } from '../save/saveStore'
 import { HERO_BLOCK_TIP, HERO_STEPS, TUTORIAL_HERO } from '../tutorial/heroSteps'
 import { useBlockTip } from '../tutorial/useBlockTip'
+import { useTutorialDebug } from '../tutorial/useTutorialDebug'
 import { type HeroAnchors, HeroStage } from './HeroStage'
 import { measureRects } from './tutorialAnchors'
 
@@ -64,6 +65,19 @@ export function TutorialHeroPhase({ platform, onDone, onLeave }: TutorialHeroPha
   // 选中项一进来就预填成霍珀：这一步等于把等下那局要用的英雄先定下来。
   const view: HeroView = { selectedId: TUTORIAL_HERO, detailId, confirmable: true }
 
+  /** 这一步要圈的那一处。引导层和端到端用例问的是同一个函数。 */
+  const targets = () => measureRects([step.highlight], (one) => anchorsRef.current?.anchorRect(one))
+
+  // 开发构建下把「停在哪一步、要圈哪儿」挂出去给端到端用例读。
+  useTutorialDebug(() => ({
+    phase: 'hero',
+    step: step.id,
+    // 这一段也没有「等一段演出」这回事。
+    ready: true,
+    targets,
+    anchor: () => null,
+  }))
+
   return (
     <>
       <HeroStage
@@ -75,7 +89,7 @@ export function TutorialHeroPhase({ platform, onDone, onLeave }: TutorialHeroPha
       />
       <TutorialOverlay
         instruction={step.instruction}
-        measure={() => measureRects([step.highlight], (one) => anchorsRef.current?.anchorRect(one))}
+        measure={targets}
         dim={step.dim}
         active
         blockTip={tip}

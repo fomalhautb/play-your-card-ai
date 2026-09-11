@@ -10,6 +10,7 @@
  * 也就不会和联机 / 测试房那一局互相顶掉。
  */
 
+import type { DuelAnchorName } from '@ai-duel/canvas'
 import { pickUrgeId } from '@ai-duel/content'
 import type { Platform } from '@ai-duel/platform'
 import { TutorialOverlay } from '@ai-duel/ui'
@@ -24,6 +25,7 @@ import { TUTORIAL_PLAYER_SEAT } from '../tutorial/content'
 import { useBlockTip } from '../tutorial/useBlockTip'
 import type { TutorialTarget } from '../tutorial/useTutorial'
 import { useTutorial } from '../tutorial/useTutorial'
+import { useTutorialDebug } from '../tutorial/useTutorialDebug'
 import { type DuelAnchors, DuelStage } from './DuelStage'
 import { measureRects } from './tutorialAnchors'
 
@@ -84,6 +86,15 @@ function TutorialDuel({
   const match = useMatch(driver)
   const { tip, notify } = useBlockTip()
   const anchorsRef = useRef<DuelAnchors | null>(null)
+  /**
+   * 屏幕上正盖着一层全屏过场（抛硬币、答题揭晓与结算、技能抵消、强制展示）。
+   *
+   * 引导层要给它让位——旧版靠 z-index 就办到了（两层都是 DOM），新版过场画在画布里，
+   * 压在画布上的 DOM 再也盖不住它。不让位的话，引导层那层「点任意处继续」的捕获层
+   * 会把玩家点结算层那颗「确认」的那一下也接走，这一轮就再也确认不了
+   *（见 canvas 的 `DirectorLocks.cutscene`）。
+   */
+  const [cutscene, setCutscene] = useState(false)
   /*
    * 「减少动效」现读一次就定死：它是建场景时焊进去的（换了要整套重建，见 DuelStage），
    * 而设置页在另一条路由上——玩家进得去那一页就说明已经离开了教程。
@@ -116,6 +127,46 @@ function TutorialDuel({
         : anchorsRef.current?.handCardRect(target.instanceId),
     )
 
+  /*
+   * 开发构建下把「停在哪一步、要圈哪儿、某个锚点在哪儿」挂出去给端到端用例读。
+   *
+   * 多给一路 `anchor` 是因为这一段有两颗**画在画布上**的钮要点（「结束出牌」和战场上那一格），
+   * 而 DOM 里根本没有它们；用例按锚点矩形算落点，再真的用指针点下去。
+   */
+  useTutorialDebug(() => ({
+    phase: 'duel',
+    step: tutorial.step.id,
+    ready: tutorial.ready,
+    targets: measure,
+    anchor: (name) => {
+      const rect = anchorsRef.current?.anchorRect(name as DuelAnchorName)
+      return rect === null || rect === undefined
+        ? null
+        : { x: rect.x, y: rect.y, w: rect.width, h: rect.height }
+    },
+  }))
+
+  /*
+   * 对局那一格调试口子也挂上（同 `MatchScreen`）。
+   *
+   * 教程用例只拿它发一条 `CONFIRM_ROUND`：每轮结算要玩家在结算层上点一下「确认」，
+   * 那颗钮画在画布里、位置由结算层自己算，而**它不是教程的一步**——
+   * 教程的每一句提示都没指着它。真按钮的那条路已经由单机那条用例守着了。
+   */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    let remove: (() => void) | null = null
+    let disposed = false
+    void import('../dev/debugHook').then(({ installMatchDebug }) => {
+      if (disposed) return
+      remove = installMatchDebug(driver)
+    })
+    return () => {
+      disposed = true
+      remove?.()
+    }
+  }, [driver])
+
   return (
     <>
       <DuelStage
@@ -133,14 +184,15 @@ function TutorialDuel({
         blockedCards={tutorial.blockedCards}
         endPlayBlocked={tutorial.endPlayBlocked}
         onBlocked={notify}
+        onLocks={(locks) => setCutscene(locks.cutscene)}
         anchorsRef={anchorsRef}
       />
       <TutorialOverlay
         instruction={tutorial.step.instruction}
         measure={measure}
         dim={tutorial.step.dim !== false}
-        // 提示还没就绪（在等一段全屏过场）或者这一步本来就不说话时，整层什么都不画。
-        active={tutorial.ready && tutorial.step.instruction !== null}
+        // 提示还没就绪、这一步本来就不说话、或者正盖着一层过场时，整层什么都不画。
+        active={tutorial.ready && tutorial.step.instruction !== null && !cutscene}
         // 纯讲解的步骤等玩家点一下才走；要玩家出牌 / 等演出的那些步不传，界面照常操作。
         onNext={tutorial.awaitingTap ? tutorial.notifyTap : null}
         blockTip={tip}
