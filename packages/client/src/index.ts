@@ -25,9 +25,10 @@
  *
  * apps/ 下的壳只许依赖 client 这一个包（见 .dependency-cruiser.cjs 的
  *「依赖方向-apps-只挂-client」），所以「建哪一套平台实现」这个选择要经过装配层的门。
- * 三个壳将来各转各的：web 壳拿这一个，Electron 和 Capacitor 那两个到第 35、36 条再补。
+ * 三个壳各转各的：web 壳拿 `createWebPlatform`，Steam 壳拿 `createElectronPlatform`
+ *（迁移第 35 条），Capacitor 那个到第 36 条再补。
  */
-export { createWebPlatform } from '@ai-duel/platform'
+export { createElectronPlatform, createWebPlatform } from '@ai-duel/platform'
 export { App } from './App'
 export type { MatchMode } from './app/MatchSession'
 export { applyReducedMotion } from './app/reducedMotion'

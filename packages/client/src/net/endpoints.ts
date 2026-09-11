@@ -55,6 +55,16 @@ export function signInAnonymousUrl(origin: string): string {
   return `${httpBase(origin)}${AUTH_BASE}/sign-in/anonymous`
 }
 
+/**
+ * 拿 Steam 票据换会话（迁移第 35 条，只有 Steam 壳走得到）。
+ *
+ * 和游客那条是**同一种东西**：进来之后都是一个会话 cookie，后面换 JWT、握手、认座位
+ * 全都一模一样。服务端那半边是 better-auth 的一个插件（server 的 src/auth/steam.ts）。
+ */
+export function signInSteamUrl(origin: string): string {
+  return `${httpBase(origin)}${AUTH_BASE}/sign-in/steam`
+}
+
 /** 用会话换一张握手用的短时效 JWT（默认十五分钟）。 */
 export function tokenUrl(origin: string): string {
   return `${httpBase(origin)}${AUTH_BASE}/token`
