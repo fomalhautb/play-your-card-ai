@@ -7,7 +7,7 @@
  * 所以贴图不会像仿射变换那样在梯形里被扯歪。
  *
  * 模型抄自旧客户端的 DOM 卡牌：`perspective: 1000px` 配 `rotateX` / `rotateY`，
- * 旋转中心是卡面正中（CSS 的 transform-origin 默认值），见 legacy 的 ui/cardTilt.ts
+ * 旋转中心是卡面正中（CSS 的 transform-origin 默认值），见黑客松版的 ui/cardTilt.ts
  * 和 styles.css 里 .hand-fan__slot 的 perspective。旧版用「压扁 + 错切」凑过一版，
  * 那是仿射变换，做不出近大远小，同样的角度看着就是另一回事，所以换成真投影。
  *

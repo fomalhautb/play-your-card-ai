@@ -7,7 +7,7 @@
  *
  * **永远单列**。上限从 5 起、每轮 +1，点数一多就只压间距不换列——换成两列的话
  * 「从下往上烧」会断成两段，读不出还剩几点。挤到极限时间距是负的，星星互相压边，
- * 靠每颗星那圈描边分开彼此（旧版同款做法，见 legacy 的 `.battle__token-star`）。
+ * 靠每颗星那圈描边分开彼此（旧版同款做法，见黑客松版的 `.battle__token-star`）。
  *
  * 星星是一整列预先建好的精灵，改状态只写 tint 和 visible，不建也不删任何对象（3.10）。
  * 池子按上限建：一局里 Token 上限只涨不跌，涨到超出池子时才补建（`ensurePool`），
@@ -24,7 +24,7 @@ import { PANEL_TOKEN_RAIL, Panel } from './Panel'
 
 /**
  * 细条自己的几何。这几个数只服务这一个组件，按 design 的 README「组件私有」那条留在这里。
- * 来源：legacy-client/src/ui/MatchStage.tsx 的 TOKEN_* 和 styles.css 的 `.battle__token-rail`。
+ * 来源：黑客松版的 src/ui/MatchStage.tsx 的 TOKEN_* 和 styles.css 的 `.battle__token-rail`。
  */
 const GEOMETRY = {
   /** 留给星星那一列的高度预算。细条高 470 减去上下内边距、落款那两行和它们之间的空隙。 */

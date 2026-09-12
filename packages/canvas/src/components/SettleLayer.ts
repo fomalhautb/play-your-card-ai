@@ -142,6 +142,17 @@ export class SettleLayer extends Container {
   }
 
   /**
+   * 底栏那颗「确认」。还没到「按钮淡入」那一拍（`enableConfirm`）就是 null。
+   *
+   * 透出来只为一件事：新手教程的端到端要按得到它（见 scenes/duel/anchors.ts 的
+   * `settleConfirm`）。给的是节点而不是一个算好的矩形——这一层是按 1672×941 的设计尺寸
+   * 排好再整块缩放的（见 resize），在外面重算一遍那套换算迟早和这里对不上。
+   */
+  get confirmButton(): Container | null {
+    return this.confirmSlot.children[0] ?? null
+  }
+
+  /**
    * 整层立起来：题面亮出、双方的结果卡位摆好。
    * 返回时长（毫秒），和 `settle-open` cue 的 `durationMs` 一致。
    */

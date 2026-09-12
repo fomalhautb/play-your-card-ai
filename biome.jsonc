@@ -21,9 +21,6 @@
       "!**/node_modules",
       "!**/dist",
       "!**/.wrangler",
-      // 旧客户端已冻结，不加功能也不整改，整包排除在 lint 之外（迁移第 7 条）。
-      // 它的 typecheck 和测试照常在 CI 里跑——它还是线上跑着的那一版。
-      "!packages/legacy-client",
       // wrangler types 生成的，改了也会被下次生成覆盖。
       "!packages/server/worker-configuration.d.ts",
       // 设计令牌的产物，由 packages/design/sd.config.mjs 从 tokens/*.json 生成（迁移第 8 条）。
@@ -36,7 +33,13 @@
       "!packages/core/test/golden/*.json",
       // 一次性脚本的输出，是数据不是代码。
       "!scripts/out",
-      // 美术和音频的源目录（迁移第 33 条从 legacy-client 的 public 搬过来的）。
+      // 手机壳的两个原生工程（迁移第 36 条）。`pnpm cap add ios android` 生成的，
+      // 之后每次 `cap sync` 还会再改一遍里面几个文件。
+      // Biome 在这儿只会碰到 Xcode 的 Contents.json 和 Capacitor 写的几份 json——
+      // 格式由生成器定，重排了也会被下次 sync 覆盖。壳自己的代码（src/、两份配置）照常检查。
+      "!apps/mobile/android",
+      "!apps/mobile/ios",
+      // 美术和音频的源目录。
       // 里面的 svg 是站点图标，是美术资源不是界面代码——a11y 那条「svg 要有 title」
       // 说的是页面里的图形，图标文件加个 title 只会被下次导出覆盖。
       "!assets/source",
@@ -73,6 +76,8 @@
         "noNonNullAssertion": "off",
         // 7.2 第 3 条：单文件不超过 400 行，lint 卡死。
         // 含测试文件——测试一样会长到没人愿意读。
+        // **全仓一个豁免都没有**（core 那三个超标文件在迁移第 38 条拆完了）。
+        // 撞上限时的出路是拆文件，不是往下面 overrides 里加一条白名单。
         "noExcessiveLinesPerFile": {
           "level": "error",
           "options": { "maxLines": 400 }
@@ -88,14 +93,25 @@
                 "group": [
                   "@ai-duel/*/*",
                   "@ai-duel/*/**",
-                  // 这是 design 包在 package.json 的 exports 里声明的第二个入口
-                  // （"./tokens.css" -> src/generated/tokens.css），不是内部文件：
-                  // React 那边要在应用入口 import 它，才能拿到 :root 上的那批 CSS 变量。
-                  // 上面两条禁令按形状匹配，会把它一起拦掉，所以单独放行这一个精确路径——
-                  // 只开这一条，别的深路径照旧禁。
-                  "!@ai-duel/design/tokens.css"
+                  /*
+                   * 下面三条放行的都是包在 package.json 的 `exports` 里**声明过的第二个入口**，
+                   * 不是伸进内部文件。上面两条禁令按形状匹配，会把它们一起拦掉，
+                   * 所以逐个放行精确路径——只开这几条，别的深路径照旧禁。
+                   * 加新的之前先问一句：那个包是不是真的需要两个入口？
+                   *
+                   * - design/tokens.css（-> src/generated/tokens.css）：React 那边要在应用入口
+                   *   import 它，才能拿到 :root 上的那批 CSS 变量。
+                   * - platform/capacitor、client/capacitor（迁移第 36 条）：手机壳那套平台实现
+                   *   import 了有副作用的 `@capacitor/core`，摇不掉。搁在主入口上，网页壳和
+                   *   Steam 壳的产物里会白背一份用不到的 Capacitor 运行时（实测 8.2 kB）。
+                   *   分成第二个入口之后只有手机壳那条路径会碰到它，
+                   *   见 packages/client/src/capacitor.ts 的文件头。
+                   */
+                  "!@ai-duel/design/tokens.css",
+                  "!@ai-duel/platform/capacitor",
+                  "!@ai-duel/client/capacitor"
                 ],
-                "message": "跨包只能 import 包名本身（比如 @ai-duel/core），不能伸进它的内部文件。每个包对外只有 src/index.ts 一个入口，内部文件怎么摆是它自己的事。见《正式版架构》7.2 第 2 条。"
+                "message": "跨包只能 import 包名本身（比如 @ai-duel/core），或者它在 package.json 的 exports 里声明过的第二个入口，不能伸进内部文件。内部文件怎么摆是那个包自己的事。见《正式版架构》7.2 第 2 条。"
               },
               {
                 "group": [
@@ -184,8 +200,14 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@ai-duel/*/*", "@ai-duel/*/**", "!@ai-duel/design/tokens.css"],
-                    "message": "跨包只能 import 包名本身（比如 @ai-duel/core），不能伸进它的内部文件。每个包对外只有 src/index.ts 一个入口，内部文件怎么摆是它自己的事。见《正式版架构》7.2 第 2 条。"
+                    "group": [
+                      "@ai-duel/*/*",
+                      "@ai-duel/*/**",
+                      "!@ai-duel/design/tokens.css",
+                      "!@ai-duel/platform/capacitor",
+                      "!@ai-duel/client/capacitor"
+                    ],
+                    "message": "跨包只能 import 包名本身（比如 @ai-duel/core），或者它在 package.json 的 exports 里声明过的第二个入口，不能伸进内部文件。内部文件怎么摆是那个包自己的事。见《正式版架构》7.2 第 2 条。"
                   },
                   {
                     "group": [
@@ -205,30 +227,6 @@
                 ]
               }
             }
-          }
-        }
-      }
-    },
-    {
-      // 白名单豁免：core 这三个文件现在就超 400 行。
-      //
-      // 到期条款：第三阶段（迁移第 12-15 条）重做 core 时把它们拆掉，
-      // 顺手删掉这段 override。在那之前它们不许再长——新代码请开新文件。
-      //   engine.ts       规则引擎主体。第 12 条把卡牌、题库、答题剧本搬去 content 之后它并没有变短：
-      //                   引擎本来就不存数据，只是把 import 数据换成了查状态里的目录（GameState.catalog）。
-      //                   真要瘦下来得把技能牌结算和答题结算拆成单独文件。
-      //   types.ts        类型定义。卡牌、英雄、题目的类型**留在这里不搬**：content 依赖 core 拿类型，
-      //                   反过来就把依赖方向拧了（第 12 条定的）。第 14 条会把协议相关的搬去 protocol。
-      //   engine.test.ts  跟着 engine.ts 一起拆
-      "includes": [
-        "packages/core/src/engine.ts",
-        "packages/core/src/types.ts",
-        "packages/core/test/engine.test.ts"
-      ],
-      "linter": {
-        "rules": {
-          "style": {
-            "noExcessiveLinesPerFile": "off"
           }
         }
       }

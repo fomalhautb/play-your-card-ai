@@ -21,7 +21,7 @@ import { customAlphabet } from 'nanoid'
  */
 
 /**
- * 四位数字房间码，形状和旧转发器一样（`roomCodeSchema` 卡的也是这个）。
+ * 四位数字房间码（`roomCodeSchema` 卡的也是这个）。
  *
  * 用 nanoid 而不是自己拿 `crypto.getRandomValues` 取模：取模会让靠前的数字概率略高，
  * 而 nanoid 已经处理好了这件事。
@@ -29,7 +29,7 @@ import { customAlphabet } from 'nanoid'
 const newRoomCode = customAlphabet('0123456789', 4)
 
 /**
- * 摇码的重试次数上限，和旧转发器一样是 10 次。
+ * 摇码的重试次数上限，10 次。
  *
  * 四位码只有一万种，撞号是正常情况，撞到就重摇；但不能无上限地摇——
  * Worker 里的死循环会一直烧 CPU 时间。摇满十次还撞就回 `no-room-code` 让玩家重试。

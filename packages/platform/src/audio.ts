@@ -2,7 +2,7 @@
  * 音频能力：循环背景音乐、并发音效、全站静音开关。
  *
  * 接口按旧代码里真的用到的四件事切：
- * - 一首循环 BGM 跨界面复用，切歌不叠播（legacy-client/src/ui/backgroundMusic.ts）；
+ * - 一首循环 BGM 跨界面复用，切歌不叠播（黑客松版的 src/ui/backgroundMusic.ts）；
  * - 音效可以同时响好几段，但同一「声道」上只留最新那一段
  *   （四句「催一催」连点时不能几段人声叠着响，见 ui/soundEffects.ts 的 channel）；
  * - 右上角那颗静音钮（ui/audioMute.ts）；

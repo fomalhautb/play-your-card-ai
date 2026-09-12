@@ -66,7 +66,7 @@ describe('属性测试：随机合法指令序列打完整局', () => {
         fc.property(SEED, (seed) => {
           const play = playRandomGame(seed, { illegalRate: ILLEGAL_RATE })
           // 「模型蒸馏」把弃掉的 AI 牌按印刷费用换成 Token，这一笔是**有意允许**顶破上限的
-          //（见 engine.ts 的 model-distillation 分支），多出来的部分要等进下一轮补满时才被覆盖。
+          //（见 engineSkills.ts 的 model-distillation 分支），多出来的部分要等进下一轮补满时才被覆盖。
           // 所以上限那半边要放过"本轮蒸馏过"的一方，只有下限是无条件的。
           const distilled = [false, false]
           play.steps.forEach((step, index) => {
@@ -223,7 +223,7 @@ describe('属性测试：随机合法指令序列打完整局', () => {
           expect(final.phase).toBe('finished')
           expect(final.winner).not.toBeNull()
           const scores = [final.players[0].score, final.players[1].score]
-          // 收场两条路（见 engine.ts 的 confirmRound）：有人**单独**到 WIN_TARGET 分，
+          // 收场两条路（见 engineRound.ts 的 confirmRound）：有人**单独**到 WIN_TARGET 分，
           // 或者题库出完了保底判一次。两条都不成立就说明结束条件被改坏了。
           const decided =
             (scores[0]! >= WIN_TARGET || scores[1]! >= WIN_TARGET) && scores[0] !== scores[1]

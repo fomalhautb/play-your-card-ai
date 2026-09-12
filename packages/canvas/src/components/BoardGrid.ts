@@ -40,7 +40,7 @@ const SLOT_STEP = 1.12
 /** 中线上下各留多高。抄 `.battle__midline` 的 `margin: 5px 0`。 */
 const MIDLINE_MARGIN = 5
 
-/** 进化那一下的三样动作。数值抄 legacy 的 playSummonFx.ts，时长走 timings。 */
+/** 进化那一下的三样动作。数值抄黑客松版的 playSummonFx.ts，时长走 timings。 */
 const EVOLVE = { popScale: 1.16, popDur: 0.42, glowDur: 0.7, labelRise: 34 } as const
 /** 罚下时那张卡往下沉多少。抄 playSummonFx.ts 的 `REMOVAL_DROP`。 */
 const REMOVAL_DROP = 26

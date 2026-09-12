@@ -19,7 +19,29 @@ filterEvent(event, player): GameEvent | null // 一条事件对某一方能看�
 `upgradeTargetOf`）。所以 core 的 `src/` 一行都没 import 别的包，
 `package.json` 里那条 `@ai-duel/content` 是测试专用的（测试打的是真卡）。
 
-规则本身的完整口径在 `docs/architecture.md` 第 3 节，这里只讲**约定**和**边界**。
+规则本身的完整口径在 `docs/legacy/architecture.md` 第 3 节——那份文档整体已废弃，
+但第 3 节写的就是现在这套规则，core 从黑客松版一路保留下来没有改过。这里只讲**约定**和**边界**。
+
+## `src/` 里哪份装什么
+
+规则引擎按阶段拆成一摞 `engine*.ts`，**依赖是单向的**：谁只许 import 谁、为什么不能反过来，
+完整分层写在 `src/engine.ts` 的文件头，加代码前先看那一份。
+
+| 文件 | 装什么 |
+|---|---|
+| `index.ts` | 包入口，只做转发 |
+| `engine.ts` | `execute` 分派指令 + 转发各阶段的对外导出；**分层清单在它的文件头** |
+| `constants.ts` | 可调的规则常量（起手张数、Token 上限、胜利分数……），客户端也读它 |
+| `engineUtils.ts` | 最底层的小工具：`reject` / `clone` / `shuffle` / `withRng` / `drawCards` / `other` |
+| `engineSetup.ts` | 开局 `createGame` 和它的配置类型 |
+| `enginePlay.ts` | 出牌：`effectivePlayCost` / `playCard` / `denyReason` / `endPlay` |
+| `engineSkills.ts` | 技能牌和英雄技能的结算：`applySkillEffect` / `useHeroSkill` |
+| `engineQuiz.ts` | 答题：`enterQuiz` / `submitAnswers` |
+| `engineRound.ts` | 回合推进与收场：`confirmRound` / `announceRound` |
+| `engineDebug.ts` | 测试房的加牌 / 弃牌指令 |
+| `catalog.ts` | 从 `GameState.catalog` 里查卡牌和英雄定义 |
+| `cards.ts` / `question.ts` / `state.ts` / `commands.ts` / `events.ts` | 数据形状，按领域分；`types.ts` 只是把这五份汇总出去 |
+| `view.ts` | 隐藏信息的唯一过滤点，连同视图那几个类型（见下一节） |
 
 ## 确定性约定
 
@@ -39,6 +61,11 @@ filterEvent(event, player): GameEvent | null // 一条事件对某一方能看�
 `viewFor` 和 `filterEvent` 是**整个系统里唯一的过滤点**，清单写在 `src/view.ts` 的文件头，
 第 14 条的 protocol 和第 22 条的房间对象照它办，别在别处再补一层，
 也别绕开它直接下发 `GameState` 或引擎原样发出的事件。
+
+视图那几个类型（`PlayerView` / `SelfView` / `OpponentView` / `PlayerSideView` / `QuestionView`）
+也放在 `src/view.ts` 里，没跟别的数据形状一起进 `types.ts` 那一组：
+它们只有 `viewFor` 一个产出方，而"每个字段为什么给到这个程度"的理由就是那份清单，
+摆在一起改哪边都不用翻文件。
 
 对某一方遮住的：
 

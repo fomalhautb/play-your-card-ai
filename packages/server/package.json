@@ -4,11 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm db:local && wrangler dev",
+    "dev": "pnpm db:local && wrangler dev --assets ../../apps/web/public",
     "db:local": "wrangler d1 migrations apply AUTH_DB --local",
     "deploy": "wrangler deploy",
     "types": "wrangler types --include-runtime=false",
-    "smoke": "node test/smoke.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -19,7 +18,8 @@
     "@ai-duel/protocol": "workspace:*",
     "better-auth": "^1.7.3",
     "jose": "^6.2.12",
-    "nanoid": "^6.0.1"
+    "nanoid": "^6.0.1",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.22.0",

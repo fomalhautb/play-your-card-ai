@@ -2,10 +2,10 @@
  * 从一局的内容目录（`GameState.catalog`）里查定义。
  *
  * 这几个函数是规则的一部分而不是数据的一部分：它们只认 `Catalog` 这个形状，
- * 不认识具体有哪些卡。数据在 `content` 包里，core 一张卡都不带（见 types.ts 的 Catalog）。
+ * 不认识具体有哪些卡。数据在 `content` 包里，core 一张卡都不带（见 cards.ts 的 Catalog）。
  */
 
-import type { AiCard, CardId, Catalog, HandCard, HeroCard, HeroId } from './types'
+import type { AiCard, CardId, Catalog, HandCard, HeroCard, HeroId } from './cards'
 
 /**
  * 取卡牌定义。

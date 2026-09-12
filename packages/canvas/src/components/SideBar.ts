@@ -28,7 +28,7 @@ import { PlayerPanel, type PlayerPanelDeps } from './PlayerPanel'
 
 /**
  * 纸匾上那两行字的字号和字距（px）。组件私有，理由见 design 的 README。
- * 来源：legacy-client/src/styles.css 的 `.battle__next-plaque-eyebrow` / `-title`。
+ * 来源：黑客松版的 src/styles.css 的 `.battle__next-plaque-eyebrow` / `-title`。
  */
 const TYPE = {
   eyebrow: { fontSize: tokens.font.size.md, letterSpacing: 2.4 },
@@ -107,6 +107,16 @@ export class SideBar extends Container {
     this.theirs.resize(size.width, size.height)
     this.mine.resize(size.width, size.height)
     this.layout()
+  }
+
+  /**
+   * 「下一题考什么方向」那块纸匾。
+   *
+   * 透出来只为一件事：新手教程要圈住它（见 scenes/duel/anchors.ts）。
+   * 手机档整条侧栏都不存在，那一档这个锚点自然也就答不上来。
+   */
+  get nextPlaque(): Container {
+    return this.plaqueSlot
   }
 
   /** 换纸匾上那行类别名。传的是已经译好的中文（「历史掌故」这类），组件不查表。 */

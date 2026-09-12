@@ -1,0 +1,14 @@
+{
+  // 渲染进程和 Vite 的配置。和 apps/web 那份一模一样——它们是同一种东西：
+  // 一份只挂 `@ai-duel/client` 的 React 入口。主进程那半边在 tsconfig.json 里，
+  // 两份分开的理由见那边的说明（模块格式正好相反）。
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    // vite.config.ts 跑在 Node 里，和浏览器代码共用一份配置，所以两边的全局类型都要带上。
+    "types": ["node", "vite/client"],
+    "noEmit": true
+  },
+  "include": ["src/renderer", "vite.config.mts"]
+}

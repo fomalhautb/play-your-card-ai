@@ -9,7 +9,7 @@
  * 而 canvas 不许依赖 content（依赖方向见《正式版架构》7.2 第 1 条），
  * 牌组场景收到的是**调用方已经算好的**那份清单（见 canvas 的 scenes/deck/deckContract.ts）。
  *
- * 旧版这两件事分在 `legacy-client/src/screens/deckFactions.ts` 和 `DeckScreen.tsx`
+ * 旧版这两件事分在黑客松版的 `src/screens/deckFactions.ts` 和 `DeckScreen.tsx`
  * 的模块常量里，搬过来时并成一个文件：它们回答的是同一个问题的两半。
  */
 

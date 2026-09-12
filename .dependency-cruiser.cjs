@@ -205,7 +205,6 @@ module.exports = {
      */
     exclude: {
       path: [
-        '^packages/legacy-client/',
         /*
          * node_modules **不在**这里。以前它被整个摘掉，结果是「指向第三方的边根本不在图里」，
          * 于是 core 只许 pure-rand、canvas 不碰 react、ui 不碰 pixi 这三条一次都没触发过，
@@ -214,6 +213,13 @@ module.exports = {
         '(^|/)dist/',
         // 组件目录页的静态产物（`build-storybook` 打的），进了 .gitignore 但磁盘上有。
         '^packages/client/storybook-static/',
+        /*
+         * 手机壳的两个原生工程（迁移第 36 条）。`cap sync` 会把 `apps/mobile/dist/` 整个
+         * 复制进去（安卓是 assets/public，iOS 是 App/App/public），复制品进了 .gitignore 但磁盘上有。
+         * 那是**打包后的产物**，里面的循环 import 是打包器合并模块的结果，不是源码里的问题；
+         * 上面 `(^|/)dist/` 那条按目录名匹配，收不到这两个改了名的副本。
+         */
+        '^apps/mobile/(android|ios)/',
         // 测试和构建配置不属于产品依赖图，见文件头的说明。
         '^packages/[^/]+/test/',
         '\\.config\\.(ts|js|cjs|mjs)$',

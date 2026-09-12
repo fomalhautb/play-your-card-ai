@@ -2,5 +2,37 @@
   "name": "@ai-duel/mobile",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "description": "出牌吧AI 的 iOS / Android 外壳（Capacitor）",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "sync": "pnpm build && cap sync",
+    "sync:android": "pnpm build && cap sync android",
+    "sync:ios": "pnpm build && cap sync ios",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios",
+    "typecheck": "tsc --noEmit",
+    "assets:icons": "capacitor-assets generate --ios --android --assetPath ../../assets/source --iconBackgroundColor '#0d1117' --iconBackgroundColorDark '#0d1117' --splashBackgroundColor '#0d1117' --splashBackgroundColorDark '#0d1117'"
+  },
+  "dependencies": {
+    "@ai-duel/client": "workspace:*",
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.1",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
 }

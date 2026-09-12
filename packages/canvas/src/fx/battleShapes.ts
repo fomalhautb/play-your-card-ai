@@ -16,7 +16,7 @@ import { type Mold, mold } from './mold'
 
 /**
  * 四芒星的设计尺寸，也是旧版那段 SVG 的 viewBox。
- * 路径和站点图标（legacy 的 public/favicon.svg）是同一份。
+ * 路径和站点图标（黑客松版的 public/favicon.svg）是同一份。
  */
 const STAR_BASE = 100
 

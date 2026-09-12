@@ -10,8 +10,8 @@
 //   node scripts/pregen-answers.mjs --questions a,b       只跑指定题目（同上；配合 --models 精确补跑单个格子）
 //   node scripts/pregen-answers.mjs --out banana.json     输出文件名（固定写到 scripts/out/ 下）
 //
-// 三张数据表（模型 / 题目 / 变体）在同目录的 pregen-data.mjs 里，build-core-answers.mjs 和
-// build-generation-data.mjs 也从那儿读同一份，免得注入词改了几处说法对不上。
+// 三张数据表（模型 / 题目 / 变体）在同目录的 pregen-data.mjs 里，
+// build-core-answers.mjs 也从那儿读同一份，免得注入词改了两处说法对不上。
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -345,7 +345,7 @@ async function main() {
   if (failed > 0) process.exitCode = 1
 }
 
-// 只有被当命令行脚本直接跑时才发请求。被 import 时（build-generation-data.mjs 要拿上面那三份常量）
+// 只有被当命令行脚本直接跑时才发请求。被 import 时（别的脚本要拿上面那三份常量）
 // 什么都不做，否则一 import 就会去调 OpenRouter 烧额度。
 const isDirectRun =
   process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href

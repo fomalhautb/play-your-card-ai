@@ -1,7 +1,7 @@
 /**
  * 图片加载能力：把一批图拉下来、解好码，然后交给画布或界面用。
  *
- * 三种用法都来自旧代码（legacy-client/src/ui/preloadAssets.ts、backgroundPreload.ts）：
+ * 三种用法都来自旧代码（黑客松版的 src/ui/preloadAssets.ts、backgroundPreload.ts）：
  * 1. 首屏闸门：一个界面要用的图全部到齐再让它上场，否则玩家会看着一层层图往上冒；
  * 2. 后台预载：玩家在首页看画的那几十秒里，把对局要用的几 MB 卡面悄悄下完；
  * 3. 问一句「这张在缓存里了吗」：在缓存里就别再闪一次 loader。

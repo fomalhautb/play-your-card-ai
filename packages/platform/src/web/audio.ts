@@ -3,7 +3,7 @@
  *
  * 为什么用 howler 而不是直接写 Web Audio：旧代码为了让声音在手机上正常响，自己写了
  * 三段绕——首次点击前静默解锁 AudioContext、把 ArrayBuffer 和解码结果各缓存一份、
- * 播完之后手工 disconnect 掉 source 和 gain（legacy-client/src/ui/soundEffects.ts）。
+ * 播完之后手工 disconnect 掉 source 和 gain（黑客松版的 src/ui/soundEffects.ts）。
  * 这三件事 howler 都包好了，而且它还多解决两个我们迟早会撞上的问题：
  * Web Audio 不可用时自动退回 <audio> 元素，以及淡入淡出。
  * 它是 HTML5 游戏里用得最多的音频库，接口小、无依赖，正合「不造轮子」。

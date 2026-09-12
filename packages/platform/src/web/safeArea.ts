@@ -6,7 +6,7 @@
  * 1. **视口尺寸用 JS 现量，不用 dvh 那类动态视口单位。**
  *    安卓 Chrome 上「进全屏 + 锁横屏」是两步，中间浏览器会连着改好几次视口尺寸，
  *    而动态视口单位是攒着更新的，有时最后一次排版用的还是收起地址栏之前的高度，
- *    画面底下就露出一条没画到的黑边（见 legacy-client/src/ui/viewportVars.ts）。
+ *    画面底下就露出一条没画到的黑边（见黑客松版的 src/ui/viewportVars.ts）。
  * 2. **转屏和进出全屏之后连着复查一段时间。**
  *    那几帧里尺寸还在抖，resize 事件也不保证在最后一次尺寸变化时补发一遍，
  *    只听事件会停在中途那个尺寸上。
@@ -136,11 +136,23 @@ function probeElement(): HTMLElement | null {
   const parent = document.body ?? document.documentElement
   if (parent === null) return null
   const element = document.createElement('div')
-  // 不占位、不吃事件、不可见，只为了让浏览器把 env() 算出来给我们读。
+  /*
+   * 不占位、不吃事件、不可见，只为了让浏览器把 env() 算出来给我们读。
+   *
+   * 每条都是 `max(env(...), var(--safe-area-inset-*, 0px))`，两个来源取大的那个：
+   * - `env()` 是标准写法，浏览器和 iOS 的 WKWebView（配 viewport-fit=cover）报得准；
+   * - `--safe-area-inset-*` 是 Capacitor 在**安卓**上注入的一组变量
+   *   （`plugins.SystemBars.insetsHandling: 'css'`，默认开着）。安卓 WebView 的 env()
+   *   在边到边模式下会报 0，那时刘海和底部手势条就没人让位了。
+   * 取大的：哪一边量不出来都是 0，不会把另一边压下去。`var()` 的默认值写成 0px 是必须的
+   * ——变量没定义时整条 max() 会失效，连带整条 padding 声明被丢掉。
+   */
   element.style.cssText =
     'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;' +
-    'padding:env(safe-area-inset-top) env(safe-area-inset-right) ' +
-    'env(safe-area-inset-bottom) env(safe-area-inset-left);'
+    'padding:max(env(safe-area-inset-top),var(--safe-area-inset-top,0px)) ' +
+    'max(env(safe-area-inset-right),var(--safe-area-inset-right,0px)) ' +
+    'max(env(safe-area-inset-bottom),var(--safe-area-inset-bottom,0px)) ' +
+    'max(env(safe-area-inset-left),var(--safe-area-inset-left,0px));'
   parent.appendChild(element)
   probe = element
   return element

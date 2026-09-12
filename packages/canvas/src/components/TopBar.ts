@@ -31,7 +31,7 @@ import { PLAQUE_PLAIN, PlaqueButton } from './PlaqueButton'
  *
  * 按 design 的 README「组件私有字号和字距」那条留在组件里：这几个数只服务顶栏，
  * 互不相同也不成阶梯。字距是把旧样式的 em 值乘开的（0.18em × 18px ≈ 3.24）。
- * 来源：legacy-client/src/styles.css 的 `.battle-topbar__*` 一族。
+ * 来源：黑客松版的 src/styles.css 的 `.battle-topbar__*` 一族。
  */
 const TYPE = {
   /** 「第 … 轮」那两个标签字。 */
@@ -137,6 +137,17 @@ export class TopBar extends Container {
     this.addChildAt(this.plate, index)
     this.layoutActions()
     this.layoutCenter()
+  }
+
+  /**
+   * 正中那一块（比分，或者顶掉它的那行状态字）。
+   *
+   * 透出来只为一件事：新手教程要圈住「比分在哪儿」（见 scenes/duel/anchors.ts）。
+   * 给的是节点而不是一个算好的矩形——那一块的内容每轮都在换，宽度跟着字走，
+   * 只有量它自己才准。
+   */
+  get centerArea(): Container {
+    return this.center
   }
 
   /** 第几轮。 */

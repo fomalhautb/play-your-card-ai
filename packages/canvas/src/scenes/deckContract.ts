@@ -23,10 +23,38 @@
 import type { CardId, Catalog } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
 import type { EffectTier } from '../fx/effectTier'
+import type { AnchorRect } from './anchors'
 import type { DeckRules, PoolCard } from './deck/logic/types'
 import type { CardTextures } from './duelContract'
 
 export type { DeckRules, PoolCard, PoolKind } from './deck/logic/types'
+
+/** 构筑页上那两处固定位置，新手教程的组牌一段要圈它们（迁移第 32 条）。 */
+export type DeckAnchorName =
+  /** 「已选 N / 20」那行字连同它底下的进度条。 */
+  | 'deckCounter'
+  /** 「确认牌组」那颗匾额。 */
+  | 'deckConfirm'
+
+/** 一个高亮目标：要么是上面那两处，要么是卡池里的某一张卡。 */
+export type DeckAnchor =
+  | { kind: 'anchor'; name: DeckAnchorName }
+  | { kind: 'poolCard'; cardId: CardId }
+
+/**
+ * 教学期间的放行规则。传 null 解除，正式构筑页从头到尾都是 null。
+ *
+ * 只写「放行什么」而不是逐条写「挡什么」：教学的每一步都只许做一件事，
+ * 列挡的那些反而要跟着界面上的操作条数一起长（旧版就是这么散开的）。
+ */
+export interface DeckTutorialGate {
+  /** 这一步唯一加得进牌组的卡；null = 这一步一张都不许加。 */
+  allowedCardId: CardId | null
+  /** 「确认牌组」能不能点。 */
+  allowConfirm: boolean
+  /** 被挡下的那一下说哪句话（走 `onBlocked` 交出去）。 */
+  blockTip: string
+}
 
 /** 一套牌组。和 client 存档里的 `SavedDeck` 形状一致，但 canvas 不许依赖它。 */
 export interface DeckView {
@@ -100,6 +128,21 @@ export interface DeckScene {
   onInspect(callback: (cardId: CardId) => void): void
   /** 玩家要改名 / 新建 / 删除。调用方弹框、改存档，再 `applyDecks`。 */
   onManage(callback: (action: DeckManageAction) => void): void
+  /**
+   * 进入 / 退出新手教程的组牌一段。
+   *
+   * 挡在场景里而不是让调用方事后回滚（`applyDecks` 摆回旧的那一份）：
+   * 回滚挡不住「移除、改名、换一套牌组」这些操作，也没地方说那句「这一步不许点这个」。
+   *
+   * 设进一个带 `allowedCardId` 的闸门时场景会**自己翻到那张卡所在的那一页**
+   * （手机档还会把牌组抽屉升起来）——引导圈是按元素实际位置画的，
+   * 目标不在这一页上，圈就画在一片空处。
+   */
+  setTutorial(gate: DeckTutorialGate | null): void
+  /** 玩家点了被上面那道闸门挡住的东西。调用方拿它弹一句话。 */
+  onBlocked(callback: (tip: string) => void): void
+  /** 某个高亮目标现在占哪一块（画布的 CSS 像素坐标）。答不上来返回 null。 */
+  anchorRect(target: DeckAnchor): AnchorRect | null
   /** 手动推进一帧。 */
   step(deltaMs: number): void
   /** 没有在播的动画、也没有在跟手的拖拽；此时帧循环必须停（3.6）。 */

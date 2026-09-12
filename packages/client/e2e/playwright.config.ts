@@ -83,10 +83,11 @@ export default defineConfig({
   webServer: [
     {
       /*
-       * `--assets` 指到 apps/web/public 是给端到端用的临时替身：wrangler.jsonc 里那条
-       * `assets.directory` 指着 `packages/legacy-client/dist`（线上那一版的构建产物，
-       * 第 38 条之前不动它），而刚 clone 完的仓库里没有它，wrangler 会直接拒绝启动。
-       * 这几条用例一个静态资源都不请求——页面由 Vite 发，服务端只管 /api 和两条 WebSocket。
+       * `--assets` 指到 apps/web/public 是个替身，和 server 的 `dev` 脚本用的是同一个办法：
+       * wrangler.jsonc 里那条 `assets.directory` 指着构建产物 `apps/web/dist`，
+       * 刚 clone 完的仓库里没有，wrangler 会直接拒绝启动。这几条用例一个静态资源都不请求
+       *（页面由 Vite 发，服务端只管 /api 和两条 WebSocket），先构建一遍前端纯属浪费。
+       * 为什么挑 public、顶掉了哪些，见 packages/server/README.md 的「本地开发」。
        */
       /*
        * 起服务端之前先把它要的两样本地产物补上（`.dev.vars` 和账号库的表，
