@@ -214,7 +214,15 @@ export function createParts(options: PartsOptions): DuelParts {
     },
     deps,
   )
-  const foeHand = new FoeHand({ areaWidth: layout.foeHand.areaWidth }, { ...deps, back: deps.back })
+  /*
+   * 对手那排用的是**烤出来的隐藏牌背**（纸白底 + 内圈细边 + 藏青纹章），不是自己人那张美术卡背：
+   * 把对方的牌背画成和我方一样，等于告诉玩家「那是张 AI 牌还是技能牌」。
+   * 强制展示那张卡起飞时用的也是同一张（见 cuePlayers/reveal.ts），两处必须一致才不跳变。
+   */
+  const foeHand = new FoeHand(
+    { areaWidth: layout.foeHand.areaWidth },
+    { ...deps, back: deps.baked.foeBack },
+  )
   const fan = new HandFan({
     animator: deps.animator,
     geometry: PLAYER_FAN,

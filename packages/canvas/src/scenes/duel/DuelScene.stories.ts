@@ -24,7 +24,7 @@
 import { storyDeps } from '../../storyCards'
 import type { StoryStage } from '../../storyStage'
 import { mountDuelScene } from './DuelScene'
-import { createStoryDuel, STORY_CATALOG, STORY_FRAMES } from './storyDuel'
+import { createStoryDuel, STORY_CARD_FACES, STORY_CATALOG, STORY_FRAMES } from './storyDuel'
 
 /** 两档各自的画布尺寸，理由见文件头。 */
 const DESKTOP = { width: 1280, height: 800 }
@@ -48,6 +48,7 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frameMs
     tier: 'high',
     seat: 0,
     textures,
+    cardFaces: STORY_CARD_FACES,
     catalog: STORY_CATALOG,
     manualClock: true,
     // 手机档靠短边就够了，不用再假装指针是粗的。

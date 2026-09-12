@@ -52,6 +52,13 @@ export interface DuelDepsOptions {
    * 而它是**整张卡那么大的一层**——一屏二三十张卡，白画一遍就是零点几倍的过度绘制（3.2）。
    */
   glare?: boolean
+  /**
+   * 建出来的卡下面要不要垫一团投影。不给就按效果档位定（`TIER_CONFIG[tier].cardShadow`）。
+   *
+   * 和 `glare` 同一个道理：构筑页一屏二三十张卡，每张多铺一层比卡还大的半透明贴图，
+   * 过度绘制（3.2）当场翻倍，而那一页的卡是平铺在格子里的，本来也没有"浮起来"的语义。
+   */
+  cardShadow?: boolean
   /** 见 `DuelDeps.reducedMotion`。不给就是没开。 */
   reducedMotion?: boolean
   /** 补间一建就要叫醒帧循环，否则没人推它（3.6）。 */
@@ -86,6 +93,8 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
       text,
       // 减少动效时反光层整个不建：它跟着倾斜一起动，而倾斜正是这一档要关掉的东西。
       glare: !reducedMotion && (options.glare ?? TIER_CONFIG[options.tier].glare),
+      // 投影是静态的，和"减少动效"无关，所以它只看档位和调用方。
+      shadow: options.cardShadow ?? TIER_CONFIG[options.tier].cardShadow,
     },
   }
 }

@@ -63,6 +63,7 @@ function mountFan(ctx: StoryStage, count: number, hoverIndex: number) {
       baked,
       text,
       glare: true,
+      shadow: true,
     })
     // 传 null 就是"没有牌库位置"那条退路：牌在基准位下方沉着淡入。
     // 目录页要的是落位之后的静态图，从哪儿飞进来不重要。

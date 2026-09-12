@@ -21,7 +21,13 @@ import { storyDeps } from '../../storyCards'
 import type { StoryStage } from '../../storyStage'
 import { mountDeckScene } from './DeckScene'
 import { pickDeckLayout } from './layout/pickLayout'
-import { STORY_CATALOG, STORY_FACTIONS, STORY_POOL, storyDecks } from './storyDeck'
+import {
+  STORY_CARD_FACES,
+  STORY_CATALOG,
+  STORY_FACTIONS,
+  STORY_POOL,
+  storyDecks,
+} from './storyDeck'
 
 const DESKTOP = { width: 1280, height: 800 }
 const MOBILE = { width: 390, height: 844 }
@@ -43,6 +49,7 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frame: 
     resolution: ctx.resolution,
     tier: 'high',
     textures,
+    cardFaces: STORY_CARD_FACES,
     catalog: STORY_CATALOG,
     pool: STORY_POOL,
     factions: STORY_FACTIONS,

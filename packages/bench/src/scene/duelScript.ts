@@ -10,6 +10,7 @@
  * 因此都落在第一轮里，不用穿过回合结算（那一段有打字机效果，不适合当稳态指标的样本）。
  */
 
+import type { CardFaceStyle } from '@ai-duel/canvas'
 import type { Catalog, HeroId, Question } from '@ai-duel/core'
 import { DECK } from '../node/profiles'
 
@@ -98,6 +99,26 @@ function makeCatalog(): Catalog {
 }
 
 export const BENCH_CATALOG: Catalog = makeCatalog()
+
+/**
+ * 剧本用的卡面展示配置（费用圆章的圆心和插画主色）。
+ *
+ * 同样不用 `content` 的真数据：bench 不许依赖 content（依赖方向见《正式版架构》7.2），
+ * 而且那张表跟着美术迭代变，指标就没法和历史比。这里按牌在牌库里的下标稳定地取几个值，
+ * 覆盖的是「逐张配的圆心」和「按主色调出来的盘底」这两条代码路径本身，
+ * 具体是哪个色、偏几个像素不影响任何一条确定性指标。
+ *
+ * 圆心的取值范围抄真数据里的分布（x 10.7~11.9、y 7.1~8.1），也就都落在卡面里。
+ */
+export const BENCH_CARD_FACES: Record<string, CardFaceStyle> = Object.fromEntries(
+  DECK.map((id, index) => [
+    id,
+    {
+      accent: ['#46584b', '#87502d', '#304e70', '#37646b'][index % 4] ?? '#304e70',
+      costBadge: { x: 10.7 + (index % 4) * 0.4, y: 7.1 + (index % 3) * 0.5 },
+    } satisfies CardFaceStyle,
+  ]),
+)
 
 /** 三道题，够打三轮。题面长度取中等——它决定结算层那一屏要烤多少文字。 */
 export const BENCH_QUESTIONS: Question[] = [1, 2, 3].map((round) => ({

@@ -66,6 +66,7 @@ function mountHit(ctx: StoryStage, tier: EffectTier) {
     baked,
     text,
     glare: false,
+    shadow: false,
   })
   const center = { x: ctx.width / 2, y: ctx.height / 2 }
   // 卡的原点在底边中点，所以摆到中心要往下补半张卡。

@@ -120,6 +120,25 @@ function makeCatalog(): Catalog {
 
 export const STORY_CATALOG: Catalog = makeCatalog()
 
+/**
+ * 目录页这一池卡的卡面展示配置。
+ *
+ * 真构筑页读的是 `@ai-duel/content` 的 `CARD_FACES`，canvas 不许依赖 content，
+ * 所以这里按卡池顺序轮着发几个颜色。不配的话整页的费用章都是兜底的卡种色
+ *（AI 一片亮蓝、技能一片亮橙），而这一条条目要拍的正是卡面在真界面里的样子。
+ * AI 牌给 `accent`（盘底由它调出来），技能牌给 `costFill`（真数据里那是从原画采的色）。
+ * 圆心一律走兜底位置：这一页的卡缩得很小，那点偏移在截图上分不出来。
+ */
+export const STORY_CARD_FACES: Record<string, { accent?: string; costFill?: string }> =
+  Object.fromEntries(
+    STORY_POOL.map((entry, index) => [
+      entry.cardId,
+      entry.kind === 'ai'
+        ? { accent: ['#46584b', '#87502d', '#304e70', '#37646b'][index % 4] ?? '#304e70' }
+        : { costFill: ['#4f5652', '#484c46', '#584954'][index % 3] ?? '#4f5652' },
+    ]),
+  )
+
 /** 三套牌组。第一套空着、第二套满 20 张、第三套半满，正好把三种画面都摆得出来。 */
 export function storyDecks(): DeckView[] {
   const full: string[] = []

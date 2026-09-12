@@ -1,5 +1,5 @@
 /**
- * 界面零件那批预烤纹理：匾额的五层、渐隐带、圆章、药丸、铭牌、费用章、星芒、箭头。
+ * 界面零件那批预烤纹理：匾额的五层、渐隐带、圆章、药丸、星芒、箭头。
  *
  * 和 `bakedTextures.ts` 是同一件事的两半——那边是**卡牌**要的几张，这边是**界面**要的一批。
  * 分成两个对象是因为它们的生命周期不一样：卡牌那批只有对局场景要，界面这批首页、组牌、
@@ -12,18 +12,10 @@
  */
 
 import { Rectangle, type Renderer, type Texture } from 'pixi.js'
-import {
-  COST_BADGE_SIZE,
-  drawCostBadge,
-  drawNameplate,
-  drawPillFill,
-  drawPillLine,
-  drawSealDisc,
-  drawSealRing,
-} from './badgeShapes'
+import { drawPillFill, drawPillLine, drawSealDisc, drawSealRing } from './badgeShapes'
 import { drawRamp } from './frameShapes'
 import { drawBackArrow, drawSparkle } from './homeShapes'
-import { type Mold, mold } from './mold'
+import type { Mold } from './mold'
 import {
   drawPlaqueCorner,
   drawPlaqueEdge,
@@ -31,13 +23,6 @@ import {
   drawPlaqueSpark,
   drawPlaqueSurface,
 } from './plaqueShapes'
-
-/** 费用圆章那份模具没有自带取景框（它本来是画在卡面上的），在这里补一个。 */
-const costBadgeMold = (): Mold => {
-  // 向上取整，免得非整数尺寸在缩放时多糊半个像素。三圈描边都画在直径以内，不会被切。
-  const size = Math.ceil(COST_BADGE_SIZE)
-  return mold(size, size, drawCostBadge())
-}
 
 /**
  * 每张纹理对应一个模具。加一张就在这里加一行，下面三个方法全是按这张表遍历的。
@@ -65,10 +50,6 @@ const MOLDS = {
   pillFill: drawPillFill,
   /** 角标药丸的描边，同样按九宫格拉伸。 */
   pillLine: drawPillLine,
-  /** 单独一枚卡面铭牌。 */
-  nameplate: drawNameplate,
-  /** 费用圆章的盘底和外圈。 */
-  costBadge: costBadgeMold,
   /** 夜色页面上那颗四角星（花饰的中点、首页导航的分隔）。 */
   sparkle: drawSparkle,
   /** 返回按钮那支左向箭头。 */

@@ -130,7 +130,7 @@ class DuelSceneImpl {
       reducedMotion: options.reducedMotion === true,
       wake: () => this.frameLoop.wake(),
     })
-    this.visuals = createCardVisuals(options.catalog, options.textures)
+    this.visuals = createCardVisuals(options.catalog, options.textures, options.cardFaces)
     if (this.backdrop !== null) this.root.addChild(this.backdrop)
     this.root.addChild(this.stage, this.letterbox)
     this.parts = this.buildParts()

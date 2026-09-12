@@ -48,9 +48,6 @@
  */
 
 export {
-  BADGE_COST,
-  BADGE_HELP,
-  BADGE_NAMEPLATE,
   BADGE_SOON,
   BADGE_TILE_MARK,
   Badge,
@@ -270,10 +267,12 @@ export type {
   PoolCard,
   PoolKind,
 } from './scenes/deckContract'
+export { createCardVisuals } from './scenes/duel/cardVisuals'
 export { createDuelScene } from './scenes/duel/DuelScene'
 export { pickLayout, pickTier, TOUCH_BREAKPOINT } from './scenes/duel/layout/pickLayout'
 export type { DuelLayout, LayoutTier } from './scenes/duel/layout/types'
 export type {
+  CardFaceStyle,
   CardTextures,
   CreateDuelScene,
   DuelCommand,

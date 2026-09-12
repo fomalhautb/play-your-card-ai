@@ -18,11 +18,14 @@ export const CARD_WIDTH = tokens.size.card.width
 export const CARD_HEIGHT = tokens.size.card.height
 
 /**
- * 卡面圆角，按卡面基准宽配的（旧版是 paper.css 里 `.paper-card` 的 10px）。
+ * 卡面圆角，按卡面基准宽配的（黑客松版 styles.css 里 `.card-face` 的 8px）。
  *
- * 画到卡角的四处必须都用它，缺一处卡角就对不齐：原画和牌背的圆角在构建期烤进图集的 alpha
- * （assets/build-atlas.mjs 按同一个令牌等比放大到 512 那一档），代码画的边框铭牌见
- * fx/bakedTextures.ts，跟着指针跑的反光在着色器里做圆角裁剪见 fx/cardGlare.ts，
+ * 一度写成 10——那是从 `ui/paper/paper.css` 的 `.paper-card` 抄来的，
+ * 而那条是纸面组件的圆角，不是卡面的。正式版简化第 4 步之三改回 8。
+ *
+ * 画到卡角的几处必须都用它，缺一处卡角就对不齐：原画和牌背的圆角在构建期烤进图集的 alpha
+ * （assets/build-atlas.mjs 按同一个令牌等比放大到 512 那一档），代码画的边框羽化带和
+ * 对手牌背见 fx/cardShapes.ts，跟着指针跑的反光在着色器里做圆角裁剪见 fx/cardGlare.ts，
  * 落地那圈亮环的圆角轮廓见 fx/edgeRing.ts。
  */
 export const CARD_RADIUS = tokens.size.card.radius

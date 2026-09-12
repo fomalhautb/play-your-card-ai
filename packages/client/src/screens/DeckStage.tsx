@@ -22,6 +22,7 @@ import {
 } from '@ai-duel/canvas'
 import {
   blockedReasonOf,
+  CARD_FACES,
   CARDS,
   createCatalog,
   DECK_DISPLAY_CARD_IDS,
@@ -122,6 +123,7 @@ export function DeckStage({
         resolution: Math.min(metrics.pixelRatio, MAX_RESOLUTION),
         tier: DEFAULT_TIER,
         textures,
+        cardFaces: CARD_FACES,
         catalog: createCatalog(),
         pool: POOL,
         factions: DECK_FACTIONS,

@@ -53,6 +53,7 @@ function showcase(ctx: StoryStage, tier: EffectTier) {
     baked,
     text,
     glare: TIER_CONFIG[tier].glare,
+    shadow: TIER_CONFIG[tier].cardShadow,
   })
   // 卡的原点在底边中点（见 CardSprite 的坐标约定），所以要往下挪半张卡才是居中。
   card.position.set(ctx.width / 2, ctx.height / 2 + (CARD_HEIGHT * SHOWCASE_SCALE) / 2)
