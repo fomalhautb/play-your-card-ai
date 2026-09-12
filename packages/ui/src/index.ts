@@ -8,7 +8,9 @@
  *
  * 现在装着的是迁移第 21 条那批：按钮 A（墨蓝匾额）和弹窗 A（纸面对话框），
  * 也就是对局界面在画布之外唯一要用到的两样（离开确认那个弹窗）；
- * 外加第 28 条给构筑页改名用的单行输入框（画布上不做文字输入，见第 2 节第 3 条）。
+ * 外加第 27 条后半的输入框 A（纸面数字框）——房间页整页画在画布上，
+ * 只有「填四位房间码」这一件事非要真的 `<input>` 不可（见 CodeInput.tsx 的文件头）；
+ * 以及第 28 条给构筑页改名用的单行输入框（画布上不做文字输入，见第 2 节第 3 条）。
  * 其余变体按需求单（docs/design/组件需求单.md）在用到时补，不先建完整再用。
  *
  * 每个组件的样式跟着组件走（同名 .css，7.2 第 4 条），数值一律读 `@ai-duel/design`
@@ -18,6 +20,8 @@
 
 export type { ButtonProps, ButtonState, ButtonVariant } from './Button'
 export { Button } from './Button'
+export type { CodeInputProps } from './CodeInput'
+export { CodeInput } from './CodeInput'
 export type { DialogAction, DialogProps } from './Dialog'
 export { Dialog } from './Dialog'
 export type { TextFieldProps } from './TextField'

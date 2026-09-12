@@ -77,7 +77,9 @@
         "dev/storybook/preview.tsx",
         "dev/storybook/catalog.spec.ts",
         "dev/storybook/ensureAtlas.ts",
-        "e2e/localMatch.spec.ts"
+        "e2e/globalSetup.ts",
+        "e2e/localMatch.spec.ts",
+        "e2e/online.spec.ts"
       ]
     },
     "packages/server": {

@@ -80,6 +80,23 @@
         "$value": 0.7,
         "$type": "number",
         "$description": "首页花饰细线最实那一端的不透明度，线本身是往外侧淡到 0 的渐变。来源：styles.css 的 .home__flourish-line 的渐变终点 rgb(232 198 159 / 70%)。"
+      },
+      "castCopy": {
+        "$value": 0.72,
+        "$type": "number",
+        "$description": "首页人物介绍卡正文的不透明度。来源：styles.css 的 .home__cast-panel-copy rgb(232 198 159 / 72%)。"
+      }
+    },
+    "hero": {
+      "en": {
+        "$value": 0.65,
+        "$type": "number",
+        "$description": "英雄详情里那行英文名的不透明度。来源：legacy-client/src/screens/hero.css 的 .hero__detail-en。"
+      },
+      "soonCard": {
+        "$value": 0.55,
+        "$type": "number",
+        "$description": "还没实装的英雄卡整张压暗到这一档。旧版是 grayscale 滤镜加 opacity，Pixi 这边只留 tint 加这份透明度（不挂 Filter，纪律 3.1）。来源：hero.css 的 .hero__card--soon。"
       }
     },
     "plaqueCorner": {
@@ -183,6 +200,13 @@
         "$value": 0.78,
         "$type": "number",
         "$description": "夜色圆章底的透明度。来源：styles.css 的 rgb(20 17 12 / 78%)。"
+      }
+    },
+    "soon": {
+      "line": {
+        "$value": 0.45,
+        "$type": "number",
+        "$description": "「敬请期待」角标描边的不透明度。来源：hero.css 的 .hero__card-soon border 里的 rgb(58 46 32 / 45%)。"
       }
     },
     "mark": {

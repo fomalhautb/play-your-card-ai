@@ -54,6 +54,17 @@ export interface ServerDriver extends MatchDriver {
   leave(): void
 }
 
+/**
+ * 这个 driver 是不是联机那一个。
+ *
+ * 界面拿它决定「离开对局」时要不要先跟服务端打个招呼：`MatchSession` 里存的是通用的
+ * `MatchDriver`，而 `leave()` 只有联机有。判方法在不在而不是加一个 `kind` 字段，
+ * 理由同 `isLocalDriver`——「有没有这个口子」本来就是这里唯一要问的事。
+ */
+export function isServerDriver(driver: MatchDriver): driver is ServerDriver {
+  return 'loadout' in driver && 'ready' in driver && 'leave' in driver
+}
+
 /** 局面自己说了算的那部分状态；中断（aborted）由 `room:closed` 和握手拒绝决定。 */
 function statusOf(view: PlayerView): MatchStatus {
   return view.phase === 'finished' ? 'finished' : 'playing'
@@ -133,11 +144,21 @@ export function createServerDriver(options: ServerDriverOptions): ServerDriver {
         /*
          * `not-in-match` 是握手时那条 `room:resync` 的正常答复——对局还没开始，
          * 服务端没有快照可给。它不是玩家做错了什么，不该弹到界面上。
+         *
+         * 反过来它是**这一刻唯一能证明链路通了的东西**：房间页在开局前一条事件都收不到，
+         * 光等 `match:started` 的话 `link` 会一直挂在 `'down'` 上，界面于是从进房那一刻
+         * 就写着「正在重连」。这条答复说明消息送得到、也送得回；而「屏幕上的局面是旧的」
+         * 那种担心在这儿不存在——压根还没有局面。
+         * 对局中途重连时服务端回的是 `match:snapshot` 而不是它，所以那条路的口径没变
+         *（重连要等快照到手才算通，见下面 onSnapshot）。
+         *
          * 其余几种（牌组不合法、重复就绪、借座位）都是要让玩家看见的。
          */
-        if (message.reason !== 'not-in-match') {
-          core.patch({ lastRejection: noticeOr(message.notice, message.reason) })
+        if (message.reason === 'not-in-match') {
+          core.patch({ link: 'ok' })
+          break
         }
+        core.patch({ lastRejection: noticeOr(message.notice, message.reason) })
         break
 
       case 'match:rejected':

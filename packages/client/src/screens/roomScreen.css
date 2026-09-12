@@ -1,0 +1,10 @@
+/*
+ * 房间页只有一件版式上的事：给画布一块铺满视口的地方，「加入房间」那个弹窗压在它上面
+ *（弹窗自己传送到 body，见 ui 的 Dialog）。界面本身在画布里画。
+ */
+
+.room {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // 用例会 import 到装配层的入口（src/index.ts 转出来的那些类型），那一路上有 .tsx。
+    "jsx": "react-jsx",
+    // 端到端这一摊也是两头都要碰：playwright.config.ts / globalSetup.ts 跑在 Node 里，
+    // 而 `page.evaluate` 里那几段跑在浏览器里，要读 window 上的调试口子
+    //（src/dev/debugHook.ts 里那份 `declare global`）。所以两种全局类型都带上。
+    //
+    // 单独一份 tsconfig，理由同 dev/storybook 那份：不把 "node" 加进 packages/client
+    // 那份主配置——产品代码里误用 process、fs 仍然要在编译期被拦下来。
+    "types": ["node", "vite/client"]
+  },
+  // 这个目录里那几个文件；被它们 import 的（src/dev/debugHook.ts 之类）会自动跟进来。
+  "include": ["."]
+}

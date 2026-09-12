@@ -72,6 +72,20 @@ export const tokens = {
       inkLit: "#fbe6c4",
       /** 首页花饰（细线两端淡出、中间嵌一颗四角星）的颜色，和首页墨色是同一个值，只是各处带不同透明度（见 opacity.home.flourishStar / flourishLine）。来源：styles.css 的 .home__flourish-line / .home__cast-panel-rule。 */
       flourish: "#e8c69f",
+      /** 首页人物介绍卡的正文色。和首页墨色同一个值，实际带 opacity.home.castCopy 的透明度。来源：styles.css 的 .home__cast-panel-copy rgb(232 198 159 / 72%)。 */
+      cast: "#e8c69f",
+    },
+    hero: {
+      /** 选英雄页的主金色：技能名、卡片提示的描边。来源：legacy-client/src/screens/hero.css 的 .hero__detail-skill-name。 */
+      gold: "#d2b47d",
+      /** 选英雄页和匹配房的次级金：英文名、返回按钮。比 hero.gold 灰一档，用在不该抢视线的地方。来源：hero.css 的 .hero__detail-en、room.css 的 .room__back。 */
+      goldDim: "#c9b48c",
+      /** 英雄详情里那行名字的字色，比金色更白，是这一栏最亮的一档。来源：hero.css 的 .hero__detail-name。 */
+      name: "#e9dcba",
+      /** 英雄详情里技能正文的字色。来源：hero.css 的 .hero__detail-skill-text。 */
+      body: "#bfae90",
+      /** 还没实装的英雄卡压上去的灰。旧版用 CSS 的 grayscale 滤镜，Pixi 这边不挂 Filter（纪律 3.1），改成给卡面上一层灰色 tint——同样是"这张点不了"，但不用一次离屏渲染。 */
+      soonTint: "#8a8a8a",
     },
     accent: {
       /** AI 牌的标识色。来源：styles.css 的 .card-face--ai --accent。三种卡在对局侧栏里会同时出现，卡面底部那行标识的颜色是唯一的区分。 */
@@ -86,6 +100,14 @@ export const tokens = {
       edgeTint: "#f4ebd6",
       /** 卡片加载动画的线框色。来源：styles.css 的 .card-loader --cl-color。 */
       loaderLine: "#ddcab7",
+    },
+    soon: {
+      /** 「敬请期待」角标的底。旧样式是 #f4ead3 到 #ddcaac 的竖向渐变，Pixi 这边取渐变起点这一档实色（一块 103×31 的小牌上，渐变肉眼看不出来）。来源：hero.css 的 .hero__card-soon。 */
+      fill: "#f4ead3",
+      /** 「敬请期待」角标的描边，实际带 opacity.soon.line 的透明度。来源：hero.css 的 .hero__card-soon border。 */
+      line: "#3a2e20",
+      /** 「敬请期待」角标上的字。来源：hero.css 的 .hero__card-soon color。 */
+      ink: "#2b2119",
     },
     deck: {
       /** 纸面页底四周的暗角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-page 那条 radial-gradient 的终点色 rgb(122 106 74 / 19%)，透明度拆到 opacity.deck.pageVignette。 */
@@ -346,6 +368,8 @@ export const tokens = {
       castFadeOut: 0.2,
       /** 首页人物介绍卡片淡入的起跑延迟，只有卡片用、高亮不用。和上面那对时长配合，让旧卡先退干净。来源：styles.css 的 .home__stage --home-cast-panel-in-delay。 */
       castPanelDelay: 0.08,
+      /** 首页「开始游戏」匾额那条常驻上下浮动的周期。慢到几乎看不出在动，但页面因此不是死的。来源：styles.css 的 .home__start 动画。 */
+      startFloat: 3.2,
     },
     plaque: {
       /** 匾额按钮压下去那一下。快得几乎看不见过程，压入本身才像"当场吃住了力"。来源：styles.css 的 .plaque-button:active transition-duration，也是 PlaqueButton.tsx 的 MIN_PRESS_MS（70ms）。 */
@@ -476,6 +500,14 @@ export const tokens = {
       flourishStar: 0.8,
       /** 首页花饰细线最实那一端的不透明度，线本身是往外侧淡到 0 的渐变。来源：styles.css 的 .home__flourish-line 的渐变终点 rgb(232 198 159 / 70%)。 */
       flourishLine: 0.7,
+      /** 首页人物介绍卡正文的不透明度。来源：styles.css 的 .home__cast-panel-copy rgb(232 198 159 / 72%)。 */
+      castCopy: 0.72,
+    },
+    hero: {
+      /** 英雄详情里那行英文名的不透明度。来源：legacy-client/src/screens/hero.css 的 .hero__detail-en。 */
+      en: 0.65,
+      /** 还没实装的英雄卡整张压暗到这一档。旧版是 grayscale 滤镜加 opacity，Pixi 这边只留 tint 加这份透明度（不挂 Filter，纪律 3.1）。来源：hero.css 的 .hero__card--soon。 */
+      soonCard: 0.55,
     },
     plaqueCorner: {
       /** 墨蓝匾额四角折线的透明度。来源：styles.css 的 .plaque-button__corner stroke: rgb(143 139 128 / 50%)。 */
@@ -522,6 +554,10 @@ export const tokens = {
     seal: {
       /** 夜色圆章底的透明度。来源：styles.css 的 rgb(20 17 12 / 78%)。 */
       base: 0.78,
+    },
+    soon: {
+      /** 「敬请期待」角标描边的不透明度。来源：hero.css 的 .hero__card-soon border 里的 rgb(58 46 32 / 45%)。 */
+      line: 0.45,
     },
     mark: {
       /** 战场小卡角标药丸底的透明度。来源：styles.css 的 .battle__tile-mark background。 */
@@ -662,6 +698,10 @@ export const tokens = {
       urgeHeight: 48,
       /** 小一档匾额（结束出牌、打出、催一催）的左右内边距。旧样式里这三处是 14~16px，取最小的那档，最长的文案也排得开。来源：styles.css 的 .battle__end-turn .plaque-button padding: 0 14px。 */
       padXSmall: 14,
+      /** 象牙匾额（选英雄页的「确认英雄」「返回」）的宽。旧样式写成 cqi 跟着舞台缩放，令牌只收设计稿 1672 宽下的值。来源：hero.css 的 .hero__confirm。 */
+      heroWidth: 288,
+      /** 象牙匾额的高。来源同 size.plaque.heroWidth。 */
+      heroHeight: 87,
     },
     dialog: {
       /** 纸面对话框（需求单弹窗 A）的宽。旧样式三处写的都是 min(420px, 100%)，那个 min 是响应式写法、留在组件的 CSS 里，令牌只收 420 这个设计值。来源：styles.css 的 .leave-ask__panel、.fs-prompt__panel、.rotate-notice__panel。 */
@@ -680,6 +720,10 @@ export const tokens = {
     seal: {
       /** 卡牌右上角那枚「能翻面」问号章的直径。对局手牌、组牌页卡池卡和迷你卡三处同值。来源：ui/CardHelpMark.tsx。 */
       helpMark: 22,
+      /** 夜色圆章在首页上的直径（需求单按钮 J）。首页整页按舞台缩放，这一档是设计稿 1672 宽下的值。来源：styles.css 的 .home__mute。 */
+      home: 52,
+      /** 夜色圆章在信息页、匹配房、选英雄页上的直径。这三页的圆章比首页那颗小一圈。来源：hero.css 的 .hero__mute。 */
+      page: 34,
     },
     midline: {
       /** 战场中线那枚回合徽章的高（含 1px 描边）。来源：styles.css 的 .battle__midline-badge。 */

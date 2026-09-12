@@ -14,6 +14,7 @@
 
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
+import { enterTestMatch, openHome } from './homePage'
 
 /*
  * 手牌那五张在屏幕上的位置，按 1280×900 的桌面档版式算出来的
@@ -75,11 +76,12 @@ async function ensureMyTurn(page: Page): Promise<void> {
 }
 
 test('从首页开一局测试对局，拖牌出牌，一路打到结算页', async ({ page }) => {
-  await page.goto('/')
-
-  await page.getByRole('button', { name: '测试对局' }).click()
-  // 画布起来了才算进了对局页。图集要现下，给足时间。
-  await expect(page.locator('.duel-stage canvas')).toBeVisible({ timeout: 60_000 })
+  /*
+   * 首页整页画在画布上（迁移第 30 条），DOM 里没有「测试对局」那颗钮，
+   * 所以进对局这一步是按坐标点的——落点由 canvas 导出的版式函数算（见 homePage.ts）。
+   */
+  await openHome(page)
+  await enterTestMatch(page)
 
   await page.getByRole('button', { name: '测试面板' }).click()
   const status = page.getByTestId('dev-status')
@@ -92,17 +94,25 @@ test('从首页开一局测试对局，拖牌出牌，一路打到结算页', as
 
   let played = false
   /*
-   * 一张张试过去、试两圈，判据是「手牌少了一张」。这不是在掩盖不稳定，两条都是真规矩：
+   * 一张张试过去，直到打出一张或者时间用完。判据是「手牌少了一张」。
+   * 这不是在掩盖不稳定，三条都是真规矩：
    *
    * - **换着牌试**：手上五张里可能好几张现在打不出去——要选目标的技能牌（拖出去只会
    *   立起选目标层）、Token 不够的贵牌（引擎直接拒）。手牌是洗出来的，赌不了运气。
    * - **每次等满 2.8 秒**：出牌那一下编排层就把演出锁上了，指令被拒时那把锁靠
    *   PLAY_LOCK_FALLBACK_MS（2.5 秒）兜底放开，没等满的话下一次拖拽会被锁挡掉，
-   *   白白浪费一张牌的机会。开局那段（抛硬币 3.54 秒 + 发牌）同样是锁着的，
-   *   头一两次拖不动是正常的。
+   *   白白浪费一张牌的机会。
+   * - **按时间预算而不是按次数重试**：开局那段（抛硬币 3.54 秒 + 发牌）是锁着的，
+   *   而它按**真实帧间隔**推进、每帧最多推 100 毫秒（见 DuelStage 的 MAX_FRAME_MS）。
+   *   跑机上是 SwiftShader 软件渲染，帧率掉到几帧时，这段 8 秒的开局能拖到几十秒，
+   *   前面好几次拖拽全落在锁上（本机实测：闲着的时候第 3 次就出得去，
+   *   旁边有别的活在跑时十几次都还锁着）。数次数的话，「几次才够」就成了一个
+   *   跟着跑机快慢漂的数字；数时间才是这条用例真正想说的：
+   *   **两分半之内总该打得出一张牌**。
    */
   const order = [2, 1, 3, 0, 4]
-  for (let attempt = 0; attempt < order.length * 2 && !played; attempt += 1) {
+  const deadline = Date.now() + 150_000
+  for (let attempt = 0; !played && Date.now() < deadline; attempt += 1) {
     await setPanel(page, true)
     await ensureMyTurn(page)
     await setPanel(page, false)
@@ -113,7 +123,7 @@ test('从首页开一局测试对局，拖牌出牌，一路打到结算页', as
     await setPanel(page, true)
     played = Number(await handCount.textContent()) < before
   }
-  expect(played, '把五张手牌轮着拖了两圈都没能打出去一张').toBe(true)
+  expect(played, '两分半之内把五张手牌轮着拖了好几圈，一张都没能打出去').toBe(true)
 
   /*
    * 第二步：把剩下的轮次走完。
@@ -136,7 +146,11 @@ test('从首页开一局测试对局，拖牌出牌，一路打到结算页', as
   await expect(result.getByRole('button', { name: '再来一局' })).toBeVisible()
   await expect(result.getByRole('button', { name: '回首页' })).toBeVisible()
 
-  // 点「回首页」真的回得去，而且这一局被丢掉了（再进 /match 会被弹回首页）。
+  /*
+   * 点「回首页」真的回得去。判据是首页那块画布又出现了——首页整页在画布上，
+   * DOM 里没有任何一颗按钮可以拿来当路标（这也是这条断言从「看得见『测试对局』」
+   * 改成「看得见画布」的原因）。
+   */
   await result.getByRole('button', { name: '回首页' }).click()
-  await expect(page.getByRole('button', { name: '测试对局' })).toBeVisible()
+  await expect(page.locator('.home-stage canvas')).toBeVisible({ timeout: 60_000 })
 })

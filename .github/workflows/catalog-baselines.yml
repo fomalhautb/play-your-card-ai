@@ -95,3 +95,15 @@ jobs:
         with:
           name: catalog-baselines-linux-${{ matrix.shard }}
           path: catalog-baselines-out
+
+      # 失败时连 Playwright 的现场一起传：里面有实拍图和 trace.zip
+      # （`playwright show-trace` 能一步步回看它到底卡在哪一步）。
+      # 不传的话，超时这类失败在日志里只有一句「Timeout exceeded」，没有别的线索。
+      # 名字同样带上这一片：两格都失败时重名的 artifact v4 会直接报错。
+      - name: 上传失败现场
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-failure-context-${{ matrix.shard }}
+          path: packages/client/test-results
+          if-no-files-found: ignore

@@ -57,7 +57,7 @@
 ```bash
 pnpm install
 pnpm dev:legacy         # 黑客松版客户端 http://localhost:5173
-pnpm dev                # 正式版网页壳 apps/web http://localhost:5174（首页两个入口都能进单机对局）
+pnpm dev                # 正式版网页壳 apps/web http://localhost:5174（三个入口：测试对局、热座、联机）
 pnpm dev:server         # 另开一个终端，起 Worker http://localhost:8787
 pnpm storybook          # 组件目录页 http://localhost:6006
 pnpm typecheck          # 全仓类型检查
@@ -66,8 +66,35 @@ pnpm lint:fix           # 能自动修的都修掉（格式、import 排序）
 pnpm test               # 单元测试：core 规则、答题剧本、canvas 的扇形几何与拖拽判定
 pnpm assets:build       # 打卡面图集（第一次跑正式版开发页之前要先来一次）
 
-pnpm --filter @ai-duel/client e2e   # 端到端：从首页开一局单机，拖牌出牌，打到结算页
+pnpm --filter @ai-duel/client e2e   # 端到端：单机一条，联机两条（两个浏览器打完整局、掉线重连）
 ```
+
+### 本地怎么跑联机
+
+联机要**两个进程**：Vite 发页面，`wrangler dev` 跑权威服务端。
+浏览器只连 Vite，`/api`、`/lobby`、`/match/xxxx` 由 Vite 的 `server.proxy` 转给 wrangler
+（见 `apps/web/vite.config.ts`）——这样浏览器眼里前后端**同源**，和线上一样，
+账号的会话 cookie 才带得上。
+
+第一次要先给服务端配一份本地密钥（这个文件不进仓库）：
+
+```bash
+cp packages/server/.dev.vars.example packages/server/.dev.vars
+# 把 BETTER_AUTH_SECRET 换成 `openssl rand -base64 32` 的输出；DEV=1 那行留着
+pnpm --filter @ai-duel/legacy-client build   # wrangler 的 assets.directory 指着它，不建起不来
+```
+
+然后两个终端各起一个：
+
+```bash
+pnpm dev:server   # 先建账号库的表，再 wrangler dev（http://127.0.0.1:8787）
+pnpm dev          # http://localhost:5174
+```
+
+打开 http://localhost:5174/ 点「联机对战」。进站会自动开一个游客账号（不用注册），
+房间页上「匹配 / 开房 / 加入」三条路都通到同一个房间。**两个人要用两个浏览器**
+（或者一个无痕窗口）：账号的会话在 cookie 里，同一个浏览器里两个标签页是同一个账号，
+第二个会被服务端当成第一个人重连、把第一条连接顶掉。
 
 CI 快档跑这三条（typecheck / lint / test），外加组件目录页的截图回归，见
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)。lint 的三件工具各管一摊：
@@ -76,9 +103,13 @@ Biome 管格式和单文件行数，dependency-cruiser 管包之间的依赖方�
 
 ### 正式版现在能玩到哪一步
 
-首页（http://localhost:5174/）上两个入口都通到真对局（迁移第 21 条）：
+首页（http://localhost:5174/）上三个入口都通到真对局：
 「测试对局」是一个人的调试房，右下角挂着测试面板（加牌、代对手出牌、跳到答题）；
-「热座」是一台机器两个人轮流出牌。真首页、房间页、牌组页、英雄页、教程分别是第 28~32 条的事。
+「热座」是一台机器两个人轮流出牌（第 21 条）；
+「联机对战」是真的联机——游客登录、大厅发码、权威服务端跑规则（第 27 条，
+怎么起两个进程见上面「本地怎么跑联机」）。
+房间页现在是最小可用版（三颗钮、一块码、一颗准备），选牌选英雄用的是存档里那一套；
+真首页、牌组页、英雄页、教程分别是第 28~32 条的事。
 
 ### 开发页
 

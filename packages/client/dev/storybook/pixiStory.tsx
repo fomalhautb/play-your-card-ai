@@ -13,7 +13,7 @@
 
 import { Animator, FrameLoop, type StoryStage, type StoryTeardown } from '@ai-duel/canvas'
 import { tokens } from '@ai-duel/design'
-import { autoDetectRenderer, Container } from 'pixi.js'
+import { Assets, autoDetectRenderer, Container, type Texture } from 'pixi.js'
 import { useEffect, useRef, useState } from 'react'
 import { loadCardTextures } from '../../src/match/cardAtlas'
 
@@ -46,12 +46,40 @@ export interface PixiStorySpec {
   settleMs?: number
   /** 要不要卡面图集。要而图集不在时，画布位置显示一句提示而不是白屏。 */
   needsAtlas?: boolean
+  /**
+   * 这条条目**单张截图**愿意等多久（毫秒）。不给就用 playwright.config.ts 里统一的那一档。
+   *
+   * 给个别条目开小灶，而不是把统一那档调大：那一档是全局的，调大之后一条真坏掉的条目
+   * 也要拖满新的时限才报错，而快档（ci.yml）要跑一百多条，整体时限本来就贴着上限。
+   * 这里放宽的只是「愿意等多久」，比对的严格程度（阈值）一点没动。
+   *
+   * 由下面的 PixiStage 写到就绪标记那个 div 上，截图回归从 DOM 上读（见 catalog.spec.ts）：
+   * 条目清单是从 Storybook 的 index.json 读的，而那份清单只有 id / name / title，
+   * 带不出 `parameters` 里的任何东西。
+   */
+  screenshotTimeoutMs?: number
 }
 
 interface PixiStageProps {
   spec: PixiStorySpec
   /** 真实时钟：不做步进，交给 rAF 自己跑，用来看动画。 */
   live: boolean
+}
+
+/**
+ * 装几张图集之外的图（首页那幅画、英雄牌）。地址就是键。
+ *
+ * 一张一张 `allSettled`，失败的那张干脆不进结果：目录页少一张图，条目还画得出来，
+ * 而整条 Promise 挂掉就是一句「这条条目起不来」。story 那边自己判 undefined。
+ */
+async function loadImages(urls: readonly string[]): Promise<Record<string, Texture>> {
+  const results = await Promise.allSettled(urls.map((url) => Assets.load<Texture>(url)))
+  const loaded: Record<string, Texture> = {}
+  urls.forEach((url, index) => {
+    const result = results[index]
+    if (result?.status === 'fulfilled') loaded[url] = result.value
+  })
+  return loaded
 }
 
 /** 舞台建到哪一步了。图集缺失和建场景失败都停在 'failed'，画面上给一句话。 */
@@ -134,6 +162,7 @@ export function PixiStage({ spec, live }: PixiStageProps) {
         width,
         height,
         textures,
+        loadImages,
         step: (deltaMs) => loop?.step(deltaMs),
         onFrame: (advance) => frameHooks.push(advance),
       }
@@ -178,6 +207,8 @@ export function PixiStage({ spec, live }: PixiStageProps) {
       // 截图回归拿这个属性当「这一帧可以拍了」的信号，见 catalog.spec.ts。
       // 失败也算就绪：那时画面上是一句提示，拍下来一样是稳定的。
       data-story-ready={phase === 'building' ? undefined : '1'}
+      // 这条条目单张截图的时限，同样由截图回归从 DOM 上读。没声明就不写这个属性，那边用统一那档。
+      data-screenshot-timeout={spec.screenshotTimeoutMs}
       style={{ width, height, position: 'relative' }}
     >
       <canvas ref={canvasRef} style={{ width, height, display: 'block' }} />

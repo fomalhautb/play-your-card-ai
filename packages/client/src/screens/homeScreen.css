@@ -1,43 +1,47 @@
 /*
- * 临时首页的版式：居中一列。第 30 条做真首页时这个文件整个删掉。
- * 数值读设计令牌，别写死（架构 7.1 第 4 条）。
+ * 首页只需要一块铺满的地方：那幅画、四张卡、七个人、按钮全在画布里
+ *（版式见 canvas 的 scenes/home/homeLayout.ts）。
+ * 这里剩下的只有等图时那一屏。数值读设计令牌，别写死（架构 7.1 第 4 条）。
  */
 
 .home {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+ * 等图那一屏。**临时**：正式的加载页（需求单条 B）是第 31 条的事，那时这一整段删掉。
+ * 所以它没有进 `ui` 的组件库——为一个确定要被换掉的东西加一个编号变体，
+ * 只会让下一个人以为它是正式的。
+ */
+.home--loading {
   display: flex;
-  min-height: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-xxl);
-  padding: var(--space-xxl);
-  text-align: center;
 }
 
-.home__title {
+.home__loading-text {
   margin: 0;
-  /* 组件私有字号：这一页整个是临时的，不值得为它往令牌里加一档标题字号。 */
-  font-size: 40px;
-  font-weight: 600;
+  color: var(--color-home-ink);
+  font-size: var(--font-size-xl);
   letter-spacing: 0.2em;
+  /* 字距会在最后一个字后面也留一份，整行看着偏左，补回来一半。 */
   text-indent: 0.2em;
 }
 
-.home__note {
-  margin: 0;
-  max-width: 32em;
-  color: var(--color-paper-ink-muted);
-  line-height: 1.75;
+.home__loading-bar {
+  width: 220px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-paper-line-dark);
 }
 
-.home__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xxl);
-  justify-content: center;
-}
-
-.home__dev {
-  color: var(--color-paper-ink-muted);
-  font-size: var(--font-size-lg);
+.home__loading-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--color-home-ink);
+  transition: width var(--duration-button-hover) linear;
 }

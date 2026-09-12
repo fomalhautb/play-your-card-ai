@@ -8,7 +8,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p dev/storybook",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p dev/storybook && tsc --noEmit -p e2e",
     "test": "vitest run",
     "test:watch": "vitest",
     "storybook": "storybook dev -c dev/storybook --no-open -p 6006",

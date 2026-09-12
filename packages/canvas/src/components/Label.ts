@@ -32,15 +32,40 @@ export interface LabelStyle {
    *
    * 等比而不是只压横向：旧版用 SVG 的 `textLength` + `lengthAdjust` 只压横向，
    * 那是被 SVG 的能力限制的；等比缩出来字形不变形，读起来更像同一套字。
+   *
+   * 和 `wrapWidth` 互斥：给了 `wrapWidth` 就换行不缩小，这一项被忽略。
    */
   maxWidth?: number
+  /**
+   * 换行宽度（px）。给了就折行排成一段，不再整体缩小。
+   *
+   * 介绍卡和英雄详情那几段正文要它——一整句压缩到一行只会小到读不了。
+   * 折行必须开 `breakWords`：Pixi 的换行按空格断词，而中文一句话里一个空格都没有，
+   * 不开的话整段会当成一个"词"顶出去，等于没换行。
+   */
+  wrapWidth?: number
+  /** 折行时的行高（px）。只在 `wrapWidth` 给了的时候有意义。 */
+  lineHeight?: number
   /** 横向对齐。决定原点在文字的哪一侧，默认居中。 */
   align?: 'center' | 'left'
 }
 
 /** 两个 Label 只要这几项一样，就该共用同一张纹理。 */
 function textureKey(content: string, style: LabelStyle): string {
-  return `label|${style.fontSize}|${style.weight ?? '400'}|${style.letterSpacing ?? 0}|${content}`
+  return `label|${styleKey(style)}|${content}`
+}
+
+/** 样式本身的指纹，纹理和 TextStyle 两处缓存都按它认。和内容无关。 */
+function styleKey(style: LabelStyle): string {
+  return [
+    style.fontSize,
+    style.weight ?? '400',
+    style.letterSpacing ?? 0,
+    style.wrapWidth ?? 0,
+    style.lineHeight ?? 0,
+    // 对齐只在折行时影响排版，但照样进指纹：同一段文字两种对齐会烤成两张不同的纹理。
+    style.align ?? 'center',
+  ].join('|')
 }
 
 /**
@@ -52,9 +77,10 @@ function textureKey(content: string, style: LabelStyle): string {
 const styleCache = new Map<string, TextStyle>()
 
 function styleOf(style: LabelStyle): TextStyle {
-  const key = `${style.fontSize}|${style.weight ?? '400'}|${style.letterSpacing ?? 0}`
+  const key = styleKey(style)
   const cached = styleCache.get(key)
   if (cached !== undefined) return cached
+  const wrap = style.wrapWidth
   const created = new TextStyle({
     fontFamily: tokens.font.family.serif,
     fontSize: style.fontSize,
@@ -62,6 +88,10 @@ function styleOf(style: LabelStyle): TextStyle {
     letterSpacing: style.letterSpacing ?? 0,
     // 白色是 tint 的前提，见文件头。
     fill: 0xffffff,
+    ...(wrap === undefined
+      ? {}
+      : { wordWrap: true, wordWrapWidth: wrap, breakWords: true, align: style.align ?? 'left' }),
+    ...(style.lineHeight === undefined ? {} : { lineHeight: style.lineHeight }),
   })
   styleCache.set(key, created)
   return created
@@ -90,7 +120,10 @@ export class Label extends Container {
     this.textWidth = texture.width
     this.textHeight = texture.height
 
-    const scale = style.maxWidth === undefined ? 1 : Math.min(1, style.maxWidth / texture.width)
+    const scale =
+      style.maxWidth === undefined || style.wrapWidth !== undefined
+        ? 1
+        : Math.min(1, style.maxWidth / texture.width)
     const centered = (style.align ?? 'center') === 'center'
     this.sprite = new Sprite(texture)
     this.sprite.anchor.set(centered ? 0.5 : 0, 0.5)

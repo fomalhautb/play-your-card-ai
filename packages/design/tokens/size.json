@@ -168,6 +168,16 @@
         "$value": "14px",
         "$type": "dimension",
         "$description": "小一档匾额（结束出牌、打出、催一催）的左右内边距。旧样式里这三处是 14~16px，取最小的那档，最长的文案也排得开。来源：styles.css 的 .battle__end-turn .plaque-button padding: 0 14px。"
+      },
+      "heroWidth": {
+        "$value": "288px",
+        "$type": "dimension",
+        "$description": "象牙匾额（选英雄页的「确认英雄」「返回」）的宽。旧样式写成 cqi 跟着舞台缩放，令牌只收设计稿 1672 宽下的值。来源：hero.css 的 .hero__confirm。"
+      },
+      "heroHeight": {
+        "$value": "87px",
+        "$type": "dimension",
+        "$description": "象牙匾额的高。来源同 size.plaque.heroWidth。"
       }
     },
     "dialog": {
@@ -177,7 +187,6 @@
         "$description": "纸面对话框（需求单弹窗 A）的宽。旧样式三处写的都是 min(420px, 100%)，那个 min 是响应式写法、留在组件的 CSS 里，令牌只收 420 这个设计值。来源：styles.css 的 .leave-ask__panel、.fs-prompt__panel、.rotate-notice__panel。"
       }
     },
-
     "frame": {
       "band": {
         "$value": "8px",
@@ -205,6 +214,16 @@
         "$value": "22px",
         "$type": "dimension",
         "$description": "卡牌右上角那枚「能翻面」问号章的直径。对局手牌、组牌页卡池卡和迷你卡三处同值。来源：ui/CardHelpMark.tsx。"
+      },
+      "home": {
+        "$value": "52px",
+        "$type": "dimension",
+        "$description": "夜色圆章在首页上的直径（需求单按钮 J）。首页整页按舞台缩放，这一档是设计稿 1672 宽下的值。来源：styles.css 的 .home__mute。"
+      },
+      "page": {
+        "$value": "34px",
+        "$type": "dimension",
+        "$description": "夜色圆章在信息页、匹配房、选英雄页上的直径。这三页的圆章比首页那颗小一圈。来源：hero.css 的 .hero__mute。"
       }
     },
     "midline": {

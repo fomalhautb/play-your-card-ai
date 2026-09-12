@@ -1,11 +1,28 @@
 /**
- * 手写的那部分 `Env`：密钥。
+ * 手写的那部分 `Env`：密钥，以及只有本地开发才有的那个开关。
  *
  * 为什么不和别的绑定一起放 worker-configuration.d.ts：那份是
  * `pnpm --filter @ai-duel/server types` 生成的，只认 wrangler.jsonc 里声明过的绑定。
  * 密钥不在 wrangler.jsonc 里（本地在 .dev.vars，线上是 `wrangler secret put`），
  * 生成器看不见它。写在那份里下次一重新生成就没了，所以单独一份手写的和它合并。
  */
+
+/**
+ * 只有 `wrangler dev` 才读得到的开关（写在 .dev.vars 里，那个文件不进仓库）。
+ *
+ * 和密钥放在一起是因为来源相同：都是生成器看不见的东西。
+ * 意思上不一样——密钥线上也有（`wrangler secret put`），这一条线上**必然没有**，
+ * 「线上没有」正是它当环境判据的全部依据（见 src/devMode.ts）。
+ */
+interface DevVars {
+  /**
+   * 有值就是开发环境。现在只管一件事：`room:error malformed` 回不回给客户端。
+   *
+   * 是可选的字符串而不是布尔：`.dev.vars` 里的每一行都是字符串，
+   * 声明成布尔的话线上那个 undefined 反而对不上类型。
+   */
+  DEV?: string
+}
 
 interface Secrets {
   /**
@@ -27,8 +44,8 @@ interface Secrets {
  * `Cloudflare.Env`（`cloudflare:test` 里那个 `env` 用它）。两个都得补上密钥，
  * 少补一个就会出现「源码里读得到、测试里读不到」这种莫名其妙的类型错。
  */
-interface Env extends Secrets {}
+interface Env extends Secrets, DevVars {}
 
 declare namespace Cloudflare {
-  interface Env extends Secrets {}
+  interface Env extends Secrets, DevVars {}
 }

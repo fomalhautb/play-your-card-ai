@@ -11,7 +11,12 @@
  * 原地淡出 `REVEAL_FADE_OUT_MS`、强行收掉 `REVEAL_ABORT_MS`、遮罩淡出 `OVERLAY_OUT_MS`。
  *
  * 卡由调用方建也由调用方销毁——展示的那张牌在真场景里就是手牌或战场上原来那一张，
- * 这里只是把它借过来摆一会儿。所以 `enter` 收的是一个已经建好的 `CardSprite`。
+ * 这里只是把它借过来摆一会儿。所以 `enter` 收的是一个已经建好的显示对象。
+ *
+ * 收的是 `Container` 而不是 `CardSprite`：这一层只把交进来的东西挂上、挪位、缩放，
+ * 不碰卡牌特有的任何方法。选英雄页放大的是一整张人物卡原画（名字画在图里，
+ * 不该再套铭牌和费用圆章，见 duelContract 里 `CardTextures.heroes` 的说明），
+ * 那是个普通精灵——限死成 CardSprite 只会逼出第二份一模一样的展示层。
  */
 
 import { tokens } from '@ai-duel/design'
@@ -28,7 +33,6 @@ import {
 import { CARD_HEIGHT } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
 import type { TextTextureCache } from '../runtime/textCache'
-import type { CardSprite } from './CardSprite'
 import { Label } from './Label'
 
 /** 字幕的字号和字距（px），以及它离卡底多远。组件私有，理由见 design 的 README。 */
@@ -56,6 +60,13 @@ export interface RevealOverlayDeps {
 export interface RevealOverlayOptions {
   /** 卡在中央放大到多少倍。不给就取令牌的常规档（英雄牌和触屏档由调用方另给）。 */
   scale?: number
+  /**
+   * 卡停在视口横向的哪一处（0 是左边、0.5 是正中、1 是右边）。不给就是正中。
+   *
+   * 选英雄页的详情浮层要它：那一版是「卡在左、说明在右」（需求单弹窗 C），
+   * 卡摆在正中的话右边那一栏只能贴着屏幕边。字幕跟着这个锚点走，不另设一个。
+   */
+  anchorX?: number
 }
 
 export class RevealOverlay extends Container {
@@ -65,7 +76,8 @@ export class RevealOverlay extends Container {
   private readonly slot = new Container()
   private readonly captionSlot = new Container()
   private readonly zoom: number
-  private card: CardSprite | null = null
+  private readonly anchorX: number
+  private card: Container | null = null
   private boxWidth = 0
   private boxHeight = 0
 
@@ -73,6 +85,7 @@ export class RevealOverlay extends Container {
     super()
     this.deps = deps
     this.zoom = options.scale ?? tokens.size.card.revealScale
+    this.anchorX = options.anchorX ?? 0.5
     this.label = 'reveal-overlay'
     /*
      * 整层吃指针事件：强制展示期间点什么都不该有反应，而放大查看要靠"点遮罩关掉"。
@@ -94,9 +107,9 @@ export class RevealOverlay extends Container {
       .fill({ color: tokens.color.overlay.reveal, alpha: tokens.opacity.overlay.reveal })
   }
 
-  /** 屏幕正中那个点。调用方算飞行轨迹时要用。 */
+  /** 卡停在哪个点（默认是屏幕正中，见 `anchorX`）。调用方算飞行轨迹时要用。 */
   center(): RevealPoint {
-    return { x: this.boxWidth / 2, y: this.boxHeight / 2, scale: this.zoom }
+    return { x: this.boxWidth * this.anchorX, y: this.boxHeight / 2, scale: this.zoom }
   }
 
   /**
@@ -106,7 +119,7 @@ export class RevealOverlay extends Container {
    * 改成在中央原地淡入，时长换成短一档的 `REVEAL_POP_IN_MS`。
    * 返回这一段的时长（毫秒），和 `reveal-enter` / `inspect-enter` cue 的 `durationMs` 一致。
    */
-  enter(card: CardSprite, from: RevealPoint | null): number {
+  enter(card: Container, from: RevealPoint | null): number {
     this.card = card
     this.slot.removeChildren()
     this.slot.addChild(card)
@@ -258,7 +271,7 @@ export class RevealOverlay extends Container {
     for (const child of this.captionSlot.removeChildren()) child.destroy({ children: true })
     const label = new Label(text, CAPTION, this.deps, tokens.color.battle.cueInk)
     label.alpha = 0
-    label.position.set(this.boxWidth / 2, this.slot.y + CAPTION_GAP)
+    label.position.set(this.boxWidth * this.anchorX, this.slot.y + CAPTION_GAP)
     this.captionSlot.addChild(label)
     this.deps.animator.tween(label, {
       alpha: 0.9,
@@ -270,7 +283,7 @@ export class RevealOverlay extends Container {
   }
 
   /** 现在展示着的那张卡，没有就是 null。调用方收尾时拿它放回原处。 */
-  get shown(): CardSprite | null {
+  get shown(): Container | null {
     return this.card
   }
 

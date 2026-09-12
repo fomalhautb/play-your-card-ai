@@ -66,6 +66,11 @@ export const Normal = {
       needsAtlas: true,
       /** 手动时钟要推进到的时刻（毫秒）。有动画的条目靠它停在固定的一帧。 */
       settleMs: 600,
+      /**
+       * 只有拍一张就要等很久的重条目才写：单张截图的时限（毫秒），不写就用统一的 45 秒。
+       * 用法和为什么不整体调大，见下面「一条条目老是超时」。
+       */
+      screenshotTimeoutMs: 150_000,
       mount(ctx: StoryStage) {
         const thing = new MyThing(/* … */)
         ctx.stage.addChild(thing)
@@ -162,6 +167,22 @@ pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
 
 阈值 `maxDiffPixelRatio` 是 0.001。顶不住了**先查是不是引入了不确定性**
 （真实时钟、没定种子的随机、字体没加载完），别先去调大这个数——调大一次就等于把这道检查关掉一点。
+
+### 一条条目老是超时
+
+先分清是**画面还在动**还是**单纯慢**，两种的修法完全相反：
+
+- 画面还在动：`toHaveScreenshot` 要连拍两张一致的才算稳，一直动就永远等不到。
+  查这条条目的动画是不是走了 `ctx.animator`——只有它建的补间才会被手动时钟推、也才停得下来，
+  自己调 `gsap.to` 或者挂 `requestAnimationFrame` 的话手动时钟按不住它。这种要去修 story，
+  调时限没有用。
+- 单纯慢：CI 上 WebGL 走的是 SwiftShader（纯 CPU 软件光栅），画布越大、素材越多越慢，
+  而 Playwright 判「元素稳定」等的是合成器真出两帧，排在一批没干完的 GPU 活后面就得一起等。
+  这种在这条 story 的 `screenshotTimeoutMs` 里单独给个更长的数（现在只有首页那三条有）。
+
+**别为了个别条目去调 `playwright.config.ts` 里的 `expect.timeout`**：那一档是全局的，
+调大之后一条真坏掉的条目也要拖满新时限才报错，而快档要跑一百多条，整体时限本来就贴着上限。
+更不要去调 `maxDiffPixelRatio`——那和超时是两回事，调它只会把这道检查关掉一点。
 
 ### 基线图的文件名
 

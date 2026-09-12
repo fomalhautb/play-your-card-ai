@@ -153,6 +153,38 @@
         "$value": "{color.home.ink}",
         "$type": "color",
         "$description": "首页花饰（细线两端淡出、中间嵌一颗四角星）的颜色，和首页墨色是同一个值，只是各处带不同透明度（见 opacity.home.flourishStar / flourishLine）。来源：styles.css 的 .home__flourish-line / .home__cast-panel-rule。"
+      },
+      "cast": {
+        "$value": "#e8c69f",
+        "$type": "color",
+        "$description": "首页人物介绍卡的正文色。和首页墨色同一个值，实际带 opacity.home.castCopy 的透明度。来源：styles.css 的 .home__cast-panel-copy rgb(232 198 159 / 72%)。"
+      }
+    },
+    "hero": {
+      "gold": {
+        "$value": "#d2b47d",
+        "$type": "color",
+        "$description": "选英雄页的主金色：技能名、卡片提示的描边。来源：legacy-client/src/screens/hero.css 的 .hero__detail-skill-name。"
+      },
+      "goldDim": {
+        "$value": "#c9b48c",
+        "$type": "color",
+        "$description": "选英雄页和匹配房的次级金：英文名、返回按钮。比 hero.gold 灰一档，用在不该抢视线的地方。来源：hero.css 的 .hero__detail-en、room.css 的 .room__back。"
+      },
+      "name": {
+        "$value": "#e9dcba",
+        "$type": "color",
+        "$description": "英雄详情里那行名字的字色，比金色更白，是这一栏最亮的一档。来源：hero.css 的 .hero__detail-name。"
+      },
+      "body": {
+        "$value": "#bfae90",
+        "$type": "color",
+        "$description": "英雄详情里技能正文的字色。来源：hero.css 的 .hero__detail-skill-text。"
+      },
+      "soonTint": {
+        "$value": "#8a8a8a",
+        "$type": "color",
+        "$description": "还没实装的英雄卡压上去的灰。旧版用 CSS 的 grayscale 滤镜，Pixi 这边不挂 Filter（纪律 3.1），改成给卡面上一层灰色 tint——同样是\"这张点不了\"，但不用一次离屏渲染。"
       }
     },
     "accent": {
@@ -182,6 +214,23 @@
         "$value": "#ddcab7",
         "$type": "color",
         "$description": "卡片加载动画的线框色。来源：styles.css 的 .card-loader --cl-color。"
+      }
+    },
+    "soon": {
+      "fill": {
+        "$value": "#f4ead3",
+        "$type": "color",
+        "$description": "「敬请期待」角标的底。旧样式是 #f4ead3 到 #ddcaac 的竖向渐变，Pixi 这边取渐变起点这一档实色（一块 103×31 的小牌上，渐变肉眼看不出来）。来源：hero.css 的 .hero__card-soon。"
+      },
+      "line": {
+        "$value": "#3a2e20",
+        "$type": "color",
+        "$description": "「敬请期待」角标的描边，实际带 opacity.soon.line 的透明度。来源：hero.css 的 .hero__card-soon border。"
+      },
+      "ink": {
+        "$value": "#2b2119",
+        "$type": "color",
+        "$description": "「敬请期待」角标上的字。来源：hero.css 的 .hero__card-soon color。"
       }
     },
     "deck": {

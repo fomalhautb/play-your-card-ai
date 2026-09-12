@@ -61,6 +61,11 @@ export interface DuelStageProps {
   platform: Platform
   /** 这一端坐哪个座位。换了要靠外面换 `key` 整个重挂（见文件头）。 */
   seat: PlayerId
+  /**
+   * 顶栏正中那一行连接状态字（「正在重连…」「对方掉线…」）。null 就显示比分。
+   * 由调用方算（见 screens/matchStatus.ts）：这一层不认识联机不联机。
+   */
+  status?: string | null
   /** 顶栏那颗离开钮按下时叫谁。 */
   onLeave(): void
   /** 顶栏那颗静音钮。 */
@@ -78,6 +83,7 @@ export function DuelStage({
   driver,
   platform,
   seat,
+  status = null,
   onLeave,
   onToggleMute,
   tier = DEFAULT_TIER,
@@ -245,6 +251,15 @@ export function DuelStage({
   useEffect(() => {
     if (view.view !== null) applyView(view.view)
   })
+
+  /*
+   * 顶栏那行连接状态字。依赖里带上 `ready`：场景是异步建出来的，
+   * 在那之前这个 effect 跑过也没人收，得等场景就位再补一次。
+   */
+  useEffect(() => {
+    if (!ready) return
+    sceneRef.current?.setStatus(status)
+  }, [status, ready])
 
   // 对局中断：编排层要一次性清场，否则玩家会被一层退不掉的遮罩挡死。
   useEffect(() => {

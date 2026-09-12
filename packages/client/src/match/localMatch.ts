@@ -9,28 +9,18 @@
  * 所以在这两种玩法里看到的界面行为，就是联机时真实会发生的行为。
  */
 
-import { BALANCED_DECK, createCatalog, isLegalDeck, QUESTION_POOL } from '@ai-duel/content'
-import type { CardId, GameSetup, HeroId } from '@ai-duel/core'
+import { BALANCED_DECK, createCatalog, QUESTION_POOL } from '@ai-duel/content'
+import type { GameSetup, HeroId } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
-import { loadDecks } from '../save/deckStore'
-import { loadSave } from '../save/saveStore'
+import { currentDeck, currentHero } from '../save/loadout'
 import { createLocalDriver, type LocalDriver } from './localDriver'
 
 /**
- * 存档里当前那副牌，不合法就退回平衡预设。
- *
- * 必须自己查一遍合法性：`deckStore` 存的是**正在编辑**的牌组，允许只有几张甚至一张都没有
- *（玩家可以编到一半就走人），直接拿去开局会摸空。
+ * 存档里确认过的英雄，摆成 `GameSetup` 要的形状：没选过就整个字段不出现，
+ * 让引擎吃它自己的默认英雄。取值本身在 save/loadout.ts，联机那边报的是同一份。
  */
-function currentDeck(platform: Platform): CardId[] {
-  const data = loadDecks(platform)
-  const cards = data.decks.find((deck) => deck.id === data.currentId)?.cards ?? []
-  return isLegalDeck(cards) ? [...cards] : [...BALANCED_DECK]
-}
-
-/** 存档里确认过的英雄。没选过就整个字段不出现，让引擎吃它自己的默认英雄。 */
 function savedHero(platform: Platform): { hero?: HeroId } {
-  const hero = loadSave(platform).savedHero
+  const hero = currentHero(platform)
   return hero === null ? {} : { hero }
 }
 

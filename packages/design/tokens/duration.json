@@ -39,6 +39,11 @@
         "$value": "0.08s",
         "$type": "duration",
         "$description": "首页人物介绍卡片淡入的起跑延迟，只有卡片用、高亮不用。和上面那对时长配合，让旧卡先退干净。来源：styles.css 的 .home__stage --home-cast-panel-in-delay。"
+      },
+      "startFloat": {
+        "$value": "3.2s",
+        "$type": "duration",
+        "$description": "首页「开始游戏」匾额那条常驻上下浮动的周期。慢到几乎看不出在动，但页面因此不是死的。来源：styles.css 的 .home__start 动画。"
       }
     },
     "plaque": {

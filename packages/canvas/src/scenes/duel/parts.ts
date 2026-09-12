@@ -28,11 +28,11 @@ import { SideBar } from '../../components/SideBar'
 import { SkillCancelLayer } from '../../components/SkillCancelLayer'
 import { TargetingLayer } from '../../components/TargetingLayer'
 import { TopBar } from '../../components/TopBar'
+import type { DuelIcons } from '../../fx/controlIcons'
 import { HitFx } from '../../fx/HitFx'
 import { PLAYER_FAN } from '../../layout/fanMath'
 import type { DuelDeps } from './deps'
 import type { DuelLayout } from './layout/types'
-import type { DuelIcons } from './placeholderIcons'
 
 interface DuelLayers {
   world: Container

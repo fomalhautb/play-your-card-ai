@@ -101,8 +101,14 @@ export interface NetworkCapability {
   /**
    * 取一份 JSON。非 2xx 也抛错，调用方只在一处 catch。
    *
-   * 只有这一个 HTTP 方法：旧代码全站只有一处 fetch（摇房间码的 `GET /api/room`），
-   * 别的都走 WebSocket。真需要别的请求形态时再加，不预先铺一套通用 HTTP 客户端。
+   * 只有这一个 HTTP 方法：正式版全站的 HTTP 就是账号那三条（游客登录、拿会话、换 JWT，
+   * 见 client 的 `src/auth/session.ts`），别的都走 WebSocket。
+   * 真需要别的请求形态时再加，不预先铺一套通用 HTTP 客户端。
+   *
+   * **没有 `credentials` 这一项，是有意的**：账号的会话在 cookie 里，而同源请求本来就带 cookie
+   *（`fetch` 的默认值就是 `same-origin`）。这套部署的前提正是前后端同源——线上是同一个
+   * Worker，本地开发由 Vite 的代理伪装成同源。哪天真要跨源，该补的是这一层，
+   * 不是让调用方绕过它自己去 `fetch`。
    */
   requestJson<T>(url: string, options?: HttpRequestOptions): Promise<T>
   /**

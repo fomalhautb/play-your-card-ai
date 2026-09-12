@@ -8,6 +8,7 @@
  * 「单机能打完整局」有个收尾。
  *
  * 只负责画，不判定胜负：标题和比分由调用方算好传进来（同旧版的 ui/MatchResult.tsx）。
+ * 「开卡包」这颗钮同理：这一层不知道抽没抽到卡，传了 `onOpenPack` 才摆。
  */
 
 import { Button } from '@ai-duel/ui'
@@ -23,9 +24,23 @@ export interface MatchResultProps {
   score: { mine: number; theirs: number } | null
   onPlayAgain(): void
   onHome(): void
+  /**
+   * 这一局抽到了新卡，按了就去开包（迁移第 29 条）。没抽到就不传，那颗钮整个不渲染。
+   *
+   * 抽卡本身在 `recordWin` 里已经发生过了（卡已经进收藏），所以这颗钮只是「去看一眼」，
+   * 不点也不会少一张牌——这也是它可以被跳过的原因。
+   */
+  onOpenPack?(): void
 }
 
-export function MatchResult({ outcome, title, score, onPlayAgain, onHome }: MatchResultProps) {
+export function MatchResult({
+  outcome,
+  title,
+  score,
+  onPlayAgain,
+  onHome,
+  onOpenPack,
+}: MatchResultProps) {
   return (
     <div className="match-result" data-outcome={outcome}>
       <div className="match-result__panel">
@@ -36,6 +51,7 @@ export function MatchResult({ outcome, title, score, onPlayAgain, onHome }: Matc
           </p>
         )}
         <div className="match-result__actions">
+          {onOpenPack === undefined ? null : <Button onClick={onOpenPack}>开卡包</Button>}
           <Button onClick={onPlayAgain}>再来一局</Button>
           <Button onClick={onHome}>回首页</Button>
         </div>

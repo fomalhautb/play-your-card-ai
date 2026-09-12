@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "pnpm db:local && wrangler dev",
+    "db:local": "wrangler d1 migrations apply AUTH_DB --local",
     "deploy": "wrangler deploy",
     "types": "wrangler types --include-runtime=false",
     "smoke": "node test/smoke.mjs",

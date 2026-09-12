@@ -27,6 +27,7 @@ Durable Object 是按类名找实例的。
 src/
   index.ts            总路由：旧路径进 legacy，/api/auth/* 进账号系统，
                       /match/:code 和 /lobby 进新代码，其余交静态资源
+  devMode.ts          「现在跑的是不是本地开发」这一个判断（判据是 .dev.vars 里的 DEV）
   auth/
     betterAuth.ts     账号系统：better-auth 配 D1，开了游客登录和 jwt 两个插件
     routes.ts         /api/auth/* 原样交给 better-auth 的 handler
@@ -190,9 +191,30 @@ cp packages/server/.dev.vars.example packages/server/.dev.vars
 
 ```bash
 pnpm --filter @ai-duel/legacy-client build   # 先出静态资源，assets.directory 指着它
-pnpm --filter @ai-duel/server exec wrangler d1 migrations apply AUTH_DB --local  # 建账号库的表
-pnpm dev:server                              # wrangler dev，默认 http://127.0.0.1:8787
+pnpm dev:server                              # 先建账号库的表，再 wrangler dev（127.0.0.1:8787）
 ```
+
+`pnpm dev:server` 里那一步建表是 `wrangler d1 migrations apply AUTH_DB --local`，
+每次都跑一遍：已经建过的话 wrangler 自己会说「没有要应用的迁移」，比让人记住一条前置命令省事。
+
+### `DEV` 那一行是什么
+
+`.dev.vars` 里除了密钥还有一行 `DEV=1`。它是「现在跑的是不是本地开发」的判据
+（`src/devMode.ts`）：`wrangler deploy` 不会把 `.dev.vars` 带上去，所以线上必然没有它。
+现在有两处按它分岔，两处都是「开发时宽一点、线上一律收紧」：
+
+| 开关 | 开发 | 线上 |
+|---|---|---|
+| `room:error malformed` | 回给客户端，好让人知道自己发错了 | 静默丢弃（见 `src/room/session.ts`） |
+| 跨源请求 | 额外信任 `localhost:*` / `127.0.0.1:*` | 只信 `baseURL` 自己那个源（见 `src/auth/betterAuth.ts`） |
+
+跨源那一条本地非有不可：页面来自 Vite，而 `wrangler dev` 会按 `wrangler.jsonc` 里那条
+`routes` 把请求 URL 重写成正式域名，两边的源怎么都对不上。
+
+### 前端连本地服务端
+
+正式版客户端不直连 8787，走 Vite 的 `server.proxy`（见 `apps/web/vite.config.ts` 和仓库根
+README 的「本地怎么跑联机」）：浏览器眼里前后端同源，账号的会话 cookie 才带得上。
 
 本地那个 D1 库在 `packages/server/.wrangler/` 下面（不进仓库）。
 换过 `BETTER_AUTH_SECRET` 之后旧的私钥就解不开了，把整个目录删掉重来最省事。
@@ -238,9 +260,9 @@ SMOKE_BASE=https://playyourcardai.online pnpm --filter @ai-duel/server smoke
 
 - 账号只有游客一种：邮箱 / OAuth 绑定还没接，Steam 票据换 JWT 是第 35 条。
   换句话说现在**换个浏览器就是另一个人**，清了 cookie 也一样。
+  正式版客户端就是这么用的：进站自动开一个游客号（见 client 的 `src/auth/session.ts`）。
 - `room:urge` 的 id 查表：那张喊话表还在 legacy-client 里（第 33 条搬进 content），
   搬过来之前只转发不校验，查不到该回的 `unknown-urge` 还发不出来。
-- `room:error malformed` 现在一律发，上线前要改成只在开发模式发（见 MatchRoom 里那段注释）。
 - 显示名：`createGame` 的 `name` 暂时直接用账号 id。better-auth 的 `user` 表里
   其实有一列 `name`（游客登录时随机生成一个），但那要按 `sub` 回查一次 D1，
   而房间对象现在一次 D1 都不查——等真要显示昵称时再一起接（第 27、31 条）。
