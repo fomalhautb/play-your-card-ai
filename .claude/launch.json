@@ -14,7 +14,7 @@
     },
     {
       "name": "relay",
-      "note": "服务端：wrangler dev 起本地 Cloudflare Worker，里面是房间、大厅和账号三块。起之前会先建一次账号库的表。第一次要先 cp packages/server/.dev.vars.example packages/server/.dev.vars。",
+      "note": "服务端：wrangler dev 起本地 Cloudflare Worker，里面是房间、大厅和账号三块。起之前会先建一次账号库的表。第一次要先 cp packages/server/.dev.vars.example packages/server/.dev.vars。不用先构建网页壳：这条命令给 wrangler 传 --assets ../../apps/web/public 顶掉配置里那个构建产物目录，原因见 packages/server/README.md 的「本地开发」。",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "dev:server"

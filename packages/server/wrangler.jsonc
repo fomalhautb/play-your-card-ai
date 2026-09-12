@@ -18,6 +18,11 @@
   "assets": {
     // 网页壳的构建产物（`pnpm --filter @ai-duel/web build`）。这个目录是 gitignore 掉的，
     // 仓库里没有，所以部署前必须先构建（deploy.yml 里那一步）。
+    //
+    // 本地起服务端**不看**这个目录：`pnpm dev:server` 和端到端用例都给 wrangler 传
+    // `--assets ../../apps/web/public` 把这一条顶掉，这样刚 clone 完的仓库不用先构建前端。
+    // wrangler 启动时会检查这个目录，不存在就直接报错退出——不顶掉就起不来。
+    // 为什么挑 public、命令行参数顶掉了哪些，见 packages/server/README.md「本地开发」。
     "directory": "../../apps/web/dist",
     // 前端是单页应用：/room、/deck 这种路径在磁盘上没有对应文件，回落到 index.html 交给前端路由。
     "not_found_handling": "single-page-application",

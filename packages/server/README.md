@@ -207,12 +207,36 @@ cp packages/server/.dev.vars.example packages/server/.dev.vars
 线上那份走 `wrangler secret put BETTER_AUTH_SECRET`，不写进 `wrangler.jsonc`。
 
 ```bash
-pnpm --filter @ai-duel/web build   # 先出静态资源，assets.directory 指着它
 pnpm dev:server                    # 先建账号库的表，再 wrangler dev（127.0.0.1:8787）
 ```
 
 `pnpm dev:server` 里那一步建表是 `wrangler d1 migrations apply AUTH_DB --local`，
 每次都跑一遍：已经建过的话 wrangler 自己会说「没有要应用的迁移」，比让人记住一条前置命令省事。
+
+### 为什么 `dev` 脚本要带 `--assets`
+
+脚本完整是 `pnpm db:local && wrangler dev --assets ../../apps/web/public`。
+那个 `--assets` 是个**替身**，理由写在这里是因为 package.json 里放不了注释。
+
+`wrangler.jsonc` 里 `assets.directory` 指着 `apps/web/dist`——网页壳的构建产物，进了
+.gitignore。wrangler 启动时会检查这个目录，不存在就直接报错退出，所以刚 clone 完的仓库
+（以及每个新开的 worktree）不带这个参数起不来。而本地起服务端只为了联机，一个静态资源都用不上：
+页面由 Vite 发，服务端只管 `/api` 和两条 WebSocket（见下面「前端连本地服务端」），
+为它先构建一遍前端纯属浪费。
+
+挑 `apps/web/public` 是因为它在仓库里必然存在（有一个 `.gitkeep` 兜底）。
+命令行这个参数只顶掉 `directory` 一条，`assets` 块里其余几条照旧生效——
+`run_worker_first` 还在，所以 `/api`、`/match/*`、`/lobby` 仍然进 Worker。
+端到端用例走的是同一个办法（`packages/client/e2e/playwright.config.ts` 里的 `webServer`），
+全仓库只有这一种机制。
+
+想在本地看线上那种「静态资源和 Worker 同一个源」的形状（比如查 SPA 回落），
+就自己构建一次、再不带这个参数起：
+
+```bash
+pnpm --filter @ai-duel/web build
+pnpm --filter @ai-duel/server exec wrangler dev   # 这回按 wrangler.jsonc 用 apps/web/dist
+```
 
 ### `DEV` 那一行是什么
 

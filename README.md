@@ -75,7 +75,8 @@ cp packages/server/.dev.vars.example packages/server/.dev.vars
 # 把 BETTER_AUTH_SECRET 换成 `openssl rand -base64 32` 的输出；DEV=1 那行留着
 ```
 
-然后两个终端各起一个（`pnpm dev:server` 会自己先把账号库的表建好），
+然后两个终端各起一个（`pnpm dev:server` 会自己先把账号库的表建好，
+**不用**先构建前端——原因见 [`packages/server/README.md`](packages/server/README.md) 的「本地开发」），
 打开 http://localhost:5174/ 点「联机对战」。进站会自动开一个游客账号（不用注册），
 房间页上「匹配 / 开房 / 加入」三条路都通到同一个房间。**两个人要用两个浏览器**
 （或者一个无痕窗口）：账号的会话在 cookie 里，同一个浏览器里两个标签页是同一个账号，

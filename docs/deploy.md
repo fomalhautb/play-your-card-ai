@@ -280,7 +280,10 @@ pnpm dev:server                         # wrangler dev，默认 http://127.0.0.1
 由它的 `server.proxy` 把 `/api`、`/lobby`、`/match/xxxx` 转给 8787，
 浏览器眼里前后端同源，账号的会话 cookie 才带得上（见仓库根 README 的「本地怎么跑联机」）。
 只有要验「线上那条路」——静态资源回退、`run_worker_first` 到底拦没拦住——才需要先
-`pnpm assets:build && pnpm --filter @ai-duel/web build` 再开 `wrangler dev` 直接访问 8787。
+`pnpm assets:build && pnpm --filter @ai-duel/web build`，再**直接**起
+`pnpm --filter @ai-duel/server exec wrangler dev` 去访问 8787。
+这一步不能用 `pnpm dev:server`：那个脚本带着 `--assets ../../apps/web/public`，
+发的不是刚构建出来的 `apps/web/dist`（原因见 `packages/server/README.md` 的「本地开发」）。
 
 部署前想确认配置没写错，跑一次不真的上传的构建：
 
