@@ -22,6 +22,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import type { TestInfo } from '@playwright/test'
 import { diffPng, formatRatio } from '../src/node/imageDiff'
 import { PROFILES } from '../src/node/profiles'
+import type { ProfileName } from '../src/thresholds'
 // 每条用例各开一个新浏览器，不共用 worker 那一个——为什么见 freshBrowser.ts。
 import { expect, test } from './freshBrowser'
 import { captureKeyframes, initOptions, initScene, openBench, webglRenderer } from './harness'
@@ -48,17 +49,47 @@ import { PLANS, shotName } from './keyframePlans'
  * | `flip` | 0.006% / 0.023% | 0.008% / 0.094% |
  * | `settle` | 0.101% / 0.023% | **0.342%** / 0.165% |
  *
- * 最大的是 firefox 的桌面档 `settle`（0.342%，518400 个像素里 1772 个）。×1.5 取整到 0.006。
+ * 最大的是 firefox 的桌面档 `settle`（0.342%，518400 个像素里 1772 个），×1.5 取整是 0.006，
+ * 那是这个阈值最早的值，两档视口共用一个数。
  * 那一张的差异图看过：红点**全落在文字笔画上**，没有整块缺失、没有偏色的区域、
  * 没有层级压反——结算层字最多，所以它最大，这正是这个阈值该吃下的那部分。
  *
- * Linux 跑机上三家都跑软件光栅（chromium 是 SwiftShader，另外两家是各自的那套），
- * 字体也从 fontconfig 走而不是 CoreText，差异构成和本机不一样，
- * 所以这个数在慢档第一次真跑完之前是没验过的。每次比对都把实测比例打进日志（见下面），
- * 第一次红了直接照日志里的数按同样的口径重定，不用靠猜——**但别顺手往上调到刚好能过**，
- * 那等于把这条检查关掉。要先看差异图确认红的仍然只是文字。
+ * **Linux 跑机上的数比本机大得多，而且两档视口差一档**，所以这里按视口分两个数
+ * （2026-09-12 的运行 34674939419，webkit 那八格；chromium 基线是同一批跑机拍的）：
+ *
+ * | 剧本 | webkit 桌面 | webkit 手机 |
+ * |---|---|---|
+ * | `deal` | 0.028%（144/518400） | 0.160%（132/82290） |
+ * | `play10` | 0.152%（789/518400） | 0.429%（353/82290） |
+ * | `flip` | 0.095%（495/518400） | **0.961%（791/82290）** |
+ * | `settle` | **0.496%（2573/518400）** | 0.469%（386/82290） |
+ *
+ * 按同样的口径（实测最大值 ×1.5 取整）：桌面 0.496% → 0.008，手机 0.961% → 0.015。
+ *
+ * **手机档为什么要单独宽一档：分母小，不是画得更差。** 基线图按逻辑像素的一半存
+ *（`src/page/grabFrame.ts` 的 `SHOT_SCALE`），桌面档一张 960×540（518400 像素），
+ * 手机档一张只有 195×422（82290 像素），差 6.3 倍。而上表右边那一列的**绝对**像素数
+ *（132 / 353 / 791 / 386）和左边那一列（144 / 789 / 495 / 2573）是同一个量级——
+ * 也就是说两档差的是同样多的像素，只是手机档拿一个小六倍的分母去除。
+ * 一刀切成一个数的话，要么手机档永远红，要么桌面档松到什么都拦不住。
+ *
+ * 手机档 `flip` 那张（超了旧阈值的那一张）的差异图看过：红点**全落在文字笔画上**
+ *（卡名「claude-fable-5」、卡面中段那行小字、顶栏的比分数字），
+ * 卡面原画、边框、层级一个红点都没有——和本机那张的构成一样，正是这个阈值该吃下的部分。
+ * Linux 上比本机大是因为那边 chromium 和 webkit 都走软件光栅、字体走 fontconfig 而不是
+ * CoreText，两家的字形光栅化对不齐的程度比 macOS 上大。
+ *
+ * **firefox 在 Linux 上的八个数还没量到**：头两次慢档它一格都没跑起来
+ *（无头 Firefox 不给 WebGL，见 playwright.config.ts），修好之后那次又因为跑机账单停了
+ * 没能跑完。它在本机上的比例是 webkit 的三倍多，所以上面这两个数不一定吃得下它。
+ * 每次比对不管过没过都把实测比例打进日志（见下面），红了照日志里的数按同样口径重定，
+ * 不用靠猜——**但别顺手往上调到刚好能过**，那等于把这条检查关掉。
+ * 要先看差异图确认红的仍然只是文字。
  */
-const CROSS_BROWSER_DIFF_RATIO = 0.006
+const CROSS_BROWSER_DIFF_RATIO: Readonly<Record<ProfileName, number>> = {
+  desktop: 0.008,
+  mobile: 0.015,
+}
 
 /**
  * 把一张 PNG 落到 `test-results/` 下再挂成附件。
@@ -81,6 +112,8 @@ for (const profile of PROFILES) {
         tag: `@${plan.segment}`,
       },
       async ({ page, browserName }, testInfo) => {
+        // 阈值按视口取：手机档那张图小六倍，同样多的字形像素算出来的比例大得多（见上面）。
+        const limit = CROSS_BROWSER_DIFF_RATIO[profile.name]
         await openBench(page)
         /*
          * 把这个浏览器的 WebGL 后端打进日志。差异比例是大是小全靠它解释：
@@ -121,7 +154,7 @@ for (const profile of PROFILES) {
           // 不管过没过都打一行：阈值就是靠这些数定的，Linux 上的数只有真跑完才知道。
           console.log(`[${browserName}] ${name} 和 chromium 差 ${formatRatio(result)}`)
 
-          if (result.ratio > CROSS_BROWSER_DIFF_RATIO) {
+          if (result.ratio > limit) {
             // 只在超了的时候留图：光看一个比例说不出是「整块没画」还是「颜色偏了一点」。
             // 名字里去掉 `.png`，`attachPng` 会自己加回去。
             const stem = `${browserName}-${name.replace(/\.png$/, '')}`
@@ -131,7 +164,7 @@ for (const profile of PROFILES) {
           // soft：一帧超了不打断后面的，一轮跑完能看到全部差异（同关键帧那条的理由）。
           expect
             .soft(result.ratio, `${browserName} 的 ${name} 和 chromium 差 ${formatRatio(result)}`)
-            .toBeLessThanOrEqual(CROSS_BROWSER_DIFF_RATIO)
+            .toBeLessThanOrEqual(limit)
         }
       },
     )
