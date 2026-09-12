@@ -105,15 +105,19 @@ export default {
   argTypes: { live: { control: false, table: { disable: true } } },
 }
 
-export const Normal = { name: '普通', args: { variant: 'A' } }
-export const Disabled = { name: '禁用', args: { variant: 'A', disabled: true } }
+export const Normal = { name: '普通' }
+export const Disabled = { name: '禁用', args: { disabled: true } }
 ```
 
 数值一律从 `@ai-duel/design` 读，别在 story 里写死颜色和间距（7.1 第 4 条）。
+**React 这边现在是例外**：正式版简化第 3 步把 `ui` 剥成了素方块，那个包不再依赖
+`design`，条目里也没有颜色和间距可写。重做视觉时这一条跟着接回来。
 
-悬停和按下这两个态目前**没有**装插件来模拟 CSS 伪类，所以组件要能被 prop 直接摆成那个样子
-（比如 `data-state="hover"`），否则那两条 story 拍出来和普通态一模一样。
-第一批 React 组件（迁移第 31 条）落地时按这条设计，真需要伪类模拟再另议装插件。
+悬停和按下这两个态目前**没有**装插件来模拟 CSS 伪类，所以光靠 `:hover` / `:active`
+那两条 story 拍出来会和普通态一模一样。从前的做法是让组件认一个 `data-state` prop，
+目录页把它摆成哪一档就拍到哪一档；正式版简化第 3 步把 React 组件剥成了素方块，
+那套摆态连同样式一起删了（现在每个 React 组件只有一条「普通」条目）。
+重做视觉时要么把 `data-state` 加回来，要么另议装伪类模拟插件。
 
 ### 状态矩阵
 
@@ -164,13 +168,14 @@ pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
 5. DOM 条目的版式不跟着容器宽度和字体度量走：列数写死（别用 `auto-fill` / `flex-wrap`），
    行高写死（别用 `line-height: normal`），高度也别挂在 `100vh` 这类视口尺寸上。
    这三样都是"差一点就换一种排法"的开关，在哪一档翻面跟着平台走——
-   令牌页（`packages/ui/src/tokens.stories.tsx`）就在 linux 上翻过一次，那里有原委。
+   已经删掉的那条令牌一览条目就在 linux 上翻过一次（它靠 `auto-fill` 排格子，
+   两个平台的字体度量差一点就少排一列）。
 
    由此来的一条推论：**两档版式的 React 组件，手机档那一档在这里拍不了**。
    分档要用媒体查询（认视口），而视口钉死在 1280×900；把条目外面的盒子做窄只会得到
    一种真界面上不存在的样子——桌面档的页眉硬塞进窄盒子里。改成容器查询就能拍，
    但那正是上面禁掉的东西。宁可少一条条目，把手机档交给端到端和真机。
-   `packages/ui/src/Page.stories.tsx` 的文件头记了这件事的原委。
+   （正式版简化第 3 步之后 React 组件是素方块，暂时没有要分两档版式的条目。）
 
 阈值 `maxDiffPixelRatio` 是 0.001。顶不住了**先查是不是引入了不确定性**
 （真实时钟、没定种子的随机、字体没加载完），别先去调大这个数——调大一次就等于把这道检查关掉一点。

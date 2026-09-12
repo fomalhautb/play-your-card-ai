@@ -203,17 +203,31 @@ export function PixiStage({ spec, live }: PixiStageProps) {
   }, [spec, live, width, height])
 
   return (
-    <div
-      // 截图回归拿这个属性当「这一帧可以拍了」的信号，见 catalog.spec.ts。
-      // 失败也算就绪：那时画面上是一句提示，拍下来一样是稳定的。
-      data-story-ready={phase === 'building' ? undefined : '1'}
-      // 这条条目单张截图的时限，同样由截图回归从 DOM 上读。没声明就不写这个属性，那边用统一那档。
-      data-screenshot-timeout={spec.screenshotTimeoutMs}
-      style={{ width, height, position: 'relative' }}
-    >
-      <canvas ref={canvasRef} style={{ width, height, display: 'block' }} />
-      {phase === 'failed' && <StageProblem message={problem} width={width} height={height} />}
-    </div>
+    <>
+      {/*
+        画布条目自己那块底色，铺满整个 iframe。
+
+        目录页的 body 不再铺底色（React 条目在正式版简化第 3 步剥成了素方块），
+        而这一层必须留着：截图回归按元素的外框裁剪，外框的纵坐标是半像素时
+        （`layout: 'centered'` 把奇数高度的画布居中就会这样）裁出来的第一行落在画布外面，
+        拍到的是它**背后那一页**的颜色。结算层那四条 1200×675 的条目就踩过这个坑。
+      */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'fixed', inset: 0, background: tokens.color.page.background }}
+      />
+      <div
+        // 截图回归拿这个属性当「这一帧可以拍了」的信号，见 catalog.spec.ts。
+        // 失败也算就绪：那时画面上是一句提示，拍下来一样是稳定的。
+        data-story-ready={phase === 'building' ? undefined : '1'}
+        // 这条条目单张截图的时限，同样由截图回归从 DOM 上读。没声明就不写这个属性，那边用统一那档。
+        data-screenshot-timeout={spec.screenshotTimeoutMs}
+        style={{ width, height, position: 'relative' }}
+      >
+        <canvas ref={canvasRef} style={{ width, height, display: 'block' }} />
+        {phase === 'failed' && <StageProblem message={problem} width={width} height={height} />}
+      </div>
+    </>
   )
 }
 

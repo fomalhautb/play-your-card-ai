@@ -70,7 +70,7 @@ export function DevPanel({ driver }: { driver: LocalDriver }) {
 
   return (
     <div className="dev-panel">
-      <button type="button" className="dev-panel__toggle" onClick={() => setOpen((now) => !now)}>
+      <button type="button" onClick={() => setOpen((now) => !now)}>
         {open ? '收起面板' : '测试面板'}
       </button>
 
@@ -80,7 +80,7 @@ export function DevPanel({ driver }: { driver: LocalDriver }) {
             一眼看清引擎现在停在哪：出牌卡住还是在等答题自动交卷，光看画面分不出来。
             手牌张数也报出来——端到端用例靠它断言「那一下拖拽真的把牌打出去了」。
           */}
-          <p className="dev-panel__status" data-testid="dev-status">
+          <p data-testid="dev-status">
             第 {state.round}/{state.totalRounds} 轮 · {PHASE_LABELS[state.phase]} · 行动方{' '}
             {state.players[state.activePlayer].name} · 我方手牌{' '}
             <span data-testid="dev-hand-count">{state.players[mySeat].hand.length}</span>
@@ -88,11 +88,7 @@ export function DevPanel({ driver }: { driver: LocalDriver }) {
 
           <div className="dev-panel__row">
             <span className="dev-panel__label">造牌</span>
-            <select
-              className="dev-panel__select"
-              value={cardId}
-              onChange={(event) => setCardId(event.target.value)}
-            >
+            <select value={cardId} onChange={(event) => setCardId(event.target.value)}>
               <option value={FROM_DECK}>牌堆顶</option>
               {CARD_POOL.map((id) => (
                 <option key={id} value={id}>
@@ -148,7 +144,7 @@ export function DevPanel({ driver }: { driver: LocalDriver }) {
             </button>
           </div>
 
-          <p className="dev-panel__note">进答题阶段后结果会自动交卷，不用手动点。</p>
+          <p>进答题阶段后结果会自动交卷，不用手动点。</p>
         </div>
       ) : null}
     </div>

@@ -1,52 +1,41 @@
 /**
- * 画布外的 React 组件库：按钮、边框、列表、弹窗、表单。
+ * 画布外的 React 组件库：按钮、弹窗、表单、文字页外壳。
  *
  * 只服务文字型界面（设置、账号、关于、结算、弹窗），这些界面自己做响应式，
- * 不依赖画布。每种组件只有编号的变体，界面代码只能选变体、传数据，不能自己画
- *（见《正式版架构》7.1）。
- * 允许依赖：`design`（令牌）、`platform`（平台能力）。
- * 不依赖 `canvas`——两套组件库并列，互相不引用。
+ * 不依赖画布。不依赖 `canvas`——两套组件库并列，互相不引用。
  *
- * 现在装着的是两批：
+ * ## 现在全是素方块
  *
- * - 第 21 / 27 / 28 条那批，也就是对局和房间页在画布之外非要不可的几样：
- *   按钮 A（墨蓝匾额，离开确认弹窗上那两颗）、弹窗 A（纸面对话框）、
- *   输入框 A（纸面数字框，「填四位房间码」是唯一非要真的 `<input>` 不可的事，
- *   见 CodeInput.tsx 的文件头）、单行输入框（构筑页改名用）。
- * - 第 31 条那批，四个文字界面（结算、设置、账号、关于）要用的：
- *   面板 H（`Sheet` 羊皮纸结算底板）、弹窗 E（`Veil` 结算遮罩）、提示 E（`Notice`）、
- *   图标 B / C（`Icon`）、按钮 J（`SealButton` 夜色圆章）、设置开关（`Toggle`）、
- *   文字页外壳（`Page`）。那一批里还有加载页要的条 B（`ProgressBar`）和条 D（`CardLoader`），
- *   正式版简化第 2 步把加载页换成一行文字，这两个跟着删了。
+ * 正式版简化第 3 步（视觉整套重做的前一步）把这里的样式**全部剥掉**了：
+ * 没有颜色、字体、圆角、阴影、动画、图标，能用原生元素默认外观的就不写样式，
+ * 写出来的几个 `.css` 文件里只剩摆位（铺满、一列、居中、边框、遮罩那一档黑）。
+ * 编号变体（按钮 A~D）和「用 prop 摆出悬停 / 按下」那套目录页专用的摆态也一起去掉了——
+ * 前者没有第二档可选，后者没有样式可拍。
  *
- * `Toggle` 和 `Page` 在需求单里还没有编号（旧版压根没有设置页），
- * 理由各写在自己的文件头里。其余变体按需求单（docs/design/组件需求单.md）在用到时补，
- * 不先建完整再用。
+ * 跟着一起删掉的两样：`Icon`（只有 `SealButton` 和 `Page` 内部在用，两者改成文字后没人用）、
+ * 令牌一览那条目录页条目（对素方块没有意义）。
  *
- * 每个组件的样式跟着组件走（同名 .css，7.2 第 4 条），数值一律读 `@ai-duel/design`
- * 的 CSS 变量。变量要由应用壳 import 一次 `@ai-duel/design/tokens.css` 挂到 :root 上，
- * 这个包自己不 import 它——那样每个用到组件的页面都会重复引一遍同一份变量。
+ * 每个组件仍然保留一条目录页条目（`XXX.stories.tsx`，7.1 第 3 条），
+ * 截图回归的机制要留着，重做视觉时它就是第一道检查。
  */
 
-export type { ButtonProps, ButtonState, ButtonVariant } from './Button'
+export type { ButtonProps } from './Button'
 export { Button } from './Button'
 export type { CodeInputProps } from './CodeInput'
 export { CodeInput } from './CodeInput'
 export type { DialogAction, DialogProps } from './Dialog'
 export { Dialog } from './Dialog'
-export type { IconName, IconProps } from './Icon'
-export { Icon } from './Icon'
 export type { NoticeProps, NoticeTone } from './Notice'
 export { Notice } from './Notice'
 export type { PageProps } from './Page'
 export { Page } from './Page'
-export type { SealButtonProps, SealButtonState } from './SealButton'
+export type { SealButtonProps } from './SealButton'
 export { SealButton } from './SealButton'
-export type { SheetProps, SheetTone } from './Sheet'
+export type { SheetProps } from './Sheet'
 export { Sheet } from './Sheet'
 export type { TextFieldProps } from './TextField'
 export { TextField } from './TextField'
-export type { ToggleProps, ToggleState } from './Toggle'
+export type { ToggleProps } from './Toggle'
 export { Toggle } from './Toggle'
 export type { VeilProps } from './Veil'
 export { Veil } from './Veil'

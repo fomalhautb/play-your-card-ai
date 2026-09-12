@@ -1,28 +1,28 @@
 /**
- * 弹窗 A（纸面对话框）：盖在全屏遮罩上的一张纸，标题、一段说明、一到两个操作。
+ * 一个对话框：标题、一段内容、一到两个操作。离开确认、加入房间、牌组改名都用它。
  *
- * 需求单去重记录第 6 条：旧版的离开确认、全屏提示、竖屏提示是同一套 CSS 抄了三遍，
- * 只有底部内边距差 2~4px。这里合成一个组件，三处将来都用它。
+ * ## 为什么是原生 `<dialog>`
  *
- * ## 为什么要传送到 `document.body`
+ * 从前这一层是自己搭的：一块 `position: fixed` 的遮罩加一张纸，还得用
+ * `createPortal` 传送到 `document.body`——对局界面里那颗触发它的按钮画在画布上，
+ * 而画布外层是会被 transform 缩放的舞台容器，留在原地渲染的话 `fixed` 会退化成
+ * 相对那个祖先定位（CSS 规范里 transform 会给 fixed 建一个新的包含块）。
  *
- * 对局界面里那颗触发它的按钮画在画布上，而画布外层是会被缩放的舞台容器。
- * 留在原地渲染的话，`position: fixed` 会退化成相对那个带 transform 的祖先定位
- *（CSS 规范里 transform 会给 fixed 建一个新的包含块），弹窗跟着舞台一起缩小、还可能跑偏。
- * 传送到 body 之后它只认视口，和触发它的地方在哪一层无关。
+ * `showModal()` 把对话框放进浏览器的**顶层**（top layer），顶层不认任何祖先的
+ * transform，所以传送那一整套连同它的测试一起删掉了。顺带白拿了三样：
+ * `::backdrop` 遮罩、Esc 退出、以及「底下那一屏整个变 inert（点不动也 Tab 不到）」。
  *
  * ## 关掉的三条路
  *
  * 点遮罩、按 Esc、点「取消」都走同一个 `onDismiss`。**没有取消按钮时前两条也照样通**——
- * 「只有一个确认」的对话框（比如全屏提示）本来就是可以直接退掉的；
- * 真要拦住玩家的对话框不该走这个组件，那属于另一档设计。
+ * 「只有一个确认」的对话框本来就是可以直接退掉的；真要拦住玩家的对话框不该走这个组件。
  *
- * 遮罩写成一颗真按钮而不是给 `<div>` 挂 onClick：那样它自带键盘可达和无障碍语义，
- * 不用为了糊弄 lint 往里塞一堆 role 和 onKeyDown。
+ * 开关由调用方的 `open` 说了算，组件自己不改它：所以 Esc 那一下要 `preventDefault()`
+ * 拦住原生的关闭，只报 `onDismiss`，等调用方把 `open` 改成 false 再卸载。
+ * 不拦的话元素被浏览器关掉而 React 这边仍以为它开着，下次就再也打不开了。
  */
 
-import { type ReactNode, useEffect } from 'react'
-import { createPortal } from 'react-dom'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { Button } from './Button'
 import './dialog.css'
 
@@ -34,10 +34,10 @@ export interface DialogAction {
 }
 
 export interface DialogProps {
-  /** false 时整个不渲染（连遮罩都不建），退场动画留到真需要时再说。 */
+  /** false 时整个不渲染（连元素都不建）。 */
   open: boolean
   title: string
-  /** 标题下面那段说明。不给就只有标题和按钮。 */
+  /** 标题下面那段内容。不给就只有标题和按钮。 */
   children?: ReactNode
   /** 主操作。必填——一个按钮都没有的对话框退不掉。 */
   confirm: DialogAction
@@ -46,9 +46,9 @@ export interface DialogProps {
   /** 点遮罩、按 Esc，以及点「取消」时叫它。不给就这三条路都不通。 */
   onDismiss?: () => void
   /**
-   * 就地渲染，不传送到 body。**只给组件目录页用**：截图回归拍的是条目那一块
-   *（见 client/dev/storybook/catalog.spec.ts），传送出去之后那一块里就什么都没有了。
-   * 真界面别传——不传送就会踩上文件头说的那个 transform 包含块的坑。
+   * 不进顶层，就在原地开（`show()` 而不是 `showModal()`）。**只给组件目录页用**：
+   * 截图回归拍的是条目那一块，进了顶层之后那一块的布局尺寸是 0，拍到的是一片空。
+   * 真界面别传——不进顶层就会踩上文件头说的那个 transform 包含块的坑。
    */
   inline?: boolean
 }
@@ -62,54 +62,54 @@ export function Dialog({
   onDismiss,
   inline = false,
 }: DialogProps) {
+  const ref = useRef<HTMLDialogElement>(null)
+
   /*
-   * Esc 挂在 document 上而不是面板上：面板刚出现时焦点还在触发它的那颗按钮上，
-   * 挂在面板上要先抢焦点才收得到键盘事件，而抢焦点会把玩家原来的焦点位置弄丢。
+   * 元素进了 DOM 之后再开。`<dialog open>` 那种写法开出来的是**非模态**的，
+   * 顶层和 ::backdrop 都要靠这两个方法调，属性写不出来。
+   *
+   * `open` 必须在依赖里：关掉时下面那句 `return null` 只是把元素摘掉，组件本身还挂着，
+   * 不重跑这个 effect 的话再开一次就只剩一个没人调 `showModal()` 的空元素
+   *（原生 `<dialog>` 不 open 时是 `display: none`，界面上什么都不出现）。
    */
   useEffect(() => {
-    if (!open || onDismiss === undefined) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onDismiss()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open, onDismiss])
+    if (!open) return
+    const dialog = ref.current
+    if (dialog === null || dialog.open) return
+    if (inline) dialog.show()
+    else dialog.showModal()
+  }, [inline, open])
 
   if (!open) return null
 
-  const layer = (
-    <div className="ui-dialog" data-inline={inline ? 'true' : undefined}>
-      {/*
-        遮罩**永远画**，只有「点得动」这一档跟着 `onDismiss` 走。
-        原来是没有 onDismiss 就整块不渲染，于是那种对话框浮在一片没压暗的页面上——
-        底色是这块遮罩自己带的（见 dialog.css），不画它就等于没有底色。
-        竖屏提示就是这一档（它要玩家从两颗钮里挑一条路，不给点一下就退掉的口子）。
-      */}
-      {onDismiss === undefined ? (
-        <div className="ui-dialog__scrim" aria-hidden="true" />
-      ) : (
-        <button
-          type="button"
-          className="ui-dialog__scrim"
-          aria-label="关闭对话框"
-          onClick={onDismiss}
-        />
-      )}
-      <div className="ui-dialog__panel" role="dialog" aria-modal="true" aria-label={title}>
-        <p className="ui-dialog__title">{title}</p>
-        {children === undefined ? null : <div className="ui-dialog__body">{children}</div>}
-        <div className="ui-dialog__actions">
-          {cancel === undefined ? null : (
-            <Button disabled={cancel.disabled ?? false} onClick={cancel.onSelect}>
-              {cancel.label}
-            </Button>
-          )}
-          <Button disabled={confirm.disabled ?? false} onClick={confirm.onSelect}>
-            {confirm.label}
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: 点遮罩对应的键盘操作是原生 Esc，下面 onCancel 已经收了
+    <dialog
+      ref={ref}
+      className="ui-dialog"
+      aria-label={title}
+      onCancel={(event) => {
+        // 关不关由调用方决定，理由见文件头。
+        event.preventDefault()
+        onDismiss?.()
+      }}
+      onClick={(event) => {
+        // 点在遮罩上时事件的目标就是 <dialog> 本身，点在里面的内容上不是。
+        if (event.target === ref.current) onDismiss?.()
+      }}
+    >
+      <h2>{title}</h2>
+      {children}
+      <div>
+        {cancel === undefined ? null : (
+          <Button disabled={cancel.disabled ?? false} onClick={cancel.onSelect}>
+            {cancel.label}
           </Button>
-        </div>
+        )}
+        <Button disabled={confirm.disabled ?? false} onClick={confirm.onSelect}>
+          {confirm.label}
+        </Button>
       </div>
-    </div>
+    </dialog>
   )
-  return inline ? layer : createPortal(layer, document.body)
 }

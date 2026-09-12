@@ -1,7 +1,6 @@
 /*
- * 开发页的版式。只有"画布铺满、控件贴底"这一件事，样式跟着组件走（架构 7.2 第 4 条）。
- * 颜色用设计令牌的 CSS 变量，别在这里写死色值（7.1 第 4 条）——
- * 变量由 App.tsx 那边 import 的 @ai-duel/design/tokens.css 挂在 :root 上。
+ * 开发页的版式：画布铺满上半截，控件贴底。
+ * 正式版简化第 3 步把配色和按钮外观剥了，控件走浏览器默认样子。
  */
 
 .duel-dev {
@@ -9,9 +8,6 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--color-page-background);
-  color: var(--color-page-foreground);
-  font-family: var(--font-family-serif);
 }
 
 /* 画布占满剩下的全部高度。控件那条是固定高度，不跟着画布抢。 */
@@ -27,55 +23,34 @@
  */
 .duel-dev__fps {
   position: absolute;
-  top: var(--space-sm);
-  left: var(--space-sm);
+  top: 4px;
+  left: 4px;
   pointer-events: none;
-  font-size: var(--font-size-xs);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-paper-base);
-  /* 和下面那条控件栏里的状态、计数器同一档淡，读得出来又不抢画面。 */
-  opacity: var(--opacity-home-flourish-line);
 }
 
 .duel-dev__panel {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-lg);
-  background: var(--color-battle-navy);
-  font-size: var(--font-size-base);
+  gap: 4px;
+  padding: 4px 12px;
 }
 
-.duel-dev__panel button {
-  padding: var(--space-xs) var(--space-lg);
-  border: 1px solid var(--color-plaque-navy-default-line);
-  border-radius: var(--radius-sm);
-  background: var(--color-plaque-navy-default-fill);
-  color: var(--color-paper-base);
-  font: inherit;
-  cursor: pointer;
-}
-
-.duel-dev__panel button:hover {
-  background: var(--color-plaque-navy-hover-fill);
-}
-
-/* 当前选中的档位。用 data 属性而不是类名：状态由 React 直接写，不用再拼类名字符串。 */
+/*
+ * 当前选中的档位。原生按钮那圈默认边框是 2px 的立体框，换成 1px 实线就分得出来——
+ * 这是素方块阶段唯一还能表达「选中」的手段（颜色都剥掉了）。
+ */
 .duel-dev__panel button[data-active="true"] {
-  border-color: var(--color-theme-gold);
-  color: var(--color-theme-gold);
+  border: 1px solid currentColor;
 }
 
 .duel-dev__group {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 4px;
 }
 
 /* 计数器推到右边，按钮那一堆留在左边。 */
 .duel-dev__counters {
   margin-left: auto;
-  font-variant-numeric: tabular-nums;
-  opacity: var(--opacity-home-flourish-line);
 }

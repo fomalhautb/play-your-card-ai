@@ -1,11 +1,11 @@
 /*
- * 应用壳自己那点样式：页面底色，以及路由兜底那两句提示。
+ * 应用壳自己那点版式：整页占满、去掉 body 的默认外边距。
  * 具体页面的版式跟着各自的组件走（架构 7.2 第 4 条），别往这里堆。
+ *
+ * 底色、字体、`color-scheme` 在正式版简化第 3 步去掉了：整套界面现在走浏览器默认外观，
+ * 视觉后面整个重做。App.tsx 那句 `import '@ai-duel/design/tokens.css'` 先留着，
+ * 画布那边还在读令牌（第 5 步再收）。
  */
-
-:root {
-  color-scheme: dark;
-}
 
 html,
 body,
@@ -15,13 +15,9 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-page-background);
-  color: var(--color-page-foreground);
-  font-family: var(--font-family-serif);
 }
 
 /* 「正在加载开发页…」「没有这一页」这类只有一行字的兜底。 */
 .app-notice {
-  padding: var(--space-xxl);
-  opacity: var(--opacity-home-flourish-line);
+  padding: 16px;
 }

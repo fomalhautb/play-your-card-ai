@@ -27,9 +27,7 @@ export interface LoadingScreenProps {
 export function LoadingScreen({ progress }: LoadingScreenProps) {
   return (
     <main className="loading">
-      <p className="loading__text" role="status">
-        {progress === undefined ? '加载中…' : `加载中 ${percentOf(progress)}%`}
-      </p>
+      <p role="status">{progress === undefined ? '加载中…' : `加载中 ${percentOf(progress)}%`}</p>
     </main>
   )
 }

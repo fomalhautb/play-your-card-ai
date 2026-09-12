@@ -11,7 +11,11 @@
 import type { Decorator, Preview } from '@storybook/react-vite'
 import { useState } from 'react'
 import { PixiStage, type PixiStorySpec } from './pixiStory'
-// 设计令牌的 CSS 变量，preview.css 和 ui 的令牌页都要读。
+/*
+ * 设计令牌的 CSS 变量。目录页现在没有条目读它们了（React 组件在正式版简化第 3 步
+ * 剥成了素方块，令牌一览那条条目也删了），先跟着 client 的 App.tsx 一起留着，
+ * 等第 5 步收拾令牌包时两处一起处理。
+ */
 import '@ai-duel/design/tokens.css'
 import './preview.css'
 

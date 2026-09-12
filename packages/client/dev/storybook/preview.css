@@ -1,15 +1,15 @@
-/**
+/*
  * 目录页画布（Storybook 的 iframe）自己的底。
  *
- * Storybook 默认给条目一块白底，而这套界面的页面底色是深的（令牌 page.background）：
- * 白底上看深色组件会看错对比度，截图回归拍下来的也是一张对不上真实界面的图。
- * 值全部读 tokens.css 的 CSS 变量，这里不写死任何数（7.1 第 4 条）。
+ * 原来这里铺的是设计令牌的页面底色（深色）。正式版简化第 3 步把 React 组件剥成了
+ * 素方块，真界面也不再铺底色，所以这里跟着**不设底色**——拍到的就是浏览器默认的白底。
+ *
+ * 画布条目要的那块深色底没有跟着没，它挪进了 pixiStory.tsx：那边给每条画布条目
+ * 单铺一层铺满 iframe 的底（截图裁剪会带到画布外面一行，理由写在那里）。
+ *
+ * 只剩去掉 body 默认外边距这一句：留着的话每条条目都会先偏移 8px。
  */
 
 body {
   margin: 0;
-  background: var(--color-page-background);
-  color: var(--color-page-foreground);
-  font-family: var(--font-family-serif);
-  font-size: var(--font-size-base);
 }
