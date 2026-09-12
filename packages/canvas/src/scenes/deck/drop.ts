@@ -56,10 +56,21 @@ export function dropIntoDeck(ctx: DeckContext, state: DragPress, x: number, y: n
       point: { x, y: y + ctx.slotScroll.offset },
     })
   const ghost = state.ghost
-  if (blockedFor(ctx, state.origin.cardId) !== null || ghost === null) {
-    ctx.refuse(state.origin.cardId, ghost)
+  if (ghost === null) {
     endDrag(ctx, state)
     renderDeckScene(ctx)
+    return
+  }
+  if (blockedFor(ctx, state.origin.cardId) !== null) {
+    /*
+     * 加不进去：先摇头弹字，再把牌送回原位。
+     *
+     * 顺序不能反——`refuse` 摇的是**跟手那张**（玩家正盯着它），而送回原位那一程
+     * 跑完就会把它还回回收池。两段动的是不同的属性（摇头写 rotation、飞行写 position
+     * 和 scale），所以它们叠着演，不会互相顶掉。
+     */
+    ctx.refuse(state.origin.cardId, ghost)
+    dropHome(ctx, state)
     return
   }
   // 让位那一格先留着：牌还在半空，格子塌回去的话它就是飞向一个不存在的地方。

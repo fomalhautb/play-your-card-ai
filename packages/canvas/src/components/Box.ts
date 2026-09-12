@@ -151,8 +151,13 @@ export class Box extends Container {
    *
    * 覆盖的是 Pixi 自带的 `setSize`（那一个是靠缩放硬拉整棵子树的），
    * 这里改的是几何——描边被拉粗、字被拉变形都不是想要的。
+   *
+   * **尺寸没变就一个指令都不发**：进度条和滚动条的滑块每重排一次画面就会来问一遍
+   *（拖拽途中让一次位就是一轮），不挡住的话每次都要把那圈描边重新攒一遍路径指令，
+   * 纪律 3.10 那条「稳态每帧堆分配接近 0」量的正是这个。
    */
   override setSize(width: number, height: number): void {
+    if (width === this.boxWidth && height === this.boxHeight) return
     this.boxWidth = width
     this.boxHeight = height
     this.drawFrame()
