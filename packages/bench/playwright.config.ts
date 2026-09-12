@@ -1,16 +1,20 @@
 /**
- * 跑批器。两个 project 对应 6.9 的两类指标，默认只跑确定性那组。
+ * 跑批器。几个 project 各管一件事，`pnpm bench` 默认只跑确定性那组。
  *
  * - deterministic：无头 Chromium，强制 SwiftShader 软件渲染。软件渲染慢，但它跨机器一致，
- *   而确定性指标要的正是「同一段剧本在任何机器上一模一样」。时间快慢在这一组里没有意义。
+ *   而 6.9 的确定性指标要的正是「同一段剧本在任何机器上一模一样」。时间快慢在这一组里没有意义。
+ * - keyframes：剧本关键帧的截图回归（6.6），同样是无头 + SwiftShader，抓完最后一帧就收工。
+ * - keyframes-webkit / keyframes-firefox：三浏览器一致性（6.10），和 keyframes 拍同样的帧，
+ *   拿 chromium 那张基线当参照物比。这两家**不按**软件渲染跑，理由见它们自己的说明。
+ * - interaction：真指针的交互回归（6.6 第 2 条），不量任何东西。
  * - timing：有头、开 GPU、真实时钟，录 Chrome trace。它默认不跑（--project 显式指定），
  *   因为它慢、要 GPU、而且在无头软件渲染的 CI 快档上量出来的时间没有参考价值。
  *
- * 两组对并发的要求正相反，所以并行只开在 deterministic 那个 project 上，见下面各自的说明。
+ * 各组对并发的要求不一样，所以并行开在各自的 project 上而不是顶层，见下面各自的说明。
  */
 
 import { availableParallelism } from 'node:os'
-import { defineConfig } from '@playwright/test'
+import { defineConfig, type PlaywrightTestConfig } from '@playwright/test'
 import { BENCH_PORT } from './vite.config'
 
 const BASE_URL = `http://127.0.0.1:${BENCH_PORT}`
@@ -23,6 +27,53 @@ const BASE_URL = `http://127.0.0.1:${BENCH_PORT}`
  * CI 上写死 2：容器里 availableParallelism() 报的常常是宿主机的核数，按它算会开得太多。
  */
 const WORKERS = process.env.CI ? 2 : Math.max(1, Math.floor(availableParallelism() / 3))
+
+/**
+ * 三浏览器一致性（6.10、迁移第 34 条）的两个 project，跑的都是 crossBrowser.spec.ts。
+ * chromium 那一遍不在这里跑：它拍的图就是 `baselines/{平台}/` 里的关键帧基线，
+ * 快档每个 PR 都重拍并逐像素比过，直接拿来当参照物（理由见那个 spec 的文件头）。
+ *
+ * **这两家一律不加软件渲染的开关**，和 chromium 那几个 project 正相反：
+ * 这条检查要的就是「各家用自己平时那条路画出来的东西一样不一样」，
+ * 硬把三家都按到同一个光栅器上，检查也就没什么可查的了。代价是本机（macOS）上
+ * 它们走的是真 GPU 而 chromium 走 SwiftShader，差异比例因此偏大——那正是阈值要吃下的部分。
+ *
+ * 超时照搬关键帧那组的 10 分钟：跑的是同一段剧本、同样抓齐就收工。
+ * 真 GPU 那两家实际上比 chromium 快得多，这个数是留给 Linux 跑机上的软件光栅的。
+ */
+const crossBrowserProjects: NonNullable<PlaywrightTestConfig['projects']> = [
+  {
+    name: 'keyframes-webkit',
+    testMatch: /crossBrowser\.spec\.ts/,
+    fullyParallel: true,
+    timeout: 600_000,
+    /*
+     * WebKit 没有可传的启动参数（Playwright 那边 `args` 对它不生效），
+     * 所以这里什么也调不了：它在 macOS 上走 Metal 后端的 ANGLE、在 Linux 上走自带的那套，
+     * 有什么用什么。跑不起来的话只能在报告里记一笔，没有开关可拧。
+     */
+    use: { browserName: 'webkit', headless: true },
+  },
+  {
+    name: 'keyframes-firefox',
+    testMatch: /crossBrowser\.spec\.ts/,
+    fullyParallel: true,
+    timeout: 600_000,
+    use: {
+      browserName: 'firefox',
+      headless: true,
+      launchOptions: {
+        /*
+         * 两条都是给**没有显卡的 Linux 跑机**留的保险，macOS 上是空操作（开不开都一样）。
+         * Firefox 有一张图形黑名单，认不出的驱动（跑机上的软件光栅就是这一类）会被它
+         * 直接判成「不给 WebGL」，那时候页面拿到的是 null 上下文、场景一帧都画不出来。
+         * force-enabled 是绕过黑名单的那个开关，disabled 只是再明确一次别关掉。
+         */
+        firefoxUserPrefs: { 'webgl.force-enabled': true, 'webgl.disabled': false },
+      },
+    },
+  },
+]
 
 export default defineConfig({
   testDir: './tests',
@@ -63,7 +114,10 @@ export default defineConfig({
    * 关键帧基线按平台分目录：字体光栅化在 macOS 和 Linux 上对不齐，一份基线两边一定比不过
    *（和目录页那条同一个决定，见 client 的 dev/storybook/playwright.config.ts）。
    * 目录名就是 `process.platform`：本机跑生成 darwin/，CI（Linux）用 linux/。
-   * 只有 keyframes 那个 project 会用到它，别的 project 一张图都不拍。
+   *
+   * 模板里**故意不放 {projectName}**：三浏览器一致性那两个 project 要按同一个路径去读
+   * chromium 那张图当参照物（见 tests/crossBrowser.spec.ts），加了就各读各的了。
+   * 写这个目录的只有 keyframes 一个 project，别的 project 要么只读、要么一张图都不拍。
    */
   snapshotDir: './baselines',
   snapshotPathTemplate: '{snapshotDir}/{platform}/{arg}{ext}',
@@ -124,6 +178,7 @@ export default defineConfig({
         },
       },
     },
+    ...crossBrowserProjects,
     {
       /*
        * 交互回归（6.6 第 2 条）。和确定性那组同样是无头 + SwiftShader，但它不量任何东西，

@@ -60,6 +60,31 @@ export async function openBench(page: Page): Promise<void> {
 }
 
 /**
+ * 这个浏览器的 WebGL 后端是什么（`WEBGL_debug_renderer_info` 的 UNMASKED_RENDERER）。
+ *
+ * 三浏览器一致性那条每次都把它打进日志：同样一个差异比例，在「两边都是软件光栅」
+ * 和「一边 SwiftShader 一边真 GPU」之下含义完全不同，没有这一行就没法判断比例是否正常。
+ *
+ * 另开一张一次性画布问，不问场景那个上下文——问它要 `getParameter` 会被计数器记成
+ * 一次同步阻塞调用（见 metrics/glCounters.ts），那条上限是 0。
+ * 问完立刻 `WEBGL_lose_context` 放掉：浏览器同时能开的 WebGL 上下文是有数的，
+ * 留着它等于白占一个名额。
+ */
+export async function webglRenderer(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl2')
+    if (!gl) return '没有 WebGL2'
+    const info = gl.getExtension('WEBGL_debug_renderer_info')
+    const name = info
+      ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL))
+      : String(gl.getParameter(gl.RENDERER))
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+    return name
+  })
+}
+
+/**
  * 建场景。和跑剧本分成两步，是为了堆采样能只框住剧本那一段：
  * init 要建纹理、建对象池、预热，那是几百 KB 的一次性分配，
  * 算进「稳态每帧堆分配」里，短剧本会被这一笔直接顶穿上限。

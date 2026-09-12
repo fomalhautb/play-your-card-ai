@@ -15,6 +15,7 @@
     "interaction": "playwright test --project=interaction",
     "keyframes": "playwright test --project=keyframes",
     "keyframes:update": "playwright test --project=keyframes --update-snapshots",
+    "cross-browser": "playwright test --project=keyframes-webkit --project=keyframes-firefox",
     "timing": "playwright test --project=timing"
   },
   "dependencies": {
@@ -28,6 +29,9 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.4.0",
+    "@types/pngjs": "^6.0.5",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
