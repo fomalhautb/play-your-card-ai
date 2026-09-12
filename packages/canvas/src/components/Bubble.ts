@@ -112,6 +112,17 @@ export class Bubble extends Container {
     )
   }
 
+  /**
+   * 当场收掉：掐掉自己身上的补间。
+   *
+   * 销毁之前必须调它。淡入那一下补的是**私有的**内层容器，外面掐不到——
+   * 而没掐干净就销毁，下一帧 GSAP 会在拆掉的对象上取属性、当场抛错。
+   */
+  clear(): void {
+    this.deps.animator.killTweensOf(this.inner)
+    this.deps.animator.killTweensOf(this)
+  }
+
   /** 淡出。位置不动——往回沉一下反而像是被谁推走的。 */
   hide(): void {
     this.deps.animator.tween(this, {

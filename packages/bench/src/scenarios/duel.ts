@@ -1,70 +1,79 @@
 /**
- * 对局的三段剧本：开局发牌、连续出牌十次、翻面。
+ * 对局的三段剧本：开局发牌、连续出牌十次、放大查看。
  *
  * 6.9 列的剧本还有「一轮结算、牌组编辑滚动、开包」，那几段要等对应场景写出来才有得跑，
  * 到时候各加一个文件、在这里的表上登记一行。
  *
- * setup 里的动作不计入指标：它只是把场景摆到被测动作开始前的样子。
- * 比如 play10 要先有牌在手上，但发牌是 deal 那一段的事，不该混进出牌的数字里。
+ * ## 每段都先热身一遍
+ *
+ * `setup` 里跑的是和被测那遍**一模一样**的脚本，只是步长放大十几倍、而且不进指标。
+ * 这一遍是必需的，不是优化：纪律 3.5 说的是「文字只创建一次并缓存」，
+ * 而一局对局里横幅、比分、Token 读数这些字第一次出现时总要烤一次纹理。
+ * 热身之后再测，`textCreated` 和 `textureUploads` 量到的才是**稳态**——
+ * 也就是那两条上限（都是 0）真正要拦的东西：运行期还在不停地建新东西。
+ *
+ * 热身完再 `restart()` 一次，把局面重新摆到被测动作的起点；`deal` 那段的被测动作
+ * 本身就是开局，所以它的 `run` 就是那一次 `restart`。
  */
 
-import type { Scenario } from './types'
+import type { Scenario, ScenarioContext } from './types'
+
+/** `play10` 打几张。五张我方、五张对方，第一轮双方各 5 点 Token 正好够。 */
+const PLAY_COUNT = 10
+
+/** `flip` 之前先摆几个单位在场上，好有东西可点。 */
+const INSPECT_SETUP_PLAYS = 3
 
 const deal: Scenario = {
   name: 'deal',
-  description: '开局发 8 张',
+  description: '开局：抛硬币过场收尾，双方各五张手牌飞进扇形',
+  async setup(ctx) {
+    ctx.scene.setWarmup(true)
+    await ctx.act(() => ctx.scene.restart())
+    ctx.scene.setWarmup(false)
+  },
   async run(ctx) {
-    await ctx.act(() => ctx.scene.deal(8))
+    await ctx.act(() => ctx.scene.restart())
   },
 }
 
-/**
- * hover 时指针压在卡面上的哪儿（0~1，左上角是原点）。
- *
- * 取偏右上的一点而不是正中：倾斜的角度和高光的位置都是按「离卡心多远」算的，
- * 压在正中等于两样都是零，那一路和不给位置没有区别。偏出去七成足够让倾斜到接近满角、
- * 高光落在卡的左下（光心取的是指针的镜像点，见 canvas 的 fx/cardGlare.ts），
- * 又不至于压在边上被夹住。
- */
-const HOVER_AT = { rx: 0.72, ry: 0.28 }
-
 const play10: Scenario = {
   name: 'play10',
-  description: '连续出牌十次，中间穿插带指针位置的 hover',
+  description: '连续出牌十次：我方五张飞向战场，对方五张走强制展示',
   async setup(ctx) {
-    await ctx.act(() => ctx.scene.deal(12))
+    ctx.scene.setWarmup(true)
+    await ctx.act(() => ctx.scene.restart())
+    await ctx.act(() => ctx.scene.playCards(PLAY_COUNT))
+    // 热身完把局面摆回起点：被测的是出牌，开局那一段不该混进去。
+    await ctx.act(() => ctx.scene.restart())
+    ctx.scene.setWarmup(false)
   },
   async run(ctx) {
-    for (let i = 0; i < 10; i += 1) {
-      /*
-       * 出牌前先扫一眼手牌：真人就是这么点的，而 hover 会让扇形动一下，
-       * 正好用来验证「没有补间、只是画面变了」时帧循环也会醒一帧再停。
-       *
-       * 带上指针位置，卡面倾斜和反光才会真的被点亮——不带的话这两条路一帧都跑不到，
-       * 反光那次单独的绘制调用和它带来的合批打断就永远不在任何指标里。
-       * 收敛不用在这儿数帧：倾斜和反光没收住的时候场景就不算空闲，settle() 会一直推到收住为止。
-       */
-      ctx.scene.hover(0, HOVER_AT)
-      await ctx.settle()
-      ctx.scene.hover(null)
-      await ctx.settle()
-      await ctx.act(() => ctx.scene.playCard(0))
-    }
+    await ctx.act(() => ctx.scene.playCards(PLAY_COUNT))
   },
+}
+
+/** 依次放大查看三个单位，每个看完关回去。展示层同一时刻只归一条链路用，所以不能同时开三个。 */
+async function inspectThree(ctx: ScenarioContext): Promise<void> {
+  for (let index = 0; index < 3; index += 1) {
+    await ctx.act(() => ctx.scene.inspect(index))
+  }
 }
 
 const flip: Scenario = {
   name: 'flip',
-  description: '翻面三张，其中一张翻回去',
+  description: '放大查看三张：卡飞到屏幕中央翻正，看完各自飞回原格',
   async setup(ctx) {
-    await ctx.act(() => ctx.scene.deal(6))
+    ctx.scene.setWarmup(true)
+    await ctx.act(() => ctx.scene.restart())
+    await ctx.act(() => ctx.scene.playCards(INSPECT_SETUP_PLAYS))
+    await inspectThree(ctx)
+    await ctx.act(() => ctx.scene.restart())
+    await ctx.act(() => ctx.scene.playCards(INSPECT_SETUP_PLAYS))
+    ctx.scene.setWarmup(false)
   },
   async run(ctx) {
-    for (const index of [0, 2, 4]) {
-      await ctx.act(() => ctx.scene.flip(index))
-    }
-    // 再翻回去一次：换纹理这条路径两个方向都要走到，才能确认翻面不会重新上传纹理。
-    await ctx.act(() => ctx.scene.flip(0))
+    await inspectThree(ctx)
   },
 }
 

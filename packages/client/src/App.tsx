@@ -18,8 +18,8 @@ import { type ComponentType, lazy, Suspense } from 'react'
  */
 const DEV_PAGES: Record<string, ComponentType> = import.meta.env.DEV
   ? {
-      '/dev/hand-fan': lazy(async () => ({
-        default: (await import('./dev/HandFanDev')).HandFanDev,
+      '/dev/duel': lazy(async () => ({
+        default: (await import('./dev/DuelDev')).DuelDev,
       })),
     }
   : {}

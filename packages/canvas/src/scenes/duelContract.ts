@@ -1,21 +1,58 @@
 /**
- * 对局原型场景对外的契约：入参、句柄、计数器。
+ * 对局场景对外的契约：入参、句柄、计数器。
  *
- * 单独成文件是因为它是**跨包的约定**——`packages/bench` 的剧本和 `packages/client` 的开发页
- * 都按这组类型调用，改这里等于改两个包的调用方。放在实现文件里的话，
+ * 单独成文件是因为它是**跨包的约定**——`packages/bench` 的剧本和 `packages/client` 的
+ * 开发页都按这组类型调用，改这里等于改两个包的调用方。放在实现文件里的话，
  * 每次动实现都要在一堆内部细节中间翻出这几个 interface 来确认没动到约定。
+ *
+ * ## 场景认得的三样东西
+ *
+ * `PlayerView`（局面）、`Cue`（演出指令）、`DirectorLocks`（哪些输入现在不许），仅此而已。
+ * **场景不认识引擎事件，也不认识 driver**：谁把事件翻译成 cue 是编排层的事（director/），
+ * 谁去发指令、指令怎么上网是装配层的事（第 21、27 条的两个 driver）。
+ * 这条边界是整个对局代码可测的前提——旧版把三件事糅在一个 3950 行的组件里，一条都测不动。
+ *
+ * ## 两条输入的分工
+ *
+ * - `applyView` 管**结构**：手里有哪几张牌、场上站着谁、比分和 Token 是多少、第几轮。
+ * - `play` 管**时机**：那些变化各自什么时候演、演多久。
+ *
+ * 两者会在同一拍到达（driver 一次 execute 同时产出事件和新视图），所以场景不能一收到
+ * 新视图就把画面改到位——那样牌会在抛硬币的遮罩后面凭空出现。做法是：
+ * `applyView` 只记下「该长成什么样」，真正的进场和退场由 cue 触发；
+ * 等**队列播空、动画也停了**的那一刻再兜底对账一次，把没被任何 cue 认领的差异补上
+ *（中途接手一局、以及「明确不演」的那几种事件走的就是这条）。
+ * 换句话说：**演出播完之后，画面必须和最后一份 view 一致**。
  */
 
+import type { Catalog, Command, PlayerId, PlayerView } from '@ai-duel/core'
+import type { Platform } from '@ai-duel/platform'
 import type { Texture } from 'pixi.js'
+import type { Cue, MatchStageCue } from '../director/cues'
+import type { DirectorLocks, UserAction } from '../director/director'
 import type { EffectTier } from '../fx/effectTier'
 
 /** 纹理由调用方加载好传进来：canvas 不管资源从哪来。 */
 export interface CardTextures {
+  /** 卡面，键是贴图名。贴图名就是卡牌 id（见 scenes/duel/cardVisuals.ts）。 */
   faces: Record<string, Texture>
   back: Texture
 }
 
-export interface DuelPrototypeOptions {
+/**
+ * 场景能发出的指令。
+ *
+ * 是 core 的 `Command` 的一个子集：只有玩家在对局界面上能做的那四件事。
+ * 不用 `protocol` 的 `PlayerCommand`（形状一样）是因为 canvas 不许依赖 protocol
+ *（依赖方向见《正式版架构》7.2 第 1 条）；装配层把它原样交给 driver 即可，两边结构相同。
+ * 答题结果（`SUBMIT_ANSWERS`）不在里面——那是服务端的事（5.3），客户端发得出来就是作弊。
+ */
+export type DuelCommand = Extract<
+  Command,
+  { type: 'PLAY_CARD' | 'END_PLAY' | 'USE_HERO_SKILL' | 'CONFIRM_ROUND' }
+>
+
+export interface DuelSceneOptions {
   canvas: HTMLCanvasElement
   /** CSS 像素。 */
   width: number
@@ -24,16 +61,36 @@ export interface DuelPrototypeOptions {
   resolution: number
   /** 档位决定特效开关、粒子数量；任何一档都不挂 Filter（3.1）。 */
   tier: EffectTier
-  /** 所有随机（粒子、抖动）用它定种子，同 seed 同结果。 */
-  seed: number
+  /** 这一端坐哪个座位。视图里的「我方 / 对方」按它分。 */
+  seat: PlayerId
   textures: CardTextures
-  /** 牌库顺序，元素是 textures.faces 的 key。 */
-  deck: string[]
+  /** 本局卡池。卡名、费用、是 AI 还是技能都从它查。 */
+  catalog: Catalog
+  /**
+   * 触感和音效。只要这两样能力——场景不碰网络、存储、全屏。
+   * 不给就静音、不震动（目录页和 bench 就是这么跑的）。
+   */
+  platform?: Pick<Platform, 'audio' | 'haptics'>
   /** true 时不注册任何真实时间源，只靠 step() 推进。 */
-  manualClock: boolean
+  manualClock?: boolean
+  /**
+   * 指针是不是粗的（CSS 的 `pointer: coarse`）。它和视口短边一起决定走哪一档版式，
+   * 判据见 scenes/duel/layout/pickLayout.ts。
+   */
+  coarsePointer?: boolean
+  /** 所有随机（烟尘方向、大小）用它定种子，同 seed 同结果（6.9 的确定性前提）。 */
+  seed?: number
+  /**
+   * 顶栏右端那两颗图标钮的剪影。真图标是美术资源，第 33 条才搬进来；
+   * 不给就用画出来的占位图形（见 scenes/duel/placeholderIcons.ts）。
+   */
+  icons?: { leave: Texture; mute: Texture }
+  /** 顶栏两颗钮按下时叫谁。不给就是这两颗钮点了没反应。 */
+  onLeave?: () => void
+  onToggleMute?: () => void
 }
 
-export interface DuelPrototypeCounters {
+export interface DuelSceneCounters {
   /** 文字对象创建次数（3.5：动画期间应为 0）。 */
   textCreated: number
   /** render 调用次数。 */
@@ -52,32 +109,41 @@ export interface DuelPrototypeCounters {
   activeMs: number
 }
 
-export interface DuelPrototype {
-  /** 开局发牌：从牌库位置逐张飞入扇形。 */
-  deal(count: number): Promise<void>
-  /** 合成一段拖拽：拖起、越线、飞向战场落点、落地播命中特效、手牌重排。 */
-  playCard(handIndex: number): Promise<void>
-  /** 翻面。 */
-  flip(handIndex: number): Promise<void>
+export interface DuelScene {
+  /** 结构状态：手牌、战场、比分、Token、阶段。组件按它摆。 */
+  applyView(view: PlayerView): void
+  /** 编排层 `drain()` 的产出。按各自的 `at` 排到场景自己的虚拟时钟上，到点才播。 */
+  play(cues: Cue[]): void
+  /** 哪些输入现在不许。场景照它决定手牌接不接指针、按钮灰不灰。 */
+  setLocks(locks: DirectorLocks): void
+  /** 玩家在界面上做出的指令（拖出出牌、结束出牌、发英雄技能、确认结算）。 */
+  onCommand(callback: (command: DuelCommand) => void): void
   /**
-   * 抬起某张（null 收回），用来测 hover 动画。
-   *
-   * @param at 指针压在卡面上的相对位置，左上角是 `{ rx: 0, ry: 0 }`、右下角是 `{ rx: 1, ry: 1 }`。
-   *   传了就顺带走一遍真指针那条路：卡面跟着倾斜、反光跟着亮起来（见 components/cardTilt.ts）。
-   *   不传就只抬牌——扇形动画和倾斜是两件事，只想测抬牌的调用方不该被迫编一个坐标。
-   *   倾斜和反光都是逐帧收敛的，所以传了之后要再推几帧才收得住，一帧看不出效果。
+   * 玩家在界面上做的、**不产生指令**的操作（放大查看、选目标、催一催）。
+   * 调用方原样喂给 `director.userAction`——演出和锁归它管。
+   * 会产生指令的那几下也会先发一条对应的 UserAction，顺序是「先 UserAction 后 Command」：
+   * 编排层要赶在事件回来之前把演出锁上上。
    */
-  hover(handIndex: number | null, at?: { rx: number; ry: number }): void
-  /** 手动推进一帧。 */
+  onUserAction(callback: (action: UserAction) => void): void
+  /** 舞台演出信号（教程要等的那七个时刻，见 MatchStageCue）。教程状态机是第 32 条。 */
+  onTutorialCue(callback: (cue: MatchStageCue) => void): void
+  /** 手动推进一帧。虚拟时钟按它累加，到点的 cue 在这里播。 */
   step(deltaMs: number): void
-  /** 没有在播的动画；此时帧循环必须停（3.6）。 */
+  /** 没有在播的动画、也没有排着队的 cue；此时帧循环必须停（3.6）。 */
   isIdle(): boolean
-  counters(): DuelPrototypeCounters
-  /**
-   * 视口变了。契约之外的扩展，给开发页跟随窗口大小用——
-   * bench 的剧本视口固定，用不到它。
-   */
+  counters(): DuelSceneCounters
+  /** 视口变了。两档版式各按各的比例重排，不是整体缩放（需求第 3 条）。 */
   resize(width: number, height: number): void
+  /**
+   * 回到「一局都还没开始」的空场：手牌、战场、过场层、cue 队列、虚拟时钟全部清掉。
+   *
+   * 换一局（再来一局、重连换局）要用它。烤好的纹理和文字缓存**不清**——那是一份和局面无关的
+   * 资产，重建一遍只会白白重传一次显存，而 bench 正是靠这一点先热身一遍再测稳态。
+   */
+  reset(): void
   /** 拆场景。重复调用是安全的（第二次什么都不做）。 */
   destroy(): void
 }
+
+/** 建场景的函数签名。bench 的剧本和开发页都按它调。 */
+export type CreateDuelScene = (options: DuelSceneOptions) => Promise<DuelScene>

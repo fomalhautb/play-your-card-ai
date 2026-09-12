@@ -184,11 +184,20 @@ export class FrameLoop {
     this.elapsedMs += deltaMs
     gsap.updateRoot(this.elapsedMs / 1000)
     const needsRender = this.dirty || wasBusy || this.options.isBusy()
-    this.dirty = false
     if (needsRender) {
       this.renders += 1
       this.options.render(deltaMs)
     }
+    /*
+     * 这一帧的标脏在**画完之后**才清。
+     *
+     * 场景在 render 回调里做的事（播一条 cue、和局面对账、推指针跟随）都排在真正的
+     * 绘制之前，所以它们顺手叫的那几次 wake() 说的是「我刚改了画面」——而这一帧已经画过了。
+     * 清在前面的话，那几次 wake 会留到下一帧变成一次多余的渲染，
+     * 而「没有动画时停掉帧循环」（3.6）那条计数器数的正是这种多出来的一帧。
+     * 真正还有东西在动的情况不受影响：那时 isBusy() 为真，下一帧照样画。
+     */
+    this.dirty = false
     // 补间回调里可能又建了新补间，GSAP 会顺手叫醒它自己那台空转的 ticker，这里按回去。
     gsap.ticker.sleep()
   }

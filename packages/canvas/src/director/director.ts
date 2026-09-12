@@ -96,6 +96,15 @@ export interface Director {
   drain(): Cue[]
   /** 当前这组派生锁。 */
   locks(): DirectorLocks
+  /**
+   * 排下的期都跑完了：再推时钟也不会自己冒出新的 cue。
+   *
+   * 调用方判断「这一段演完了没有」时**必须**把它算进去，光看渲染器空没空是不够的：
+   * 一段演出的收尾（放锁、接下一条横幅、落场后的特效）是编排层按虚拟时刻排的，
+   * 而画面可能早就静止了——低效果档不播落地亮环就是这种情况，
+   * 那时渲染器已经闲下来，编排层还差最后一条 cue 没发。
+   */
+  isIdle(): boolean
   /** 对局中断（对手断线）的一次性清场。 */
   abort(): void
 }
@@ -159,6 +168,10 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
 
     drain() {
       return context.drain()
+    },
+
+    isIdle() {
+      return !context.pending()
     },
 
     locks() {

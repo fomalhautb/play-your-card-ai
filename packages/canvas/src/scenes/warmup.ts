@@ -7,7 +7,7 @@
  * 不是开局的一次性装载。文字同理：卡面上的名字和费用是烤成纹理的（见 runtime/textCache.ts），
  * 烤的时候要走一次离屏渲染，那件事也必须发生在动画开始之前（3.5、3.1）。
  *
- * 做法是把牌库里每个贴图名各建一张卡，正面画一遍、翻到背面再画一遍，然后拆掉。
+ * 做法是把这一局用得上的每张卡各建一张，正面画一遍、翻到背面再画一遍，然后拆掉。
  * 正面那遍带上全部卡面图集页和烤出来的边框圆章，背面那遍带上牌背图集页。
  * 正面那遍还顺手把两样带自己着色器的东西各画一次：卡面反光（fx/cardGlare.ts）和落地亮环
  * （fx/edgeRing.ts）。着色器是第一次真的画到才编译的，不在这里编译掉的话，玩家第一次 hover
@@ -16,11 +16,9 @@
  */
 
 import type { Container, Renderer } from 'pixi.js'
-import { CardSprite, type CardSpriteDeps } from '../components/CardSprite'
+import { CardSprite, type CardSpriteDeps, type CardVisual } from '../components/CardSprite'
 import type { EdgeRing } from '../fx/edgeRing'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
-import { cardVisualOf } from './deckCards'
-import type { CardTextures } from './duelContract'
 
 /** 预热时把卡排成几列。只求都落在视口里被真的画到，排得好不好看没有意义。 */
 const COLUMNS = 6
@@ -33,8 +31,14 @@ export interface WarmupOptions {
   stage: Container
   /** 预热卡临时挂在哪一层。用完就摘干净。 */
   layer: Container
-  deck: readonly string[]
-  textures: CardTextures
+  /**
+   * 这一局用得上的每一张卡各一份展示数据。
+   *
+   * 调用方按纪律 3.4 只加载了当前两副牌要的贴图，所以「有哪几张贴图」就是「这一局有哪几张牌」，
+   * 场景照着卡池给出它们的卡名和费用（见 scenes/duel/cardVisuals.ts）。
+   * 同一张牌给一份就够——同名的两张共用同一张卡面和同一段文字。
+   */
+  visuals: readonly CardVisual[]
   deps: CardSpriteDeps
   /**
    * 落地那圈亮环（见 fx/HitFx.ts 的 ring）。只为了逼它的着色器提前编译，预热完原样藏回去。
@@ -48,17 +52,14 @@ export interface WarmupOptions {
 
 export function warmupScene(opts: WarmupOptions): void {
   const cards: CardSprite[] = []
-  // 同一个贴图名在牌库里可能出现好几次，预热一次就够：它们共用同一张卡面和同一段文字。
-  const keys = [...new Set(opts.deck)]
-  keys.forEach((key, index) => {
-    const face = opts.textures.faces[key]
-    if (face === undefined) return
-    const card = new CardSprite(cardVisualOf(key, index, face, opts.textures.back), opts.deps)
+  const visuals = opts.visuals
+  visuals.forEach((visual, index) => {
+    const card = new CardSprite(visual, opts.deps)
     const col = index % COLUMNS
     const row = Math.floor(index / COLUMNS)
     card.position.set(
       ((col + 0.5) * opts.width) / COLUMNS,
-      ((row + 1) * opts.height) / (Math.ceil(keys.length / COLUMNS) + 1),
+      ((row + 1) * opts.height) / (Math.ceil(visuals.length / COLUMNS) + 1),
     )
     card.scale.set(CARD_SCALE)
     // 反光平时是藏着、且完全透明的，那样不会被真的画到、着色器也就编译不了，所以手动点亮。

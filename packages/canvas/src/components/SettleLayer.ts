@@ -58,8 +58,8 @@ const TYPE = {
  */
 const DESIGN = { width: 1672, height: 941 } as const
 
-/** 比分脉冲涨到多大、一趟多久（秒）。抄旧版 `scale 1.25`、0.175 来回。 */
-const PULSE = { scale: 1.25, dur: 0.175 } as const
+/** 比分脉冲涨到多大。一趟多久走令牌（来回两趟，合起来正好是 SETTLE_SCORE_MS 的最后一段）。 */
+const PULSE = { scale: 1.25, dur: tokens.duration.settle.scorePulse } as const
 /** 整层退场缩到多小。抄旧版退场那段的 `scale 0.96`。 */
 const EXIT_SCALE = 0.96
 
@@ -68,7 +68,7 @@ export interface SettleLayerDeps extends SettleChromeDeps {
   text: TextTextureCache
   animator: Animator
   /** 确认按钮是一颗匾额按钮，它按下时要叫触感和音效，所以这两项要一路透下来。 */
-  platform: Platform
+  platform: Pick<Platform, 'audio' | 'haptics'>
   clickSound: SoundSpec | null
 }
 

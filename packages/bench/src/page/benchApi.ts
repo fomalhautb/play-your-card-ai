@@ -5,7 +5,6 @@
  * setup 阶段的帧不记录：它只是把场景摆到被测动作开始前的样子，混进去会污染峰值。
  */
 
-import { createDuelPrototype } from '@ai-duel/canvas'
 import { diffCounters, diffScene, summarize } from '../metrics/diff'
 import type { FrameLoopHandle } from '../metrics/frameLoop'
 import type { GlCounterHandle } from '../metrics/glCounters'
@@ -14,8 +13,9 @@ import type { FrameDriver } from '../scenarios/index'
 import { createContext, FRAME_MS, runIdle, SCENARIOS } from '../scenarios/index'
 import type { AtlasOptions } from '../scene/atlas'
 import { DEFAULT_ATLAS } from '../scene/atlas'
-import type { CardTextures, DuelPrototype, EffectTier } from '../scene/contract'
-import { createStubDuelPrototype } from '../scene/stubScene'
+import type { BenchScene, CardTextures, EffectTier } from '../scene/contract'
+import { createDuelSession } from '../scene/duelSession'
+import { createStubDuelScene } from '../scene/stubScene'
 import type { LoadedTextures } from '../scene/textures'
 import { createProceduralTextures, createWhiteTexture, loadAtlasTextures } from '../scene/textures'
 import { measureOverdraw } from './overdraw'
@@ -79,7 +79,7 @@ export interface BenchApi {
 interface Session {
   opts: BenchInitOptions
   canvas: HTMLCanvasElement
-  scene: DuelPrototype
+  scene: BenchScene
   textures: LoadedTextures
   white: ReturnType<typeof createWhiteTexture>
 }
@@ -109,8 +109,8 @@ async function makeScene(
   opts: BenchInitOptions,
   canvas: HTMLCanvasElement,
   textures: CardTextures,
-): Promise<DuelPrototype> {
-  const create = opts.scene === 'duel' ? createDuelPrototype : createStubDuelPrototype
+): Promise<BenchScene> {
+  const create = opts.scene === 'duel' ? createDuelSession : createStubDuelScene
   return create({
     canvas,
     width: opts.width,
@@ -119,7 +119,6 @@ async function makeScene(
     tier: opts.tier,
     seed: opts.seed,
     textures,
-    deck: opts.deck,
     manualClock: opts.manualClock,
   })
 }

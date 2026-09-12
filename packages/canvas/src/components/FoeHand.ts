@@ -77,7 +77,12 @@ export class FoeHand extends Container {
     const target = Math.max(0, Math.round(count))
     while (this.cards.length > target) {
       const card = this.cards.pop()
-      card?.destroy()
+      if (card === undefined) break
+      // 先掐补间再销毁：这排牌是错开起飞的，被摘掉的那张身上很可能还挂着一条**没开始**的
+      // 补间（delay 还没走完）。GSAP 要到它真的开跑那一刻才去读目标的属性，
+      // 那时对象已经拆了，读出来是 null，当场抛错。
+      this.deps.animator.killTweensOf(card)
+      card.destroy()
     }
     const added = target - this.cards.length
     for (let i = 0; i < added; i += 1) this.cards.push(this.spawn())
@@ -99,6 +104,7 @@ export class FoeHand extends Container {
     this.cards.splice(index, 1)
     const point = this.fan.toGlobal(card.position)
     const local = this.toLocal(point)
+    this.deps.animator.killTweensOf(card)
     card.destroy()
     this.layout()
     return { x: local.x, y: local.y }

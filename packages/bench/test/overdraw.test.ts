@@ -20,6 +20,7 @@ import {
   Sprite,
   Texture,
   TextureSource,
+  TilingSprite,
 } from 'pixi.js'
 import { describe, expect, it } from 'vitest'
 import { restoreAfterOverdraw, swapForOverdraw } from '../src/page/overdraw'
@@ -45,7 +46,7 @@ function quad(): PerspectivePlaneGeometry {
 /**
  * 一棵覆盖了各类节点的小树，形状照着真实场景摆：
  * 会染色的容器 → 靠 scale 撑大的精灵、普通贴图网格、带自己着色器的网格、
- * 换不掉外观的 Graphics、以及一个藏起来的精灵。
+ * 一块图形、一个换不掉外观的平铺精灵，以及一个藏起来的精灵。
  */
 function buildTree() {
   const white = sizedTexture(1, 1)
@@ -75,14 +76,21 @@ function buildTree() {
 
   const graphics = new Graphics().rect(0, 0, 4, 4).fill(0xff0000)
 
+  /*
+   * 换不掉外观的那一类。真实场景里这一档是 `Text`，但它要量文字、要 document，
+   * node 里建不出来；平铺精灵和它一样既不是 Sprite 也不是 Mesh、更不是 Graphics，
+   * 走的是同一条「只能涂 tint」的路。
+   */
+  const tiling = new TilingSprite({ texture: sizedTexture(8, 8), width: 16, height: 16 })
+
   const hidden = new Sprite(sizedTexture(32, 32))
   hidden.visible = false
   hidden.tint = 0x00ff00
   hidden.alpha = 0.25
   hidden.blendMode = 'multiply'
 
-  root.addChild(sprite, plainMesh, glareMesh, graphics, hidden)
-  return { white, root, sprite, plainMesh, glareMesh, graphics, hidden }
+  root.addChild(sprite, plainMesh, glareMesh, graphics, tiling, hidden)
+  return { white, root, sprite, plainMesh, glareMesh, graphics, tiling, hidden }
 }
 
 describe('swapForOverdraw', () => {
@@ -134,12 +142,25 @@ describe('swapForOverdraw', () => {
     expect(t.root.alpha).toBe(1)
   })
 
+  it('图形换成按包围盒填的一块实心白，还原之后画法一模一样', () => {
+    const t = buildTree()
+    const original = t.graphics.context
+    const swap = swapForOverdraw(t.root, t.white)
+    // 换过之后是另一份画法：不换的话它画出去的还是原来那些深浅不一的像素，
+    // tint 1/255 乘上去四舍五入常常是 0，整块底板就从这条指标里消失了。
+    expect(t.graphics.context).not.toBe(original)
+    expect(t.graphics.tint).toBe(0x010101)
+    expect(t.graphics.blendMode).toBe('add')
+    restoreAfterOverdraw(swap)
+    expect(t.graphics.context).toBe(original)
+  })
+
   it('外观换不掉的节点计进 unswapped', () => {
     const t = buildTree()
     const swap = swapForOverdraw(t.root, t.white)
-    // 只有 Graphics 一个：容器不画东西，精灵和网格都换掉了，藏起来的那个根本没遍历到。
+    // 只有平铺精灵一个：容器不画东西，精灵、网格、图形都换掉了，藏起来的那个根本没遍历到。
     expect(swap.unswapped).toBe(1)
-    expect(t.graphics.tint).toBe(0x010101)
+    expect(t.tiling.tint).toBe(0x010101)
   })
 
   it('不可见的节点一点都不动', () => {

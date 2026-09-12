@@ -5,7 +5,7 @@
  * 一段剧本跑完再用 summarize 压成几个数，Playwright 那边拿它和 thresholds.ts 比。
  */
 
-import type { DuelPrototypeCounters } from '../scene/contract'
+import type { DuelSceneCounters } from '../scene/contract'
 import type { FrameRecord, GlCounters, SceneDelta, SegmentSummary } from './types'
 
 /** 全零的计数器，安装计数器和 reset 时都用它当起点。 */
@@ -61,7 +61,7 @@ export function diffCounters(before: GlCounters, after: GlCounters): GlCounters 
  * 它是墙钟时间，两遍跑不可能一样，而 FrameRecord 里的每个数最后都要进
  * 「两遍完全一致」那条断言。丢在这里而不是在汇总那步，是因为这是它唯一的入口。
  */
-export function diffScene(before: DuelPrototypeCounters, after: DuelPrototypeCounters): SceneDelta {
+export function diffScene(before: DuelSceneCounters, after: DuelSceneCounters): SceneDelta {
   return {
     textCreated: after.textCreated - before.textCreated,
     renders: after.renders - before.renders,

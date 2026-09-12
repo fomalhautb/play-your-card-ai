@@ -4,7 +4,7 @@
  * 类型留在 index.ts 里两边就绕成环了。
  */
 
-import type { DuelPrototype } from '../scene/contract'
+import type { BenchScene } from '../scene/contract'
 
 /** 一帧 16.667 毫秒，也就是 60Hz。剧本只用这一个步长，不用真实时间。 */
 export const FRAME_MS = 1000 / 60
@@ -19,7 +19,7 @@ export interface FrameDriver {
 }
 
 export interface ScenarioContext {
-  scene: DuelPrototype
+  scene: BenchScene
   /** 发起一个动作，推帧直到它兑现，再多推到场景空闲。 */
   act(start: () => Promise<void>): Promise<void>
   /** 不发起动作，只把待渲染的改动推完（hover 之后用）。 */

@@ -4,7 +4,7 @@
  * 字段名直接对应《正式版架构》6.9 的指标表，改名之前先去改文档。
  */
 
-import type { DuelPrototypeCounters } from '../scene/contract'
+import type { DuelSceneCounters } from '../scene/contract'
 
 /**
  * WebGL 计数器的一次快照。
@@ -65,7 +65,7 @@ export interface GlCounters {
  * 「同一台机器跑两遍必须完全一致」那条断言，把一条硬断言变成随机失败。
  * 它只服务开发页现场算帧率，bench 这边不需要（手动时钟下它本来也恒为 0）。
  */
-export type SceneDelta = Omit<DuelPrototypeCounters, 'activeMs'>
+export type SceneDelta = Omit<DuelSceneCounters, 'activeMs'>
 
 /** 一帧的记录。`gl` 和 `scene` 都是这一帧的增量，`textureBytes` 除外（见 GlCounters）。 */
 export interface FrameRecord {

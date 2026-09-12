@@ -37,8 +37,8 @@ const HINT = { fontSize: tokens.font.size.xl, letterSpacing: 1.5 } as const
 const HINT_PAD = { x: 20, y: 9 }
 /** 提示条离视口顶边多远。抄旧样式的 `top: 16px`。 */
 const HINT_TOP = 16
-/** 压暗淡入淡出多久（秒）。旧版这一层是 CSS 直接切的，这里给一小段过渡，观感更连贯。 */
-const FADE = 0.18
+/** 压暗淡入淡出多久（秒），进出同一个数。旧版这一层是 CSS 直接切的，这里给一小段过渡。 */
+const FADE = tokens.duration.targeting.in
 
 export interface TargetingLayerDeps {
   text: TextTextureCache

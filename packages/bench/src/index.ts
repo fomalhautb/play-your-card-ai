@@ -47,6 +47,6 @@ export { renderDeterministicMarkdown, renderTimingMarkdown } from './node/report
 export type { FramesReport, TimingStats } from './node/trace'
 export { median, medianStats, parseFramesReport, percentile, statsFrom } from './node/trace'
 export { FRAME_MS, SCENARIOS, scenarioNames } from './scenarios/index'
-export type { CreateDuelPrototype, DuelPrototype, DuelPrototypeOptions } from './scene/contract'
+export type { BenchScene, BenchSceneOptions, CreateBenchScene } from './scene/contract'
 export type { Limit, LimitKey, Limits, ProfileName } from './thresholds'
 export { FRAME_BUDGET_MS, LEAK_TOLERANCE, LIMITS, limitsFor, placeholderKeys } from './thresholds'

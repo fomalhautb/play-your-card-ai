@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ai-duel/canvas": "workspace:*",
+    "@ai-duel/core": "workspace:*",
     "@ai-duel/design": "workspace:*",
     "@ai-duel/platform": "workspace:*",
     "gsap": "^3.15.0",
