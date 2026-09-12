@@ -134,7 +134,7 @@ export function createDeckParts(options: DeckPartsOptions): DeckParts {
   const { deps, layout } = options
   const layers = makeLayers(options.stage)
 
-  const page = new Panel({ variant: 'A', width: layout.width, height: layout.height }, deps)
+  const page = new Panel({ variant: 'A', width: layout.width, height: layout.height })
   const back = new SmallButton(
     { variant: 'H', caption: '返回', ink: tokens.color.paper.ink, onActivate: options.onBack },
     deps,
@@ -142,10 +142,7 @@ export function createDeckParts(options: DeckPartsOptions): DeckParts {
   back.label = 'button:deck-back'
   const title = new Label(TITLE, TITLE_TYPE, deps, tokens.color.paper.ink)
 
-  const pool = new Panel(
-    { variant: 'D', width: layout.pool.width, height: layout.pool.height },
-    deps,
-  )
+  const pool = new Panel({ variant: 'D', width: layout.pool.width, height: layout.pool.height })
   const kindTabs = new Tabs({ variant: 'B', onSelect: options.onKind }, deps)
   const factionTabs = new Tabs({ variant: 'C', onSelect: options.onFaction }, deps)
   const poolHint = new HintBar(
@@ -189,10 +186,12 @@ export function createDeckParts(options: DeckPartsOptions): DeckParts {
     poolCells.push(cell)
   }
 
-  const side = new Panel(
-    { variant: 'B', tone: 'deck', width: layout.side.width, height: layout.side.height },
-    deps,
-  )
+  const side = new Panel({
+    variant: 'B',
+    tone: 'deck',
+    width: layout.side.width,
+    height: layout.side.height,
+  })
   const deckTabs = new Tabs({ variant: 'A', onSelect: options.onDeck }, deps)
   const newDeck = new SmallButton(
     { variant: 'L', caption: '＋ 新建', dashed: true, onActivate: options.onNewDeck },

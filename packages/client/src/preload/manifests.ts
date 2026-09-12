@@ -35,29 +35,10 @@ export const HERO_IMAGES: readonly string[] = [
 export const INFO_IMAGES: readonly string[] = ['/info/info-bg.webp']
 
 /**
- * 对局页：战场底图、猜先的两张硬币、终局结算的三张底板。
- *
- * 三张结算底板暂时没人用：正式版简化第 3 步把结算面板的底图（纯装饰）去掉了。
- * 留在这里的理由同 `INFO_IMAGES`——这份清单要盖住 assets/source 下的每一张图。
- */
-export const BATTLE_IMAGES: readonly string[] = [
-  '/battle/battle-bg.webp',
-  '/battle/coin-first.webp',
-  '/battle/coin-second.webp',
-  '/battle/final-victory-bg.webp',
-  '/battle/final-defeat-bg.webp',
-  '/battle/final-draw-bg.webp',
-]
-
-/**
  * 后台预加载的排队顺序，按「主流程会先用到谁」排，前一组下完才开下一组。
  *
- * 玩家的实际路径是首页 → 房间 → 选英雄 → 对局。首页和房间页已经不要图了
- *（正式版简化第 4 步把这两页剥成素方块），所以队头就是选英雄页。
- * 关于页在主流程之外，垫底。
+ * 玩家的实际路径是首页 → 房间 → 选英雄 → 对局。首页、房间页和对局页都已经不要图了
+ *（正式版简化第 4 步把这三页剥成素方块，对局页那六张底图连源文件一起删了），
+ * 所以队头就是选英雄页。关于页在主流程之外，垫底。
  */
-export const PRELOAD_GROUPS: readonly (readonly string[])[] = [
-  HERO_IMAGES,
-  BATTLE_IMAGES,
-  INFO_IMAGES,
-]
+export const PRELOAD_GROUPS: readonly (readonly string[])[] = [HERO_IMAGES, INFO_IMAGES]

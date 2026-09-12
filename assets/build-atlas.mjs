@@ -58,7 +58,7 @@ const TARGETS = [
  * 原样复制到网页壳 public 下的目录：`assets/source/<from>` → `apps/web/public/<to>`。
  *
  * 这几类不进图集，各有各的理由：
- * - 界面底图（首页、房间、对局场地、英雄）是整幅大图，一张一用，打进图集只会浪费图集页；
+ * - 界面底图（关于页、英雄）是整幅大图，一张一用，打进图集只会浪费图集页；
  *   英雄牌也在里面（`hero/card-<英雄 id>.webp`），它不进牌组、场上也不摆，用不着图集那条路。
  * - 音频不是图。目录名换成 `audio/music` 是为了给以后可能拆出来的音效留个 `audio/` 前缀，
  *   客户端那边按 `/audio/music/<名字>.m4a` 取（见 client 的 audio/music.ts）。
@@ -67,7 +67,6 @@ const TARGETS = [
  * 让同一张图有两个地址，改图时只换掉没人用的那份。
  */
 const COPIES = [
-  { from: 'battle', to: 'battle' },
   { from: 'hero', to: 'hero' },
   { from: 'info', to: 'info' },
   { from: 'music', to: 'audio/music' },

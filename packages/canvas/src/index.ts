@@ -110,13 +110,9 @@ export {
 export { Label, type LabelStyle } from './components/Label'
 export {
   PANEL_CARD_POOL,
-  PANEL_NEXT_PLAQUE,
   PANEL_PAGE,
   PANEL_SIDEBAR,
   PANEL_SKILL_BACK,
-  PANEL_TOKEN_RAIL,
-  PANEL_TOPBAR,
-  PANEL_TURN_PLAQUE,
   Panel,
   type PanelDeps,
   type PanelOptions,

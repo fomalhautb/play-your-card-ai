@@ -1,5 +1,5 @@
 /**
- * 界面零件那批预烤纹理：匾额的五层、雕花框的角、渐隐带、两块吊匾、圆章、药丸、星芒、箭头。
+ * 界面零件那批预烤纹理：匾额的五层、渐隐带、圆章、药丸、铭牌、费用章、星芒、箭头。
  *
  * 和 `bakedTextures.ts` 是同一件事的两半——那边是**卡牌**要的几张，这边是**界面**要的一批。
  * 分成两个对象是因为它们的生命周期不一样：卡牌那批只有对局场景要，界面这批首页、组牌、
@@ -21,17 +21,7 @@ import {
   drawSealDisc,
   drawSealRing,
 } from './badgeShapes'
-import { drawCoinFace, drawCoinRim, drawTokenStar } from './battleShapes'
-import {
-  drawFrameCornerInner,
-  drawFrameCornerOuter,
-  drawNextPlaqueHair,
-  drawNextPlaquePaper,
-  drawNextPlaqueRim,
-  drawRamp,
-  drawTurnPlaqueBody,
-  drawTurnPlaqueFrame,
-} from './frameShapes'
+import { drawRamp } from './frameShapes'
 import { drawBackArrow, drawSparkle } from './homeShapes'
 import { type Mold, mold } from './mold'
 import {
@@ -65,22 +55,8 @@ const MOLDS = {
   plaqueCorner: drawPlaqueCorner,
   /** 匾额左右两颗星芒。 */
   plaqueSpark: drawPlaqueSpark,
-  /** 雕花框角的外层（L 折角加菱形描边）。 */
-  frameCornerOuter: drawFrameCornerOuter,
-  /** 雕花框角的内层（斜置的 L）。 */
-  frameCornerInner: drawFrameCornerInner,
   /** 一条横向的透明度渐变带，分隔线两端的淡出靠它。 */
   ramp: drawRamp,
-  /** 「下一题」纸匾的底纸。 */
-  nextPlaquePaper: drawNextPlaquePaper,
-  /** 「下一题」纸匾的框线和卷草。 */
-  nextPlaqueRim: drawNextPlaqueRim,
-  /** 「下一题」纸匾最里面那道发丝线。 */
-  nextPlaqueHair: drawNextPlaqueHair,
-  /** 「对方回合」吊匾的匾体。 */
-  turnPlaqueBody: drawTurnPlaqueBody,
-  /** 「对方回合」吊匾的外框线。 */
-  turnPlaqueFrame: drawTurnPlaqueFrame,
   /** 夜色圆章的底。 */
   sealDisc: drawSealDisc,
   /** 夜色圆章的外圈。 */
@@ -93,12 +69,6 @@ const MOLDS = {
   nameplate: drawNameplate,
   /** 费用圆章的盘底和外圈。 */
   costBadge: costBadgeMold,
-  /** Token 细条里那颗四芒星。 */
-  tokenStar: drawTokenStar,
-  /** 抛硬币过场那枚币的盘面。 */
-  coinFace: drawCoinFace,
-  /** 抛硬币那枚币的两圈边。 */
-  coinRim: drawCoinRim,
   /** 夜色页面上那颗四角星（花饰的中点、首页导航的分隔）。 */
   sparkle: drawSparkle,
   /** 返回按钮那支左向箭头。 */
