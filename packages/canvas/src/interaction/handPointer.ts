@@ -29,6 +29,7 @@ import {
   DRAG_SCALE,
   type DropZoneRect,
   dragGestureOf,
+  pointInZone,
   resolveDrop,
 } from './dragRules'
 
@@ -65,6 +66,13 @@ export interface HandPointerOptions {
   tiltFor: (card: CardSprite) => CardTilt | undefined
   /** 玩家把牌拖进出牌区松手了，或者鼠标轻点了一下。 */
   onPlay: (card: CardSprite) => void
+  /**
+   * 落点提示该处在哪一档：没在拖（off）、拖着（ready）、指针已经进到落区里（hot）。
+   *
+   * 高亮必须和松手的实际结果一致，所以这一档是拿**同一个** `pointInZone` 算的——
+   * 亮着「松手就打出去」结果松手被判成取消，是最容易让人以为是 bug 的那种不一致。
+   */
+  onDropState?: (state: 'off' | 'ready' | 'hot') => void
   /** 现在允不允许出牌。演出期间整排冻住。 */
   enabled: () => boolean
   /**
@@ -98,6 +106,8 @@ export class HandPointer {
   /** 指针离开之后还剩多少毫秒才真的收回。负数表示没有在倒计时。 */
   private leaveCountdown = -1
   private readonly scratch = new Point()
+  /** 上一次报给调用方的落点提示档位。 */
+  private dropState: 'off' | 'ready' | 'hot' = 'off'
   /** 换算指针坐标用的另一块草稿：`scratch` 那块正被倾斜跟随占着，两处共用会互相踩。 */
   private readonly pointerScratch = new Point()
 
@@ -244,6 +254,7 @@ export class HandPointer {
     const press = this.press
     if (press === null) return
     this.press = null
+    this.reportDrop('off')
     if (press.dragging) this.returnCard(press.card)
   }
 
@@ -297,6 +308,7 @@ export class HandPointer {
     const lift = press.pointerType === 'mouse' ? 0 : (DRAG_SCALE * CARD_HEIGHT) / 2
     press.targetX = x
     press.targetY = y - lift
+    this.reportDrop(pointInZone(x, y, this.options.dropZone()) ? 'hot' : 'ready')
     /*
      * 跟随也是在 advance 里收的。
      *
@@ -332,6 +344,7 @@ export class HandPointer {
     press.dragging = true
     press.targetX = world.x
     press.targetY = world.y
+    this.reportDrop('ready')
 
     // 姿态：转正 + 放大。位置归上面那套逐帧跟随管，两边写的属性不重叠。
     animator.tween(card, { rotation: 0, duration: DRAG_POSE_DUR, ease: 'power2.out' })
@@ -347,6 +360,7 @@ export class HandPointer {
     const press = this.press
     if (press === null) return
     this.press = null
+    this.reportDrop('off')
     const outcome = resolveDrop({
       pointerX: x,
       pointerY: y,
@@ -368,6 +382,13 @@ export class HandPointer {
       return
     }
     if (press.dragging) this.returnCard(press.card)
+  }
+
+  /** 落点提示换一档。没变就不报——调用方那边一档对一次 visible 的开关。 */
+  private reportDrop(state: 'off' | 'ready' | 'hot'): void {
+    if (state === this.dropState) return
+    this.dropState = state
+    this.options.onDropState?.(state)
   }
 
   /** 没落进出牌区：把牌送回扇形。 */

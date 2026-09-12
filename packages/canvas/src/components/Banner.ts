@@ -11,22 +11,33 @@
  *
  * 淡入淡出的时长全部 import `director/timings.ts` 的 `BANNER_TOTAL_MS` 拆出来，
  * 不在这里抄第二份数字。三段的比例（0.3 / 0.75 / 0.35）是旧版的原样。
+ *
+ * 正式版简化第 4 步之二把这行字剥成**纯文字**：46px 的大字装不进素方块那三档字号，
+ * 而它本来也不该有底和框（横幅就是一行喊出来的话）。所以这里自己烤一张文字纹理，
+ * 和 `Box` 一样**不指定字体**，用 Pixi 的默认字体——这一版不做字体选型。
  */
 
-import { tokens } from '@ai-duel/design'
-import { Container } from 'pixi.js'
+import { Container, Sprite, TextStyle } from 'pixi.js'
 import { BANNER_TOTAL_MS } from '../director/timings'
 import type { Animator } from '../runtime/animator'
 import type { TextTextureCache } from '../runtime/textCache'
-import { Label } from './Label'
+import { BOX_INK } from './Box'
 
 /**
- * 横幅那行字的字号和字距（px），以及一行最多多宽。
- * 组件私有，理由见 design 的 README。来源：styles.css 的 `.battle__banner`（46px / 0.28em）
- * 和 `.battle__banner-slot`（宽 860）。
+ * 横幅那行字的字号和字距（px）。来源：黑客松版 styles.css 的 `.battle__banner`
+ *（46px / 0.28em，乘开就是 12.88）。一行最多 860 宽，抄 `.battle__banner-slot`。
  */
-const TYPE = { fontSize: 46, letterSpacing: 12.88, weight: '700' } as const
+const FONT_SIZE = 46
+const LETTER_SPACING = 12.88
 const MAX_WIDTH = 860
+
+/** 这一行字的样式，全局缓存一份（同 Box 的 styleOf）。 */
+const STYLE = new TextStyle({
+  fontSize: FONT_SIZE,
+  letterSpacing: LETTER_SPACING,
+  fontWeight: '700',
+  fill: BOX_INK,
+})
 
 /**
  * 淡入 / 停留 / 淡出三段各占总时长的多少。
@@ -47,7 +58,7 @@ export interface BannerDeps {
 export class Banner extends Container {
   private readonly deps: BannerDeps
   /** 当前那条。播完自己销毁，所以平时这里是 null。 */
-  private current: Label | null = null
+  private current: Sprite | null = null
 
   constructor(deps: BannerDeps) {
     super()
@@ -65,14 +76,13 @@ export class Banner extends Container {
    */
   show(text: string): number {
     this.clear()
-    const label = new Label(
-      text,
-      { ...TYPE, maxWidth: MAX_WIDTH },
-      this.deps,
-      tokens.color.battle.cueInk,
-    )
+    const texture = this.deps.text.get(`banner|${text}`, text, STYLE)
+    const label = new Sprite(texture)
+    label.anchor.set(0.5)
+    // 太长就整体缩一档，不换行也不裁字：横幅只有一行高。
+    const fit = Math.min(1, MAX_WIDTH / texture.width)
     label.alpha = 0
-    label.scale.set(SCALE.from)
+    label.scale.set(SCALE.from * fit)
     this.current = label
     this.addChild(label)
 
@@ -87,12 +97,21 @@ export class Banner extends Container {
       },
     })
     timeline.to(label, { alpha: 1, duration: total * PHASE.in, ease: 'back.out(1.6)' }, 0)
-    timeline.to(label.scale, { x: 1, y: 1, duration: total * PHASE.in, ease: 'back.out(1.6)' }, 0)
+    timeline.to(
+      label.scale,
+      { x: fit, y: fit, duration: total * PHASE.in, ease: 'back.out(1.6)' },
+      0,
+    )
     const outAt = total * (PHASE.in + PHASE.hold)
     timeline.to(label, { alpha: 0, duration: total * PHASE.out, ease: 'power2.in' }, outAt)
     timeline.to(
       label.scale,
-      { x: SCALE.to, y: SCALE.to, duration: total * PHASE.out, ease: 'power2.in' },
+      {
+        x: SCALE.to * fit,
+        y: SCALE.to * fit,
+        duration: total * PHASE.out,
+        ease: 'power2.in',
+      },
       outAt,
     )
     return BANNER_TOTAL_MS
@@ -106,7 +125,8 @@ export class Banner extends Container {
     if (this.current === null) return
     this.deps.animator.killTweensOf(this.current)
     this.deps.animator.killTweensOf(this.current.scale)
-    this.current.destroy({ children: true })
+    // 纹理归缓存共用，销毁精灵时不能跟着收（同 Box.setLabel）。
+    this.current.destroy({ texture: false, textureSource: false })
     this.current = null
   }
 }

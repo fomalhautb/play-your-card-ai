@@ -32,21 +32,28 @@ function turnBadgeOf(view: PlayerView, seat: PlayerView['viewer']): string {
   return view.activePlayer === seat ? '轮到你出牌' : '对方出牌中'
 }
 
-/** 顶栏、侧栏、两块玩家面板、中线徽章。全是「数字变了就换一下」，不带动画。 */
+/** 顶栏、两块玩家面板、Token 细条、「下一题」匾、中线那块匾。全是「数字变了就换一下」，不带动画。 */
 function syncChrome(ctx: DuelContext, view: PlayerView): void {
-  const { topBar, panels, sideBar, board } = ctx.parts
+  const { topBar, panels, tokenRail, nextPlaque, board } = ctx.parts
   topBar.setRound(view.round)
   topBar.setScore({ mine: view.self.score, theirs: view.opponent.score })
   panels.mine.setName(view.self.name)
   panels.mine.setScore(view.self.score)
-  panels.mine.setTokens(view.self.tokens, view.self.tokenMax)
+  panels.mine.setDeckCount(view.self.deckCount)
   panels.theirs.setName(view.opponent.name)
   panels.theirs.setScore(view.opponent.score)
-  // 「下一题」纸匾只有桌面档的侧栏有；手机档折叠掉了它（见 mobileLayout 的文件头）。
+  panels.theirs.setDeckCount(view.opponent.deckCount)
+  /*
+   * Token 两处都要喂：桌面档细条贴在舞台右缘自己站着，手机档它挂在我方面板里面
+   *（见 parts.ts）。两边只有一个是真的在，另一个调了没有效果。
+   */
+  panels.mine.setTokens(view.self.tokens, view.self.tokenMax)
+  tokenRail?.setTokens(view.self.tokens, view.self.tokenMax)
+  // 「下一题」匾只有桌面档有；手机档折叠掉了它（见 mobileLayout 的文件头）。
   const question = view.questions[view.round - 1]
-  // 纸匾上写的是译好的中文，组件自己不查表（见 SideBar.setNextCategory）。
-  if (sideBar !== null && question !== undefined) {
-    sideBar.setNextCategory(CATEGORY_LABELS[question.category])
+  // 匾上写的是译好的中文，组件自己不查表。
+  if (nextPlaque !== null && question !== undefined) {
+    nextPlaque.setLabel(`下一题 · ${CATEGORY_LABELS[question.category]}`)
   }
   board.setTurnBadge(turnBadgeOf(view, view.viewer))
 }
@@ -145,7 +152,7 @@ function syncBoard(ctx: DuelContext, view: PlayerView): void {
       ctx.hiddenTiles.add(ai.instanceId)
     }
     const marks = tileMarksOf(ai, shielded)
-    const key = marks.map((mark) => `${mark.tone}:${mark.text}`).join('|')
+    const key = marks.map((mark) => mark.text).join('|')
     if (ctx.markKeys.get(ai.instanceId) !== key) {
       ctx.markKeys.set(ai.instanceId, key)
       ctx.parts.board.setMark(ai.instanceId, marks)

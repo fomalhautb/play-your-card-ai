@@ -2,45 +2,57 @@
  * 剩下那三种：演出锁的上 / 放、指令被拒的红字。
  *
  * 它们的共同点是**不产生动画**（`durationMs` 都是 0），只是把某个状态切一下。
+ *
+ * 正式版简化第 4 步之二把那条提示剥成素方块（见 components/Box.ts）：从前是 `Bubble` 的
+ * 「错误红字」变体，现在是一块描边方块。淡入淡出仍然走场景的 Animator，
+ * 只有它建的补间会被帧循环记账（3.6）。
  */
 
 import { tokens } from '@ai-duel/design'
-import { BUBBLE_ERROR, Bubble } from '../../../components/Bubble'
+import { Box } from '../../../components/Box'
 import type { DuelContext } from '../context'
 import type { CuePlayerGroup } from './types'
 
-/** 气泡挂多久（毫秒）。被拒那条 cue 的 `durationMs` 记 0，挂多久由这里定。 */
+/** 提示挂多久（毫秒）。被拒那条 cue 的 `durationMs` 记 0，挂多久由这里定。 */
 const BUBBLE_HOLD_MS = Math.round(tokens.duration.bubble.hold * 1000)
 
-/** 气泡一行最多多宽。超了组件自己把整块缩小。 */
-const BUBBLE_MAX_WIDTH = 320
+/** 提示那一格多大。宽按引擎最长的那句拒绝理由留，超了方块自己把字缩小。 */
+const BUBBLE_BOX = { width: 320, height: 32 } as const
 
 /**
- * 弹一个气泡，挂够时间自己收。
+ * 弹一条提示，挂够时间自己收。
  *
  * 同一时刻只留一个：两条提示叠在同一个位置谁也读不清，而后来的那条总是更要紧的。
  */
 function popBubble(ctx: DuelContext, content: string, holdMs: number): void {
   const layer = ctx.parts.layers.bubble
   for (const child of layer.removeChildren()) {
-    // 上一颗可能还在淡入淡出，掐干净再拆——它的补间挂在私有的内层上，只有组件自己掐得到。
-    if (child instanceof Bubble) child.clear()
+    // 上一条可能还在淡入淡出，掐干净再拆，否则 GSAP 下一帧会写到已经销毁的对象上。
+    ctx.deps.animator.killTweensOf(child)
     child.destroy({ children: true })
   }
-  const bubble = new Bubble(
-    { variant: BUBBLE_ERROR, content, maxWidth: BUBBLE_MAX_WIDTH },
+  const bubble = new Box(
+    { width: BUBBLE_BOX.width, height: BUBBLE_BOX.height, label: content, size: 'small' },
     ctx.deps,
   )
   bubble.position.set(
-    ctx.layout.bubble.x - bubble.boxWidth / 2,
-    ctx.layout.bubble.y - bubble.boxHeight / 2,
+    ctx.layout.bubble.x - BUBBLE_BOX.width / 2,
+    ctx.layout.bubble.y - BUBBLE_BOX.height / 2,
   )
   layer.addChild(bubble)
-  bubble.show()
+  ctx.deps.animator.fromTo(
+    bubble,
+    { alpha: 0 },
+    { alpha: 1, duration: tokens.duration.bubble.in, ease: 'power2.out', overwrite: true },
+  )
   ctx.after(holdMs, () => {
-    bubble.hide()
+    ctx.deps.animator.tween(bubble, {
+      alpha: 0,
+      duration: tokens.duration.bubble.out,
+      overwrite: true,
+    })
     ctx.after(Math.round(tokens.duration.bubble.out * 1000), () => {
-      bubble.clear()
+      ctx.deps.animator.killTweensOf(bubble)
       bubble.destroy({ children: true })
     })
   })

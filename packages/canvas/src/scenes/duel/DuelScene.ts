@@ -4,7 +4,7 @@
  * 它认得的只有三样东西——`PlayerView`、`Cue`、`DirectorLocks`（契约和分工见 duelContract.ts）。
  * 这个文件本身只做四件事：建渲染器和零件、推自己的虚拟时钟、把 cue 分给播放器、
  * 收玩家的输入往外发。真正的活分散在旁边几个文件里：
- *   layout/      两档版式（桌面 / 手机，并列不缩放）
+ *   layout/      两档版式（桌面档是 1672×941 死版式整块缩放，手机档按视口实算）
  *   parts.ts     建组件、分层、按版式摆位
  *   applyView.ts 局面 → 画面的结构同步，以及演出播完之后的兜底对账
  *   cuePlayers/  一条 cue 怎么播（按演在屏幕哪个位置分组）
@@ -19,7 +19,6 @@ import { autoDetectRenderer, Container, Graphics, Rectangle, type Renderer } fro
 import { CANVAS_BACKGROUND } from '../../components/Box'
 import { CardSprite } from '../../components/CardSprite'
 import type { DirectorLocks } from '../../director/director'
-import { bakePlaceholderIcons, type DuelIcons } from '../../fx/controlIcons'
 import { FrameLoop } from '../../runtime/frameLoop'
 import type { DuelCommand, DuelScene, DuelSceneCounters, DuelSceneOptions } from '../duelContract'
 import { warmupScene } from '../warmup'
@@ -83,23 +82,18 @@ class DuelSceneImpl {
   private readonly renderer: Renderer
   private readonly options: DuelSceneOptions
   /**
-   * 交给渲染器的根节点。它只做一件事：把下面那个舞台等比缩放居中放进视口
-   *（桌面档是 1672×941 死版式，见 layout/desktopLayout.ts）。
-   *
-   * 和 `stage` 分成两层是为了让**舞台里所有的坐标都是设计坐标**：零件摆位、落点判定、
-   * 飞行轨迹、命中区全都不用再乘一次缩放。指针事件进来的是视口坐标，
+   * 交给渲染器的根节点。它只做一件事：把下面那个舞台等比缩放居中放进视口。
+   * 分成两层是为了让**舞台里所有的坐标都是设计坐标**（桌面档 1672×941），
+   * 零件摆位、落点判定、飞行轨迹、命中区都不用再乘一次缩放；指针事件进来的是视口坐标，
    * 由 `HandPointer` 过一次 `stage.toLocal` 换算（见它的文件头）。
    */
   private readonly root = new Container()
   private readonly stage = new Container()
-  /** 垫在最底下那块浅灰，理由同 RoomScene 的 backdrop（见 Box.ts 的 CANVAS_BACKGROUND）。 */
+  /** 垫在最底下那块浅灰。理由同 RoomScene 的 backdrop，见 Box.ts 的 CANVAS_BACKGROUND。 */
   private readonly backdrop = new Graphics()
   private readonly frameLoop: FrameLoop
   private readonly deps: DuelDeps
   private readonly visuals: CardVisuals
-  private readonly icons: DuelIcons
-  /** 图标是自己烤的还是调用方给的。自己烤的才归自己销毁。 */
-  private readonly ownsIcons: boolean
   /** 渲染器是自己建的还是挂在别人的上面（目录页那条路）。自己建的才归自己销毁。 */
   private readonly ownsRenderer: boolean
   private readonly clock = createSceneClock()
@@ -136,8 +130,6 @@ class DuelSceneImpl {
       wake: () => this.frameLoop.wake(),
     })
     this.visuals = createCardVisuals(options.catalog, options.textures)
-    this.ownsIcons = options.icons === undefined
-    this.icons = options.icons ?? bakePlaceholderIcons(renderer)
     this.root.addChild(this.backdrop, this.stage)
     this.parts = this.buildParts()
     this.ctx = this.makeContext()
@@ -153,13 +145,11 @@ class DuelSceneImpl {
       renderer: this.renderer,
       deps: this.deps,
       layout: this.layout,
-      icons: this.icons,
       onEndPlay: () => {
         this.onUserActionCb?.({ kind: 'end-play' })
         this.onCommandCb?.({ type: 'END_PLAY', player: this.options.seat })
       },
       onLeave: this.options.onLeave,
-      onToggleMute: this.options.onToggleMute,
     })
   }
 
@@ -195,7 +185,6 @@ class DuelSceneImpl {
       locks: new Set(),
       showcased: null,
       inspectingTile: null,
-
       makeCard: (cardId, instanceId) => this.makeCard(cardId, instanceId),
       makeHero: (heroId) => makeHeroArt(this.options.textures.heroes?.[heroId]),
       tilePoint: (instanceId) => tilePointOf(this.layout, this.parts.board, instanceId),
@@ -233,11 +222,8 @@ class DuelSceneImpl {
   }
 
   /**
-   * 把舞台缩放居中放进视口，并按设计尺寸给它一块命中区。
-   *
-   * 命中区给的是**舞台自己那套坐标**里的矩形（`hitArea` 本来就是在局部坐标里判的），
-   * 所以桌面档给的是 1672×941 那一块。等比缩放之后短边留出的黑边不在命中区里——
-   * 那一圈本来就不属于这一页，点它不该有任何反应。
+   * 把舞台缩放居中放进视口，并按设计尺寸给它一块命中区（`hitArea` 本来就在局部坐标里判）。
+   * 缩放之后短边留出的那一圈黑边因此不在命中区里——它不属于这一页，点了不该有反应。
    */
   private applyStageTransform(): void {
     const { stage, viewport, width, height } = this.layout
@@ -257,7 +243,7 @@ class DuelSceneImpl {
       renderer: this.renderer,
       // 预热要真画一帧，画的得是交给渲染器的那个根节点（舞台只是它缩放居中之后的一层）。
       stage: this.root,
-      // 挂在战场层：它在最底下，预热卡不会盖住别的层，而这时候场上本来也是空的。
+      // 挂在战场层：它在最底下，预热卡不会盖住别的层，这时候场上本来也是空的。
       layer: this.parts.layers.board,
       // 只热这一局用得上的贴图：调用方按纪律 3.4 只加载了当前两副牌要的那些。
       visuals: Object.keys(this.options.textures.faces).map((cardId, index) =>
@@ -389,8 +375,7 @@ class DuelSceneImpl {
 
   /**
    * 拆场景。调第二次直接返回——Pixi 的 `renderer.destroy()` 会把内部几个系统的表置成 null，
-   * 第二次进去就在 null 上取属性，当场抛 TypeError。契约里只说了 destroy，
-   * 没说「只许调一次」，所以由这里兜住（开发页的 effect 清理很容易写成拆两次）。
+   * 第二次进去就在 null 上取属性，当场抛 TypeError。契约里没说「只许调一次」，这里兜住。
    */
   private destroy(): void {
     if (this.destroyed) return
@@ -408,7 +393,6 @@ class DuelSceneImpl {
      */
     destroyDeps(this.deps)
     this.frameLoop.destroy()
-    if (this.ownsIcons) for (const icon of Object.values(this.icons)) icon.destroy(true)
     // 只销毁场景自己建的东西：调用方传进来的卡面纹理不归我们管（谁加载谁负责）。
     this.root.destroy({ children: true, texture: false, textureSource: false })
     if (this.ownsRenderer) this.renderer.destroy()

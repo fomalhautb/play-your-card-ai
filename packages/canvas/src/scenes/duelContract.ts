@@ -89,14 +89,8 @@ export interface DuelSceneOptions {
   coarsePointer?: boolean
   /** 所有随机（烟尘方向、大小）用它定种子，同 seed 同结果（6.9 的确定性前提）。 */
   seed?: number
-  /**
-   * 顶栏右端那两颗图标钮的剪影。真图标是美术资源，第 33 条才搬进来；
-   * 不给就用画出来的占位图形（见 fx/controlIcons.ts）。
-   */
-  icons?: { leave: Texture; mute: Texture }
-  /** 顶栏两颗钮按下时叫谁。不给就是这两颗钮点了没反应。 */
+  /** 顶栏那颗「离开」按下时叫谁。不给就是它点了没反应。 */
   onLeave?: () => void
-  onToggleMute?: () => void
   /**
    * 关掉会动的那些东西：落地震屏、卡面跟指针跑的倾斜和反光。
    *

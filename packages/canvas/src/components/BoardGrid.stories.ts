@@ -63,11 +63,8 @@ function mount(ctx: StoryStage, variant: Variant) {
   }
 
   if (variant.marks === true) {
-    grid.setMark(ids[0] ?? '', [{ text: '复读中', tone: 'amber' }])
-    grid.setMark(ids[1] ?? '', [
-      { text: '金钟罩', tone: 'safe' },
-      { text: '已降级', tone: 'down' },
-    ])
+    grid.setMark(ids[0] ?? '', [{ text: '复读中' }])
+    grid.setMark(ids[1] ?? '', [{ text: '金钟罩' }, { text: '已降级' }])
   }
   if (variant.targets === true) grid.highlightTargets(ids.slice(0, 2))
   if (variant.evolve === true) grid.transform(ids[0] ?? '', storyCard(ctx, deps, index))?.destroy()

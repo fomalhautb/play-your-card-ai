@@ -16,11 +16,12 @@
 
 import { tokens } from '@ai-duel/design'
 import { CARD_HEIGHT } from '../../../layout/fanMath'
-import { type DuelLayout, deckPileRectOf, fitBoardScale, heroCardRectOf, type Rect } from './types'
+import { deckPileRectOf, heroCardRectOf, type Rect } from '../../../layout/panelGeometry'
+import { type DuelLayout, fitBoardScale } from './types'
 
 /** 设计稿尺寸。黑客松版 `ui/battleStage.ts` 的 `BATTLE_STAGE_WIDTH / HEIGHT`。 */
-export const DESIGN_WIDTH = 1672
-export const DESIGN_HEIGHT = 941
+const DESIGN_WIDTH = 1672
+const DESIGN_HEIGHT = 941
 
 /** 战场上下让给对手手牌和我方手牌的高度。`.battle__battlefield` 的两个自定义属性。 */
 const FOE_ZONE = tokens.size.battle.foeHandHeight

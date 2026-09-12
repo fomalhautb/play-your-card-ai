@@ -7,27 +7,23 @@
  *（0.3，起跑 0.28）→ 停 `CANCEL_HOLD` → 整层淡出 0.38。
  * 总长 import `SKILL_CANCEL_TOTAL_MS`，各段占的比例在下面的 PHASE 里。
  *
- * 两行字每次都不一样（技能名和那句说明跟着事件走），所以 `play` 一进来就把上一对丢掉、
- * 建新的——Label 建好之后没有能改内容的东西（见 Label.ts 的文件头）。
+ * 两块方块每次印的都不一样（技能名和那句说明跟着事件走），所以 `play` 一进来就整对重建——
+ * 素方块换字是换整张纹理，而这两块一局只出现几次，不在动画中间。
+ *
+ * 正式版简化第 4 步之二剥成素方块（见 components/Box.ts）：76px 的大字和 20px 的说明
+ * 各换成一块方块，时长和各段的比例一个数都没动。
  */
 
 import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import { SKILL_CANCEL_TOTAL_MS } from '../director/timings'
 import type { Animator } from '../runtime/animator'
-import type { TextTextureCache } from '../runtime/textCache'
-import { Label } from './Label'
+import { Box, type BoxDeps } from './Box'
 
-/**
- * 两行字的字号和字距（px），以及说明那行最多多宽。组件私有，理由见 design 的 README。
- * 来源：styles.css 的 `.skill-cancel__title`（76px / 0.1em）和 `__text`（20px / 0.06em / 720）。
- */
-const TYPE = {
-  title: { fontSize: 76, letterSpacing: 7.6, weight: '700' },
-  text: { fontSize: 20, letterSpacing: 1.2 },
-} as const
-const TEXT_MAX_WIDTH = 720
-/** 两行之间留多宽。抄旧样式 `.skill-cancel` 的 `gap: 14px`。 */
+/** 两块方块各多大。宽按说明那行最长的一句留（旧样式 `.skill-cancel__text` 的 720）。 */
+const TITLE_BOX = { width: 520, height: 88 } as const
+const TEXT_BOX = { width: 720, height: 40 } as const
+/** 两块之间留多宽。抄旧样式 `.skill-cancel` 的 `gap: 14px`。 */
 const LINE_GAP = 14
 
 /**
@@ -48,8 +44,7 @@ const PHASE = {
 const TITLE_FROM_SCALE = 0.6
 const TEXT_RISE = 16
 
-export interface SkillCancelDeps {
-  text: TextTextureCache
+export type SkillCancelDeps = BoxDeps & {
   animator: Animator
 }
 
@@ -89,18 +84,18 @@ export class SkillCancelLayer extends Container {
    */
   play(title: string, detail: string): number {
     for (const child of this.body.removeChildren()) child.destroy({ children: true })
-    const heading = new Label(title, TYPE.title, this.deps, tokens.color.battle.cueInk)
-    const line = new Label(
-      detail,
-      { ...TYPE.text, maxWidth: TEXT_MAX_WIDTH },
-      this.deps,
-      tokens.color.battle.cueInk,
-    )
+    const heading = new Box({ ...TITLE_BOX, label: title, size: 'title' }, this.deps)
+    const line = new Box({ ...TEXT_BOX, label: detail }, this.deps)
     line.alpha = 0.88
     this.body.addChild(heading, line)
     this.layout()
 
     this.visible = true
+    /*
+     * 大字那一下是从小弹到原大，轴要放在它自己的中心：素方块的原点在左上角，
+     * pivot 不挪的话弹起来会像整块往右下角甩。摆位时把 pivot 抵消回去（见 layout）。
+     */
+    heading.pivot.set(TITLE_BOX.width / 2, TITLE_BOX.height / 2)
     heading.scale.set(TITLE_FROM_SCALE)
     const total = SKILL_CANCEL_TOTAL_MS / 1000
     const timeline = this.deps.animator.timeline({
@@ -150,13 +145,18 @@ export class SkillCancelLayer extends Container {
     this.alpha = 0
   }
 
-  /** 两行字在视口正中上下排开。大字在上、说明在下，中间留一格。 */
+  /**
+   * 两块方块在视口正中上下排开。大字在上、说明在下，中间留一格。
+   *
+   * 大字那块的 pivot 在自己中心（见 play），所以它的 position 给的是中心点；
+   * 说明那块没动 pivot，给的是左上角。
+   */
   private layout(): void {
-    const [heading, line] = this.body.children as Label[]
+    const [heading, line] = this.body.children as Box[]
     if (heading === undefined || line === undefined) return
-    const totalHeight = heading.textHeight + LINE_GAP + line.textHeight
+    const totalHeight = TITLE_BOX.height + LINE_GAP + TEXT_BOX.height
     const top = (this.boxHeight - totalHeight) / 2
-    heading.position.set(this.boxWidth / 2, top + heading.textHeight / 2)
-    line.position.set(this.boxWidth / 2, top + heading.textHeight + LINE_GAP + line.textHeight / 2)
+    heading.position.set(this.boxWidth / 2, top + TITLE_BOX.height / 2)
+    line.position.set((this.boxWidth - TEXT_BOX.width) / 2, top + TITLE_BOX.height + LINE_GAP)
   }
 }

@@ -1,6 +1,9 @@
 /**
- * 选目标层（需求单弹窗 G）：打出一张带目标的技能牌之后，全场压暗、顶边挂一条提示、
+ * 选目标层：打出一张带目标的技能牌之后，全场压暗、顶边挂一条提示、
  * 正在施放的那张牌抬起来亮着。
+ *
+ * 正式版简化第 4 步之二把提示条剥成素方块（见 components/Box.ts）：夜色药丸换成一圈描边。
+ * 压暗那一层留着——它不是界面件，是这一步能不能读懂的前提（候选亮、其余暗）。
  *
  * 分工：**压暗和提示条在这里，橙圈在格子上**（`BoardTile.setTargetable`）。
  * 拆开是因为两件事的生命周期不一样——拖拽那条路不铺压暗层（拖着的牌本身在扇形里，
@@ -21,8 +24,7 @@
 import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import type { Animator } from '../runtime/animator'
-import type { TextTextureCache } from '../runtime/textCache'
-import { Label } from './Label'
+import { Box, type BoxDeps } from './Box'
 
 /**
  * 选目标态下手牌那一排怎么变：没在施放的牌压到这个透明度，正在施放的那张抬起这么多。
@@ -33,19 +35,14 @@ export const CASTING_DIM = 0.3
 export const CASTING_LIFT = 26
 
 /**
- * 提示条自己的几何和字号（px）。组件私有，理由见 design 的 README。
- * 来源：styles.css 的 `.battle__targeting-hint`（padding 9/12/9/20、圆角 999）
- * 和 `__text`（`--fs-xl` 15px / 0.1em）。
+ * 提示条那一格多大、离视口顶边多远。组件私有，理由见 design 的 README。
+ * 宽按最长的一句「选择一个目标（黑白颠倒）」留，位置抄旧样式的 `top: 16px`。
  */
-const HINT = { fontSize: tokens.font.size.xl, letterSpacing: 1.5 } as const
-const HINT_PAD = { x: 20, y: 9 }
-/** 提示条离视口顶边多远。抄旧样式的 `top: 16px`。 */
-const HINT_TOP = 16
+const HINT = { width: 360, height: 36, top: 16 } as const
 /** 压暗淡入淡出多久（秒），进出同一个数。旧版这一层是 CSS 直接切的，这里给一小段过渡。 */
 const FADE = tokens.duration.targeting.in
 
-export interface TargetingLayerDeps {
-  text: TextTextureCache
+export type TargetingLayerDeps = BoxDeps & {
   animator: Animator
 }
 
@@ -87,7 +84,12 @@ export class TargetingLayer extends Container {
    */
   begin(cardName: string, hint = '选择一个目标'): void {
     for (const child of this.hintSlot.removeChildren()) child.destroy({ children: true })
-    this.hintSlot.addChild(this.buildHint(`${hint}（${cardName}）`))
+    this.hintSlot.addChild(
+      new Box(
+        { width: HINT.width, height: HINT.height, label: `${hint}（${cardName}）` },
+        this.deps,
+      ),
+    )
     this.layoutHint()
     this.visible = true
     this.deps.animator.fromTo(
@@ -111,36 +113,10 @@ export class TargetingLayer extends Container {
     })
   }
 
-  /**
-   * 提示条：一颗夜色药丸，里面一行暖白字。
-   *
-   * 配色和 `Bubble` 的浮起小气泡（提示 B）是同一组令牌——旧样式里这两处本来就是同一套值
-   *（底 `rgb(14 21 36 / 90%)`、描边 `rgb(255 229 164 / 55%)`、字 `#ffeec5`）。
-   * 没有直接复用 `Bubble`，是因为这条比它大一档（15px 对 12px）、内边距也宽一倍，
-   * 而 Bubble 那三档的尺寸是写死在变体里的；为一处大一号的用法给它加参数不划算。
-   */
-  private buildHint(text: string): Container {
-    const box = new Container()
-    const label = new Label(text, HINT, this.deps, tokens.color.bubble.tipInk)
-    const width = Math.round(label.textWidth) + HINT_PAD.x * 2
-    const height = Math.round(label.textHeight) + HINT_PAD.y * 2
-    const plate = new Graphics()
-      .roundRect(0, 0, width, height, height / 2)
-      .fill({ color: tokens.color.bubble.tipBase, alpha: tokens.opacity.bubble.tipBase })
-      .stroke({
-        width: 1,
-        color: tokens.color.bubble.tipLine,
-        alpha: tokens.opacity.bubble.tipLine,
-      })
-    label.position.set(width / 2, height / 2)
-    box.addChild(plate, label)
-    return box
-  }
-
   /** 提示条吊在视口顶边正中。旧版原来摆在战场正中，实测会被两排小卡挤没。 */
   private layoutHint(): void {
     const hint = this.hintSlot.children[0]
     if (hint === undefined) return
-    hint.position.set((this.boxWidth - hint.width) / 2, HINT_TOP)
+    hint.position.set((this.boxWidth - HINT.width) / 2, HINT.top)
   }
 }

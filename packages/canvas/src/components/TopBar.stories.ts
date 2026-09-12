@@ -2,24 +2,22 @@
  * 组件目录页条目：对局顶栏（7.1 第 3 条）。
  *
  * 状态矩阵：
- *   普通    「常规」——第几轮 + 比分，右端两颗图标钮
- *   悬停    不适用。顶栏本身没有悬停态；两颗图标钮的悬停已经在 PlaqueButton 的条目里拍过
+ *   普通    「常规」——第几轮 + 比分，右端一颗「离开」
+ *   悬停    不适用。素方块没有悬停态（见 components/Box.ts）
  *   按下    同上，不适用
  *   禁用    不适用。顶栏一直都在
- *   加载    「等局面」——局面还没到手（联机客人在等房主开局），正中那块空着
- * 另拍两条：「断线」（`setStatus` 顶掉比分，改成一行状态字）和「手机档」
- *（一条 390 宽的顶栏，右端只剩「离开」那一颗，正中那块往左让到不压着它为止）。
+ *   加载    「等局面」——局面还没到手（联机客人在等房主开局），正中那格只剩轮次
+ * 另拍两条：「断线」（`setStatus` 顶掉比分，改成一行状态字）和「手机档」（一条 390 宽的顶栏）。
  *
  * 命名和 title 用英文的理由见 CardSprite.stories.ts 的文件头。
  */
 
 import { tokens } from '@ai-duel/design'
-import { Graphics, type Texture } from 'pixi.js'
 import { storyDeps } from '../storyCards'
 import type { StoryStage } from '../storyStage'
 import { TopBar } from './TopBar'
 
-/** 画布尺寸。宽度按桌面档一整条顶栏取，高度留出上下各一点空白好看清下沿那两条线。 */
+/** 画布尺寸。宽度按桌面档一整条顶栏取，高度留出上下各一点空白好看清那圈描边。 */
 const SIZE = { width: 900, height: 140 }
 
 /** 顶栏那一档的状态：给不给比分、要不要顶一行状态字、右端摆哪几颗钮。 */
@@ -28,52 +26,28 @@ interface Variant {
   status: string | null
   /** 不给就按桌面档那一条整宽。手机档那条单独给一个窄的。 */
   width?: number
-  /** 不给就两颗都摆（`TopBarOptions.actions` 的默认值）。 */
-  actions?: 'both' | 'leave' | 'none'
+  /** 不给就摆「离开」那一颗（`TopBarOptions.actions` 的默认值）。 */
+  actions?: 'leave' | 'none'
   /** 不给就用桌面档的顶栏高度。 */
   height?: number
 }
 
-/**
- * 两颗图标钮的剪影。
- *
- * 真界面里它们是美术资源（第 33 条才搬进来），组件本来就要求调用方给纹理。
- * 目录页这里现画两个几何图形顶上：拍的是**顶栏的版式**，不是图标长什么样。
- */
-function placeholderIcon(ctx: StoryStage, kind: 'leave' | 'mute'): Texture {
-  const size = tokens.size.control.iconBattle
-  const g = new Graphics()
-  if (kind === 'mute') {
-    g.rect(size * 0.2, size * 0.34, size * 0.24, size * 0.32).fill({ color: 0xffffff })
-    g.moveTo(size * 0.44, size * 0.5)
-      .lineTo(size * 0.72, size * 0.22)
-      .lineTo(size * 0.72, size * 0.78)
-      .closePath()
-      .fill({ color: 0xffffff })
-  } else {
-    g.rect(size * 0.2, size * 0.2, size * 0.34, size * 0.6).fill({ color: 0xffffff })
-    g.rect(size * 0.54, size * 0.44, size * 0.28, size * 0.12).fill({ color: 0xffffff })
-  }
-  return ctx.renderer.generateTexture({ target: g, resolution: ctx.resolution, antialias: true })
-}
-
 function mount(ctx: StoryStage, variant: Variant) {
   const deps = storyDeps(ctx)
-  const icons = { leave: placeholderIcon(ctx, 'leave'), mute: placeholderIcon(ctx, 'mute') }
   const bar = new TopBar(
-    { width: ctx.width, height: variant.height, actions: variant.actions },
-    { ...deps, icons },
+    {
+      width: variant.width ?? ctx.width,
+      height: variant.height ?? tokens.size.battle.topbarHeight,
+      actions: variant.actions,
+    },
+    deps,
   )
   bar.setRound(3)
   bar.setScore(variant.score)
   bar.setStatus(variant.status)
   bar.y = (ctx.height - bar.boxHeight) / 2
   ctx.stage.addChild(bar)
-  return () => {
-    deps.dispose()
-    icons.leave.destroy(true)
-    icons.mute.destroy(true)
-  }
+  return () => deps.dispose()
 }
 
 function spec(variant: Variant) {

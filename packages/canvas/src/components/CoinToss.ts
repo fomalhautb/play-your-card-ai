@@ -1,5 +1,8 @@
 /**
- * 开局定先手的抛硬币过场（需求单弹窗 F）：一枚硬币翻转，底下一行字。
+ * 开局定先手的抛硬币过场：一块方块翻转，底下一行字。
+ *
+ * 正式版简化第 4 步之二剥成素方块（见 components/Box.ts）：金色币面和外圈两张烤纹理删了，
+ * 正反两面各换成一块印着「正」「反」的方块。时长、转的圈数、回弹一个数都没动。
  *
  * 节奏抄旧版 `MatchStage.tsx:1436-1486` 的那条时间线：
  * 层淡入 0.25 与「币弹出 0.5」「转 4 圈 1.6」同时起跑（前两段被最长的转动盖住），
@@ -21,19 +24,14 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, Graphics, Sprite } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
 import { COIN_TOSS_TOTAL_MS } from '../director/timings'
-import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
-import type { TextTextureCache } from '../runtime/textCache'
-import { Label } from './Label'
+import { Box, type BoxDeps } from './Box'
 
-/** 硬币画多大、币面上那两个字和底下那行字的字号（px）。组件私有，理由见 design 的 README。 */
+/** 币画多大，以及底下那行字那一格多大。组件私有，理由见 design 的 README。 */
 const COIN_SIZE = 240
-const TYPE = {
-  face: { fontSize: 54, letterSpacing: 5.4, weight: '700' },
-  caption: { fontSize: 20, letterSpacing: 6 },
-} as const
+const CAPTION = { width: 260, height: 40 } as const
 /** 币和底下那行字之间留多宽。抄旧样式 `.coin-toss` 的 `gap: 26px`。 */
 const CAPTION_GAP = 26
 /** 转几圈。抄旧版的 `COIN_SPINS`。 */
@@ -50,9 +48,7 @@ const POP_IN = 0.5 / 3.54
 /** 落定回弹涨到多大。抄旧版的 `scale: 1.06`。 */
 const BOUNCE_SCALE = 1.06
 
-export interface CoinTossDeps {
-  ui: UiTextures
-  text: TextTextureCache
+export type CoinTossDeps = BoxDeps & {
   animator: Animator
 }
 
@@ -63,8 +59,8 @@ export class CoinToss extends Container {
   private readonly coin = new Container()
   /** 翻面层：只管 `scale.x` 那一半的模拟翻转，两件事分开写才不会互相覆盖。 */
   private readonly flip = new Container()
-  private readonly faces: { front: Container; back: Container }
-  private readonly caption: Label
+  private readonly faces: { front: Box; back: Box }
+  private readonly caption: Box
   /** 翻转角度的代理。补间只改这个普通对象，每帧写进显示对象的只有一个 scale（3.10）。 */
   private readonly spin = { angle: 0 }
 
@@ -74,8 +70,11 @@ export class CoinToss extends Container {
     this.label = 'coin-toss'
     // 过场期间玩家什么都不能做，整层吃掉指针事件（旧版这几层也都是这么干的）。
     this.eventMode = 'static'
-    this.faces = { front: this.buildFace('先手'), back: this.buildFace('后手') }
-    this.caption = new Label('抛硬币定先手', TYPE.caption, deps, tokens.color.battle.cueInk)
+    this.faces = { front: this.buildFace('正', deps), back: this.buildFace('反', deps) }
+    this.caption = new Box(
+      { width: CAPTION.width, height: CAPTION.height, label: '抛硬币定先手' },
+      deps,
+    )
     this.flip.addChild(this.faces.front, this.faces.back)
     this.coin.addChild(this.flip)
     this.addChild(this.veil, this.coin, this.caption)
@@ -91,7 +90,7 @@ export class CoinToss extends Container {
       .fill({ color: tokens.color.overlay.veil, alpha: tokens.opacity.overlay.veil })
     const centerY = height / 2 - CAPTION_GAP / 2
     this.coin.position.set(width / 2, centerY)
-    this.caption.position.set(width / 2, centerY + COIN_SIZE / 2 + CAPTION_GAP)
+    this.caption.position.set((width - CAPTION.width) / 2, centerY + COIN_SIZE / 2 + CAPTION_GAP)
   }
 
   /**
@@ -174,20 +173,10 @@ export class CoinToss extends Container {
     this.faces.back.visible = showBack
   }
 
-  /** 一面币：盘面 + 两圈边 + 中间那两个字。 */
-  private buildFace(text: string): Container {
-    const face = new Container()
-    for (const [texture, color] of [
-      [this.deps.ui.coinFace, tokens.color.theme.gold],
-      [this.deps.ui.coinRim, tokens.color.battle.paper],
-    ] as const) {
-      const sprite = new Sprite(texture)
-      sprite.anchor.set(0.5)
-      sprite.setSize(COIN_SIZE, COIN_SIZE)
-      sprite.tint = color
-      face.addChild(sprite)
-    }
-    face.addChild(new Label(text, TYPE.face, this.deps, tokens.color.battle.navy))
+  /** 一面币：一块印着「正」或「反」的方块。原点挪到正中，翻转和缩放才是绕币心做的。 */
+  private buildFace(text: string, deps: CoinTossDeps): Box {
+    const face = new Box({ width: COIN_SIZE, height: COIN_SIZE, label: text, size: 'title' }, deps)
+    face.position.set(-COIN_SIZE / 2, -COIN_SIZE / 2)
     return face
   }
 }

@@ -20,17 +20,12 @@
 
 import { tokens } from '@ai-duel/design'
 import type { DropZoneRect } from '../../../interaction/dragRules'
-import { CARD_HEIGHT, CARD_WIDTH } from '../../../layout/fanMath'
+import type { Rect } from '../../../layout/panelGeometry'
 
 /** 两档版式。名字按屏幕形态取，不按设备品类——平板横屏走桌面档。 */
 export type LayoutTier = 'desktop' | 'mobile'
 
-export interface Rect {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+export type { Rect }
 
 export interface DuelLayout {
   tier: LayoutTier
@@ -120,51 +115,6 @@ const DESIGN_BOARD_HEIGHT = tokens.size.card.tileHeight * 2 + 40
  * 桌面档不用它：那一档照黑客松口径直接把战场宽当扇形坐标里的可铺宽（见 desktopLayout）。
  */
 export const FOE_FAN_SCALE = 0.64
-
-/**
- * 一块玩家面板里那张英雄牌占的矩形：2:3 填满面板，四周各留 `inset`。
- *
- * 版式和 `PlayerPanel` 两头都要算它——版式要拿它推牌堆那一摞的落点（发牌从那儿起飞），
- * 面板要拿它摆卡。所以公式只写这一份，两边调同一个函数。
- * 返回的坐标以 `panel` 自己的原点为准：传面板在舞台上的矩形就得到舞台坐标，
- * 传 `{ x: 0, y: 0, ... }` 就得到面板内坐标。
- */
-export function heroCardRectOf(panel: Rect, inset: number): Rect {
-  const scale = Math.max(
-    0,
-    Math.min((panel.width - inset * 2) / CARD_WIDTH, (panel.height - inset * 2) / CARD_HEIGHT),
-  )
-  const width = CARD_WIDTH * scale
-  const height = CARD_HEIGHT * scale
-  return {
-    x: panel.x + (panel.width - width) / 2,
-    y: panel.y + (panel.height - height) / 2,
-    width,
-    height,
-  }
-}
-
-/** 牌堆那一摞相对英雄牌多宽、离卡角多远。抄黑客松版 `.battle__deck` 的那四个比例。 */
-const DECK_PILE = { widthRatio: 0.28, minWidth: 24, aspect: 1.5, inX: 0.045, inY: 0.035 } as const
-
-/**
- * 牌堆那一摞压在英雄牌的哪个角上。
- *
- * 我方（下面那块面板）在卡的右下角，对方（上面那块）在右上角，上下镜像——两块面板本来就是
- * 照战场那条中线对称摆的，卡堆跟着镜像，两边的「自己的牌从自己那头飞出来」才对得上。
- */
-export function deckPileRectOf(hero: Rect, side: 'top' | 'bottom'): Rect {
-  const width = Math.max(DECK_PILE.minWidth, hero.width * DECK_PILE.widthRatio)
-  const height = width * DECK_PILE.aspect
-  const right = hero.x + hero.width - hero.width * DECK_PILE.inX
-  const inY = hero.height * DECK_PILE.inY
-  return {
-    x: right - width,
-    y: side === 'bottom' ? hero.y + hero.height - inY - height : hero.y + inY,
-    width,
-    height,
-  }
-}
 
 /**
  * 舞台坐标 → 手牌容器坐标。
