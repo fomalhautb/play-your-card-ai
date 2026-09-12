@@ -11,21 +11,21 @@ import { AI_MODEL_CARD_IDS, HEROES, SKILL_DESIGN_CARD_IDS } from '../src/index'
  * 一个错都不报，只是画错。这条测试就是那个"不报错"的补丁。
  *
  * 映射规则照抄 legacy-client：
- *   AI 牌   ui/aiModelArt.ts   → public/cards/models/<卡牌 id>.webp
- *   技能牌   ui/skillCardArt.ts → public/cards/skills/<卡牌 id>.webp
- *   英雄     ui/heroArt.ts      → public/hero/card-<英雄 id>.webp
+ *   AI 牌   ui/aiModelArt.ts   → cards/models/<卡牌 id>.webp
+ *   技能牌   ui/skillCardArt.ts → cards/skills/<卡牌 id>.webp
+ *   英雄     ui/heroArt.ts      → hero/card-<英雄 id>.webp
  *
- * **美术资源现在还住在 legacy-client 里**（迁移第 33 条才搬到新的资源目录），
- * 所以这里跨包指着它的 public/。搬家那天改下面这个 PUBLIC_DIR 就行，
- * 三条映射规则本身不会变。
+ * 查的是资源源目录 `assets/source/`（迁移第 33 条搬过来的），不是哪个包的 public：
+ * 正式版的卡面从图集取纹理、旧版直接铺原画，两边的产物目录都可能还没打出来，
+ * 而「这张图存不存在」问的是源，跟谁怎么用它无关。
  * 这是测试而不是产品代码，dependency-cruiser 不扫 test/，没有违反依赖方向。
  */
 
-const PUBLIC_DIR = fileURLToPath(new URL('../../legacy-client/public', import.meta.url))
+const ASSETS_DIR = fileURLToPath(new URL('../../../assets/source', import.meta.url))
 
 /** 缺哪几张一次列全，别修一张跑一次。 */
 function missing(paths: readonly string[]): string[] {
-  return paths.filter((path) => !existsSync(`${PUBLIC_DIR}${path}`))
+  return paths.filter((path) => !existsSync(`${ASSETS_DIR}${path}`))
 }
 
 describe('原画文件都在', () => {

@@ -32,13 +32,16 @@ class FakeWebSocket extends EventTarget {
   }
 
   readonly url: string
+  /** 建连接时提的子协议。JWT 就走这里（见 protocol 的 handshake.ts）。 */
+  readonly protocols: string | string[] | undefined
   binaryType = 'blob'
   readyState = 0
   readonly sent: string[] = []
 
-  constructor(url: string) {
+  constructor(url: string, protocols?: string | string[]) {
     super()
     this.url = url
+    this.protocols = protocols
     FakeWebSocket.instances.push(this)
   }
 
@@ -177,6 +180,24 @@ describe('web 实现的重连', () => {
     expect(FakeWebSocket.instances).toHaveLength(2)
   })
 
+  it('子协议每次现取，重连换一份新的', async () => {
+    const network = createWebNetwork({ webSocket: FakeWebSocket })
+    let token = '第一张'
+    const socket = network.openSocket({
+      // 凭据是短时效的，挂久了重连必须现换一张，所以这一项和 url 一样是函数。
+      protocols: () => Promise.resolve(['ai-duel', `jwt.${token}`]),
+      url: () => 'wss://x/room',
+      ...TUNING,
+    })
+    await settleConnect()
+    expect(FakeWebSocket.last().protocols).toEqual(['ai-duel', 'jwt.第一张'])
+
+    token = '第二张'
+    socket.reconnect()
+    await settleConnect()
+    expect(FakeWebSocket.last().protocols).toEqual(['ai-duel', 'jwt.第二张'])
+  })
+
   it('关掉之后就是终态，不再有新连接', async () => {
     const network = createWebNetwork({ webSocket: FakeWebSocket })
     const socket = network.openSocket({ url: () => 'wss://x/room', ...TUNING })
@@ -220,6 +241,23 @@ describe('假实现的重连', () => {
     fake.dropConnection({ code: 4001, reason: '房间已满' })
     expect(socket.state).toBe('closed')
     expect(fake.urls).toHaveLength(2)
+  })
+
+  it('子协议按每次连接分别记下来，下标和 urls 对齐', async () => {
+    const { network } = createFakePlatform()
+    let token = '第一张'
+    const socket = network.openSocket({
+      protocols: () => Promise.resolve([`jwt.${token}`]),
+      url: () => 'wss://x/room',
+    })
+    const fake = network.sockets[0]!
+    fake.acceptConnection()
+
+    token = '第二张'
+    socket.reconnect()
+    // 取子协议是异步的（换凭据要走一次请求），把微任务放干净再看。
+    await vi.advanceTimersByTimeAsync(0)
+    expect(fake.protocols).toEqual([['jwt.第一张'], ['jwt.第二张']])
   })
 
   it('requestJson 只答配过的地址', async () => {

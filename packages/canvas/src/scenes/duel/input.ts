@@ -9,9 +9,10 @@
  * 已经有自己的测试）。这里只接它的结论：「这张牌被打出去了」。
  * `pressAt / moveTo / releaseAt` 那三个合成入口原样透出来，第 19 条的合成指针测试按它喂坐标。
  *
- * 英雄技能暂时没有入口：组件库里还没有英雄技能按钮这个变体，侧栏的英雄位也还是空的
- *（英雄原画第 33 条才搬进来）。它的目标选择和技能牌走的是同一条路（`beginTargeting`），
- * 补一颗按钮就能接上，所以这里不预留半条死代码。
+ * 英雄的主动技能走的是同一条选目标的路：侧栏那颗「发动」钮按下 → `beginHeroSkill`
+ * → 战场亮出合法目标 → 点一格发 `USE_HERO_SKILL`。和技能牌的区别只有两处——
+ * 没有一张要从手上飞出去的牌，以及目标在哪一侧由英雄决定而不是由卡定义决定。
+ * 所以选目标那份状态带一个判别标签，两条路共用其余全部逻辑。
  */
 
 import type { HandCard, InstanceId, PlayerView } from '@ai-duel/core'
@@ -22,15 +23,24 @@ import type { DirectorLocks } from '../../director/director'
 import { HandPointer } from '../../interaction/handPointer'
 import type { DuelContext } from './context'
 import { fanToWorld, toFanLocal } from './layout/types'
-import { boardTargetsOf, handTargetsOf, targetScopeOf } from './skillTargets'
+import {
+  boardTargetsOf,
+  handTargetsOf,
+  heroSkillDirectionOf,
+  heroSkillTargetsOf,
+  targetScopeOf,
+} from './skillTargets'
 
-/** 正在给哪张手牌选目标。 */
-interface Targeting {
-  instanceId: InstanceId
-  card: HandCard
-  scope: 'board' | 'hand'
-  legal: Set<InstanceId>
-}
+/** 正在给谁选目标：一张手牌，还是英雄的主动技能。 */
+type Targeting =
+  | {
+      kind: 'card'
+      instanceId: InstanceId
+      card: HandCard
+      scope: 'board' | 'hand'
+      legal: Set<InstanceId>
+    }
+  | { kind: 'hero'; legal: Set<InstanceId> }
 
 export interface DuelInput {
   /** 给一张新发的手牌挂上指针监听。 */
@@ -45,6 +55,11 @@ export interface DuelInput {
   pressAt(card: CardSprite, x: number, y: number, pointerType?: string): void
   moveTo(x: number, y: number): void
   releaseAt(x: number, y: number): void
+  /**
+   * 开始给英雄的主动技能选目标（侧栏那颗「发动」钮按下时走这条）。
+   * 返回 false 表示这一下没被受理：现在锁着，或者一个合法目标都没有。
+   */
+  beginHeroSkill(): boolean
   /** 取消正在进行的选目标（切阶段、对局中断时）。 */
   cancelTargeting(): void
   destroy(): void
@@ -117,16 +132,41 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     if (scope === 'none') return false
     const legal = scope === 'board' ? boardTargetsOf(view, card) : handTargetsOf(view, card)
     if (legal.length === 0) return false
-    targeting = { instanceId, card, scope, legal: new Set(legal) }
+    const next: Targeting = { kind: 'card', instanceId, card, scope, legal: new Set(legal) }
+    targeting = next
     ctx.userAction({ kind: 'targeting-begin' })
     ctx.parts.targeting.begin(card.name)
     if (scope === 'board') ctx.parts.board.highlightTargets(legal)
     else {
       // 打向手牌的那一档：候选是自己手里的牌，压暗其余的，被压暗的那些点了没反应。
       for (const one of ctx.parts.fan.all()) {
-        one.alpha = targeting.legal.has(one.instanceId) ? 1 : CASTING_DIM
+        one.alpha = next.legal.has(one.instanceId) ? 1 : CASTING_DIM
       }
     }
+    ctx.wake()
+    return true
+  }
+
+  /**
+   * 侧栏那颗「发动」钮按下：亮出英雄技能的合法目标。
+   *
+   * 一个目标都没有时不进这一步（同技能牌那条路）：玩家会点着满屏的暗色不知道该点哪儿，
+   * 而这一下本来也会被引擎拒。「这一局用过了没有」不在这里判——那一条决定的是钮还在不在
+   *（见 applyView.ts 的 syncHeroes）。
+   */
+  const beginHeroSkill = (): boolean => {
+    const view = ctx.view
+    if (view === null || !canAct() || targeting !== null) return false
+    const hero = view.self.hero
+    // 先判 null 再问方向：两者本来是一回事（没英雄就没有主动技能），但类型收窄不认后者。
+    if (hero === null || heroSkillDirectionOf(hero) === null) return false
+    const legal = heroSkillTargetsOf(view, hero)
+    if (legal.length === 0) return false
+    targeting = { kind: 'hero', legal: new Set(legal) }
+    ctx.userAction({ kind: 'targeting-begin' })
+    // 提示条上写技能名，和技能牌那条路写卡名是同一个口径：说清楚现在在给什么选目标。
+    ctx.parts.targeting.begin(view.catalog.heroes[hero]?.skillName ?? '英雄技能')
+    ctx.parts.board.highlightTargets(legal)
     ctx.wake()
     return true
   }
@@ -137,7 +177,7 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     if (view === null) return
     const instanceId = card.instanceId
     // 正在给「模型蒸馏」这类牌选手牌目标时，点一张手牌的含义是选中它，不是把它打出去。
-    if (targeting !== null && targeting.scope === 'hand') {
+    if (targeting !== null && targeting.kind === 'card' && targeting.scope === 'hand') {
       if (!targeting.legal.has(instanceId)) return
       const pending = targeting.instanceId
       endTargeting()
@@ -154,7 +194,15 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
   /** 点一格：选目标时是选中它，平时是点开放大查看。 */
   const onTile = (instanceId: InstanceId): void => {
     if (targeting !== null) {
-      if (targeting.scope !== 'board' || !targeting.legal.has(instanceId)) return
+      if (!targeting.legal.has(instanceId)) return
+      if (targeting.kind === 'hero') {
+        endTargeting()
+        // 和出牌同样的顺序：先 UserAction 后 Command（见文件头）。
+        ctx.userAction({ kind: 'use-hero-skill', targetInstanceId: instanceId })
+        ctx.command({ type: 'USE_HERO_SKILL', player: ctx.seat, targetInstanceId: instanceId })
+        return
+      }
+      if (targeting.scope !== 'board') return
       const pending = targeting.instanceId
       endTargeting()
       play(pending, instanceId)
@@ -210,10 +258,20 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
       locks = next
       performanceLocked = locked
       ctx.parts.endPlay.setDisabled(next.endPlayLocked || locked)
+      /*
+       * 英雄技能钮和「结束出牌」吃同一档锁，外加一条它自己的：一个合法目标都没有时也灰着
+       *（场上空着、或者能打的那几个都到链顶 / 链底了）。
+       * 正在选目标的那一拍 actionsLocked 本来就是真的，钮跟着灰是对的——
+       * 这时候该点的是格子，不是再按一次这颗钮。
+       */
+      const view = ctx.view
+      const noTargets = view === null || heroSkillTargetsOf(view, view.self.hero).length === 0
+      ctx.parts.panels.mine.setHeroSkillDisabled(next.actionsLocked || locked || noTargets)
       // 进答题、对局中断这些时候选目标要收掉：战场马上就被别的层盖住了。
       if (targeting !== null && next.quizWait) endTargeting()
     },
 
+    beginHeroSkill,
     advance: (deltaMs) => pointer.advance(deltaMs),
     pressAt: (card, x, y, pointerType) => pointer.pressAt(card, x, y, pointerType),
     moveTo: (x, y) => pointer.moveTo(x, y),

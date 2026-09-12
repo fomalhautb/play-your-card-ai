@@ -25,15 +25,34 @@ export function createWebAudio(): AudioCapability {
   const blockedChanged = createSignal<boolean>()
   let muted = false
   let blocked = readBlocked()
+  /** 已经盯上 AudioContext 的状态了没有。它是**懒建**的，见 watchContext。 */
+  let watching = false
 
-  // AudioContext 的状态变化就是「浏览器肯不肯出声」的变化。
-  // howler 自己会在首次点击时静默解锁，这里只负责把结果报给界面。
-  audioContext()?.addEventListener('statechange', () => {
+  /**
+   * 盯住 AudioContext 的状态变化——那就是「浏览器肯不肯出声」的变化。
+   * howler 自己会在首次点击时静默解锁，这里只负责把结果报给界面。
+   *
+   * 要反复调而不是建的时候订一次：**howler 在第一次真的要出声之前根本不建 AudioContext**
+   *（那之前 `Howler.ctx` 是 null）。只在 createWebAudio 里订一次的话，
+   * 谁都订不上——应用一启动就建平台，那时一段音频都还没加载。
+   */
+  function watchContext(): void {
+    if (watching) return
+    const ctx = audioContext()
+    if (ctx === null) return
+    watching = true
+    ctx.addEventListener('statechange', syncBlocked)
+    syncBlocked()
+  }
+
+  function syncBlocked(): void {
     const next = readBlocked()
     if (next === blocked) return
     blocked = next
     blockedChanged.emit(next)
-  })
+  }
+
+  watchContext()
 
   function howlFor(spec: SoundSpec): Howl {
     const existing = howls.get(spec.src)
@@ -42,6 +61,8 @@ export function createWebAudio(): AudioCapability {
     // 同一个地址可能既当循环 BGM 又当一次性音效（比如试听），构造时定死就撞车了。
     const howl = new Howl({ src: [spec.src] })
     howls.set(spec.src, howl)
+    // 第一段音频一建，AudioContext 就有了，这时才订得上它的状态。
+    watchContext()
     return howl
   }
 
@@ -136,18 +157,22 @@ export function createWebAudio(): AudioCapability {
 }
 
 /**
- * howler 的 AudioContext。
+ * howler 的 AudioContext，还没建出来时是 null。
  *
- * 类型上它是必有的，实际上没有 Web Audio 的环境（老浏览器、测试用的假 DOM）里是 undefined，
- * 那时 howler 会退回 <audio> 元素，也就没有「被浏览器拦着不出声」这个状态。
+ * 两种情况下拿不到它：**还没加载过任何一段音频**（howler 是懒建的，这是最常见的一种），
+ * 以及环境根本没有 Web Audio（老浏览器、测试用的假 DOM，那时 howler 退回 <audio> 元素）。
+ * 类型上它标的是必有，实际会给出 null，所以这里连 undefined 一起收口成 null——
+ * 少了这一道，`ctx !== undefined` 会把 null 放过去，取 `ctx.state` 当场抛
+ *（应用一启动建平台就会踩到）。
  */
-function audioContext(): AudioContext | undefined {
-  return Howler.ctx as AudioContext | undefined
+function audioContext(): AudioContext | null {
+  return (Howler.ctx as AudioContext | null | undefined) ?? null
 }
 
+/** 浏览器还拦着不肯出声。没有 AudioContext 时谈不上被拦，算不拦。 */
 function readBlocked(): boolean {
   const ctx = audioContext()
-  return ctx !== undefined && ctx.state !== 'running'
+  return ctx !== null && ctx.state !== 'running'
 }
 
 function clamp(volume: number): number {

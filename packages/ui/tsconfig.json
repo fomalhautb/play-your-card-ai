@@ -4,9 +4,10 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     // React 组件直接操作 DOM，所以要 DOM 全局类型；jsx 用 react-jsx，源码里不必再 import React。
-    // 不加 "node"：组件跑在浏览器 / WebView / Electron 渲染进程里，
-    // 误用 process、fs 这类 Node 全局要在编译期就拦下来。
-    "types": []
+    // 只加 vite/client 这一份：组件里的 `import './button.css'` 要靠它给出模块声明
+    // （样式跟着组件走，见 7.2 第 4 条）。刻意不加 "node"：
+    // 组件跑在浏览器 / WebView / Electron 渲染进程里，误用 process、fs 要在编译期就拦下来。
+    "types": ["vite/client"]
   },
   "include": ["src"]
 }

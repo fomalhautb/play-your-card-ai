@@ -4,10 +4,17 @@ build/
 coverage/
 *.tsbuildinfo
 
-# 卡面图集（`pnpm assets:build` 的产物）。源头是 public/cards 下的原画，随时能重打，
-# 而图集本身有几兆，进仓库只会把每次改原画都变成一次大 diff。
-# assets/dist/ 已经被上面的 dist/ 覆盖，这两条是脚本分发过去的副本。
+# `pnpm assets:build` 的产物，源头全在 assets/source/（见 assets/README.md）。
+# 图集有几兆，进仓库只会把每次改原画都变成一次大 diff；界面底图和音频是源文件的副本，
+# 同一份东西进两次 git 更没道理。apps/web/public 下除了 .gitkeep 就只有这些产物。
+# assets/dist/ 已经被上面的 dist/ 覆盖，这几条是脚本分发过去的副本。
 apps/web/public/atlas/
+apps/web/public/audio/
+apps/web/public/battle/
+apps/web/public/hero/
+apps/web/public/home/
+apps/web/public/info/
+apps/web/public/room/
 packages/bench/public/atlas/
 
 # AssetPack 的增量缓存目录，在哪儿跑就落在哪儿。
@@ -28,6 +35,9 @@ pnpm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# wrangler 的本地密钥（packages/server 的 BETTER_AUTH_SECRET）。样例在同目录的 .dev.vars.example。
+.dev.vars
 
 .pnpm-store/
 tmp/

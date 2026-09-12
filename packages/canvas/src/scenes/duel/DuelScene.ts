@@ -30,6 +30,7 @@ import type { DuelContext } from './context'
 import { playCue } from './cuePlayers/index'
 import { createDuelDeps, type DuelDeps, destroyDeps, restoreDeps } from './deps'
 import { deckPoseOf, tilePointOf } from './geometry'
+import { makeHeroArt } from './heroArt'
 import { createDuelInput, type DuelInput } from './input'
 import { pickLayout } from './layout/pickLayout'
 import type { DuelLayout } from './layout/types'
@@ -184,6 +185,7 @@ class DuelSceneImpl {
       inspectingTile: null,
 
       makeCard: (cardId, instanceId) => this.makeCard(cardId, instanceId),
+      makeHero: (heroId) => makeHeroArt(this.options.textures.heroes?.[heroId]),
       tilePoint: (instanceId) => tilePointOf(this.layout, this.parts.board, instanceId),
       cardIdOf: (instanceId) => this.cardIdOf(instanceId),
       after: (delayMs, run) => this.clock.after(delayMs, run),
@@ -194,6 +196,7 @@ class DuelSceneImpl {
       userAction: (action) => this.onUserActionCb?.(action),
       command: (command) => this.onCommandCb?.(command),
       tutorial: (cue) => this.onTutorialCb?.(cue),
+      beginHeroSkill: () => this.input.beginHeroSkill(),
       refreshLocks: () => this.refreshLocks(),
     }
   }
@@ -366,8 +369,16 @@ class DuelSceneImpl {
     this.options.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.input.destroy()
     this.clear()
-    this.frameLoop.destroy()
+    /*
+     * 顺序要紧：**先掐补间，再还 GSAP 的时钟**。
+     *
+     * 还时钟那一下是同步跑一帧的（见 frameLoop 的 releaseGsapRoot），喂进去的时刻比
+     * 我们手动推到的位置靠后几十秒，于是还活着的补间会被一口气演到终点。
+     * 而上面的 clear() 刚刚清过场——那一帧要是写到已经销毁的对象上就当场抛 TypeError。
+     * 反过来也不行：clear() 自己要靠 animator 掐补间，所以它必须排在最前面。
+     */
     destroyDeps(this.deps)
+    this.frameLoop.destroy()
     if (this.ownsIcons) for (const icon of Object.values(this.icons)) icon.destroy(true)
     // 只销毁场景自己建的东西：调用方传进来的卡面纹理不归我们管（谁加载谁负责）。
     this.stage.destroy({ children: true, texture: false, textureSource: false })

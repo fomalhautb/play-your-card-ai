@@ -1,0 +1,5 @@
+{
+  // 测试单独一份配置，只为了把 test/ 也纳入类型检查（写法照抄 client 和 core 那边）。
+  "extends": "./tsconfig.json",
+  "include": ["test"]
+}

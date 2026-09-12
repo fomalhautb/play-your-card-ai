@@ -7,7 +7,8 @@
  *   按下    不适用
  *   禁用    不适用
  *   加载    「还没选英雄」就是那一档：卡位空着，框和铭牌照旧
- * 另拍一条「被借走」：英雄牌正被放大查看，原位让出来但格子还占着。
+ * 另拍两条：「被借走」（英雄牌正被放大查看，原位让出来但格子还占着）和
+ * 「可发动技能」（主动技能的英雄多一颗压在卡脚的匾额钮）。
  *
  * 命名和 title 用英文的理由见 CardSprite.stories.ts 的文件头。
  */
@@ -21,11 +22,12 @@ const SIZE = { width: 340, height: 380 }
 /** Token 细条的跳动 0.34 秒演完，取 500ms 停稳。 */
 const SETTLE_MS = 500
 
-/** 一条条目的那一档：挂不挂细条、有没有英雄牌、牌是不是被借走了。 */
+/** 一条条目的那一档：挂不挂细条、有没有英雄牌、牌是不是被借走了、有没有那颗技能钮。 */
 interface Variant {
   tokens?: boolean
   hero?: boolean
   held?: boolean
+  skill?: string
 }
 
 function mount(ctx: StoryStage, variant: Variant) {
@@ -45,6 +47,9 @@ function mount(ctx: StoryStage, variant: Variant) {
   if (variant.hero !== false) panel.setHero(storyCard(ctx, deps, 0))
   if (variant.tokens === true) panel.setTokens(4, 7)
   if (variant.held === true) panel.setHeroHeld(true)
+  if (variant.skill !== undefined) {
+    panel.setHeroSkill({ caption: variant.skill, onActivate: () => undefined })
+  }
   return () => deps.dispose()
 }
 
@@ -75,3 +80,12 @@ export const NoHero = { name: '还没选英雄', parameters: spec({ hero: false 
 
 /** 被借走：英雄牌正在被放大查看，原位不可见但格子还占着，框和铭牌不动。 */
 export const HeroHeld = { name: '被借走', parameters: spec({ held: true }) }
+
+/**
+ * 可发动技能：主动技能的英雄（陈丹琦、梅拉妮·珀金斯）在卡脚多一颗纸白匾额钮。
+ * 被动技能的英雄和技能已经用掉的那一局都没有它，那两种就是上面「我方那块」的样子。
+ */
+export const HeroSkill = {
+  name: '可发动技能',
+  parameters: spec({ tokens: true, skill: '精准检索' }),
+}

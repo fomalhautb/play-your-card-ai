@@ -1,12 +1,13 @@
 /**
  * 侧栏里的一块玩家面板：一圈雕花框（需求单边框 A）里摆一张英雄牌，
- * 牌下压一块铭牌（徽章 C）写名字，右缘可以挂一条 Token 细条（面板 E）。
+ * 牌下压一块铭牌（徽章 C）写名字，右缘可以挂一条 Token 细条（面板 E），
+ * 我方那块还能在英雄牌脚上挂一颗「发动技能」的小匾额钮。
  *
- * 组件是哑的：`setName` / `setHero` / `setScore` / `setTokens` 由场景在收到 cue 时调，
- * 它自己不认识引擎。尺寸由调用方给（`resize`）——桌面和手机是两档并列的版式，
- * 侧栏宽度不同，这块面板跟着变。
+ * 组件是哑的：`setName` / `setHero` / `setScore` / `setTokens` / `setHeroSkill`
+ * 由场景在收到新视图时调，它自己不认识引擎。尺寸由调用方给（`resize`）——
+ * 桌面和手机是两档并列的版式，侧栏宽度不同，这块面板跟着变。
  *
- * 和旧版的两处出入，都是有意的：
+ * 和旧版的三处出入，都是有意的：
  * 1. 旧版这块面板上**不画**名字和比分（比分在顶栏，谁是谁靠上下位置分），这里两样都能画。
  *    多出来的两个方法是给两档版式留的余地：手机档没有那条横贯的顶栏，比分只能落在这儿。
  *    不设就不画（`setName(null)` / `setScore(null)`），桌面档照旧和旧版一样干净。
@@ -14,6 +15,9 @@
  *    「谁还剩几点」本来就是这块面板要回答的事，而且合了之后场景摆版式只用摆一样东西。
  *    细条有固定高度（令牌 `size.rail.height` 470），装不进面板时整条等比缩小——
  *    缩的是 Container 的 scale，属于 transform，不重画里面任何一颗星。
+ * 3. 旧版的「发动技能」是压在卡面左下角的一颗药丸小钮，这里换成居中的纸白匾额钮
+ *    （需求单里没有「英雄技能钮」这个变体，按钮 B 的小尺寸档最接近）。挪到正中是因为
+ *    左下角那个位置在旧版是给卡堆和角标分的，而新版这块面板上没有那些东西要避让。
  *
  * 卡堆（旧版压在英雄牌一角的那摞牌背）不在这里：它是发牌动画的起飞点，
  * 归场景摆（`scenes/duelLayout.ts` 里已经有 `deck` 那一项）。
@@ -26,9 +30,9 @@ import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
 import type { TextTextureCache } from '../runtime/textCache'
 import { Badge } from './Badge'
-import type { CardSprite } from './CardSprite'
 import { Label } from './Label'
 import { OrnateFrame } from './OrnateFrame'
+import { PLAQUE_PAPER, PlaqueButton, type PlaqueButtonDeps } from './PlaqueButton'
 import { TokenRail } from './TokenRail'
 
 /**
@@ -48,7 +52,18 @@ const NAMEPLATE_PAD = 6
 /** 细条离面板右缘多远。贴着框内侧摆。 */
 const RAIL_INSET = 6
 
-export interface PlayerPanelDeps {
+/**
+ * 「发动技能」那颗钮相对英雄牌缩到多小。
+ *
+ * 按旧版那颗药丸钮的比例取的：它压在卡面左下角，最宽不超过卡宽的 62%
+ *（styles.css 的 .battle__hero-skill max-width）。匾额钮的 play 档是 132 宽，
+ * 卡宽 150，所以 0.7 倍之后正好落在那个宽度上。
+ */
+const SKILL_BUTTON_SCALE = 0.7
+/** 钮的中心离英雄牌底边多高（卡面基准尺寸下的像素）。压在卡脚那条铭牌上方一点。 */
+const SKILL_BUTTON_BOTTOM = 42
+
+export interface PlayerPanelDeps extends PlaqueButtonDeps {
   ui: UiTextures
   text: TextTextureCache
   animator: Animator
@@ -61,6 +76,13 @@ export interface PlayerPanelOptions {
   tokens?: boolean
 }
 
+/** 「发动技能」那颗钮要什么。传 null 给 `setHeroSkill` 就是不挂这颗钮。 */
+export interface HeroSkillButton {
+  /** 匾上印的字。旧版印的是技能名（「精准检索」），不是「发动」——玩家得知道要发动什么。 */
+  caption: string
+  onActivate(): void
+}
+
 export class PlayerPanel extends Container {
   private readonly deps: PlayerPanelDeps
   private readonly frame: OrnateFrame
@@ -68,13 +90,17 @@ export class PlayerPanel extends Container {
   private readonly heroSlot = new Container()
   private readonly plateSlot = new Container()
   private readonly scoreSlot = new Container()
+  private readonly skillSlot = new Container()
   private readonly rail: TokenRail | null
 
   private boxWidth: number
   private boxHeight: number
-  private hero: CardSprite | null = null
+  private hero: Container | null = null
   private heroName: string | null = null
   private score: number | null = null
+  private skill: PlaqueButton | null = null
+  /** 钮上现在印的是哪一句。没变就不重建——重建一次要新烤一张文字纹理。 */
+  private skillCaption: string | null = null
 
   constructor(options: PlayerPanelOptions, deps: PlayerPanelDeps) {
     super()
@@ -85,7 +111,8 @@ export class PlayerPanel extends Container {
 
     this.frame = new OrnateFrame(options.width, options.height, deps)
     this.rail = options.tokens === true ? new TokenRail(deps) : null
-    this.addChild(this.heroSlot, this.plateSlot, this.scoreSlot, this.frame)
+    // 技能钮排在雕花框后面：框是画在最上层的，钮要压在它上面才点得着。
+    this.addChild(this.heroSlot, this.plateSlot, this.scoreSlot, this.frame, this.skillSlot)
     if (this.rail !== null) this.addChild(this.rail)
     this.layout()
   }
@@ -100,13 +127,25 @@ export class PlayerPanel extends Container {
 
   /**
    * 换英雄牌。传 null 摘掉（还没选英雄）。
+   *
+   * 收的是 `Container` 而不是 `CardSprite`：英雄原画本来就是一整张画好的卡面
+   *（名字和英文名都印在图里），场景递过来的是一张按卡面基准尺寸摆好的精灵，
+   * 而不是那种自己画铭牌和费用圆章的 `CardSprite`——英雄没有费用，
+   * 印一枚「0」的圆章是错的。目录页那几条仍然递 `CardSprite`（它也是 Container），
+   * 因为那边只是要一张看着像牌的东西。
+   *
    * 卡由调用方建也由调用方销毁——canvas 不管资源从哪来，这里只借来摆。
    */
-  setHero(card: CardSprite | null): void {
+  setHero(card: Container | null): void {
     this.heroSlot.removeChildren()
     this.hero = card
     if (card !== null) this.heroSlot.addChild(card)
     this.layout()
+  }
+
+  /** 英雄位上摆着东西了没有。场景靠它避免每收到一条指令就把原画重建一遍。 */
+  hasHero(): boolean {
+    return this.hero !== null
   }
 
   /**
@@ -165,6 +204,52 @@ export class PlayerPanel extends Container {
   }
 
   /**
+   * 挂 / 摘「发动技能」那颗钮。
+   *
+   * 传 null 的三种情况：这是对方那块面板、这一方的英雄是被动技能（或还没实装）、
+   * 技能这一局已经用过了。用过之后**摘掉**而不是永久置灰，是抄旧版的：
+   * 灰着的钮会让人一直去点它，摘掉才说得清「这一局没有了」。
+   *
+   * 钮由面板自己建自己收（和英雄牌相反）：它是面板的一部分，不是外面借来摆的资源。
+   */
+  setHeroSkill(skill: HeroSkillButton | null): void {
+    const caption = skill?.caption ?? null
+    // 没变就不动：applyView 每收到一条指令都会调一次，重建一次要新烤一张文字纹理。
+    if (caption === this.skillCaption) return
+    this.skillCaption = caption
+    for (const child of this.skillSlot.removeChildren()) child.destroy({ children: true })
+    this.skill = null
+    if (skill !== null) {
+      this.skill = new PlaqueButton(
+        {
+          variant: PLAQUE_PAPER,
+          caption: skill.caption,
+          // 需求单里没有「英雄技能钮」这个变体，按纸白匾额（按钮 B）的小尺寸档做：
+          // 它压在深色的英雄原画上，纸白才读得出来，而墨蓝会糊进卡面里。
+          size: 'play',
+          onActivate: skill.onActivate,
+        },
+        this.deps,
+      )
+      /*
+       * 在场景树上给它留个名字，命名跟卡（`card:`）和「结束出牌」（`button:end-play`）一路。
+       * 真浏览器的交互回归靠它找到「按哪儿」（bench 的 src/page/hitPoints.ts）。
+       *
+       * 名字在这里给而不是像「结束出牌」那样由装配处给：这颗钮是面板自己建自己收的
+       *（见上面的说明），外面根本拿不到它。
+       */
+      this.skill.label = 'button:hero-skill'
+      this.skillSlot.addChild(this.skill)
+    }
+    this.layout()
+  }
+
+  /** 钮点不点得动。没挂钮时什么都不做。 */
+  setHeroSkillDisabled(disabled: boolean): void {
+    this.skill?.setDisabled(disabled)
+  }
+
+  /**
    * 英雄牌缩到多大：宽高两边能容下的较小值，也就是「2:3 塞满这块面板」。
    * 挂了细条的那一侧要先让开细条占的宽。
    */
@@ -205,6 +290,16 @@ export class PlayerPanel extends Container {
 
     const label = this.scoreSlot.children[0]
     if (label !== undefined) label.position.set(cardCenterX, CARD_INSET)
+
+    if (this.skill !== null) {
+      // 钮跟着卡一起缩，位置也按卡面基准尺寸算，换版式时和卡的相对关系不变。
+      const buttonScale = scale * SKILL_BUTTON_SCALE
+      this.skill.scale.set(buttonScale)
+      this.skill.position.set(
+        cardCenterX - (this.skill.boxWidth * buttonScale) / 2,
+        cardBottom - SKILL_BUTTON_BOTTOM * scale - this.skill.boxHeight * buttonScale,
+      )
+    }
 
     if (this.rail !== null) {
       // 细条比面板高就整条缩进来，缩的是 transform，里面的星星一颗都不重画。

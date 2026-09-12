@@ -12,7 +12,7 @@
  *   由 applyView 填、由 cue 播放器取走，取不走的那些在对账时兜底处理（见 duelContract 的文件头）。
  */
 
-import type { CardId, Catalog, InstanceId, PlayerId, PlayerView } from '@ai-duel/core'
+import type { CardId, Catalog, HeroId, InstanceId, PlayerId, PlayerView } from '@ai-duel/core'
 import type { Container } from 'pixi.js'
 import type { BoardTile } from '../../components/BoardTile'
 import type { CardSprite } from '../../components/CardSprite'
@@ -87,6 +87,11 @@ export interface DuelContext {
 
   /** 建一张卡。`instanceId` 同时是扇形和战场认牌用的标识。 */
   makeCard(cardId: CardId, instanceId: string): CardSprite
+  /**
+   * 建一张英雄牌（就一张按卡面基准尺寸摆好的原画，不是 `CardSprite`，理由见 duelContract
+   * 的 `CardTextures.heroes`）。调用方没给这位的原画就返回 null，那时英雄位空着。
+   */
+  makeHero(heroId: HeroId): Container | null
   /** 某个战场格子在**视口坐标**里的中心、尺寸和该有的缩放。查不到就是那一格不在场上。 */
   tilePoint(instanceId: InstanceId): (RevealPoint & { width: number; height: number }) | null
   /**
@@ -117,6 +122,15 @@ export interface DuelContext {
   command(command: DuelCommand): void
   /** 往外发一条舞台演出信号（教程要等的那七个时刻）。 */
   tutorial(cue: MatchStageCue): void
+  /**
+   * 开始给英雄的主动技能选目标（侧栏那颗「发动」钮按下时走这条）。
+   * 返回 false 表示这一下没被受理——现在锁着，或者一个合法目标都没有。
+   *
+   * 走上下文绕一圈而不是让面板直接拿到输入层：那颗钮是 applyView 按视图挂上去的，
+   * 而输入层会随着换档位整个重建（见 DuelScene 的 rebuild），
+   * 面板手里存一份旧的输入层引用迟早指向一个已经销毁的东西。
+   */
+  beginHeroSkill(): boolean
   /** 手牌和按钮现在许不许动。锁变了要重算一次。 */
   refreshLocks(): void
 }

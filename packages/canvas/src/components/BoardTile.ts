@@ -18,6 +18,7 @@ import { Container, Graphics } from 'pixi.js'
 import type { UiTextures } from '../fx/uiTextures'
 import { CARD_HEIGHT, CARD_RADIUS, CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
+import { killAndDestroy } from '../runtime/dispose'
 import type { TextTextureCache } from '../runtime/textCache'
 import { Badge, type BadgeTone } from './Badge'
 import type { CardSprite } from './CardSprite'
@@ -96,7 +97,8 @@ export class BoardTile extends Container {
 
   /** 挂哪几枚角标。传空数组就清干净。数量一变就整列重建（一轮里只发生几次）。 */
   setMarks(marks: readonly TileMark[]): void {
-    for (const child of this.marks.removeChildren()) child.destroy({ children: true })
+    // 先掐补间再拆，理由见 runtime/dispose.ts 的文件头。
+    for (const child of this.marks.removeChildren()) killAndDestroy(this.deps.animator, child)
     let y = -this.boxHeight / 2 + MARK_INSET
     for (const mark of marks) {
       // 字面量 'D' 就是 BADGE_TILE_MARK（卡角状态角标），写字面量的理由同 BoardGrid。

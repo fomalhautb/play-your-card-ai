@@ -37,6 +37,15 @@ export interface CardTextures {
   /** 卡面，键是贴图名。贴图名就是卡牌 id（见 scenes/duel/cardVisuals.ts）。 */
   faces: Record<string, Texture>
   back: Texture
+  /**
+   * 英雄原画，键是英雄 id。不给（或缺某一位）就是侧栏那个英雄位空着。
+   *
+   * 和卡面分开一份是因为它们**不进图集**：英雄一局只出现一张、尺寸又比卡面大，
+   * 打进图集只会白占图集页（见 client 的 preload/manifests.ts）。
+   * 摆出来的也不是 `CardSprite`——原画本身就是画好的整张卡面，名字都印在图里，
+   * 再给它套一层铭牌和费用圆章是错的（英雄没有费用）。
+   */
+  heroes?: Record<string, Texture>
 }
 
 /**

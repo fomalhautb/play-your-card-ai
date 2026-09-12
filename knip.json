@@ -36,15 +36,15 @@
       // 迁移第 17 条的匾额按钮按下时要调触感和音效（见 components/PlaqueButton.ts）。
     },
     "packages/ui": {
-      // 同 canvas：目录页条目也是入口。现在这里只有令牌一览那一条。
+      // 同 canvas：目录页条目也是入口。
       "entry": ["src/**/*.stories.tsx"],
-      "ignoreDependencies": [
-        // design、react、@types/react 三条按上面的到期条款删掉了：
-        // 令牌一览那条目录页条目已经在用它们。剩下这三条还没有调用方。
-        "@ai-duel/platform",
-        "react-dom",
-        "@types/react-dom"
-      ]
+      /*
+       * react-dom 和 @types/react-dom 两条按上面的到期条款删掉了：
+       * 弹窗 A 要把自己传送到 body（迁移第 21 条，见 Dialog.tsx 的文件头）。
+       * design、react、@types/react 早先就被令牌一览那条目录页条目用上了。
+       * 剩 platform 一个还没有调用方——这个包里还没有要碰音频 / 存储 / 全屏的组件。
+       */
+      "ignoreDependencies": ["@ai-duel/platform"]
     },
     "packages/bench": {
       /*
@@ -62,31 +62,33 @@
     },
     "packages/client": {
       /*
-       * 组件目录页那一摊（迁移第 10 条）。这几个文件谁也不 import 谁：
-       * main.ts / preview.tsx 由 Storybook 按约定加载，catalog.spec.ts / ensureAtlas.ts
-       * 由 Playwright 加载，全是各自独立的入口。
-       * 包入口 src/index.ts 和 playwright.config.ts 不用写：前者 knip 从 package.json 的
-       * exports 里认，后者由它的 Playwright 插件认。
+       * 组件目录页那一摊（迁移第 10 条）和端到端那一条（第 21 条）。
+       * 这几个文件谁也不 import 谁：main.ts / preview.tsx 由 Storybook 按约定加载，
+       * catalog.spec.ts / ensureAtlas.ts / localMatch.spec.ts 由 Playwright 加载，
+       * 全是各自独立的入口。
+       * 包入口 src/index.ts 和两份 playwright.config.ts 不用写：前者 knip 从
+       * package.json 的 exports 里认，后者由它的 Playwright 插件认。
+       *
+       * 这个包原来还有一段 ignoreDependencies（canvas、content、core、design、platform、
+       * protocol、react、ui 八条），按上面的到期条款全删光了——装配层把它们全用上了。
        */
       "entry": [
         "dev/storybook/main.ts",
         "dev/storybook/preview.tsx",
         "dev/storybook/catalog.spec.ts",
-        "dev/storybook/ensureAtlas.ts"
-      ],
-      // canvas、design、react、content、core 已经被开发页和目录页用上了
-      //（第 18 条的 /dev/duel 那一页要真卡池和真引擎），剩下这三个还没有调用方。
-      "ignoreDependencies": ["@ai-duel/platform", "@ai-duel/protocol", "@ai-duel/ui"]
+        "dev/storybook/ensureAtlas.ts",
+        "e2e/localMatch.spec.ts"
+      ]
     },
     "packages/server": {
       "ignoreDependencies": [
         // cloudflare:workers 是 Workers 运行时的内建模块，不是 npm 包。
         // knip 按冒号前面那段当包名找，所以看着像"用了没装"。
-        "cloudflare",
-        // 服务端重写（迁移第 22 条）之后才会真正用上这三个，现在还是纯转发器。
-        "@ai-duel/content",
-        "@ai-duel/core",
-        "@ai-duel/protocol"
+        //
+        // content、core、protocol 三条按上面的到期条款删掉了：
+        // 房间对象（迁移第 22 条）在跑 core 的 execute、发 protocol 的消息、
+        // 用 content 的卡表和题库。
+        "cloudflare"
       ]
     }
   }

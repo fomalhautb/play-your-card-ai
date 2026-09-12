@@ -30,7 +30,15 @@ function acquireGsapRoot(): void {
   gsap.ticker.sleep()
 }
 
-/** 还回 GSAP 的时钟：最后一个手动驱动的人走了才还。 */
+/**
+ * 还回 GSAP 的时钟：最后一个手动驱动的人走了才还。
+ *
+ * **`gsap.ticker.wake()` 会当场同步跑一帧**（GSAP 内部的 `_tick(2)`），而那一帧喂给
+ * `updateRoot` 的是 ticker 自己的墙钟时间——通常比我们手动推到的时刻靠后几十秒。
+ * 也就是说：还时钟这一下会把**还活着的补间一口气演到终点**。
+ * 所以拆场景时必须先把补间全掐掉再调它（见 DuelScene 的 destroy），
+ * 否则那一帧会写到已经被清场销毁的对象上，当场抛 TypeError。
+ */
 function releaseGsapRoot(): void {
   manualDrivers -= 1
   if (manualDrivers > 0) return

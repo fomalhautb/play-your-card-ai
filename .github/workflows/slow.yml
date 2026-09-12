@@ -31,13 +31,16 @@ jobs:
     # 最慢的两格是 desktop/play10（M2 上单独跑 6.8 分钟）和 desktop/settle（同机 7.1 分钟，
     # 那还是和另一格抢着核跑出来的）。两核跑机按三倍估约 20 分钟。
     # 给 20 分钟是"跑得完"的下限，不是余量——顶破了要查的是剧本为什么变长了。
+    #
+    # 第 28 条加的 deckScroll（牌组编辑）是最轻的两格：M2 上桌面档 1.8 分钟、手机档 15 秒
+    # ——那一页没有演出，帧数（291 / 336）几乎全是「动作之间等真人的那点反应时间」。
     timeout-minutes: 20
     strategy:
       # 一格超限不该把别的格掐掉：一次跑完能看到全部超限项，比一条一条试快得多。
       fail-fast: false
       matrix:
         profile: [desktop, mobile]
-        segment: [deal, play10, flip, settle]
+        segment: [deal, play10, flip, settle, deckScroll]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4

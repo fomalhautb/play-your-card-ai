@@ -38,6 +38,13 @@ export interface DuelDepsOptions {
   seed: number
   back: Texture
   platform?: Pick<Platform, 'audio' | 'haptics'>
+  /**
+   * 建出来的卡要不要那层跟指针跑的反光。不给就按效果档位定（`TIER_CONFIG[tier].glare`）。
+   *
+   * 构筑页显式关掉：那一页的卡不跟指针倾斜，反光层建了也永远不亮，
+   * 而它是**整张卡那么大的一层**——一屏二三十张卡，白画一遍就是零点几倍的过度绘制（3.2）。
+   */
+  glare?: boolean
   /** 补间一建就要叫醒帧循环，否则没人推它（3.6）。 */
   wake: () => void
 }
@@ -63,7 +70,7 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
     rng: new Rng(options.seed),
     tier: options.tier,
     back: options.back,
-    cardDeps: { baked, text, glare: TIER_CONFIG[options.tier].glare },
+    cardDeps: { baked, text, glare: options.glare ?? TIER_CONFIG[options.tier].glare },
   }
 }
 

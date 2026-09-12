@@ -6,8 +6,8 @@
  * 两条之间隔着一段虚拟时间，所以「谁负责销毁」必须写在一处，否则不是漏销毁就是销毁两次。
  */
 
+import { killAndDestroy } from '../../../runtime/dispose'
 import type { DuelContext } from '../context'
-import { killAndDestroy } from '../disposal'
 
 /**
  * 把展示位上那张卡收掉。

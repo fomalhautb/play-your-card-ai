@@ -184,6 +184,48 @@
         "$description": "卡片加载动画的线框色。来源：styles.css 的 .card-loader --cl-color。"
       }
     },
+    "deck": {
+      "pageVignette": {
+        "$value": "#7a6a4a",
+        "$type": "color",
+        "$description": "纸面页底四周的暗角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-page 那条 radial-gradient 的终点色 rgb(122 106 74 / 19%)，透明度拆到 opacity.deck.pageVignette。"
+      },
+      "poolBase": {
+        "$value": "#26334c",
+        "$type": "color",
+        "$description": "构筑页卡池那块夜色底板的底。来源：legacy-client/src/screens/deck.css 的 .deck-pool background。旧版底上还铺了一张战场背景图，那属于素材（第 33 条），令牌只收纯色那一层。"
+      },
+      "poolLine": {
+        "$value": "#4a5169",
+        "$type": "color",
+        "$description": "夜色卡池底板的一圈描边。来源：deck.css 的 .deck-pool border。"
+      },
+      "poolInset": {
+        "$value": "#ffffff",
+        "$type": "color",
+        "$description": "夜色卡池底板内缘那道高光。来源：deck.css 的 .deck-pool 那条 inset box-shadow，透明度拆到 opacity.deck.poolInset。"
+      },
+      "chipInk": {
+        "$value": "#f3e2b8",
+        "$type": "color",
+        "$description": "卡池头部阵营胶囊上的字。来源：deck.css 的 .deck-faction color。"
+      },
+      "progressFill": {
+        "$value": "#35604d",
+        "$type": "color",
+        "$description": "牌组进度条满档时的填充色。来源：deck.css 的 .deck-progress__fill--full。"
+      },
+      "blockedInk": {
+        "$value": "#ffeec5",
+        "$type": "color",
+        "$description": "灰卡正中那块「即将上线 / 暂未接入」牌子上的字。来源：deck.css 的 .deck-pool-card__blocked color。"
+      },
+      "blockedBase": {
+        "$value": "#0a0f1a",
+        "$type": "color",
+        "$description": "灰卡那块牌子的底。来源：deck.css 的 .deck-pool-card__blocked background rgb(10 15 26 / 88%)，透明度拆到 opacity.deck.blockedBase。"
+      }
+    },
     "plaque": {
       "navy": {
         "default": {
@@ -643,6 +685,11 @@
         "$value": "#060b16",
         "$type": "color",
         "$description": "选目标层的压暗。偏蓝的深色而不是纯黑：这一层压着的是战场，纯黑会把场上小卡的暖色压成灰。来源：styles.css 的 .battle__targeting。"
+      },
+      "dialog": {
+        "$value": "#0c101a",
+        "$type": "color",
+        "$description": "纸面对话框（需求单弹窗 A）底下那层遮罩的底色。旧样式里三处对话框写的是同一个 rgb(12 16 26 / 82%)，这里按 design 的规矩拆成颜色加 opacity.overlay.dialog。和 overlay.veil 分开是因为这一层要把整个界面挡死（后面那层战场不该还看得清），而那两层是过场，背景还得认得出来。来源：styles.css 的 .leave-ask、.fs-prompt、.rotate-notice。"
       }
     }
   }

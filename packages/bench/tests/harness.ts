@@ -11,6 +11,7 @@ import { DECK, type Profile, SEED } from '../src/node/profiles'
 import type { BenchApi, BenchInitOptions, GpuReport, SceneKind } from '../src/page/benchApi'
 import type { HitPoint } from '../src/page/hitPoints'
 import type { KeyframeShots } from '../src/page/keyframes'
+import { sceneOfScenario } from '../src/scenarios/index'
 import type { DuelCommand } from '../src/scene/contract'
 
 declare global {
@@ -26,7 +27,12 @@ export interface SegmentRun {
   textureBytes: number
 }
 
-/** @param scene 默认测 canvas 包的真实场景；'stub' 只给测量骨架自测那条冒烟用例用。 */
+/** 这一段剧本要建哪个场景。剧本自己登记的（见 scenarios/types.ts 的 `Scenario.scene`）。 */
+export function sceneOf(segment: string): SceneKind {
+  return sceneOfScenario(segment)
+}
+
+/** @param scene 默认测 canvas 包的真实对局场景；剧本各自要哪个场景走 `sceneOf`。 */
 export function initOptions(
   profile: Profile,
   manualClock: boolean,
@@ -135,6 +141,11 @@ export async function gpuReport(page: Page): Promise<GpuReport> {
 /** 开一局并把开局演出推完：手牌摆上屏幕、锁放开，可以开始点了。 */
 export async function dealHand(page: Page): Promise<void> {
   await page.evaluate(() => window.__bench.deal())
+}
+
+/** 照脚本打出 n 张牌。英雄技能那条用例要靠它先在场上摆出一个单位。 */
+export async function playScripted(page: Page, count: number): Promise<void> {
+  await page.evaluate((n) => window.__bench.play(n as number), count)
 }
 
 /** 把演出推完。真指针那几下之间要靠它——手动时钟下没人替我们推帧。 */

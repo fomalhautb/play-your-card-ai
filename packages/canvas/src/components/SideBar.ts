@@ -24,7 +24,7 @@ import type { TextTextureCache } from '../runtime/textCache'
 import { DIVIDER_GEM, Divider } from './Divider'
 import { Label } from './Label'
 import { PANEL_NEXT_PLAQUE, PANEL_SIDEBAR, Panel } from './Panel'
-import { PlayerPanel } from './PlayerPanel'
+import { PlayerPanel, type PlayerPanelDeps } from './PlayerPanel'
 
 /**
  * 纸匾上那两行字的字号和字距（px）。组件私有，理由见 design 的 README。
@@ -40,7 +40,11 @@ const PAD_X = 12
 /** 纸匾和它下面那块玩家面板之间留多宽。 */
 const PLAQUE_GAP = 10
 
-export interface SideBarDeps {
+/**
+ * 侧栏自己只要三样，但它要把整份依赖原样递给两块玩家面板——
+ * 那两块里的「发动技能」钮是匾额按钮，按下时要调触感和音效（见 PlayerPanel）。
+ */
+export interface SideBarDeps extends PlayerPanelDeps {
   ui: UiTextures
   text: TextTextureCache
   animator: Animator

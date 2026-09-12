@@ -48,20 +48,29 @@ export function createWebNetwork(options: WebNetworkOptions = {}): NetworkCapabi
 }
 
 function openWebSocket(options: SocketOptions, webSocket: unknown): SocketHandle {
-  const socket = new ReconnectingWebSocket(options.url, [], {
-    minReconnectionDelay: options.minReconnectDelayMs ?? DEFAULT_MIN_RECONNECT_DELAY_MS,
-    maxReconnectionDelay: options.maxReconnectDelayMs ?? DEFAULT_MAX_RECONNECT_DELAY_MS,
-    reconnectionDelayGrowFactor: options.reconnectDelayGrowFactor ?? DEFAULT_RECONNECT_GROW_FACTOR,
-    connectionTimeout: options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS,
-    maxRetries: Number.POSITIVE_INFINITY,
-    // 断线期间上层还在发消息，全部缓冲下来，连上立刻补发。
-    // 不缓冲的话 send 会静默丢弃，出牌指令就那么消失了。
-    maxEnqueuedMessages: Number.POSITIVE_INFINITY,
-    shouldReconnectOnClose: (event) =>
-      options.shouldReconnect?.({ code: event.code, reason: event.reason }) ?? true,
-    // 不传就用全局 WebSocket；传了 undefined 会被 partysocket 当成「没有实现」而报错。
-    ...(webSocket === undefined ? {} : { WebSocket: webSocket }),
-  })
+  const provider = options.protocols
+  const socket = new ReconnectingWebSocket(
+    options.url,
+    // partysocket 的 ProtocolsProvider 分「同步返回」和「返回 Promise」两种重载，
+    // 而这里的接口两种都允许，所以统一包成 async：一个 `string[] | Promise<string[]>`
+    // 的函数两种重载都对不上，包一层之后永远落在异步那一种。
+    provider === undefined ? [] : async () => provider(),
+    {
+      minReconnectionDelay: options.minReconnectDelayMs ?? DEFAULT_MIN_RECONNECT_DELAY_MS,
+      maxReconnectionDelay: options.maxReconnectDelayMs ?? DEFAULT_MAX_RECONNECT_DELAY_MS,
+      reconnectionDelayGrowFactor:
+        options.reconnectDelayGrowFactor ?? DEFAULT_RECONNECT_GROW_FACTOR,
+      connectionTimeout: options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS,
+      maxRetries: Number.POSITIVE_INFINITY,
+      // 断线期间上层还在发消息，全部缓冲下来，连上立刻补发。
+      // 不缓冲的话 send 会静默丢弃，出牌指令就那么消失了。
+      maxEnqueuedMessages: Number.POSITIVE_INFINITY,
+      shouldReconnectOnClose: (event) =>
+        options.shouldReconnect?.({ code: event.code, reason: event.reason }) ?? true,
+      // 不传就用全局 WebSocket；传了 undefined 会被 partysocket 当成「没有实现」而报错。
+      ...(webSocket === undefined ? {} : { WebSocket: webSocket }),
+    },
+  )
 
   /*
    * 状态自己记，不去读 partysocket 的 readyState。

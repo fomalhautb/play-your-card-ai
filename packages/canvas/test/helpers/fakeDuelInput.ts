@@ -9,7 +9,7 @@
  * 拿假数字喂进去等于测了一套现实里不存在的版式。
  */
 
-import type { Catalog, InstanceId, PlayerView } from '@ai-duel/core'
+import type { Catalog, HeroId, InstanceId, PlayerView } from '@ai-duel/core'
 import type { BoardTile } from '../../src/components/BoardTile'
 import type { CardSprite } from '../../src/components/CardSprite'
 import type { DirectorLocks, UserAction } from '../../src/director/director'
@@ -37,6 +37,26 @@ const INPUT_CATALOG: Catalog = {
       openrouter: null,
       tokenCost: 1,
       text: '假',
+    },
+    /*
+     * 老一代的假模型，`evolvesTo` 指着上面那张。
+     *
+     * 英雄技能的候选名单是「这个单位升（降）得动吗」，而这一条最终问的是
+     * core 的 `upgradeTargetOf` / `downgradeTargetOf`，也就是卡定义上有没有 `evolvesTo`。
+     * 所以这份卡池必须有一条真的两代链，否则「有合法目标」那一档根本摆不出来。
+     * 反过来，只带 `ai` 的场上单位就天然是「升不动也降不动」，正好当反例用。
+     */
+    'ai-old': {
+      kind: 'ai',
+      id: 'ai-old',
+      name: '假模型（旧）',
+      model: 'fake-old',
+      skillName: '假技能',
+      skillText: '假',
+      openrouter: null,
+      tokenCost: 1,
+      text: '假',
+      evolvesTo: 'ai',
     },
     plain: { kind: 'skill', id: 'plain', name: '无目标技能', tokenCost: 1, text: '假' },
     'hit-foe': {
@@ -118,6 +138,14 @@ interface ViewSpec {
   board?: [InstanceId, string][]
   /** 对方场上单位。打 `foe-ai` 的技能牌选目标时亮的就是这些。 */
   foeBoard?: [InstanceId, string][]
+  /**
+   * 我方英雄。不给就是没选英雄，那时侧栏那颗「发动」钮压根不该出现。
+   * 有主动技能的只有陈丹琦（升己方一个）和梅拉妮·珀金斯（降对方一个），
+   * 判据见 skillTargets.ts 的 `heroSkillDirectionOf`。
+   */
+  hero?: HeroId
+  /** 英雄技能这一局用过没有。用过之后钮由 applyView 撤走，这里只影响视图。 */
+  heroSkillUsed?: boolean
 }
 
 export function fakeView(spec: ViewSpec): PlayerView {
@@ -133,6 +161,8 @@ export function fakeView(spec: ViewSpec): PlayerView {
       id: 0,
       hand: spec.hand.map(([instanceId, cardId]) => ({ instanceId, cardId })),
       board: (spec.board ?? []).map(unit(0)),
+      hero: spec.hero ?? null,
+      heroSkillUsed: spec.heroSkillUsed ?? false,
     },
     opponent: { id: 1, handCount: 3, board: (spec.foeBoard ?? []).map(unit(1)) },
   } as unknown as PlayerView
@@ -172,6 +202,8 @@ export interface InputProbe {
   calls: string[]
   /** 「结束出牌」现在灰不灰。null 表示 refresh 一次都没跑过。 */
   endPlayDisabled: boolean | null
+  /** 侧栏那颗英雄技能钮现在灰不灰。null 表示 refresh 一次都没跑过。 */
+  heroSkillDisabled: boolean | null
   /** 手牌扇形里那几张假卡，顺序同视图里的手牌。 */
   cards: FakeCard[]
   /** 按实例 id 取一张手牌。 */
@@ -222,6 +254,7 @@ export function createInputProbe(view: PlayerView): InputProbe {
     actions,
     calls,
     endPlayDisabled: null,
+    heroSkillDisabled: null,
     cards,
     card(instanceId) {
       const found = cards.find((one) => one.instanceId === instanceId)
@@ -256,6 +289,18 @@ export function createInputProbe(view: PlayerView): InputProbe {
     endPlay: {
       setDisabled: (disabled: boolean) => {
         probe.endPlayDisabled = disabled
+      },
+    },
+    /*
+     * 只有我方那一块面板：英雄技能钮只长在这一侧（对手的技能不归我发，见 applyView 的
+     * syncHeroes）。`input.refresh` 每次都会去写它的灰态，所以这个替身不能少——
+     * 少了它连一条和英雄技能无关的锁测试都会当场抛。
+     */
+    panels: {
+      mine: {
+        setHeroSkillDisabled: (disabled: boolean) => {
+          probe.heroSkillDisabled = disabled
+        },
       },
     },
   }

@@ -13,13 +13,15 @@
  * 中途接手一局（没有历史事件）、以及编排层明确不演的那几种事件走的就是这条路。
  */
 
-import type { AiInstance, PlayerView } from '@ai-duel/core'
+import type { AiInstance, HeroId, PlayerSideView, PlayerView } from '@ai-duel/core'
 import type { BoardSide } from '../../components/BoardGrid'
 import { applyPose } from '../../components/HandFan'
+import type { PlayerPanel } from '../../components/PlayerPanel'
+import { killAndDestroy } from '../../runtime/dispose'
 import type { DuelContext } from './context'
-import { killAndDestroy } from './disposal'
 import { CATEGORY_LABELS } from './labels'
 import { fanToWorld } from './layout/types'
+import { heroSkillDirectionOf } from './skillTargets'
 import { tileMarksOf } from './tileMarks'
 
 /** 战场中线那枚徽章上印什么：这一轮到了哪一步。 */
@@ -47,6 +49,38 @@ function syncChrome(ctx: DuelContext, view: PlayerView): void {
     sideBar.setNextCategory(CATEGORY_LABELS[question.category])
   }
   board.setTurnBadge(turnBadgeOf(view, view.viewer))
+}
+
+/**
+ * 两块面板上的英雄牌，以及我方那颗「发动技能」的钮。
+ *
+ * 英雄一局不会换，所以只在**第一次**（或者换档位重建之后）建那张牌：`heroSlot` 里已经
+ * 有东西就不动它，否则每收到一条指令都会把原画重建一遍。
+ * 那颗钮相反，要跟着视图变——技能一发完 `heroSkillUsed` 就为真，钮当场撤走。
+ */
+function syncHeroes(ctx: DuelContext, view: PlayerView): void {
+  setHero(ctx, ctx.parts.panels.mine, view.self)
+  setHero(ctx, ctx.parts.panels.theirs, view.opponent)
+
+  // 只有我方那侧有这颗钮：对手的技能不归我发。
+  const hero = view.self.hero
+  const active = heroSkillDirectionOf(hero) !== null && !view.self.heroSkillUsed
+  ctx.parts.panels.mine.setHeroSkill(
+    active && hero !== null
+      ? { caption: skillNameOf(ctx, hero), onActivate: () => ctx.beginHeroSkill() }
+      : null,
+  )
+}
+
+/** 匾上印技能名而不是「发动」：玩家得知道按下去要发动的是什么（同旧版）。 */
+function skillNameOf(ctx: DuelContext, heroId: HeroId): string {
+  return ctx.catalog.heroes[heroId]?.skillName ?? '发动技能'
+}
+
+/** 一侧的英雄牌。已经摆过就不动——原画一局不换，重建一遍纯属白传一次显存。 */
+function setHero(ctx: DuelContext, panel: PlayerPanel, side: PlayerSideView): void {
+  if (side.hero === null || panel.hasHero()) return
+  panel.setHero(ctx.makeHero(side.hero))
 }
 
 /**
@@ -139,6 +173,7 @@ function syncFoeHand(ctx: DuelContext, view: PlayerView): void {
 export function applyView(ctx: DuelContext, view: PlayerView): void {
   ctx.view = view
   syncChrome(ctx, view)
+  syncHeroes(ctx, view)
   syncHand(ctx, view)
   syncBoard(ctx, view)
   syncFoeHand(ctx, view)
