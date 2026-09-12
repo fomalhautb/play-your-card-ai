@@ -59,15 +59,41 @@ export interface FacePartsDeps {
   shadow: boolean
 }
 
-/** 一张卡的展示数据里和"卡面长什么样"有关的那部分。字段说明见 CardSprite 的 `CardVisual`。 */
+/**
+ * 一张卡的展示数据里和「卡面长什么样」有关的那部分。
+ *
+ * 和 `CardSprite` 的 `CardVisual` 是同一份东西的两半：那边多的只有「这是谁」（实例标识）
+ * 和背面那张牌背，正面的排版全看这里。写成两个类型是为了让这个文件不依赖组件。
+ */
 export interface FaceContent {
+  /** 印在铭牌上的名字（AI 牌是模型名）。 */
   name: string
+  /** 左上圆章里的数字。 */
   cost: number
+  /** 正面原画。 */
   face: Texture
+  /** 费用圆章的盘底色。AI 牌按插画主色调出来，技能牌是从原画那枚章上采的色。 */
   accent: number
+  /**
+   * 这张 AI 牌的专属技能名。
+   *
+   * 给了就在卡面下部画一块八角雕花匾，技能名在上、`name` 在下；不给就只有费用圆章——
+   * 技能牌的原画已经把卡名和效果印进图里了，再盖一块匾会把画面压死（分档见文件头）。
+   */
   skillName?: string
+  /**
+   * 费用圆章的圆心，卡面基准尺寸（150×225）下、以卡的**左上角**为原点的像素。
+   *
+   * 逐张配的原因是每张原画角上自己就画了一枚星章、圆章要盖住它，而各张星章位置都不一样。
+   * 数据在 `@ai-duel/content` 的 `CARD_FACES`，由装配层查好传进来；不给就用兜底位置。
+   */
   costCenter?: { x: number; y: number }
+  /**
+   * 查不到专属原画时的兜底文字层：卡面下部压一层渐变，印名字、描述和卡种。
+   * 正式的 42 张牌各有一张原画，所以这一档只在图集缺帧时出现。
+   */
   body?: { text: string; kind: string; kindInk: number }
+  /** 这张牌能翻面看背面：右上角挂一枚问号圆章。 */
   flippable?: boolean
 }
 
@@ -232,19 +258,16 @@ function costLayers(visual: FaceContent, deps: FacePartsDeps): FaceLayer[] {
 const SEAL_INSET = 6
 
 /**
- * 问号章在卡自己的坐标里占的矩形（原点在卡的底边中点）。
+ * 这一点（卡自己的坐标，原点在底边中点）落在问号章上没有。
  *
- * 点它翻面的那块热区用的是**同一份**：热区和画出来的章对不上，玩家就会点在章上没反应、
- * 或者点在旁边反而翻了（判定在 interaction/handPointer.ts）。
+ * 点它翻面的那块热区和画出来的那枚章是**同一份**几何：两边对不上，玩家就会点在章上
+ * 没反应、或者点在旁边反而翻了。判定的调用方在 interaction/handPointer.ts。
  */
-export function sealRect(): LayerRect {
+export function hitsSeal(x: number, y: number): boolean {
   const size = tokens.size.seal.helpMark
-  return {
-    x: CARD_WIDTH / 2 - SEAL_INSET - size,
-    y: -CARD_HEIGHT + SEAL_INSET,
-    width: size,
-    height: size,
-  }
+  const left = CARD_WIDTH / 2 - SEAL_INSET - size
+  const top = -CARD_HEIGHT + SEAL_INSET
+  return x >= left && x <= left + size && y >= top && y <= top + size
 }
 
 /** 能翻面的牌右上角那枚问号章：底圈一层 + 问号一层。 */

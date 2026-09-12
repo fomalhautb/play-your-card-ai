@@ -36,7 +36,14 @@ import { CardGlare } from '../fx/cardGlare'
 import { CARD_SHADOW } from '../fx/cardShapes'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import type { TextTextureCache } from '../runtime/textCache'
-import { backLayerOf, cardRect, type FaceLayer, frontLayersOf, shadowRect } from './cardFaceParts'
+import {
+  backLayerOf,
+  cardRect,
+  type FaceContent,
+  type FaceLayer,
+  frontLayersOf,
+  shadowRect,
+} from './cardFaceParts'
 import {
   type LayerRect,
   type MeshVertices,
@@ -59,8 +66,11 @@ const CARD_MESH_VERTICES: MeshVertices = { x: 5, y: 2 }
 /** 费用章、文字这些小件用的细分。它们只有几十像素见方，四个角就够，多了纯属浪费。 */
 const SMALL_MESH_VERTICES: MeshVertices = { x: 2, y: 2 }
 
-/** 建一张卡要的数据。纹理由调用方给——canvas 不管资源从哪来。 */
-export interface CardVisual {
+/**
+ * 建一张卡要的数据：正面那一套（`FaceContent`，见 cardFaceParts.ts）加上这是谁、背面是什么。
+ * 纹理由调用方给——canvas 不管资源从哪来。
+ */
+export interface CardVisual extends FaceContent {
   /**
    * 这张牌的**实例**标识，扇形和战场都按它认牌。
    *
@@ -69,38 +79,8 @@ export interface CardVisual {
    *（对局场景记在 `DuelContext.handCardIds` 里）。
    */
   instanceId: string
-  /** 印在铭牌上的名字（AI 牌是模型名）。 */
-  name: string
-  /** 左上圆章里的数字。 */
-  cost: number
-  /** 正面原画。 */
-  face: Texture
   /** 背面牌背。 */
   back: Texture
-  /** 费用圆章的盘底色。AI 牌按插画主色调出来，技能牌是从原画那枚章上采的色。 */
-  accent: number
-  /**
-   * 这张 AI 牌的专属技能名。
-   *
-   * 给了就在卡面下部画一块八角雕花匾，技能名在上、`name` 在下；不给就只有费用圆章——
-   * 技能牌的原画已经把卡名和效果印进图里了，再盖一块匾会把画面压死
-   *（分档见 cardFaceParts.ts 的文件头）。
-   */
-  skillName?: string
-  /**
-   * 费用圆章的圆心，卡面基准尺寸（150×225）下、以卡的**左上角**为原点的像素。
-   *
-   * 逐张配的原因是每张原画角上自己就画了一枚星章、圆章要盖住它，而各张星章位置都不一样。
-   * 数据在 `@ai-duel/content` 的 `CARD_FACES`，由装配层查好传进来；不给就用兜底位置。
-   */
-  costCenter?: { x: number; y: number }
-  /**
-   * 查不到专属原画时的兜底文字层：卡面下部压一层渐变，印名字、描述和卡种。
-   * 正式的 42 张牌各有一张原画，所以这一档只在图集缺帧时出现。
-   */
-  body?: { text: string; kind: string; kindInk: number }
-  /** 这张牌能翻面看背面：右上角挂一枚问号圆章。 */
-  flippable?: boolean
 }
 
 export interface CardSpriteDeps {

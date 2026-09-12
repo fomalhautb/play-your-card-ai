@@ -81,10 +81,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
   const mood = createHandMood(ctx)
   const tileHover = createTileHover(ctx, () => !performanceLocked && locks?.showcasing !== true)
   /**
-   * 每张手牌各一份倾斜跟随。
-   *
-   * 按卡存而不是「只给当前抬起的那张留一份」：卡在对局里是随发随建随销的，
-   * 一份共用的跟随会在换牌那一刻还指着上一张。卡被销毁时这里跟着摘（见 bindCard 的说明）。
+   * 每张手牌各一份倾斜跟随。按卡存而不是「只留一份共用的」：卡在对局里是随发随建随销的，
+   * 共用那一份会在换牌那一刻还指着上一张。卡销毁时这里跟着摘（见 bindCard）。
    */
   const tilts = new Map<CardSprite, CardTilt>()
   const tiltFor = (card: CardSprite): CardTilt => {
@@ -242,10 +240,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     if (targeting !== null) return
     /*
      * 这一下打不出去（Token 不够）：弹一句小字说明为什么，不发指令，牌送回扇形。
-     *
-     * 送回这一步不能省：走到这儿的多半是"拖到战场松手"，那张牌此刻还挂在拖拽层上。
-     * 整排锁着的那几档（对方回合、答题、发牌）压根拖不动——`enabled` 那道闸已经挡在前面，
-     * 所以那几句提示只会从"点一下"那条路弹出来。
+     * 送回不能省——走到这儿的多半是"拖到战场松手"，那张牌此刻还挂在拖拽层上。
+     * 整排锁着的那几档压根拖不动（`enabled` 已经挡在前面），那几句提示只从"点一下"弹出来。
      */
     if (mood.popTip(card)) {
       pointer.returnToFan(card)
@@ -313,11 +309,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     tileHover.move(at.x, at.y)
   }
   /*
-   * 点侧栏那张英雄牌放大查看。
-   *
-   * 只挂我方那一侧：对手那张点开也只能看到同样一张原画，而那一侧的面板底下压着
-   * 「点空白处取消选目标」那条，多开一块热区只会把取消吃掉一块。
-   * 演出锁着的时候不受理——那时屏幕上多半已经有一层遮罩了。
+   * 点侧栏那张英雄牌放大查看。只挂我方那一侧：对手那张点开也只能看到同样一张原画，
+   * 多开一块热区只会把「点空白处取消选目标」吃掉一块。演出锁着时不受理。
    */
   ctx.parts.panels.mine.onHeroTap(() => {
     const hero = ctx.view?.self.hero

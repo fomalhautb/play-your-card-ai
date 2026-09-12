@@ -23,7 +23,7 @@
 import type { Container, FederatedPointerEvent } from 'pixi.js'
 import { Point } from 'pixi.js'
 import type { CardSprite } from '../components/CardSprite'
-import { sealRect } from '../components/cardFaceParts'
+import { hitsSeal } from '../components/cardFaceParts'
 import type { CardTilt } from '../components/cardTilt'
 import type { HandFan } from '../components/HandFan'
 import { CARD_HEIGHT } from '../layout/fanMath'
@@ -65,8 +65,7 @@ export interface HandPointerOptions {
   onPlay: (card: CardSprite) => void
   /**
    * 玩家点了能翻面那张牌的问号章（或者点了已经翻过去的牌想翻回来）。
-   *
-   * 翻面本身归场景演（时长和缓动在那边），这里只负责判「这一下点的是不是那枚章」。
+   * 翻面本身归场景演，这里只判「这一下点的是不是那枚章」。
    */
   onFlip?: (card: CardSprite) => void
   /**
@@ -182,10 +181,8 @@ export class HandPointer {
   }
 
   /**
-   * 把一张还挂在拖拽层上的牌送回扇形。
-   *
-   * 场景要它是因为「拖出去松手」不一定等于「这张牌走了」：带目标的技能牌松手之后进的是
-   * 选目标态，牌得先回到扇形里再抬起来等玩家点（见 scenes/duel/input.ts 的 beginTargeting）。
+   * 把一张还挂在拖拽层上的牌送回扇形。「拖出去松手」不一定等于「这张牌走了」：
+   * 带目标的技能牌松手之后进的是选目标态，牌得先回扇形再抬起来等玩家点。
    */
   returnToFan(card: CardSprite): void {
     this.returnCard(card)
@@ -375,8 +372,8 @@ export class HandPointer {
     if (outcome === 'tap') {
       /*
        * 先看这一下是不是冲着问号章去的：点章翻到背面，翻过去之后点**整张牌**都翻回来
-       *（章画在正面那一层上，背面朝上时它跟着一起看不见了）。
-       * 判在打出之前：这两件事共用同一次点击，翻面的优先——出牌不可撤销，翻面可以。
+       *（章画在正面那一层上，背面朝上时跟着一起看不见）。判在打出之前：两件事共用同一次
+       * 点击，翻面优先——出牌不可撤销，翻面可以。
        */
       if (this.flipTapped(press.card, x, y)) {
         this.options.onFlip?.(press.card)
@@ -396,14 +393,8 @@ export class HandPointer {
     if (!card.flippable || this.options.onFlip === undefined) return false
     if (card.isFacingBack()) return true
     this.pointerScratch.set(stageX, stageY)
-    const local = card.toLocal(this.pointerScratch, this.options.stage, this.pointerScratch)
-    const rect = sealRect()
-    return (
-      local.x >= rect.x &&
-      local.x <= rect.x + rect.width &&
-      local.y >= rect.y &&
-      local.y <= rect.y + rect.height
-    )
+    const at = card.toLocal(this.pointerScratch, this.options.stage, this.pointerScratch)
+    return hitsSeal(at.x, at.y)
   }
 
   /** 落点提示换一档。没变就不报——调用方那边一档对一次 visible 的开关。 */
