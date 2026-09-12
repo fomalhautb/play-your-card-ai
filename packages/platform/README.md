@@ -22,9 +22,19 @@
 
 `platform.ts` 把七项打成一个 `Platform`，应用入口构造一次往下传。
 
+## 第八项：Steam（可选）
+
+`steam.ts` 的 `SteamCapability`（`isAvailable`、`authTicket`、`personaName`）是**可选的**
+（`Platform.steam?`）——七项能力每个壳都有、只是实现不同，而 Steam 只有 Steam 那个壳有，
+网页和手机壳根本没有对应的东西。所以它不写成「另外两个壳返回恒假的实现」：那样调用方
+分不出「装了 Steam 但没开」和「这个壳压根不是 Steam 版」，而这两种情况界面上要说的话不一样。
+
+票据的用法见《正式版架构》5.5：客户端拿它换服务端的会话，服务端拿它去问 Steam 这张票是谁的。
+客户端自己说的 steamId 一律不算数。
+
 ## 为什么这样切
 
-接口不是凭空设计的，除触感外每一项都是从旧客户端（`packages/legacy-client`，已冻结）
+接口不是凭空设计的，除触感外每一项都是从旧客户端（黑客松版，已随迁移第 38 条删掉）
 实际用到的操作反推的。切法上有几处刻意和旧代码不一样：
 
 - **HTTP 只有「取一份 JSON」一个方法。** 全站的 HTTP 就是账号那三条（游客登录、拿会话、
@@ -49,11 +59,11 @@
 - **图片交出 `ImageBitmap`。** Pixi 拿它直接建纹理，不用再解码一次；接口里不出现 Pixi 的任何类型。
   界面要地址时用 `displayUrl`，别拿 `url` 自己拼——将来壳从本地读图时它会变。
 - **触感是唯一凭空定的一项。** 旧代码全站没有用过 `navigator.vibrate`。接口照 Capacitor Haptics
-  的最小面来定，将来第 36 条接原生插件时是一一对应的转发。
+  的最小面来定，第 36 条接原生插件时果然是一一对应的转发，接口一个字没改。
 
 ## web 实现用了什么库
 
-`createWebPlatform()`。三个壳目前都用它——Electron 渲染进程是 Chromium，Capacitor 是系统 WebView。
+`createWebPlatform()`。网页壳直接用它，另外两个壳以它为底再各换掉三项（见下面两节）。
 
 - **网络：[partysocket](https://github.com/partykit/partysocket)。** Cloudflare 维护的重连
   WebSocket，API 和原生一样，断线重连、退避、连接超时、断线期间的发送队列都在里面。
@@ -71,8 +81,64 @@
 - **全屏、安全区、触感：浏览器 API，没引库。** 特性检测和降级从旧代码搬过来（`ui/fullscreen.ts`、
   `ui/viewportVars.ts`），坑都在注释里。
 
-Electron 和 Capacitor 的实现留到迁移第 35、36 条，那时是「以 web 实现为底，换掉其中几项」
-（Steam 覆盖层、原生触感、系统安全区），不是另起一套。
+## electron 实现
+
+`createElectronPlatform()`（迁移第 35 条，`src/electron/`）。它**以网页实现为底**，只换三项：
+
+- `fullscreen`：要全屏的是**窗口**，不是页面里的那一块。`document.requestFullscreen()` 在
+  Electron 里能用，但标题栏和窗口边框还在；而且玩家按 F11、点窗口按钮、macOS 上用触发角退出时，
+  浏览器那套 `fullscreenchange` 一声不响。状态只能由主进程推过来。
+- `haptics`：桌面上没有可震的东西。不沿用网页实现是因为 `navigator.vibrate` 在 Chromium 里
+  **存在**、调用也不报错，只是什么都不发生——那样设置页会摆出一个按了没反应的开关。
+- `steam`：第八项，只有这个壳有。
+
+这三项底下都是同一座桥：`window.aiDuelShell`，由 `apps/steam/src/preload.ts` 经
+`contextBridge` 挂上去。`steamworks.js` 是原生模块，只能在主进程里加载——要在渲染进程里
+直接 `require` 它就得关掉 `contextIsolation`，那是拿整个渲染进程换一个功能。
+桥的形状在 `src/electron/bridge.ts` 和 preload 里**各写了一份**，改一处要一起改
+（跨包只走包入口，而库不能反过来依赖壳）。
+
+桥不在的时候（没有 preload——端到端用例、直接用浏览器打开构建产物）`createElectronPlatform()`
+退回纯网页实现，`platform.steam` 于是是 undefined，客户端走游客登录那条路。
+
+## capacitor 实现
+
+`createCapacitorPlatform()`（迁移第 36 条，`src/capacitor/`）。同样**以网页实现为底**，换三项。
+
+**它不在包的主入口里**，在第二个入口 `@ai-duel/platform/capacitor`
+（`package.json` 的 `exports` 里声明的）。理由只有一条：它 import 了 `@capacitor/core`，
+而那个包是有副作用的（模块一加载就往 window 上挂东西），打包器摇不掉。
+挂在主入口上的话，网页壳的产物里会白白多出一份用不到的 Capacitor 运行时——
+实测 `apps/web` 从 1,026.84 kB 涨到 1,035.03 kB（gzip 319.07 → 322.21）。
+壳那边也隔了一层：`apps/` 下的壳只许依赖 client，所以手机壳走的是
+`@ai-duel/client/capacitor`（见 `packages/client/src/capacitor.ts`）。
+
+三项是：
+
+- `network`：三件事。**地址**要改指线上——手机壳里页面的源是 `capacitor://localhost`
+  （iOS 的 WKWebView 不让给 https 注册协议处理器，只能用非标准 scheme），而客户端是照
+  `window.location.origin` 拼地址的；Steam 壳那招「把本地产物挂到线上那个源上」在这儿做不到，
+  理由见 `src/capacitor/origin.ts`。**HTTP 走原生**（`CapacitorHttp`，核心自带不用装插件）：
+  改完地址请求就是跨源的，而会话是一个 cookie；原生 HTTP 不经过 WebView 的同源策略，
+  cookie 存在系统的罐子里。只换 `requestJson` 这一个口子，不开那个会把全局 `fetch` 整个换掉的
+  开关。**前后台**听 `@capacitor/app` 的 `appStateChange`，因为 iOS 的 WKWebView 切后台时
+  不保证发 `visibilitychange`。
+- `fullscreen`：全屏 = 藏系统状态栏和导航栏（`SystemBars`，也在核心里）。页面全屏在 WebView 里
+  调了什么也看不出来——WebView 本来就铺满整个窗口。方向锁恒为 false：横屏是原生工程里写死的，
+  没有运行时那一步。
+- `haptics`：转发给 `@capacitor/haptics`。网页那份在 iPhone 上什么都做不了（iOS Safari 至今
+  不支持 `navigator.vibrate`），安卓上也只有「震多少毫秒」一个旋钮。
+
+**`safeArea` 没有换**，虽然它是手机上最要紧的一项：探针那条 padding 是
+`max(env(safe-area-inset-*), var(--safe-area-inset-*, 0px))`，两个来源取大的那个——
+iOS 报得准的是前者，安卓靠 Capacitor 注入的后者（`plugins.SystemBars.insetsHandling: 'css'`）。
+一份实现两边都对。
+
+不在原生壳里跑的时候（浏览器里打开同一份产物、测试）`createCapacitorPlatform()` 退回纯网页实现。
+
+跨源那一半在服务端接住：better-auth 的 `trustedOrigins` 里有手机壳这两个源
+（`packages/server/src/auth/betterAuth.ts` 的 `MOBILE_TRUSTED_ORIGINS`，有测试钉着）。
+整条链路和还要真机验的东西写在 `apps/mobile/README.md` 的「同源这件事」。
 
 ## 假实现
 
@@ -88,6 +154,9 @@ Electron 和 Capacitor 的实现留到迁移第 35、36 条，那时是「以 we
 - **全屏**：支持不支持、能不能锁方向、是不是从主屏幕启动，三种设备组合都摆得出来。
 - **安全区**：随手改其中几项，值真的变了才通知。
 - **触感**：记账，设备不支持时不记（和真实现的空操作对齐）。
+- **Steam**：在不在、下一张票据是什么（`null` 表示取票据会失败）、昵称，以及取过几次票据。
+  **默认 `isAvailable()` 是 false**，和另外七项不一样——`createFakePlatform()` 建出来的是一台
+  普通机器，大多数用例要验的正是「没有 Steam 时走游客那条路」。
 
 ## 测试
 

@@ -113,7 +113,7 @@ export interface Closed {
  * 一条连上去的连接，带一个消息队列。
  *
  * 队列是必须的，不能临时挂 `onmessage`：服务端可能在我们开始等之前就把消息发过来了
- *（比如握手回执），漏掉一条测试就会假失败。这一点和旧的 smoke 脚本一样。
+ *（比如握手回执），漏掉一条测试就会假失败。
  */
 export class Client {
   private readonly inbox: ServerMessage[] = []

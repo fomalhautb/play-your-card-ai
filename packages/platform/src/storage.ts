@@ -1,7 +1,7 @@
 /**
  * 存储能力：把一份数据存在这台机器上，下次进游戏还在。
  *
- * 旧代码里两处存档（legacy-client/src/save/save.ts 的收藏和胜场、deckStore.ts 的牌组）
+ * 旧代码里两处存档（黑客松版的 src/save/save.ts 的收藏和胜场、deckStore.ts 的牌组）
  * 各自重复了同一套动作：拼一个带版本号的 key、JSON 序列化、读的时候逐字段校验、
  * 全程 try/catch 静默失败。重复的那三件事挪到接口上，实现只剩「按 key 存取字符串」。
  *

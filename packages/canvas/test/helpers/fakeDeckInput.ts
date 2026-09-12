@@ -141,6 +141,8 @@ export function createDeckProbe(spec: ProbeSpec = {}): DeckProbe {
     state: createDeckState(decks, 'd1', layout.tier === 'desktop'),
     gap: null,
     dragging: null,
+    // 这些用例都不在新手教程里，那道闸门恒为 null。
+    tutorial: null,
     takeCard: () => fakeCard(),
     holdCard: () => fakeCard(),
     beginBorrow: () => undefined,
@@ -155,6 +157,7 @@ export function createDeckProbe(spec: ProbeSpec = {}): DeckProbe {
     },
     emitInspect: (cardId: string) => inspected.push(cardId),
     emitManage: () => undefined,
+    blocked: () => undefined,
   } as unknown as DeckContext
 
   const center = (grid: typeof layout.poolGrid, index: number) => {

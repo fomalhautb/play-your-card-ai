@@ -8,7 +8,7 @@ import { defineConfig } from 'vite'
 const SERVER_URL = process.env.SERVER_URL ?? 'http://127.0.0.1:8787'
 
 /**
- * 转给 wrangler 的四条路径。
+ * 转给 wrangler 的三条路径。
  *
  * 为什么要代理而不是让客户端直接连 8787：账号的会话在 cookie 里，而 cookie 和
  * better-auth 的来源检查都认「同源」。代理之后浏览器眼里只有 Vite 那一个源，
@@ -28,8 +28,8 @@ const PROXY = {
 export default defineConfig({
   plugins: [react()],
   server: {
-    // 默认 5174，特意错开 legacy-client 的 5173，两个客户端可以同时开着比对。
-    // 端口再撞就用 PORT 换一个。
+    // 默认 5174 而不是 Vite 的 5173：那个端口常年被别的 worktree 或者别的项目占着。
+    // 再撞就用 PORT 换一个。
     port: Number(process.env.PORT ?? 5174),
     // 局域网里另一台设备（手机、第二台电脑）要能用局域网 IP 打开，所以不能只监听 localhost。
     host: true,

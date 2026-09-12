@@ -8,7 +8,15 @@
  */
 
 import type { MatchView } from '../match/driver'
-import type { MatchOutcome } from './MatchResult'
+
+/**
+ * 这一局的四种收场。
+ *
+ * 类型放在这里而不是结算界面那边：判定这件事（下面两个纯函数）不该依赖画面，
+ * 而结算界面反过来依赖判定是自然的。第 21 条那会儿它长在临时版 `MatchResult.tsx` 上，
+ * 那个文件已经被 `ResultScreen.tsx` 换掉了。
+ */
+export type MatchOutcome = 'victory' | 'defeat' | 'draw' | 'aborted'
 
 /** 这一局收场了没有；还在打就是 null，那时不该盖结算层。 */
 export function outcomeOf(view: MatchView): MatchOutcome | null {

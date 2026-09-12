@@ -1,0 +1,81 @@
+/*
+ * 终局结算那块板上的三样东西：比分、轮次、一排按钮。
+ * 暗幕和板子本身的样式跟着 `ui` 的 Veil / Sheet 走，这里只管填进去的内容。
+ * 数值读设计令牌（架构 7.1 第 4 条）。
+ */
+
+/*
+ * 最外面那一层。它存在只为给暗幕一个铺满的定位祖先——`Veil` 是 `position: absolute`，
+ * 没有定位祖先的话它会铺到视口上（对局那一屏 `.match` 本身是 fixed，但这一层
+ * 将来也可能被别的地方用）。`data-outcome` 写在它上面，见 ResultScreen.tsx。
+ */
+.result {
+  position: absolute;
+  inset: 0;
+}
+
+.result__score {
+  margin: 0;
+  /* 板子整体的字色跟着结果走（胜金败锈），比分不跟：它是中性信息。 */
+  color: var(--color-paper-ink);
+  /* 需求单面板 H 给的比分关键值：28px / 600。 */
+  font-size: 28px;
+  font-weight: 600;
+  /* 行高写死：`normal` 由字体度量决定，换台机器就换一档。 */
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+}
+
+/* 比分数字比「最终比分」那四个字重一档，一眼先看见数。 */
+.result__score strong {
+  color: var(--color-theme-rust);
+  font-weight: 700;
+}
+
+.result__rounds {
+  margin: 0;
+  color: var(--color-paper-ink-muted);
+  font-size: 17px;
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+}
+
+/*
+ * 一排按钮。**不换行**：目录页的版式不许挂在容器宽度上（见 client/dev/storybook/README.md
+ * 的确定性第 5 条），而 `flex-wrap` 正是「差一点就换一种排法」的那种开关。
+ * 三颗按钮各 224 宽、板子里那一栏是 775×76% ≈ 589——放不下，所以让它们一起缩：
+ * `Button` 自己的宽是 `min(224px, 100%)`，父容器一给出更窄的空间就跟着缩。
+ */
+.result__actions {
+  display: flex;
+  width: 100%;
+  gap: var(--space-lg);
+  justify-content: center;
+}
+
+.result__actions > * {
+  /* 平分，但不许被内容撑出去（默认 min-width: auto 会让按钮拒绝缩到文字宽度以下）。 */
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* 手机档：板子已经缩到屏宽，按钮改成竖排——横着三颗每颗只剩一百出头，字会挤成两行。 */
+@media (max-width: 800px) {
+  .result__score {
+    font-size: 20px;
+  }
+
+  .result__rounds {
+    font-size: 14px;
+  }
+
+  .result__actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .result__actions > * {
+    flex: none;
+    width: 100%;
+  }
+}

@@ -78,17 +78,25 @@ export default defineConfig({
       },
     },
   ],
-  // 图集、服务端密钥、账号库的表，三样都得先就位（见 globalSetup.ts）。
+  // 卡面图集：浏览器才用得着，所以放 globalSetup（它跑在 webServer 之后）就够了。
   globalSetup: './globalSetup.ts',
   webServer: [
     {
       /*
-       * `--assets` 指到 apps/web/public 是给端到端用的临时替身：wrangler.jsonc 里那条
-       * `assets.directory` 指着 `packages/legacy-client/dist`（线上那一版的构建产物，
-       * 第 38 条之前不动它），而刚 clone 完的仓库里没有它，wrangler 会直接拒绝启动。
-       * 这几条用例一个静态资源都不请求——页面由 Vite 发，服务端只管 /api 和两条 WebSocket。
+       * `--assets` 指到 apps/web/public 是个替身，和 server 的 `dev` 脚本用的是同一个办法：
+       * wrangler.jsonc 里那条 `assets.directory` 指着构建产物 `apps/web/dist`，
+       * 刚 clone 完的仓库里没有，wrangler 会直接拒绝启动。这几条用例一个静态资源都不请求
+       *（页面由 Vite 发，服务端只管 /api 和两条 WebSocket），先构建一遍前端纯属浪费。
+       * 为什么挑 public、顶掉了哪些，见 packages/server/README.md 的「本地开发」。
        */
-      command: `pnpm --filter @ai-duel/server exec wrangler dev --port ${SERVER_PORT} --assets ../../apps/web/public`,
+      /*
+       * 起服务端之前先把它要的两样本地产物补上（`.dev.vars` 和账号库的表，
+       * 见 e2e/ensureServer.mjs）。**不能放 globalSetup**：那个钩子跑在 `webServer`
+       * 之后，刚 clone 完的仓库（以及每一个新开的 worktree）第一次跑会卡在
+       * 「Timed out waiting 60000ms from config.webServer」，日志里只有 better-auth
+       * 一遍遍抱怨 `Missing tables`——离真正的原因差着好几层。
+       */
+      command: `node packages/client/e2e/ensureServer.mjs && pnpm --filter @ai-duel/server exec wrangler dev --port ${SERVER_PORT} --assets ../../apps/web/public`,
       cwd: REPO_ROOT,
       // 没登录时这条回 200 加一个 `null`，正好当「服务端起来了」的判据。
       url: `${SERVER_URL}/api/auth/get-session`,

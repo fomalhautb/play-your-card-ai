@@ -26,7 +26,7 @@ import { Label } from './Label'
 
 /**
  * 选目标态下手牌那一排怎么变：没在施放的牌压到这个透明度，正在施放的那张抬起这么多。
- * 抄 legacy 的 `ui/HandFan.tsx`（`CASTING_DIM` / `CASTING_LIFT`）。
+ * 抄黑客松版的 `ui/HandFan.tsx`（`CASTING_DIM` / `CASTING_LIFT`）。
  * 导出给场景用——它们作用在扇形上，不在这一层，理由见文件头。
  */
 export const CASTING_DIM = 0.3

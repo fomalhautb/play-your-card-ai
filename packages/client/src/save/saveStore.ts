@@ -28,6 +28,20 @@ export interface SaveData {
    * 已经走完也随时能再进一遍。
    */
   tutorialDone: boolean
+  /**
+   * 玩家在设置页要求「减少动效」。
+   *
+   * 两边都读它：DOM 那半边由应用壳翻成 `<html data-reduced-motion="true">`，
+   * `ui` 的 CSS 认这个属性（同时也认系统的 `prefers-reduced-motion`）；
+   * 画布那半边由 `DuelStage` 透给场景，关掉震屏和跟指针跑的倾斜 / 反光
+   *（见 canvas 的 duelContract.ts 的 `reducedMotion`）。
+   *
+   * 放在主存档而不是像静音那样单独一位：静音是玩家在对局里随手按的，
+   * 主存档换版本号作废时不该连它一起忘掉；这一项是在设置页里点的，
+   * 和「教程走没走过」一样属于这个号的一次性选择。代价是主存档作废时它会回到默认的关，
+   * 而默认关本来就是安全的那一档。
+   */
+  reducedMotion: boolean
 }
 
 /**
@@ -39,11 +53,12 @@ export interface SaveData {
 const rawSaveSchema = z.object({
   ownedCards: z.array(z.string()),
   wins: z.number().int().min(0),
-  // 缺字段和写坏都按「没选过 / 没走完」算，所以这两项收成 unknown 再自己判。
+  // 缺字段和写坏都按「没选过 / 没走完 / 没开」算，所以这三项收成 unknown 再自己判。
   // `.optional()` 不能省：zod 4 里光写 z.unknown() 仍然要求这个键存在，
-  // 而这两项恰恰是「上个版本的存档里根本没有」最常见的那两个。
+  // 而这几项恰恰是「上个版本的存档里根本没有」最常见的。
   savedHero: z.unknown().optional(),
   tutorialDone: z.unknown().optional(),
+  reducedMotion: z.unknown().optional(),
 })
 
 /**
@@ -64,11 +79,12 @@ const POOL = new Set<CardId>(CARD_POOL)
  */
 const SAVE_SLOT: StorageSlot<SaveData> = {
   name: 'ai-duel-save',
-  version: 1,
+  // 迁移第 31 条加了 `reducedMotion`，所以从 1 升到 2：旧档读不出来，当新号。
+  version: 2,
   parse(raw) {
     const parsed = rawSaveSchema.safeParse(raw)
     if (!parsed.success) return null
-    const { ownedCards, wins, savedHero, tutorialDone } = parsed.data
+    const { ownedCards, wins, savedHero, tutorialDone, reducedMotion } = parsed.data
 
     // 卡池随时可能删卡，存档里残留的卡 id 必须丢掉，否则渲染时按 id 取卡会抛错。
     const owned = ownedCards.filter((id): id is CardId => POOL.has(id))
@@ -83,6 +99,9 @@ const SAVE_SLOT: StorageSlot<SaveData> = {
       savedHero: validHero(savedHero),
       // 写坏或缺字段时按「没走过教程」算：多放一次教程比把新手直接丢进匹配房好。
       tutorialDone: tutorialDone === true,
+      // 同理按「没开」算。真需要它的人会自己去设置页打开，而系统级的
+      // `prefers-reduced-motion` 那条路不经过存档，任何时候都照常生效。
+      reducedMotion: reducedMotion === true,
     }
   },
 }
@@ -101,7 +120,13 @@ function validHero(raw: unknown): HeroId | null {
 }
 
 function initialSave(): SaveData {
-  return { ownedCards: [...INITIAL_COLLECTION], wins: 0, savedHero: null, tutorialDone: false }
+  return {
+    ownedCards: [...INITIAL_COLLECTION],
+    wins: 0,
+    savedHero: null,
+    tutorialDone: false,
+    reducedMotion: false,
+  }
 }
 
 /** 读存档。读不到、解析失败、浏览器不让读，一律回落到初始收藏。 */
@@ -164,7 +189,17 @@ export function markTutorialDone(platform: Platform): SaveData {
   return persist(platform, { ...loadSave(platform), tutorialDone: true })
 }
 
-/** 清空存档，回到新号状态。给演示和调试用。 */
+/**
+ * 记下「减少动效」开关。设置页那一条走它。
+ *
+ * 只落盘，不负责让它生效：DOM 那半边由应用壳翻成 `<html>` 上的一个属性、
+ * 画布那半边由 `DuelStage` 透给场景（两处都见 app/reducedMotion.ts）。
+ */
+export function setReducedMotion(platform: Platform, reducedMotion: boolean): SaveData {
+  return persist(platform, { ...loadSave(platform), reducedMotion })
+}
+
+/** 清空存档，回到新号状态。设置页那颗「重置存档」和调试都走它。 */
 export function resetSave(platform: Platform): SaveData {
   platform.storage.remove(SAVE_SLOT)
   return initialSave()

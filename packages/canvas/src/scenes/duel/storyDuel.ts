@@ -80,6 +80,12 @@ export const STORY_FRAMES = {
   dealt: 4500,
   /** 4.6 秒发出的那张牌飞 0.65 秒，停在飞到一半那一拍。 */
   playing: 5000,
+  /**
+   * 6 秒我方结束出牌，轮到对方；这一帧停在那之后半秒。
+   * 右下角那颗钮这时换成「催一催」（判据是 `DirectorLocks.waitingForFoe`，
+   * 见 scenes/duel/input.ts 的 refresh），整局里只有这一段看得到它。
+   */
+  waiting: 6500,
   /** 7 秒双方都结束出牌 → 揭题 → 结算层立起来，8 秒时题面和第一张结果卡都在了。 */
   settling: 8000,
 } as const

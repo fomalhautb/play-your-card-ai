@@ -26,7 +26,7 @@ import type { CardVisual } from '../../components/CardSprite'
 import type { EffectTier } from '../../fx/effectTier'
 
 /** 菜单上那几项。「开始游戏」不在里面——它是主入口，单独一颗匾额。 */
-export type HomeMenuId = 'deck' | 'hero' | 'online' | 'test' | 'about' | 'settings'
+export type HomeMenuId = 'deck' | 'hero' | 'online' | 'test' | 'account' | 'about' | 'settings'
 
 export interface HomeMenuItem {
   id: HomeMenuId
@@ -40,8 +40,11 @@ export interface HomeMenuItem {
  * `pickHomeLayout(width, height, labels)` 一个函数决定——端到端用例要按坐标点这几颗钮
  *（首页整页在画布上，DOM 里没有按钮），清单要是外面传的，用例就得再抄一份。
  *
- * `dev` 为真时多一项「测试对局」。它排在「联机」之后、「关于」之前，
+ * `dev` 为真时多一项「测试对局」。它排在「联机」之后、「账号」之前，
  * 也就是主流程那几项的末尾，不插在中间打乱顺序。
+ *
+ * 后三项（账号 / 关于 / 设置）是第 31 条那三个文字页的入口，排在主流程后面：
+ * 玩家进首页是来打牌的，这几项是想起来才去的。
  */
 export function homeMenu(dev: boolean): HomeMenuItem[] {
   return [
@@ -49,6 +52,7 @@ export function homeMenu(dev: boolean): HomeMenuItem[] {
     { id: 'hero', label: '英雄' },
     { id: 'online', label: '联机' },
     ...(dev ? ([{ id: 'test', label: '测试对局' }] as HomeMenuItem[]) : []),
+    { id: 'account', label: '账号' },
     { id: 'about', label: '关于' },
     { id: 'settings', label: '设置' },
   ]

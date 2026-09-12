@@ -1,20 +1,10 @@
 {
   "version": "0.0.1",
-  "note": "legacy-client 是线上那一版（黑客松版），本地联调它要同时起 legacy-client 和 relay 两个进程；前端还需在 packages/legacy-client/.env.local 里设 VITE_SERVER_URL=http://127.0.0.1:8787 才连得到转发器（线上是同一个 Worker，不需要）。正式版联机要同时起 web 和 relay：web 的 vite 配置把 /api、/lobby、/match/xxxx 代理给 relay，浏览器眼里前后端同源（见仓库根 README 的「本地怎么跑联机」）。",
+  "note": "联机要同时起 web 和 relay 两个进程：web 的 vite 配置把 /api、/lobby、/match/xxxx 代理给 relay，浏览器眼里前后端同源（见仓库根 README 的「本地怎么跑联机」）。单机对局只起 web 就够。",
   "configurations": [
     {
-      "name": "legacy-client",
-      "note": "黑客松版前端 Vite dev server；连本地转发器需要 packages/legacy-client/.env.local 里的 VITE_SERVER_URL=http://127.0.0.1:8787。",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "dev:legacy"
-      ],
-      "port": 5173,
-      "autoPort": true
-    },
-    {
       "name": "web",
-      "note": "正式版网页壳 apps/web：首页三个入口（测试对局、热座、联机对战）。联机那条要同时起 relay。",
+      "note": "网页壳 apps/web：首页那颗「开始」第一次进站先走新手教程，之后直接进联机房；菜单里另有测试对局和联机对战。联机那条要同时起 relay。",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "dev"
@@ -24,7 +14,7 @@
     },
     {
       "name": "relay",
-      "note": "服务端：wrangler dev 起本地 Cloudflare Worker。里面并排跑着旧转发器和新的权威房间 / 大厅 / 账号，起之前会先建一次账号库的表。第一次要先 cp packages/server/.dev.vars.example packages/server/.dev.vars。",
+      "note": "服务端：wrangler dev 起本地 Cloudflare Worker，里面是房间、大厅和账号三块。起之前会先建一次账号库的表。第一次要先 cp packages/server/.dev.vars.example packages/server/.dev.vars。不用先构建网页壳：这条命令给 wrangler 传 --assets ../../apps/web/public 顶掉配置里那个构建产物目录，原因见 packages/server/README.md 的「本地开发」。",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "dev:server"

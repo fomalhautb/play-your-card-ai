@@ -79,7 +79,15 @@ export function Dialog({
 
   const layer = (
     <div className="ui-dialog" data-inline={inline ? 'true' : undefined}>
-      {onDismiss === undefined ? null : (
+      {/*
+        遮罩**永远画**，只有「点得动」这一档跟着 `onDismiss` 走。
+        原来是没有 onDismiss 就整块不渲染，于是那种对话框浮在一片没压暗的页面上——
+        底色是这块遮罩自己带的（见 dialog.css），不画它就等于没有底色。
+        竖屏提示就是这一档（它要玩家从两颗钮里挑一条路，不给点一下就退掉的口子）。
+      */}
+      {onDismiss === undefined ? (
+        <div className="ui-dialog__scrim" aria-hidden="true" />
+      ) : (
         <button
           type="button"
           className="ui-dialog__scrim"

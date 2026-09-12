@@ -4,19 +4,19 @@
       "foreground": {
         "$value": "#e5e7eb",
         "$type": "color",
-        "$description": "页面默认前景色。来源：legacy-client/src/styles.css 的 :root color。真正的界面文字都被各自的面板改过颜色，这一档只在没人管的地方露出来。"
+        "$description": "页面默认前景色。来源：黑客松版的 styles.css 的 :root color。真正的界面文字都被各自的面板改过颜色，这一档只在没人管的地方露出来。"
       },
       "background": {
         "$value": "#0d1117",
         "$type": "color",
-        "$description": "页面底色，舞台之外露出来的那一圈。来源：legacy-client/src/styles.css 的 :root background。"
+        "$description": "页面底色，舞台之外露出来的那一圈。来源：黑客松版的 styles.css 的 :root background。"
       }
     },
     "paper": {
       "base": {
         "$value": "#f0ecdf",
         "$type": "color",
-        "$description": "纸张底色，纸面组件的默认面。来源：legacy-client/src/ui/paper/paper.css 的 --paper。"
+        "$description": "纸张底色，纸面组件的默认面。来源：黑客松版的 ui/paper/paper.css 的 --paper。"
       },
       "shade": {
         "$value": "#e4ddc9",
@@ -88,7 +88,7 @@
       "forest": {
         "$value": "#2f6b46",
         "$type": "color",
-        "$description": "结算层里「对」的那一档深绿：标准答案框的描边、领先徽章的底、步骤条的勾、顶栏我方比分的方块都用它。来源：legacy-client/src/styles.css 的 .settle 一族。"
+        "$description": "结算层里「对」的那一档深绿：标准答案框的描边、领先徽章的底、步骤条的勾、顶栏我方比分的方块都用它。来源：黑客松版的 styles.css 的 .settle 一族。"
       },
       "brick": {
         "$value": "#9e3a2e",
@@ -164,7 +164,7 @@
       "gold": {
         "$value": "#d2b47d",
         "$type": "color",
-        "$description": "选英雄页的主金色：技能名、卡片提示的描边。来源：legacy-client/src/screens/hero.css 的 .hero__detail-skill-name。"
+        "$description": "选英雄页的主金色：技能名、卡片提示的描边。来源：黑客松版的 screens/hero.css 的 .hero__detail-skill-name。"
       },
       "goldDim": {
         "$value": "#c9b48c",
@@ -237,12 +237,12 @@
       "pageVignette": {
         "$value": "#7a6a4a",
         "$type": "color",
-        "$description": "纸面页底四周的暗角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-page 那条 radial-gradient 的终点色 rgb(122 106 74 / 19%)，透明度拆到 opacity.deck.pageVignette。"
+        "$description": "纸面页底四周的暗角。来源：黑客松版的 ui/paper/paper.css 的 .paper-page 那条 radial-gradient 的终点色 rgb(122 106 74 / 19%)，透明度拆到 opacity.deck.pageVignette。"
       },
       "poolBase": {
         "$value": "#26334c",
         "$type": "color",
-        "$description": "构筑页卡池那块夜色底板的底。来源：legacy-client/src/screens/deck.css 的 .deck-pool background。旧版底上还铺了一张战场背景图，那属于素材（第 33 条），令牌只收纯色那一层。"
+        "$description": "构筑页卡池那块夜色底板的底。来源：黑客松版的 screens/deck.css 的 .deck-pool background。旧版底上还铺了一张战场背景图，那属于素材（第 33 条），令牌只收纯色那一层。"
       },
       "poolLine": {
         "$value": "#4a5169",
@@ -515,7 +515,7 @@
           "fill": {
             "$value": "#e7ddc6",
             "$type": "color",
-            "$description": "米白匾额变体的板面，英雄页那颗「确认英雄」用它：那一页背景暗，主按钮得是画面上最亮的一块。来源：legacy-client/src/screens/hero.css 的 .hero__confirm / .hero__return。"
+            "$description": "米白匾额变体的板面，英雄页那颗「确认英雄」用它：那一页背景暗，主按钮得是画面上最亮的一块。来源：黑客松版的 screens/hero.css 的 .hero__confirm / .hero__return。"
           },
           "edge": {
             "$value": "#8f7c56",

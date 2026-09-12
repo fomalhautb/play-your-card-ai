@@ -1,22 +1,17 @@
 # @ai-duel/server
 
-Cloudflare Worker 加 Durable Object。一个脚本里**并排跑着两套服务端**：
+Cloudflare Worker 加 Durable Object。三块东西并排跑在同一个脚本里：
 
-| | 路径 | DO 绑定 | 目录 | 状态 |
-|---|---|---|---|---|
-| 旧转发器 | `/api/room`、`/room/:code` | `ROOM` → `Room` | `src/legacy/` | 冻结，线上还在用 |
-| 新房间 | `/match/:code` | `MATCH_ROOM` → `MatchRoom` | `src/room/` | 在写 |
-| 新大厅 | `/lobby` | `LOBBY` → `Lobby` | `src/lobby/` | 在写 |
-| 账号 | `/api/auth/*` | `AUTH_DB`（D1，不是 DO） | `src/auth/` | 在写 |
+| | 路径 | 绑定 | 目录 |
+|---|---|---|---|
+| 房间 | `/match/:code` | `MATCH_ROOM` → `MatchRoom` | `src/room/` |
+| 大厅 | `/lobby` | `LOBBY` → `Lobby` | `src/lobby/` |
+| 账号 | `/api/auth/*` | `AUTH_DB`（D1，不是 DO） | `src/auth/` |
 
-旧的是黑客松那版**纯消息转发器**：没有权威状态，规则跑在房主客户端里。
-线上的 legacy-client 仍然靠它打联机，`deploy.yml` 每次合并 main 就部署，
-所以在《正式版架构》迁移第 38 条（删掉 legacy-client）之前，
-`src/legacy/` 里**一行行为都不要改**——类名 `Room` 和绑定名 `ROOM` 更不能改，
-Durable Object 是按类名找实例的。
+这是**权威服务端**（需求第 6 条）：规则只在服务端跑，客户端只发指令、
+只收过了 `filterEvent` 的事件和自己那份裁剪视图。
 
-新的是**权威服务端**（需求第 6 条）：规则只在服务端跑，客户端只发指令、
-只收过了 `filterEvent` 的事件和自己那份裁剪视图。两套互不相干，各走各的路径和绑定。
+类名和绑定名都不能改：Durable Object 是按类名找实例的，改名等于把正在打的房间全丢了。
 
 部署、域名、免费额度、Hibernation 的取舍写在 `docs/deploy.md`。
 电线上的消息长什么样、序号怎么算、JWT 怎么带，全部以 `packages/protocol/README.md` 为准。
@@ -25,17 +20,14 @@ Durable Object 是按类名找实例的。
 
 ```
 src/
-  index.ts            总路由：旧路径进 legacy，/api/auth/* 进账号系统，
-                      /match/:code 和 /lobby 进新代码，其余交静态资源
+  index.ts            总路由：/api/auth/* 进账号系统，/match/:code 和 /lobby 进房间和大厅，
+                      其余交静态资源
   devMode.ts          「现在跑的是不是本地开发」这一个判断（判据是 .dev.vars 里的 DEV）
   auth/
     betterAuth.ts     账号系统：better-auth 配 D1，开了游客登录和 jwt 两个插件
     routes.ts         /api/auth/* 原样交给 better-auth 的 handler
     verify.ts         验握手那张 JWT 认出 userId：从 D1 读公钥，带缓存
   net/session.ts      大厅和房间共用的连接层：附件、发消息、101 回显、顶号、session:hello
-  legacy/
-    room.ts           旧转发器的 Room 类（冻结）
-    routes.ts         旧转发器的两条 HTTP 路由（冻结）
   room/
     MatchRoom.ts      房间 DO：连接生命周期 + 消息分发 + alarm 回调，不留任何内存状态
     session.ts        房间特有的连接细节：座位标签、按座位发、座位在不在线
@@ -62,8 +54,6 @@ test/
   cheat.test.ts       作弊：借座位、DEBUG_*、SUBMIT_ANSWERS、冒充重连……全部要被拒
   autopilot.test.ts   答题 alarm 和空房超时
   lobby.test.ts       排队配对、私人开房、按码加入、房间码回收
-  legacy.test.ts      旧转发器最关键的几条时序，防止改新的时改坏旧的
-  smoke.mjs           打真的 wrangler dev 或线上的端到端脚本（不在 CI 里）
 ```
 
 ## 一局是怎么走的
@@ -124,8 +114,9 @@ test/
 ## 账号与鉴权
 
 账号是 **better-auth 配 Cloudflare D1**（《正式版架构》5.5），全部挂在 `/api/auth/*` 下面。
-现在只开了**游客**一种登录方式：玩家打开就能玩，不填任何东西就有一个账号 id，
-座位、匹配、重连全靠它认人。邮箱 / OAuth 绑定和 Steam 票据换 JWT 是后面的事（第 35 条）。
+两种登录方式：**游客**（打开就能玩，不填任何东西就有一个账号 id）和
+**Steam**（拿 Steam 客户端给的会话票据换会话，迁移第 35 条，见下一节）。
+座位、匹配、重连认的都是同一个账号 id，两条路进来之后完全一样。邮箱 / OAuth 绑定还没做。
 
 一次完整的流程是三步：
 
@@ -176,7 +167,33 @@ rm tmp-auth-config.ts
 ```
 
 插件列表要和 `src/auth/betterAuth.ts` 里的一致，不然生成出来的表会少字段。
+Steam 那个插件（`src/auth/steam.ts`）**不用**加进去：它没有自己的表，
+steamId 记在 better-auth 自带的 `account` 表里（`providerId` 是 `'steam'`）。
 生成的文件没有注释，记得把文件头那段说明补回去。
+
+### Steam 登录
+
+`POST /api/auth/sign-in/steam`，体是 `{ "ticket": "<十六进制>" }`，成功之后会话落在 cookie 里，
+之后和游客那条完全一样（`/api/auth/token` 换 JWT → 握手）。实现分两个文件：
+
+| 文件 | 做什么 |
+|---|---|
+| `src/auth/steamTicket.ts` | 验票据，回一个 steamId。票据本身是不透明的二进制，只有 Valve 验得了 |
+| `src/auth/steam.ts` | better-auth 插件：steamId → 找到或建立账号 → 发会话 |
+
+验票据有三种环境，判据先看密钥再看 `DEV`：
+
+| `STEAM_WEB_API_KEY` | `DEV` | 行为 |
+|---|---|---|
+| 有 | 无所谓 | 真的去问 Valve 的 `ISteamUserAuth/AuthenticateUserTicket` |
+| 没有 | 有 | **开发模式**：任何十六进制票据都收，steamId 由票据摘要出来（前缀 `dev-`） |
+| 没有 | 没有 | 一律拒绝（失败关闭） |
+
+开发模式让本机**没有 Steam 客户端也测得了整条路**：同一张票据永远算出同一个账号，
+不同票据算出不同账号（所以开两个进程就能当两个人对打）。
+线上漏配密钥时是「谁都登不进来」而不是「随便递一段字符串就是一个新账号」。
+
+密钥怎么配见 `docs/deploy.md` 的「Steam 登录」一节；壳那半边（取票据）见 `apps/steam/README.md`。
 
 ## 本地开发
 
@@ -190,12 +207,36 @@ cp packages/server/.dev.vars.example packages/server/.dev.vars
 线上那份走 `wrangler secret put BETTER_AUTH_SECRET`，不写进 `wrangler.jsonc`。
 
 ```bash
-pnpm --filter @ai-duel/legacy-client build   # 先出静态资源，assets.directory 指着它
-pnpm dev:server                              # 先建账号库的表，再 wrangler dev（127.0.0.1:8787）
+pnpm dev:server                    # 先建账号库的表，再 wrangler dev（127.0.0.1:8787）
 ```
 
 `pnpm dev:server` 里那一步建表是 `wrangler d1 migrations apply AUTH_DB --local`，
 每次都跑一遍：已经建过的话 wrangler 自己会说「没有要应用的迁移」，比让人记住一条前置命令省事。
+
+### 为什么 `dev` 脚本要带 `--assets`
+
+脚本完整是 `pnpm db:local && wrangler dev --assets ../../apps/web/public`。
+那个 `--assets` 是个**替身**，理由写在这里是因为 package.json 里放不了注释。
+
+`wrangler.jsonc` 里 `assets.directory` 指着 `apps/web/dist`——网页壳的构建产物，进了
+.gitignore。wrangler 启动时会检查这个目录，不存在就直接报错退出，所以刚 clone 完的仓库
+（以及每个新开的 worktree）不带这个参数起不来。而本地起服务端只为了联机，一个静态资源都用不上：
+页面由 Vite 发，服务端只管 `/api` 和两条 WebSocket（见下面「前端连本地服务端」），
+为它先构建一遍前端纯属浪费。
+
+挑 `apps/web/public` 是因为它在仓库里必然存在（有一个 `.gitkeep` 兜底）。
+命令行这个参数只顶掉 `directory` 一条，`assets` 块里其余几条照旧生效——
+`run_worker_first` 还在，所以 `/api`、`/match/*`、`/lobby` 仍然进 Worker。
+端到端用例走的是同一个办法（`packages/client/e2e/playwright.config.ts` 里的 `webServer`），
+全仓库只有这一种机制。
+
+想在本地看线上那种「静态资源和 Worker 同一个源」的形状（比如查 SPA 回落），
+就自己构建一次、再不带这个参数起：
+
+```bash
+pnpm --filter @ai-duel/web build
+pnpm --filter @ai-duel/server exec wrangler dev   # 这回按 wrangler.jsonc 用 apps/web/dist
+```
 
 ### `DEV` 那一行是什么
 
@@ -206,10 +247,19 @@ pnpm dev:server                              # 先建账号库的表，再 wrang
 | 开关 | 开发 | 线上 |
 |---|---|---|
 | `room:error malformed` | 回给客户端，好让人知道自己发错了 | 静默丢弃（见 `src/room/session.ts`） |
-| 跨源请求 | 额外信任 `localhost:*` / `127.0.0.1:*` | 只信 `baseURL` 自己那个源（见 `src/auth/betterAuth.ts`） |
+| 跨源请求 | 额外信任 `localhost:*` / `127.0.0.1:*` | 只有 `baseURL` 自己那个源加手机壳那两个（见 `src/auth/betterAuth.ts`） |
 
 跨源那一条本地非有不可：页面来自 Vite，而 `wrangler dev` 会按 `wrangler.jsonc` 里那条
 `routes` 把请求 URL 重写成正式域名，两边的源怎么都对不上。
+
+### 手机壳那两个源（迁移第 36 条）
+
+`trustedOrigins` 里还有 `capacitor://localhost`（iOS）和 `https://localhost`（安卓），
+**线上也在名单里**，不跟着 `DEV` 分岔。手机壳里页面的源是 WebView 自己那个、改不成线上域名
+（两条路为什么都堵死见 `apps/mobile/README.md` 的「同源这件事」），不加的话带着会话 cookie
+的 POST 会被整条回 403 `INVALID_ORIGIN`。这是 better-auth 给 Capacitor / Expo 这类壳的官方
+做法。两个值是 Capacitor 8 的默认源，改了 `apps/mobile/capacitor.config.ts` 里的
+`hostname` / `iosScheme` / `androidScheme` 就要跟着改。`test/origin.test.ts` 钉着这几条。
 
 ### 前端连本地服务端
 
@@ -248,21 +298,11 @@ D1 也是真的：miniflare 按 `AUTH_DB` 那条绑定现建一个内存库，
 但 JWT 是自包含的（验签只看签名和 `sub`，不查账号表），所以上一条用例拿到的 token
 在下一条里照样能用。密钥那一行是在 setup 里生成的，回滚不掉。
 
-`test/smoke.mjs` 是另一回事——它打真的 `wrangler dev` 或线上，
-覆盖面比 vitest 那几个宽（静态资源回退、CORS、跨房间释放），但不在 CI 里：
-
-```bash
-pnpm --filter @ai-duel/server smoke
-SMOKE_BASE=https://playyourcardai.online pnpm --filter @ai-duel/server smoke
-```
-
 ## 还没做的
 
 - 账号只有游客一种：邮箱 / OAuth 绑定还没接，Steam 票据换 JWT 是第 35 条。
   换句话说现在**换个浏览器就是另一个人**，清了 cookie 也一样。
   正式版客户端就是这么用的：进站自动开一个游客号（见 client 的 `src/auth/session.ts`）。
-- `room:urge` 的 id 查表：那张喊话表还在 legacy-client 里（第 33 条搬进 content），
-  搬过来之前只转发不校验，查不到该回的 `unknown-urge` 还发不出来。
 - 显示名：`createGame` 的 `name` 暂时直接用账号 id。better-auth 的 `user` 表里
   其实有一列 `name`（游客登录时随机生成一个），但那要按 `sub` 回查一次 D1，
   而房间对象现在一次 D1 都不查——等真要显示昵称时再一起接（第 27、31 条）。

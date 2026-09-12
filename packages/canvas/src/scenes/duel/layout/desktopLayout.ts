@@ -34,6 +34,21 @@ const END_PLAY_INSET = { x: 28, y: 20 }
 /** 牌库那摞牌的缩放和它离右下角的距离。 */
 const DECK = { scale: 0.34, inset: 0.03 }
 
+/**
+ * 右下角那一颗钮的中心。「结束出牌」和「催一催」共用它——两颗钮不同时出现，
+ * 所以摞在一起（见 layout/types.ts 的 `urge`）。
+ *
+ * 按「结束出牌」那一档的尺寸算：两颗钮宽高差得不多（184×60 对 154×48），
+ * 按同一个中心摆的话两边留白差十几个像素，看不出来；各按各的尺寸算反而会让
+ * 换钮那一刻的中心跳一下。
+ */
+function endPlayCenter(width: number, height: number, handZone: number): { x: number; y: number } {
+  return {
+    x: width - tokens.size.plaque.endTurnWidth / 2 - END_PLAY_INSET.x,
+    y: height - handZone - tokens.size.plaque.endTurnHeight / 2 - END_PLAY_INSET.y,
+  }
+}
+
 export function desktopLayout(width: number, height: number): DuelLayout {
   const topBarHeight = tokens.size.battle.topbarHeight
   // 侧栏宽度按令牌取，但窄屏（比如 1024 宽的横屏平板）上不许吃掉四分之一以上的宽，
@@ -95,10 +110,9 @@ export function desktopLayout(width: number, height: number): DuelLayout {
     hand,
     dropZone,
     deck,
-    endPlay: {
-      x: width - tokens.size.plaque.endTurnWidth / 2 - END_PLAY_INSET.x,
-      y: height - handZone - tokens.size.plaque.endTurnHeight / 2 - END_PLAY_INSET.y,
-    },
+    endPlay: endPlayCenter(width, height, handZone),
+    // 和「结束出牌」摞在同一个位置上，两颗钮永远不同时出现（见 types.ts 的 `urge`）。
+    urge: endPlayCenter(width, height, handZone),
     revealScale: tokens.size.card.revealScale,
     bubble: { x: fieldX + fieldWidth / 2, y: height - handZone - 28 },
   }

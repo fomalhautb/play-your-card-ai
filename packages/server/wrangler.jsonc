@@ -6,7 +6,7 @@
 
   // better-auth 要 `node:async_hooks`（它用 AsyncLocalStorage 传请求上下文），
   // 没有这个标志部署上去一调 /api/auth/* 就报模块找不到。
-  // 只是多给运行时补上 Node 的那几个内置模块，旧转发器和房间对象的行为不受影响。
+  // 只是多给运行时补上 Node 的那几个内置模块，房间对象的行为不受影响。
   "compatibility_flags": ["nodejs_compat"],
 
   // 账户 ID 是标识符不是凭据——没有 API token 它什么也做不了，Cloudflare 官方示例
@@ -16,23 +16,29 @@
   // 前端构建产物和 Worker 脚本部署成同一个 Worker、同一个域名，
   // 所以客户端连 WebSocket 时用相对路径就行，不需要配跨域，也不需要第二个服务。
   "assets": {
-    "directory": "../legacy-client/dist",
-    // 前端是单页应用：/room/1234 这种路径在磁盘上没有对应文件，回落到 index.html 交给前端路由。
+    // 网页壳的构建产物（`pnpm --filter @ai-duel/web build`）。这个目录是 gitignore 掉的，
+    // 仓库里没有，所以部署前必须先构建（deploy.yml 里那一步）。
+    //
+    // 本地起服务端**不看**这个目录：`pnpm dev:server` 和端到端用例都给 wrangler 传
+    // `--assets ../../apps/web/public` 把这一条顶掉，这样刚 clone 完的仓库不用先构建前端。
+    // wrangler 启动时会检查这个目录，不存在就直接报错退出——不顶掉就起不来。
+    // 为什么挑 public、命令行参数顶掉了哪些，见 packages/server/README.md「本地开发」。
+    "directory": "../../apps/web/dist",
+    // 前端是单页应用：/room、/deck 这种路径在磁盘上没有对应文件，回落到 index.html 交给前端路由。
     "not_found_handling": "single-page-application",
     // 给 Worker 一个手动取静态资源的入口。Worker 兜底处理没匹配上的请求时靠它回 index.html。
     "binding": "ASSETS",
     // 默认情况下静态资源层先响应、匹配不到才轮到 Worker；但 not_found_handling 是 SPA 时
     // 「匹配不到」也会被资源层吃掉回 index.html，Worker 永远轮不上。
-    // 所以要 Worker 处理的路径必须在这里显式列出来，否则 /api/room 和 WebSocket 升级
-    // 都只会拿到一份 index.html（这是实测出来的，不是猜的）。
+    // 所以要 Worker 处理的路径必须在这里显式列出来，否则 WebSocket 升级请求
+    // 只会拿到一份 index.html（这是实测出来的，不是猜的）。
     //
-    // /room/* 既是 WebSocket 端点又是前端路由，两种请求都会进 Worker，
-    // 不是升级请求时 Worker 会调 env.ASSETS.fetch() 把 index.html 发回去。
-    // 代价是每次打开对局页面多算一次 Worker 调用，免费档每天 10 万次请求，可以忽略。
-    // /match/* 是新房间对象的 WebSocket 端点（src/room/MatchRoom.ts），
-    // /lobby 是大厅对象的（src/lobby/Lobby.ts），同样必须列出来。
+    // /match/* 是房间对象的 WebSocket 端点（src/room/MatchRoom.ts），
+    // /lobby 是大厅对象的（src/lobby/Lobby.ts）。
+    // 前端的对局页路由是 `/match`（不带房间码），落不进 `/match/*`，仍然由资源层回 index.html，
+    // 所以这条不会把页面请求也拽进 Worker。
     // 账号系统的 /api/auth/* 已经被 "/api/*" 这条盖住了，不用单列。
-    "run_worker_first": ["/api/*", "/room/*", "/match/*", "/lobby"]
+    "run_worker_first": ["/api/*", "/match/*", "/lobby"]
   },
 
   // 正式域名。两条都是 Workers Custom Domain：域名的 zone 就在上面那个账号下，
@@ -46,13 +52,11 @@
     { "pattern": "www.playyourcardai.online", "custom_domain": true }
   ],
 
-  // ROOM 是黑客松那版转发器的房间（src/legacy/room.ts），线上还在用，绑定名和类名都不能改——
+  // MATCH_ROOM 是权威房间（src/room/MatchRoom.ts），LOBBY 是做匹配的大厅
+  // （src/lobby/Lobby.ts，全局单实例）。绑定名和类名都不能改——
   // Durable Object 是按类名找实例的，改名等于把正在打的房间全丢了。
-  // MATCH_ROOM 是新的权威房间（src/room/MatchRoom.ts），LOBBY 是做匹配的大厅
-  // （src/lobby/Lobby.ts，全局单实例）。两个都是并排新加的，和上面那个互不相干。
   "durable_objects": {
     "bindings": [
-      { "name": "ROOM", "class_name": "Room" },
       { "name": "MATCH_ROOM", "class_name": "MatchRoom" },
       { "name": "LOBBY", "class_name": "Lobby" }
     ]
@@ -76,10 +80,18 @@
     }
   ],
 
-  // 新写法，取代已经是 legacy 的 migrations 数组。
+  // Durable Object 的生命周期。新写法，取代了旧的 migrations 数组，两者只能二选一
+  // （同时写 wrangler 会直接报 "mutually exclusive" 拒绝部署）。
   // 免费档只支持 SQLite 后端的 Durable Object，storage 必须是 "sqlite"。
+  //
+  // `Room` 是黑客松那版纯转发器的房间，代码已经删了（迁移第 38 条），
+  // 但线上那个命名空间还在 Cloudflare 那边挂着。`state: "deleted"` 是它的墓碑：
+  // 光从这份配置里删掉一行，wrangler 只会报「绑定没了但命名空间还在」，
+  // 写成墓碑才是告诉 Cloudflare「这个类没了，把命名空间连同数据一起退役」。
+  // **合并后第一次部署就会执行，旧房间里的数据全部删除、不可恢复**（见 docs/deploy.md）。
+  // 墓碑要一直留着，别在下一个 PR 里"顺手清理掉"——删掉等于告诉 Cloudflare 这个类又回来了。
   "exports": {
-    "Room": { "type": "durable-object", "storage": "sqlite" },
+    "Room": { "type": "durable-object", "state": "deleted" },
     "MatchRoom": { "type": "durable-object", "storage": "sqlite" },
     "Lobby": { "type": "durable-object", "storage": "sqlite" }
   }

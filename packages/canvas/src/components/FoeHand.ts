@@ -20,7 +20,7 @@ import { killAndDestroy } from '../runtime/dispose'
 
 /**
  * 对手那排整体缩到多大，以及新牌从多远的地方飞进来。
- * 抄 legacy 的 `ui/OpponentFan.tsx`（`CARD_SCALE 0.64`、`ENTER_OFFSET 140`）。
+ * 抄黑客松版的 `ui/OpponentFan.tsx`（`CARD_SCALE 0.64`、`ENTER_OFFSET 140`）。
  */
 const CARD_SCALE = 0.64
 const ENTER_OFFSET = 140

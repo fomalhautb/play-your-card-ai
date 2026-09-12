@@ -9,7 +9,7 @@
  * `createWebPlatform` 从 `@ai-duel/client` 转出来，不直接 import `@ai-duel/platform`：
  * 依赖规则里 apps/ 下的壳只挂 client（见 .dependency-cruiser.cjs 的「依赖方向-apps-只挂-client」）。
  */
-import { App, createWebPlatform, restoreMuted } from '@ai-duel/client'
+import { App, createWebPlatform } from '@ai-duel/client'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
@@ -17,8 +17,6 @@ const root = document.getElementById('root')
 if (!root) throw new Error('index.html 里找不到 #root')
 
 const platform = createWebPlatform()
-// 上次关过声音的话，这一次进来也该是静音的（见 client 的 audio/mute.ts）。
-restoreMuted(platform)
 
 createRoot(root).render(
   <StrictMode>

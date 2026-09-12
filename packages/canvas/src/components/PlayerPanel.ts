@@ -117,6 +117,15 @@ export class PlayerPanel extends Container {
     this.layout()
   }
 
+  /**
+   * 这一侧那条 Token 细条，没挂就是 null（对方那块面板从来不挂）。
+   *
+   * 透出来只为一件事：新手教程要圈住「Token 在哪儿」（见 scenes/duel/anchors.ts）。
+   */
+  get tokenRail(): Container | null {
+    return this.rail
+  }
+
   /** 改大小。框重排、里面的东西重新摆位，一个对象都不重建。 */
   resize(width: number, height: number): void {
     this.boxWidth = width

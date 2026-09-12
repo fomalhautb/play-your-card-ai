@@ -54,6 +54,22 @@ export interface DirectorLocks {
   handLockReason: HandLockReason | null
   /** 结算层的确认按钮点不点得动（按钮淡入落地之后、玩家点过之前）。 */
   settleReady: boolean
+  /**
+   * 有一层**全屏过场**立着（抛硬币、答题揭晓与结算、技能抵消、强制展示 / 放大查看）。
+   *
+   * 加它只为一件事：新手教程的引导层要给过场让位。旧版靠 z-index 就办到了——
+   * 过场和引导层都是 DOM，过场在 1100、引导在 1000；新版过场画在**画布里**，
+   * 而引导层是压在画布上的 DOM，再也盖不住它，只能由编排层说一声
+   *（见 client 的 screens/TutorialDuelPhase.tsx）。
+   *
+   * 这条规矩不是排版讲究：教程的每一句提示都要玩家点一下才走，而那一下点击是靠
+   * 一层铺满全屏的捕获层接的。提示不让位的话，捕获层会把「点结算层上那颗确认」
+   * 也一起接走，玩家再也confirm不了这一轮。
+   *
+   * 它和 `showcasing` 的区别：那一条说的是「现在什么都不该点得动」，范围只有展示层；
+   * 这一条说的是「屏幕上盖着一层过场」，还含抛硬币、抵消和结算。
+   */
+  cutscene: boolean
 }
 
 /** 玩家在界面上做的事。它们不产生指令，指令由调用方自己发；这里只管演出和锁。 */
@@ -212,6 +228,7 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
               ? 'deal'
               : null,
         settleReady: context.settle?.ready ?? false,
+        cutscene: showcasing || context.coinUp || context.quizUp || context.cancelUp,
       }
     },
 

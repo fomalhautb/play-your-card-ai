@@ -1,0 +1,49 @@
+# electron-builder 的打包配置（迁移第 35 条，慢档里那一格见 .github/workflows/slow.yml）。
+#
+# 三个目标都**不签名**：签名要开发者证书，而那是上线前的事，这一步只要「构建能过」
+# （《正式版架构》6.11：构建能过本身就是测试，平台壳最容易在没人看的时候坏掉）。
+#
+# 跑法：`pnpm --filter @ai-duel/steam pack:dir`（当前系统的 --dir 产物）
+#       `pnpm --filter @ai-duel/steam pack:linux`（AppImage）
+# 两条都会先跑一遍 build，产物在 apps/steam/release/。
+
+appId: online.playyourcardai.game
+# ASCII，不用中文名：AppImage 和 Windows 的产物文件名是拿它拼出来的，
+# 中文名在有些系统上会被转义成一串百分号，也不好在命令行里补全。
+productName: PlayYourCardAI
+copyright: © play-your-card-ai
+
+directories:
+  output: release
+
+# 只打这两样。渲染进程的产物已经由 Vite 打成了一个 bundle，源码和 node_modules 里的
+# 那一大堆（react、pixi、client 各包）都不需要跟着走——它们是 devDependencies，
+# electron-builder 本来也只收 dependencies。
+files:
+  - dist/**
+  - package.json
+
+# 原生模块和它的动态库不能待在 asar 里：asar 是个只读归档，`dlopen` 打不开里面的文件。
+# steamworks.js 那个目录里有三样东西要落地——各平台的 .node、Steam 的
+# libsteam_api（.dylib / .so / steam_api64.dll），以及它自己的 index.js。
+asarUnpack:
+  - node_modules/steamworks.js/**
+
+# 不重新编译原生模块。steamworks.js 是 napi-rs 打的，Node-API 的 ABI 跨版本稳定，
+# 预编译的 .node 在任何 Node 20+ / Electron 里都能直接加载，不需要 electron-rebuild 那一套。
+npmRebuild: false
+
+mac:
+  # 只出 .app 目录，不打 dmg：dmg 那一步要签名和公证。
+  target: dir
+  category: public.app-category.card-games
+
+win:
+  # 同上，只出解包后的目录，不打安装器。Steam 发行本来就是「把目录传上去」，不需要安装器。
+  target: dir
+
+linux:
+  # Linux 上出 AppImage：Steam Deck 那边跑的是 Windows 版（Proton），
+  # 这一格的意义是「在 Linux 跑机上也能完整打一次包」，AppImage 是最省事的单文件格式。
+  target: AppImage
+  category: Game

@@ -6,13 +6,13 @@
 export const tokens = {
   color: {
     page: {
-      /** 页面默认前景色。来源：legacy-client/src/styles.css 的 :root color。真正的界面文字都被各自的面板改过颜色，这一档只在没人管的地方露出来。 */
+      /** 页面默认前景色。来源：黑客松版的 styles.css 的 :root color。真正的界面文字都被各自的面板改过颜色，这一档只在没人管的地方露出来。 */
       foreground: "#e5e7eb",
-      /** 页面底色，舞台之外露出来的那一圈。来源：legacy-client/src/styles.css 的 :root background。 */
+      /** 页面底色，舞台之外露出来的那一圈。来源：黑客松版的 styles.css 的 :root background。 */
       background: "#0d1117",
     },
     paper: {
-      /** 纸张底色，纸面组件的默认面。来源：legacy-client/src/ui/paper/paper.css 的 --paper。 */
+      /** 纸张底色，纸面组件的默认面。来源：黑客松版的 ui/paper/paper.css 的 --paper。 */
       base: "#f0ecdf",
       /** 纸面暗部，用在凹槽和次一级的底。来源：paper.css 的 --paper-shade。 */
       shade: "#e4ddc9",
@@ -42,7 +42,7 @@ export const tokens = {
       gold: "#d9a441",
       /** 生命值那一档红。来源：paper.css 的 --c-life。 */
       life: "#b23f33",
-      /** 结算层里「对」的那一档深绿：标准答案框的描边、领先徽章的底、步骤条的勾、顶栏我方比分的方块都用它。来源：legacy-client/src/styles.css 的 .settle 一族。 */
+      /** 结算层里「对」的那一档深绿：标准答案框的描边、领先徽章的底、步骤条的勾、顶栏我方比分的方块都用它。来源：黑客松版的 styles.css 的 .settle 一族。 */
       forest: "#2f6b46",
       /** 结算层里「错」的那一档砖红：判定块答错时的底色。比 theme.life（生命值那档红）更暗更闷，盖在纸上像一枚印章而不是一块警示牌。来源：styles.css 的 .settle-card__verdict。 */
       brick: "#9e3a2e",
@@ -76,7 +76,7 @@ export const tokens = {
       cast: "#e8c69f",
     },
     hero: {
-      /** 选英雄页的主金色：技能名、卡片提示的描边。来源：legacy-client/src/screens/hero.css 的 .hero__detail-skill-name。 */
+      /** 选英雄页的主金色：技能名、卡片提示的描边。来源：黑客松版的 screens/hero.css 的 .hero__detail-skill-name。 */
       gold: "#d2b47d",
       /** 选英雄页和匹配房的次级金：英文名、返回按钮。比 hero.gold 灰一档，用在不该抢视线的地方。来源：hero.css 的 .hero__detail-en、room.css 的 .room__back。 */
       goldDim: "#c9b48c",
@@ -110,9 +110,9 @@ export const tokens = {
       ink: "#2b2119",
     },
     deck: {
-      /** 纸面页底四周的暗角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-page 那条 radial-gradient 的终点色 rgb(122 106 74 / 19%)，透明度拆到 opacity.deck.pageVignette。 */
+      /** 纸面页底四周的暗角。来源：黑客松版的 ui/paper/paper.css 的 .paper-page 那条 radial-gradient 的终点色 rgb(122 106 74 / 19%)，透明度拆到 opacity.deck.pageVignette。 */
       pageVignette: "#7a6a4a",
-      /** 构筑页卡池那块夜色底板的底。来源：legacy-client/src/screens/deck.css 的 .deck-pool background。旧版底上还铺了一张战场背景图，那属于素材（第 33 条），令牌只收纯色那一层。 */
+      /** 构筑页卡池那块夜色底板的底。来源：黑客松版的 screens/deck.css 的 .deck-pool background。旧版底上还铺了一张战场背景图，那属于素材（第 33 条），令牌只收纯色那一层。 */
       poolBase: "#26334c",
       /** 夜色卡池底板的一圈描边。来源：deck.css 的 .deck-pool border。 */
       poolLine: "#4a5169",
@@ -238,7 +238,7 @@ export const tokens = {
       },
       ivory: {
         default: {
-          /** 米白匾额变体的板面，英雄页那颗「确认英雄」用它：那一页背景暗，主按钮得是画面上最亮的一块。来源：legacy-client/src/screens/hero.css 的 .hero__confirm / .hero__return。 */
+          /** 米白匾额变体的板面，英雄页那颗「确认英雄」用它：那一页背景暗，主按钮得是画面上最亮的一块。来源：黑客松版的 screens/hero.css 的 .hero__confirm / .hero__return。 */
           fill: "#e7ddc6",
           /** 米白匾额的外框描边。来源同上。 */
           edge: "#8f7c56",
@@ -350,11 +350,11 @@ export const tokens = {
   },
   duration: {
     hand: {
-      /** 手牌重排（加牌、减牌、改窗口大小）的时长。两侧手牌共用同一个值，加减牌时上下两排的节奏才是一套的。来源：legacy-client/src/ui/fanMath.ts 的 LAYOUT_DUR，HandFan 和 OpponentFan 都读它。 */
+      /** 手牌重排（加牌、减牌、改窗口大小）的时长。两侧手牌共用同一个值，加减牌时上下两排的节奏才是一套的。来源：黑客松版的 ui/fanMath.ts 的 LAYOUT_DUR，HandFan 和 OpponentFan 都读它。 */
       layout: 0.4,
     },
     card: {
-      /** 卡牌放大查看的进场时长。来源：legacy-client/src/ui/CardZoomOverlay.tsx 的 ZOOM_IN_DUR，CardZoomOverlay、HeroScreen、DeckScreen 三处共用。 */
+      /** 卡牌放大查看的进场时长。来源：黑客松版的 ui/CardZoomOverlay.tsx 的 ZOOM_IN_DUR，CardZoomOverlay、HeroScreen、DeckScreen 三处共用。 */
       zoomIn: 0.55,
       /** 卡牌放大查看的退场时长，比进场略长。来源：CardZoomOverlay.tsx 的 ZOOM_OUT_DUR，同样三处共用（DeckScreen 还拿它当后续动作的延迟基准）。 */
       zoomOut: 0.6,
@@ -408,7 +408,7 @@ export const tokens = {
   },
   font: {
     family: {
-      /** 全站唯一的字体栈。EB Garamond 管拉丁字母和数字，Noto Serif SC 管中文，两者都从 Google Fonts 拿；后面三个本地宋体是兜底，断网或字体没加载成功时至少还是衬线体，不会掉回黑体把古典调子毁掉。来源：legacy-client/src/styles.css 的 :root font-family。 */
+      /** 全站唯一的字体栈。EB Garamond 管拉丁字母和数字，Noto Serif SC 管中文，两者都从 Google Fonts 拿；后面三个本地宋体是兜底，断网或字体没加载成功时至少还是衬线体，不会掉回黑体把古典调子毁掉。来源：黑客松版的 styles.css 的 :root font-family。 */
       serif: "'EB Garamond', 'Noto Serif SC', 'Songti SC', STSong, SimSun, serif",
     },
     weight: {
@@ -463,7 +463,7 @@ export const tokens = {
   opacity: {
     plaqueLine: {
       navy: {
-        /** 墨蓝匾额内框细线的不透明度。旧样式把颜色和透明度写在一起（rgb(174 168 151 / 62%)），这里拆成 color.plaque.navy.default.line 加这一份，因为颜色令牌一律是不带透明度的 #rrggbb（Pixi 的 tint 和 alpha 本来也是分开的两件事）。来源：legacy-client/src/styles.css 的 .plaque-button --plaque-line。 */
+        /** 墨蓝匾额内框细线的不透明度。旧样式把颜色和透明度写在一起（rgb(174 168 151 / 62%)），这里拆成 color.plaque.navy.default.line 加这一份，因为颜色令牌一律是不带透明度的 #rrggbb（Pixi 的 tint 和 alpha 本来也是分开的两件事）。来源：黑客松版的 styles.css 的 .plaque-button --plaque-line。 */
         default: 0.62,
         /** 墨蓝匾额悬停时内框细线的不透明度。来源：styles.css 的 .plaque-button:hover --plaque-line。 */
         hover: 0.85,
@@ -487,7 +487,7 @@ export const tokens = {
         disabled: 0.32,
       },
       ivory: {
-        /** 米白匾额内框细线的不透明度。来源：legacy-client/src/screens/hero.css 的 .hero__confirm。 */
+        /** 米白匾额内框细线的不透明度。来源：黑客松版的 screens/hero.css 的 .hero__confirm。 */
         default: 0.55,
         /** 米白匾额悬停时内框细线的不透明度（颜色不变，只是更实）。来源：hero.css 的 .hero__confirm:hover。 */
         hover: 0.75,
@@ -504,7 +504,7 @@ export const tokens = {
       castCopy: 0.72,
     },
     hero: {
-      /** 英雄详情里那行英文名的不透明度。来源：legacy-client/src/screens/hero.css 的 .hero__detail-en。 */
+      /** 英雄详情里那行英文名的不透明度。来源：黑客松版的 screens/hero.css 的 .hero__detail-en。 */
       en: 0.65,
       /** 还没实装的英雄卡整张压暗到这一档。旧版是 grayscale 滤镜加 opacity，Pixi 这边只留 tint 加这份透明度（不挂 Filter，纪律 3.1）。来源：hero.css 的 .hero__card--soon。 */
       soonCard: 0.55,
@@ -609,7 +609,7 @@ export const tokens = {
     },
   },
   radius: {
-    /** 圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计 legacy-client/src/styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。 */
+    /** 圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计黑客松版的 styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。 */
     xs: 3,
     /** 圆角阶梯。同一份统计里 4px 出现 7 次。 */
     sm: 4,
@@ -626,11 +626,11 @@ export const tokens = {
   },
   size: {
     card: {
-      /** 卡面基准宽。全站卡牌的几何都从这个数派生，扇形手牌的间距和 hover 放大的下限也按它算。来源：legacy-client/src/styles.css 的 :root --card-w（和 ui/fanMath.ts 的 CARD_WIDTH 是同一个数）。 */
+      /** 卡面基准宽。全站卡牌的几何都从这个数派生，扇形手牌的间距和 hover 放大的下限也按它算。来源：黑客松版的 styles.css 的 :root --card-w（和 ui/fanMath.ts 的 CARD_WIDTH 是同一个数）。 */
       width: 150,
       /** 卡面基准高，和宽保持 2:3。来源：styles.css 的 :root --card-h（和 fanMath.ts 的 CARD_HEIGHT 同值）。 */
       height: 225,
-      /** 卡面圆角，按卡宽 150 配。不放进 radius 阶梯里：那一组是全站通用的圆角档位（按 styles.css 的取值统计出来的），而这一个是卡牌自己的几何，和 width / height 一样要按比例缩放——图集里 512 宽的原画烤的是 512 × 10 / 150 ≈ 34 的圆角。来源：legacy-client/src/ui/paper/paper.css 的 .paper-card 和 .paper-back。凡是画到卡角的地方都必须用它，用它的那几处列在 canvas 的 layout/fanMath.ts 的 CARD_RADIUS 上（加一处就往那儿补一条，别在这里再抄一份）。 */
+      /** 卡面圆角，按卡宽 150 配。不放进 radius 阶梯里：那一组是全站通用的圆角档位（按 styles.css 的取值统计出来的），而这一个是卡牌自己的几何，和 width / height 一样要按比例缩放——图集里 512 宽的原画烤的是 512 × 10 / 150 ≈ 34 的圆角。来源：黑客松版的 ui/paper/paper.css 的 .paper-card 和 .paper-back。凡是画到卡角的地方都必须用它，用它的那几处列在 canvas 的 layout/fanMath.ts 的 CARD_RADIUS 上（加一处就往那儿补一条，别在这里再抄一份）。 */
       radius: 10,
       /** 战场上小卡的宽。来源：styles.css 的 :root --tile-w。 */
       tileWidth: 110,
@@ -757,7 +757,7 @@ export const tokens = {
     },
   },
   space: {
-    /** 间距阶梯。旧样式没有做过间距令牌化，这一档是统计 legacy-client/src/styles.css 里 padding / gap / margin 的 px 取值定出来的，6px 出现 13 次，排第 6。 */
+    /** 间距阶梯。旧样式没有做过间距令牌化，这一档是统计黑客松版的 styles.css 里 padding / gap / margin 的 px 取值定出来的，6px 出现 13 次，排第 6。 */
     xs: 6,
     /** 间距阶梯。同一份统计里 8px 出现 18 次，排第 3。 */
     sm: 8,

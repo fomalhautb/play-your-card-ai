@@ -1,7 +1,8 @@
 /**
  * 组件目录页条目：对局渲染器（7.1 第 3 条）。
  *
- * 两档版式各三条关键帧——发牌完成、我方出牌飞到一半、回合结算层刚立起来。
+ * 两档版式各三条关键帧——发牌完成、我方出牌飞到一半、回合结算层刚立起来；
+ * 桌面档另加一条「等对方出牌」，那是右下角那颗钮换成「催一催」的唯一一段。
  * 演的是一局**脚本化对局**（见 storyDuel.ts）：真引擎、真编排层、真场景，
  * 只有指令是定死的。这一条因此也是「这三样接得上」的唯一一处端到端检查。
  *
@@ -93,6 +94,18 @@ export const DesktopDealt = {
 export const DesktopPlaying = {
   name: '桌面档 · 出牌中',
   parameters: spec(DESKTOP, STORY_FRAMES.playing),
+}
+
+/**
+ * 桌面档：我方结束出牌，轮到对方。
+ *
+ * 看点是右下角——「结束出牌」收起来，换成「催一催」（两颗钮摞在同一个位置上，
+ * 见 layout/types.ts 的 `urge`）。只拍桌面档一条：两档在这件事上没有分岔，
+ * 而每多一条条目就多一份跑批时间。
+ */
+export const DesktopWaiting = {
+  name: '桌面档 · 等对方出牌',
+  parameters: spec(DESKTOP, STORY_FRAMES.waiting),
 }
 
 /** 桌面档：双方结束出牌，题目揭晓，结算层立起来。 */

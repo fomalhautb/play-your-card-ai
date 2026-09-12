@@ -18,7 +18,6 @@ import type { CardId } from '@ai-duel/core'
 import { tokens } from '@ai-duel/design'
 import { autoDetectRenderer, Container, type Renderer } from 'pixi.js'
 import type { CardSprite } from '../../components/CardSprite'
-import { Label } from '../../components/Label'
 import { FrameLoop } from '../../runtime/frameLoop'
 import type {
   DeckManageAction,
@@ -32,6 +31,8 @@ import { createDuelDeps, type DuelDeps, destroyDeps, restoreDeps } from '../duel
 import { type CardPool, createCardPool } from './cards'
 import type { DeckContext } from './context'
 import { addFromPool, createDeckInput, type DeckInput } from './input'
+import { createDeckInspect, type DeckInspect } from './inspect'
+import { createDeckLabels, type DeckLabels } from './labels'
 import { pickDeckLayout } from './layout/pickLayout'
 import type { DeckLayout } from './layout/types'
 import { pageInsertIndex } from './logic/pagination'
@@ -48,10 +49,7 @@ import {
   setDrawerOpen,
   setPage,
 } from './state'
-
-/** 页码和计数那两行字的字号字距，同 parts.ts 里那批，组件私有不进令牌。 */
-const PAGER_TYPE = { fontSize: 13, letterSpacing: 1.3 } as const
-const TALLY_TYPE = { fontSize: 15, letterSpacing: 1.5, weight: '600', align: 'left' } as const
+import { applyDeckTutorial, blockedByTutorial, deckAnchorRectOf } from './tutorial'
 
 export async function createDeckScene(options: DeckSceneOptions): Promise<DeckScene> {
   const renderer = await autoDetectRenderer({
@@ -101,14 +99,15 @@ class DeckSceneImpl {
    */
   private borrowed = new Map<CardSprite, CardId>()
   private stale = new Map<CardSprite, CardId>()
-  /** 正放大着的那张，没开就是 null。 */
-  private inspecting: { card: CardSprite; cardId: CardId } | null = null
-  private pageText = ''
-  private tallyText = ''
+  /** 放大查看那一小块状态（见 inspect.ts）。 */
+  private readonly inspect: DeckInspect
+  /** 页码和「已选 N / 20」那两行会变的字（见 labels.ts）。 */
+  private readonly labels: DeckLabels
   private destroyed = false
   private onChangeCb: ((decks: readonly DeckView[], currentId: string) => void) | null = null
   private onInspectCb: ((cardId: CardId) => void) | null = null
   private onManageCb: ((action: DeckManageAction) => void) | null = null
+  private onBlockedCb: ((tip: string) => void) | null = null
 
   constructor(renderer: Renderer, options: DeckSceneOptions, ownsRenderer: boolean) {
     this.renderer = renderer
@@ -134,6 +133,14 @@ class DeckSceneImpl {
     this.cards = createCardPool(this.deps, this.visuals)
     this.parts = this.buildParts()
     this.ctx = this.makeContext(options)
+    this.labels = createDeckLabels(() => this.parts, this.deps)
+    this.inspect = createDeckInspect({
+      // 走取值器：换一档版式会把零件整套换掉，焊死一份迟早指向已经销毁的东西。
+      parts: () => this.parts,
+      cards: this.cards,
+      wake: () => this.frameLoop.wake(),
+      onShow: (cardId) => this.onInspectCb?.(cardId),
+    })
     this.input = createDeckInput(this.ctx)
     this.bindStage()
     renderDeckScene(this.ctx)
@@ -153,13 +160,18 @@ class DeckSceneImpl {
       onFaction: (id) =>
         this.change((state) => selectFaction(state, id === ALL_FACTIONS ? null : id)),
       onDeck: (id) => {
+        // 教学那一段只编辑那一套写死 id 的牌组，换一套走了就对不上预填的 17 张。
+        if (blockedByTutorial(this.ctx, null)) return
         this.change((state) => selectDeck(state, id))
         this.ctx.emitChange()
       },
-      onNewDeck: () => this.onManageCb?.({ kind: 'create' }),
-      onRename: () => this.onManageCb?.({ kind: 'rename', id: this.ctx.state.currentId }),
-      onDelete: () => this.onManageCb?.({ kind: 'delete', id: this.ctx.state.currentId }),
-      onRemoveAt: (index) => this.removeAt(index),
+      onNewDeck: () => this.manage({ kind: 'create' }),
+      onRename: () => this.manage({ kind: 'rename', id: this.ctx.state.currentId }),
+      onDelete: () => this.manage({ kind: 'delete', id: this.ctx.state.currentId }),
+      onRemoveAt: (index) => {
+        // 教学那一段整段不许移除：预填的 17 张少一张，三步之后就凑不满 20 张了。
+        if (!blockedByTutorial(this.ctx, null)) this.removeAt(index)
+      },
       onDrawer: () => this.toggleDrawer(),
       onPage: (delta) => this.turnPage(delta),
       onAddAt: (index) => this.addAt(index),
@@ -186,6 +198,8 @@ class DeckSceneImpl {
       state: createDeckState(options.decks, options.currentId, scene.layout.tier === 'desktop'),
       gap: null,
       dragging: null,
+      // 正式构筑页恒为 null，只有新手教程那一段会设进来（见 setTutorial）。
+      tutorial: null,
 
       takeCard: (cardId, tag) => {
         // 上一轮那批里有同一张牌的话原样取回来：它还在原位，谁都不用动。
@@ -209,13 +223,20 @@ class DeckSceneImpl {
         this.stale.clear()
       },
       releaseCard: (card, cardId) => this.cards.release(card, cardId),
-      setPageLabel: (text) => this.setPageLabel(text),
-      setTally: (text) => this.setTally(text),
+      setPageLabel: (text) => this.labels.setPage(text),
+      setTally: (text) => this.labels.setTally(text),
       wake: () => this.frameLoop.wake(),
       emitChange: () => this.onChangeCb?.(this.ctx.state.decks, this.ctx.state.currentId),
-      emitInspect: (cardId) => this.openInspect(cardId),
-      emitManage: (action) => this.onManageCb?.(action),
+      emitInspect: (cardId) => this.inspect.show(cardId),
+      emitManage: (action) => this.manage(action),
+      blocked: (tip) => this.onBlockedCb?.(tip),
     }
+  }
+
+  /** 改名 / 新建 / 删除三件事都要弹框，交给调用方；教学那一段一律挡下。 */
+  private manage(action: DeckManageAction): void {
+    if (blockedByTutorial(this.ctx, null)) return
+    this.onManageCb?.(action)
   }
 
   /** 改一次状态并重排画面。所有「点了某个控件」最后都走这条。 */
@@ -260,31 +281,11 @@ class DeckSceneImpl {
     this.ctx.emitChange()
   }
 
-  /** 点开一张卡看大图。展示层是全屏的（弹窗 B），点遮罩关掉。 */
-  private openInspect(cardId: CardId): void {
-    if (this.inspecting !== null) return
-    const card = this.cards.take(cardId, `inspect:${cardId}`)
-    this.inspecting = { card, cardId }
-    this.parts.reveal.enter(card, null)
-    this.onInspectCb?.(cardId)
-    this.frameLoop.wake()
-  }
-
-  private closeInspect(): void {
-    const shown = this.inspecting
-    if (shown === null) return
-    this.inspecting = null
-    this.parts.reveal.fade()
-    // 展示层收场时会把卡摘出去（不销毁），所以这里直接还回回收池。
-    this.cards.release(shown.card, shown.cardId)
-    this.frameLoop.wake()
-  }
-
   /** 舞台上的指针：拖拽走合成入口那三条，点遮罩关掉放大查看。 */
   private bindStage(): void {
     this.stage.eventMode = 'static'
     this.stage.on('pointerdown', (event) => {
-      if (this.inspecting !== null) return
+      if (this.inspect.open) return
       this.input.pressAt(event.global.x, event.global.y, event.pointerType)
     })
     this.stage.on('globalpointermove', (event) => this.input.moveTo(event.global.x, event.global.y))
@@ -292,28 +293,7 @@ class DeckSceneImpl {
     this.stage.on('pointerupoutside', (event) =>
       this.input.releaseAt(event.global.x, event.global.y),
     )
-    this.parts.reveal.on('pointertap', () => this.closeInspect())
-  }
-
-  /** 页码那行字。内容没变就不动——换一次要重烤一张纹理（3.5）。 */
-  private setPageLabel(text: string): void {
-    if (text === this.pageText) return
-    this.pageText = text
-    const next = new Label(text, PAGER_TYPE, this.deps, tokens.color.deck.chipInk)
-    next.position.copyFrom(this.parts.pageLabel.position)
-    this.parts.layers.pool.addChild(next)
-    this.parts.pageLabel.destroy({ children: true })
-    this.parts.pageLabel = next
-  }
-
-  private setTally(text: string): void {
-    if (text === this.tallyText) return
-    this.tallyText = text
-    const next = new Label(text, TALLY_TYPE, this.deps, tokens.color.paper.ink)
-    next.position.copyFrom(this.parts.tally.position)
-    this.parts.layers.side.addChild(next)
-    this.parts.tally.destroy({ children: true })
-    this.parts.tally = next
+    this.parts.reveal.on('pointertap', () => this.inspect.hide())
   }
 
   /**
@@ -350,6 +330,11 @@ class DeckSceneImpl {
       onManage: (callback) => {
         this.onManageCb = callback
       },
+      onBlocked: (callback) => {
+        this.onBlockedCb = callback
+      },
+      setTutorial: (gate) => applyDeckTutorial(this.ctx, gate, (next) => this.change(next)),
+      anchorRect: (target) => deckAnchorRectOf(this.ctx, target),
       step: (deltaMs) => this.frameLoop.step(deltaMs),
       isIdle: () => this.idle(),
       counters: (): DeckSceneCounters => ({
@@ -391,12 +376,11 @@ class DeckSceneImpl {
     const state = this.ctx.state
     this.input.destroy()
     this.returnAllCards()
-    this.closeInspect()
+    this.inspect.hide()
     for (const child of this.stage.removeChildren()) child.destroy({ children: true })
     this.parts = this.buildParts()
     this.ctx.state = state
-    this.pageText = ''
-    this.tallyText = ''
+    this.labels.reset()
     this.input = createDeckInput(this.ctx)
     this.bindStage()
     renderDeckScene(this.ctx)

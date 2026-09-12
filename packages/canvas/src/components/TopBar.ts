@@ -31,7 +31,7 @@ import { PLAQUE_PLAIN, PlaqueButton } from './PlaqueButton'
  *
  * 按 design 的 README「组件私有字号和字距」那条留在组件里：这几个数只服务顶栏，
  * 互不相同也不成阶梯。字距是把旧样式的 em 值乘开的（0.18em × 18px ≈ 3.24）。
- * 来源：legacy-client/src/styles.css 的 `.battle-topbar__*` 一族。
+ * 来源：黑客松版的 src/styles.css 的 `.battle-topbar__*` 一族。
  */
 const TYPE = {
   /** 「第 … 轮」那两个标签字。 */
@@ -76,12 +76,15 @@ export interface TopBarOptions {
   /** 不给就取桌面档令牌。触屏档由场景传 `size.battle.topbarHeightTouch`。 */
   height?: number
   /**
-   * 右端那两颗图标钮（静音、离开）摆不摆。默认摆。
+   * 右端摆哪几颗图标钮。默认两颗都摆。
    *
-   * 触屏档传 false：一条 390 宽的顶栏放不下「第 N 轮 + 比分」再加两颗 51 见方的钮，
-   * 正中那块会被压到钮底下。手机上这两件事归设置面板（第 31 条），不占对局顶栏。
+   * 触屏档只摆「离开」：一条 390 宽的顶栏放不下「第 N 轮 + 比分」再加两颗 51 见方的钮。
+   * 静音那颗可以割——设置页里有同一个开关（迁移第 31 条做的），而「离开对局」在手机上
+   * **没有别的入口**，第 21 条那会儿两颗一起割掉，结果是手机上根本退不出对局。
+   *
+   * 正中那块会按这一簇的宽度让位（见 `layoutCenter`），所以不会被压到钮底下。
    */
-  actions?: boolean
+  actions?: 'both' | 'leave' | 'none'
   onLeave?: () => void
   onToggleMute?: () => void
 }
@@ -113,7 +116,7 @@ export class TopBar extends Container {
       deps,
     )
     this.addChild(this.plate, this.center, this.actions)
-    if (options.actions !== false) this.buildActions(options)
+    this.buildActions(options)
     this.rebuildCenter()
   }
 
@@ -134,6 +137,17 @@ export class TopBar extends Container {
     this.addChildAt(this.plate, index)
     this.layoutActions()
     this.layoutCenter()
+  }
+
+  /**
+   * 正中那一块（比分，或者顶掉它的那行状态字）。
+   *
+   * 透出来只为一件事：新手教程要圈住「比分在哪儿」（见 scenes/duel/anchors.ts）。
+   * 给的是节点而不是一个算好的矩形——那一块的内容每轮都在换，宽度跟着字走，
+   * 只有量它自己才准。
+   */
+  get centerArea(): Container {
+    return this.center
   }
 
   /** 第几轮。 */
@@ -164,11 +178,31 @@ export class TopBar extends Container {
   }
 
   private buildActions(options: TopBarOptions): void {
+    const which = options.actions ?? 'both'
+    if (which === 'none') return
     const make = (icon: Texture, onActivate: (() => void) | undefined): PlaqueButton =>
       new PlaqueButton({ variant: PLAQUE_PLAIN, icon, onActivate }, this.deps)
-    this.actions.addChild(make(this.deps.icons.mute, options.onToggleMute))
+    // 顺序是「静音、离开」，离开排在最右——手机档只剩一颗时它还落在同一个位置上。
+    if (which === 'both') this.actions.addChild(make(this.deps.icons.mute, options.onToggleMute))
     this.actions.addChild(make(this.deps.icons.leave, options.onLeave))
     this.layoutActions()
+  }
+
+  /**
+   * 右端那一簇要占掉的整块地方：几颗钮 + 它们之间的空隙 + 离右缘的留白，
+   * **再加一份空隙**当它左边的隔离带。一颗都没有时是 0。
+   *
+   * 正中那块靠它让位（见 `layoutCenter`）。左边那份隔离带不能省：正好贴着摆的话，
+   * 末尾那个「对方」会和第一颗钮的剪影挨到一起，看着像糊在一块儿
+   *（手机档那条目录页条目第一次拍出来就是这个样子）。
+   *
+   * 量的是**已经摆好的**那几颗，不是按变体现算——两处各算一遍迟早对不上。
+   */
+  private actionsKeepOut(): number {
+    const buttons = this.actions.children as PlaqueButton[]
+    if (buttons.length === 0) return 0
+    const total = buttons.reduce((sum, button) => sum + button.boxWidth, 0)
+    return total + ACTION_GAP * buttons.length + ACTION_INSET
   }
 
   /** 两颗钮从右往左排，整簇纵向居中。 */
@@ -252,7 +286,15 @@ export class TopBar extends Container {
       return { child, gap, width: child instanceof Label ? child.textWidth : child.width }
     })
     const total = widths.reduce((sum, item) => sum + item.gap + item.width, 0)
-    let x = (this.boxWidth - total) / 2
+    /*
+     * 先按整条顶栏居中，再往左让到不压着右端那一簇为止。
+     *
+     * 两步而不是一步「在剩下那段里居中」：桌面档宽得很，正中那块离那两颗钮还远着，
+     * 按剩下那段居中会让它整体左移七十多个像素，白白偏掉。
+     * 手机档才会真的撞上——那时让多少就让多少。
+     */
+    const room = this.boxWidth - this.actionsKeepOut()
+    let x = Math.min((this.boxWidth - total) / 2, room - total)
     const centerY = this.boxHeight / 2
     for (const item of widths) {
       x += item.gap

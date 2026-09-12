@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      viewport-fit=cover 是安全区的前提：不写的话 WebView 会自己把页面缩进刘海和底部
+      手势条里面，env(safe-area-inset-*) 全是 0，画面四周多出几条画不到的黑边。
+      写了之后页面铺满整块屏幕，让开多少由代码自己算（见 platform 的 safeArea）。
+      user-scalable=no：对局全程在画布上，双指缩放只会把画面缩歪。
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
+    <title>出牌吧，AI！</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

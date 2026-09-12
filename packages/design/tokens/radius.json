@@ -3,7 +3,7 @@
     "xs": {
       "$value": "3px",
       "$type": "dimension",
-      "$description": "圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计 legacy-client/src/styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。"
+      "$description": "圆角阶梯。旧样式没有做过圆角令牌化，这一档是统计黑客松版的 styles.css 里 border-radius 的 px 取值定出来的，3px 出现 6 次。"
     },
     "sm": {
       "$value": "4px",

@@ -1,8 +1,8 @@
 // 预生成用的三张数据表：模型、题目、变体（技能牌往 prompt 里塞的话）。
 //
-// 单独一个文件是因为它有三个使用者——生成脚本 pregen-answers.mjs、
-// build-core-answers.mjs、build-generation-data.mjs。后两个要用同一份 prompt 拼装函数
-// 重建「实际发给模型的完整 prompt」，各写一份的话，改了注入词就会几处说法不一致。
+// 单独一个文件是因为它有两个使用者——生成脚本 pregen-answers.mjs 和 build-core-answers.mjs。
+// 后者要用同一份 prompt 拼装函数重建「实际发给模型的完整 prompt」，
+// 各写一份的话，改了注入词就会两处说法不一致。
 //
 // **题目和注入词直接从 packages/content 的 JSON 读**，不再在这里抄一份
 //（《正式版架构》6.4「注入提示词和预生成脚本引用同一来源」）：

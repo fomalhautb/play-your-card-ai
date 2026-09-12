@@ -36,6 +36,7 @@ import { createDuelInput, type DuelInput } from './input'
 import { pickLayout } from './layout/pickLayout'
 import type { DuelLayout } from './layout/types'
 import { applyPartsLayout, createParts, type DuelParts } from './parts'
+import { createDuelTutorial, type DuelTutorial } from './tutorial'
 
 export async function createDuelScene(options: DuelSceneOptions): Promise<DuelScene> {
   const renderer = await autoDetectRenderer({
@@ -96,6 +97,8 @@ class DuelSceneImpl {
   private layout: DuelLayout
   private parts: DuelParts
   private input: DuelInput
+  /** 教程那几个口子（锚点、逐张锁）。正式对局一次都不碰它。 */
+  private readonly tutorial: DuelTutorial
   private locks: DirectorLocks | null = null
   /** 上一帧的逐帧跟随（拖拽）还没收敛。它和补间账一起决定帧循环停不停。 */
   private interactionBusy = false
@@ -122,6 +125,7 @@ class DuelSceneImpl {
       seed: options.seed ?? 0,
       back: options.textures.back,
       platform: options.platform,
+      reducedMotion: options.reducedMotion === true,
       wake: () => this.frameLoop.wake(),
     })
     this.visuals = createCardVisuals(options.catalog, options.textures)
@@ -130,6 +134,8 @@ class DuelSceneImpl {
     this.parts = this.buildParts()
     this.ctx = this.makeContext()
     this.input = createDuelInput(this.ctx)
+    // 换档位会把输入层整个换掉，所以刷压暗那一下走取值器，别把当前这个闭包焊死。
+    this.tutorial = createDuelTutorial(this.ctx, () => this.input.refreshBlocked())
     this.applyStageHitArea()
     // 4.3：上下文丢了之后把「画出来的」纹理重画一遍。图片纹理 Pixi 自己会重传，这几张不会。
     options.canvas.addEventListener('webglcontextrestored', this.onContextRestored)
@@ -146,6 +152,7 @@ class DuelSceneImpl {
         this.onUserActionCb?.({ kind: 'end-play' })
         this.onCommandCb?.({ type: 'END_PLAY', player: this.options.seat })
       },
+      onUrge: this.options.onUrge,
       onLeave: this.options.onLeave,
       onToggleMute: this.options.onToggleMute,
     })
@@ -181,6 +188,7 @@ class DuelSceneImpl {
       handCardIds: new Map(),
       markKeys: new Map(),
       locks: new Set(),
+      blockedCards: null,
       showcased: null,
       inspectingTile: null,
 
@@ -196,6 +204,7 @@ class DuelSceneImpl {
       userAction: (action) => this.onUserActionCb?.(action),
       command: (command) => this.onCommandCb?.(command),
       tutorial: (cue) => this.onTutorialCb?.(cue),
+      blocked: (tip) => this.tutorial.notifyBlocked(tip),
       beginHeroSkill: () => this.input.beginHeroSkill(),
       refreshLocks: () => this.refreshLocks(),
     }
@@ -297,6 +306,7 @@ class DuelSceneImpl {
       onTutorialCue: (callback) => {
         this.onTutorialCb = callback
       },
+      ...this.tutorial.handle,
       step: (deltaMs) => this.frameLoop.step(deltaMs),
       isIdle: () => this.idle(),
       counters: (): DuelSceneCounters => ({

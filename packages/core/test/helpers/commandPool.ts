@@ -1,8 +1,9 @@
 /**
  * 枚举「当前状态下所有合法的指令」和「保证会被拒绝的指令」，随机走局器从这两个池子里挑。
  *
- * 合法那半边是把 engine.ts 的校验（playCard 的扣费、denyReason 的选目标、useHeroSkill 的
- * 英雄与链头链尾）**照着抄了一遍**。抄一遍是有意的：引擎哪天改了校验而这里没跟着改，
+ * 合法那半边是把引擎的校验（enginePlay.ts 的 playCard 扣费和 denyReason 选目标、
+ * engineSkills.ts 的 useHeroSkill 英雄与链头链尾）**照着抄了一遍**。
+ * 抄一遍是有意的：引擎哪天改了校验而这里没跟着改，
  * properties.test.ts 里「合法指令不该出 COMMAND_REJECTED」那条就会红，
  * 等于给规则改动加了一道"记得同步"的提醒。红了先看是引擎真变了还是这里过时了。
  */
@@ -49,7 +50,7 @@ export function currentQuestion(state: GameState): Question {
  * 这张技能牌现在能打向哪些目标：每一项是一条 `PLAY_CARD` 的 `targetInstanceId`，
  * `undefined` 表示这张牌不需要目标。返回空数组就是"这张牌现在打不出去"。
  *
- * 判断口径逐条对着 engine.ts 的 denyReason，顺序也一样。
+ * 判断口径逐条对着 enginePlay.ts 的 denyReason，顺序也一样。
  */
 function skillTargets(
   state: GameState,

@@ -1,11 +1,8 @@
 # 部署说明
 
-> 这份文档写的是**黑客松那版转发器**怎么部署，线上跑的仍然是它。
-> 新的权威房间对象、大厅对象和账号系统（《正式版架构》迁移第 22、24、25 条）
-> 并排加在同一个 Worker 里，走 `/match/:code` + `MATCH_ROOM`、`/lobby` + `LOBBY`、
-> `/api/auth/*` + `AUTH_DB`（D1）三组绑定，和下面这套互不相干——
-> 它自己的目录结构、本地开发和测试见 `packages/server/README.md`。
-> 部署方式两套是一样的：同一个 `wrangler deploy`。
+> 这份文档写的是**线上怎么跑起来**：域名、Durable Object、免费额度、账号库、自动部署。
+> 电线上的消息长什么样、序号怎么算、断线怎么补，以 `packages/protocol/README.md` 为准；
+> 服务端自己的目录结构、本地开发和测试见 `packages/server/README.md`。
 
 ## 1. 一个 Worker 干两件事
 
@@ -17,18 +14,18 @@
               ┌───────────────────┴───────────────────┐
               │                                       │
       静态资源层（免费、不计 Worker 调用）        Worker 脚本
-      /  /assets/*  以及匹配不到的路径            /api/room      摇房间码
-      → packages/legacy-client/dist              /room/:code    WebSocket 升级（旧转发器）
-                                                 /match/:code   WebSocket 升级（新房间）
+      /  /assets/*  以及匹配不到的路径            /api/auth/*    账号（better-auth + D1）
+      → apps/web/dist                            /lobby         WebSocket 升级（大厅）
+                                                 /match/:code   WebSocket 升级（房间）
                                                       │
                                                  Durable Object
-                                                 一个房间一个实例
+                                                 大厅一个全局实例
+                                                 房间一个房间码一个实例
 ```
 
-前端和转发器同域名，所以客户端连 WebSocket 直接用相对路径（`/room/1234?role=host`），
-线上不依赖 CORS，也不需要维护第二个服务的地址。
-（`/api/room` 上确实带了 `Access-Control-Allow-Origin: *`，那是给本地开发用的——
-本地 Vite 在 5173、`wrangler dev` 在 8787，是两个 origin。）
+前端和服务端同域名，所以客户端连 WebSocket 直接用相对路径（`/match/1234`），
+线上不依赖 CORS，也不需要维护第二个服务的地址。账号的会话 cookie 也是靠同源才带得上——
+本地开发那边为此专门用 Vite 的 `server.proxy` 把两边并成一个源（见 `apps/web/vite.config.ts`）。
 
 选 Cloudflare 的原因就一条：**免费档能挂长连接且不休眠**。
 常见的免费 PaaS（Render、Fly 之类）在免费档上会把闲置的实例睡掉，
@@ -59,16 +56,16 @@ Worker 原本的 `ai-duel.<你的账号>.workers.dev` 地址**已经停用**：�
 
 ## 3. 房间码就是 Durable Object 的名字
 
-转发器不需要自己维护一张全局房间表，「房间」这个概念直接落到了基础设施上：
+服务端不需要自己维护一张全局房间表，「房间」这个概念直接落到了基础设施上：
 
-- `env.ROOM.getByName("1234")` 拿到名字叫 `1234` 的那个实例，**同一个码永远路由到同一个实例**，
-  不管请求从哪个机房进来。
-- 一个房间的两条 WebSocket 一定落在同一个实例里，转发就是在实例内部把消息递给另一条连接。
-- 房间里的连接列表由运行时保管（`ctx.getWebSockets()`），代码里没有任何内存状态，
-  所以实例被回收、重建都不会丢东西。
+- `env.MATCH_ROOM.getByName("1234")` 拿到名字叫 `1234` 的那个实例，
+  **同一个码永远路由到同一个实例**，不管请求从哪个机房进来。
+- 一个房间的两条 WebSocket 一定落在同一个实例里，权威局面也存在这个实例自己的 SQLite 里。
+- 大厅相反，是 **全局单实例**（`getByName('global')`，见 `src/lobby/naming.ts`）：
+  队列要凑一对人，切成多个实例等于把队列切碎，人一少就永远配不上。
 
-`GET /api/room` 摇一个 4 位随机码，用 RPC 问对应的实例「你那儿几个人」，
-是 0 就把这个码发给客户端，不是 0 就重摇（最多 10 次）。
+摇码的是大厅（`src/lobby/queue.ts`）：随机四位数字，在自己那张「在用的房间码」表里查重，
+连撞十次就回 `no-room-code`。房间收摊时调 `release` 把那一行删掉，码就回到池子里。
 
 ## 4. 为什么一定要 WebSocket Hibernation
 
@@ -85,120 +82,44 @@ Worker 原本的 `ai-duel.<你的账号>.workers.dev` 地址**已经停用**：�
 免费档那 13,000 GB-s/天的时长额度；用休眠就是零消耗。**这是免费档跑得起来的直接原因。**
 
 代价是「实例被唤醒时构造函数会重跑」，所以**不能把状态放在实例的字段里**。
-本项目的做法是根本不存状态：需要知道房里有谁的时候现查 `ctx.getWebSockets()`。
+本项目的做法是类上一个字段都不留：谁连着现查 `ctx.getWebSockets()`，
+权威局面和成员关系现查这个实例自己的 SQLite（`src/room/state.ts`）。
 
 心跳也顺手交给运行时：`ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))`
 让运行时直接回 `pong`，休眠中的实例不会被心跳唤醒。客户端定期发 `ping` 保活即可。
+自动应答只认逐字节相等的裸字符串，所以协议里 `ping` / `pong` 特意不是 JSON。
 
-## 5. 协议
+## 5. 协议和断线重连
 
-服务端**不解析游戏内容**——它不认识卡牌也不认识回合，前端协议怎么改它都不用动。
-但控制消息和游戏载荷要走同一条 WebSocket，所以服务端发出去的每一帧带一个字符的前缀：
+这两件事整个写在 `packages/protocol/README.md` 里，不在这儿重复：
+消息清单、`Sec-WebSocket-Protocol` 里怎么带 JWT、序号怎么算、漏包和重连怎么要快照、
+每批事件为什么都带一份视图。客户端那半边在 `packages/client/src/net/`
+（`session.ts` 管握手和心跳，`roomClient.ts` / `lobbyClient.ts` 各管一条连接）。
 
-| 方向 | 帧格式 | 含义 |
-|---|---|---|
-| 服务端 → 客户端 | `#room:ok` | 进房成功的回执 |
-| 服务端 → 客户端 | `#peer:joined` | 对手**第一次**进房 |
-| 服务端 → 客户端 | `#peer:online` | 对手（重）连上了 |
-| 服务端 → 客户端 | `#peer:offline` | 对手此刻没有连接 |
-| 服务端 → 客户端 | `>` + 载荷 | 对端发来的东西，原样搬运 |
-| 客户端 → 服务端 | `ping` | 心跳，DO 自动回 `pong`，不转发给对手 |
-| 客户端 → 服务端 | 载荷 | 不带前缀，整条都是载荷 |
+和**部署**有关的只有两条，别的都是协议的事：
 
-进房回执之后紧跟着一帧对端状态（`#peer:online` 或 `#peer:offline`）：
-重连回来的一方得知道对手在不在，光自己连上不代表消息送得到对面。
+- **被拒绝的连接也要先握手成功。** 浏览器的 `WebSocket` 拿不到失败握手的响应体和状态码，
+  「房间满了」还是「token 过期了」就没地方说。所以服务端一律先把 101 回出去、
+  发一条 `session:rejected` 说明原因、再带着关闭码关掉（`src/net/session.ts` 的 `rejectUpgrade`）。
+  客户端因此**不能一看到 `open` 就当进房成功了**，要等第一条消息。
+- **WebSocket 升级请求必须能进到 Worker。** 见第 10 节那两条坑（SPA 回退和导航请求）。
 
-`#peer:offline` 只说"对端此刻没有连接"，**不代表这局结束了**。
-判定对手真的走了是客户端的事（见下面的宽限期），转发器不掺和这个决定。
-
-加前缀是纯字符串拼接，服务端不需要看懂载荷是什么，更不会 `JSON.parse` 它。
-二进制帧不加前缀原样转发（控制消息一定是文本，所以不会混）。
-
-### 被拒绝的连接
-
-握手会先成功、再被立刻关掉，因为浏览器的 `WebSocket` 拿不到失败握手的响应体，
-只拿得到 `CloseEvent` 上的 `code` 和 `reason`——想把中文原因显示给玩家就只能走这条路。
-
-**所以客户端不能一看到 `open` 就当进房成功了**，要等第一帧：
-收到 `#room:ok` 才算进去，收到 `close` 就看关闭码。
-
-| 关闭码 | reason | 什么时候 |
-|---|---|---|
-| 4000 | role 参数必须是 host 或 guest | URL 上的 `role` 不对 |
-| 4001 | 房间不存在 | 以 guest 身份连一个没人的房间 |
-| 4002 | 房间已满 | 房里已经两个人 |
-| 4003 | 房间已被占用 | 以 host 身份连一个已经有另一个房主的房间 |
-| 4004 | 同一玩家的新连接已接管 | 自己重连了，旧连接被顶掉（不是错误） |
-
-前四个是"再试也没用"的业务拒绝，客户端收到会停掉自动重连；
-4004 相反，它是重连成功的副作用，旧连接本来就该消失。
-
-## 6. 断线重连
-
-弱网下裸 WebSocket 有两个安静的失败模式，玩家看到的都是"卡住了"而不是"断线了"：
-连接进入 CLOSING/CLOSED 后 `send()` 既不抛错也不排队直接丢；
-以及链路中间被掐断时本地 socket 还显示 OPEN、数据却出不去（半开连接），TCP 要几分钟才发现。
-
-所以客户端（`packages/legacy-client/src/net/socket.ts`）有四道防线：
-
-| 防线 | 做法 | 治什么 |
-|---|---|---|
-| 自动重连 | [partysocket](https://github.com/cloudflare/partykit/tree/main/packages/partysocket)，退避 0.5→5 秒无限重试 | 连接断了回不来 |
-| 心跳探活 | 每 15 秒发 `ping`，20 秒收不到 `pong` 就主动重连 | 半开连接 |
-| 可靠送达 | 客人的指令带序号，收不到回执一直重发，收方按序号去重 | 出牌指令丢失 |
-| 宽限期 | 链路断了先显示"正在重连"，满 60 秒才判对局中断 | 抖一下就判负 |
-
-### 玩家身份
-
-URL 上的 `peer` 参数是客户端生成的玩家 id（只活在内存里，刷新页面就换一个）。
-转发器靠它把"重连"和"另一个人来了"区分开——**这是断线能恢复的前提**：
-
-- **房里有几个人是按玩家算的，不是按连接算的。** 网络异常断开时运行时要过一阵才回收旧连接，
-  这期间房里"还有一个 guest"。按连接数判断房满的话，重连的人会被自己的僵尸连接挡在门外。
-- **同一个玩家的新连接会顶掉旧的**（关闭码 4004），并且不给对手报掉线——
-  不做这个区分的话，每次重连都会让对手看到一次"对方断开"。
-- **`resume=1`** 表示这是一次重连。它只影响"房里没人"怎么解读：
-  首次进房当成房间码打错了（4001），重连则放进来等——两个人一起掉线时（同一个 WiFi 抽了一下）
-  房主也正在重连的路上，不放进去等的话谁也回不去。
-
-### 重同步
-
-断线期间发出去的 `match:sync` 全都丢了（转发器不缓存，对端不在就直接扔掉），
-但那些消息一条也不用补：每条 sync 带的都是**完整**局面，后一条天然覆盖前一条。
-所以链路一恢复，房主重发一份最新的完整局面就对齐了。
-
-反方向不行——客人的指令是**增量**，丢一条就是少出一张牌，没有后续消息能把它补回来。
-这就是为什么只有客人到房主这个方向需要序号和重发。
-
-### 客户端在哪接的
-
-`packages/legacy-client/src/net/socket.ts` 是联机通道的**唯一**封装，用浏览器原生 `WebSocket`。
-上层（`screens/RoomScreen.tsx`、`match/hostDriver.ts`、`match/guestDriver.ts`）只认它导出的
-`RoomHandle` 接口，所以换传输方式不会波及对局逻辑——这次从 socket.io 迁过来就只动了这一个文件。
-
-**`join()` 的顺序有讲究**：进别人的房是「先连上目标房间，成功之后才关掉自己那条」。
-反过来先关的话，目标房间不存在或已满时自己那间也跟着没了，界面上还显示着房间码，
-但那个码已经是空头支票。冒烟测试第 9 项守着这条。
-
-**没有自动重连**，这是刻意的：连不上就报错让界面显示"连不上服务器"，比无声重连转圈强。
-将来如果要加，用 [`partysocket`](https://www.npmjs.com/package/partysocket)
-（Cloudflare 自家 PartyKit 那套里拆出来的），别自己手写——它是 `WebSocket` 的替身，
-自带指数退避重连、断线期间的发送队列和心跳，接口和原生 `WebSocket` 一样。
-
-## 7. 免费档够不够用
+## 6. 免费档够不够用
 
 | 额度 | 免费档 | 这个项目怎么花 |
 |---|---|---|
-| 请求数 | 10 万次/天 | 每次打开页面几次、每次建房 1 次、每条 WebSocket 升级 1 次 |
+| 请求数 | 10 万次/天 | 每条 WebSocket 升级 1 次（大厅一条、房间一条），账号登录 1 次 |
 | WebSocket 入站消息 | 按 **20 条消息折算 1 次请求** | 一局牌几百条消息 = 十几次请求 |
-| WebSocket 出站消息 | **不计费** | 转发出去的那一半白送 |
-| CPU 时长 | 13,000 GB-s/天 | 休眠期间不算，实际只有转发那几毫秒 |
+| WebSocket 出站消息 | **不计费** | 发下去的那一半白送 |
+| CPU 时长 | 13,000 GB-s/天 | 休眠期间不算，实际只有 `execute` 和裁剪视图那几毫秒 |
 
 静态资源本身**完全不计费**，也不占 Worker 调用数（前提是请求没有被 `run_worker_first` 拉进 Worker）。
+页面请求就属于这一类：`run_worker_first` 里只有 `/api/*`、`/match/*`、`/lobby` 三条，
+前端路由（`/`、`/room`、`/deck`、`/match`……）全部由资源层直接回 index.html。
 
-结论：黑客松演示的量级离额度上限差着好几个数量级。
+结论：现在这个量级离额度上限差着好几个数量级。
 
-## 8. 账号库（D1）
+## 7. 账号库（D1）
 
 账号是 better-auth 配 Cloudflare D1（《正式版架构》5.5，迁移第 25 条），
 挂在同一个 Worker 的 `/api/auth/*` 下面，绑定名 `AUTH_DB`。
@@ -230,14 +151,47 @@ openssl rand -base64 32 | npx wrangler secret put BETTER_AUTH_SECRET
 D1 免费档是 5GB 存储、每天 500 万行读 / 10 万行写。一个游客账号占三四行，
 握手验签那条查询还带一分钟的内存缓存（`src/auth/verify.ts`），离上限差得远。
 
+## 8. Steam 登录（迁移第 35 条）
+
+Steam 版的壳（`apps/steam`）用 Steam 客户端给的**会话票据**换账号会话，
+服务端拿票据去问 Valve「这张票是谁的」（`packages/server/src/auth/steamTicket.ts`）。
+网页版和手机版用不到它，不配也不影响部署。
+
+**要真的验票据，仓库的主人得先做两件事**（都要 Steamworks 后台的权限，别人代劳不了）：
+
+```bash
+cd packages/server
+
+# 1) 发行商 Web API 密钥。Steamworks 后台 → 用户与权限 → 管理 Groups →
+#    你的发行商组 → 「Web API 密钥」。**不是**个人的那把 Steam Web API key，
+#    个人密钥调 AuthenticateUserTicket 会被拒。
+npx wrangler secret put STEAM_WEB_API_KEY
+
+# 2) 这个游戏的 appId。不是凭据，但走同一条路最省事（生成的 Env 类型看不见它，
+#    见 packages/server/env.d.ts）。不配的话默认是 480（Valve 的 SpaceWar 试验田）。
+npx wrangler secret put STEAM_APP_ID
+```
+
+`STEAM_APP_ID` **两处要填同一个数**：这里一份，壳那边的环境变量一份
+（见 `apps/steam/README.md`）。验票据时 Valve 会拿 appId 比对，对不上整张票作废。
+
+没配 `STEAM_WEB_API_KEY` 时的行为按环境分（`src/auth/steamTicket.ts` 里那张表）：
+本地开发（`.dev.vars` 里有 `DEV=1`）走「任何票据都收，steamId 由票据算出来」，
+**线上一律拒绝**——失败关闭，漏配的后果是「谁都登不进来」，
+而不是「随便递一段字符串就是一个新账号」。
+
+所以这两条 secret 是**可选的**：不配，线上的 Steam 登录就是关着的，游客登录照常。
+
 ## 9. 自动部署
 
 `.github/workflows/deploy.yml`：push 到 `main` 或者手动触发 → 装依赖 →
-`pnpm --filter @ai-duel/legacy-client build` → 应用账号库迁移 →
+`pnpm assets:build` → `pnpm --filter @ai-duel/web build` → 应用账号库迁移 →
 在 `packages/server` 里跑 `wrangler deploy`。
 
-**必须先构建前端**：`wrangler.jsonc` 里 `assets.directory` 指向 `../legacy-client/dist`，
+**必须先构建前端**：`wrangler.jsonc` 里 `assets.directory` 指向 `../../apps/web/dist`，
 而 `dist/` 是 gitignore 掉的，仓库里没有这个目录。
+`assets:build` 那一步同理——卡面图集和界面底图落在 `apps/web/public` 下，也是产物、也不进仓库，
+少了它构建照样成功，但页面起来是一片空白。
 
 需要在仓库的 Settings → Secrets and variables → Actions 里配**一个** secret：
 
@@ -256,33 +210,55 @@ D1 免费档是 5GB 存储、每天 500 万行读 / 10 万行写。一个游客�
 
 ## 10. 踩过的坑
 
-**`exports` 取代了 legacy 的 `migrations`。**
-老教程里的 `"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]` 已经是遗留写法，
-现在直接在 `exports` 里声明：
+**`exports` 取代了旧的 `migrations` 数组。**
+老教程里的 `"migrations": [{ "tag": "v1", "new_sqlite_classes": ["MatchRoom"] }]` 是旧写法，
+现在直接在 `exports` 里声明。两者**只能二选一**：同时写上，wrangler 会报
+「`migrations` and `exports` are mutually exclusive」直接拒绝部署。
 
 ```jsonc
 "exports": {
-  "Room": { "type": "durable-object", "storage": "sqlite" },
   "MatchRoom": { "type": "durable-object", "storage": "sqlite" },
   "Lobby": { "type": "durable-object", "storage": "sqlite" }
 }
 ```
+
+**删掉一个 Durable Object 类要留墓碑。**
+只把那一行从 `exports` 里删掉是不够的——命名空间已经在 Cloudflare 那边建出来了，
+配置里突然没有它，wrangler 只会报「有命名空间没有对应的类」。
+正确写法是把那一项改成 `state: "deleted"`（旧写法里对应的是 `migrations` 的 `deleted_classes`）：
+
+```jsonc
+"exports": {
+  "Room": { "type": "durable-object", "state": "deleted" }
+}
+```
+
+**这条墓碑正是本仓库现在的状态。** 黑客松那版纯转发器的 `Room` 类已经随迁移第 38 条删掉，
+`wrangler.jsonc` 里给它留了一条 `state: "deleted"`。
+
+> ⚠️ **合并第 38 条之后的第一次部署，会把线上旧房间那个 Durable Object 命名空间
+> 连同里面的全部数据一起删除，不可恢复。** 那里面只有黑客松版转发器的房间，
+> 没有账号、没有牌组存档（账号在 D1、存档在玩家浏览器本地），所以这是预期内的。
+> 部署那一刻正在旧客户端里打的房间会当场断开。
+
+墓碑要**一直留着**，别在后面的 PR 里当成垃圾清掉：删掉那一行等于告诉 Cloudflare
+「这个类又回来了」，下次部署它会去找一个已经不存在的导出。
 
 **免费档只有 SQLite 后端的 Durable Object。** `storage` 必须写 `"sqlite"`，
 写成 KV 后端在免费账号上会直接部署失败。
 
 **SPA 回退会把 Worker 整个吃掉。**
 `not_found_handling: "single-page-application"` 的意思是「匹配不到静态资源就回 index.html」，
-而它比 Worker 优先——结果 `/api/room` 和 WebSocket 升级请求全都拿到一份 index.html。
+而它比 Worker 优先——结果 `/api/auth/*` 和 WebSocket 升级请求全都拿到一份 index.html。
 要 Worker 处理的路径必须在 `assets.run_worker_first` 里显式列出来：
 
 ```jsonc
-"run_worker_first": ["/api/*", "/room/*", "/match/*"]
+"run_worker_first": ["/api/*", "/match/*", "/lobby"]
 ```
 
-`/room/*` 在列表里是因为它一路两用：既是 WebSocket 端点，又是前端的对局页面路由。
-不是升级请求时 Worker 会调 `env.ASSETS.fetch()` 把 index.html 发回去。
-代价是打开对局页面会多算一次 Worker 调用。
+前端的对局页路由是 `/match`（不带房间码），落不进 `/match/*`，仍然由资源层回 index.html。
+房间的 WebSocket 端点必然带四位房间码，两者因此分得干干净净，
+页面请求一次 Worker 调用都不用花。
 
 **导航请求不会调用 Worker。**
 `compatibility_date >= 2025-04-01` 之后，浏览器地址栏跳转产生的请求
@@ -295,26 +271,33 @@ WebSocket 升级请求不是导航请求，所以能正常进到 Worker。
 
 ```bash
 cp packages/server/.dev.vars.example packages/server/.dev.vars   # 第一次：填 BETTER_AUTH_SECRET
-pnpm --filter @ai-duel/legacy-client build     # 先出静态资源，Worker 要用
 # 第一次还要把本地那个 D1 库的表建起来（库在 packages/server/.wrangler/ 下面，不进仓库）
 pnpm --filter @ai-duel/server exec wrangler d1 migrations apply AUTH_DB --local
 pnpm dev:server                         # wrangler dev，默认 http://127.0.0.1:8787
-
-# 另开一个终端，跑端到端冒烟测试
-pnpm --filter @ai-duel/server smoke
 ```
 
-`BETTER_AUTH_SECRET` 是账号系统的主密钥（见上一节），`.dev.vars` 不进仓库。
-旧转发器不认账号，这一条和 D1 建表它都用不上，没有也照跑；
-新房间和大厅要靠它验握手那张 JWT（`src/auth/verify.ts`）。
+**本地联调不走 `wrangler dev` 发静态资源**：前端起自己的 Vite（`pnpm dev`），
+由它的 `server.proxy` 把 `/api`、`/lobby`、`/match/xxxx` 转给 8787，
+浏览器眼里前后端同源，账号的会话 cookie 才带得上（见仓库根 README 的「本地怎么跑联机」）。
+只有要验「线上那条路」——静态资源回退、`run_worker_first` 到底拦没拦住——才需要先
+`pnpm assets:build && pnpm --filter @ai-duel/web build`，再**直接**起
+`pnpm --filter @ai-duel/server exec wrangler dev` 去访问 8787。
+这一步不能用 `pnpm dev:server`：那个脚本带着 `--assets ../../apps/web/public`，
+发的不是刚构建出来的 `apps/web/dist`（原因见 `packages/server/README.md` 的「本地开发」）。
 
-新服务端自己的测试不用先起 `wrangler dev`——它跑在 `@cloudflare/vitest-pool-workers`
-起的 workerd 里，`pnpm --filter @ai-duel/server test` 就够，已经在 CI 的快档里。
+部署前想确认配置没写错，跑一次不真的上传的构建：
 
-冒烟测试（`packages/server/test/smoke.mjs`）覆盖摇码、双方进房、转发、
-房满/房间不存在的拒绝、对端断开通知、SPA 回退，以及换房之后原来那间房要被释放。
-它用 Node 内置的全局 `WebSocket`，不需要额外依赖。
-换个地址跑线上环境：`SMOKE_BASE=https://playyourcardai.online pnpm --filter @ai-duel/server smoke`。
+```bash
+cd packages/server && npx wrangler deploy --dry-run
+```
+
+`BETTER_AUTH_SECRET` 是账号系统的主密钥（见第 7 节），`.dev.vars` 不进仓库。
+房间和大厅要靠它验握手那张 JWT（`src/auth/verify.ts`），少了它谁也握不上手。
+
+服务端自己的测试不用先起 `wrangler dev`——它跑在 `@cloudflare/vitest-pool-workers`
+起的 workerd 里（Durable Object、SQLite、Hibernation、D1 都是真的那一套），
+`pnpm --filter @ai-duel/server test` 就够，已经在 CI 的快档里。
+真的把两个客户端连起来打一局是端到端那档：`pnpm --filter @ai-duel/client e2e`。
 
 改了 `wrangler.jsonc` 里的绑定之后要重新生成 `Env` 类型：
 

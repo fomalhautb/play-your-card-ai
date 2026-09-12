@@ -11,5 +11,15 @@
 BETTER_AUTH_SECRET=本地开发用的随便一串够长的密钥
 
 # 有这一行就是「本地开发」。`wrangler deploy` 不带 .dev.vars 上去，所以线上必然没有它，
-# 服务端拿它区分环境（现在只管 `room:error malformed` 回不回给客户端，见 src/devMode.ts）。
+# 服务端拿它区分环境（`room:error malformed` 回不回给客户端，以及下面 Steam 那两行没配时
+# 要不要收假票据，见 src/devMode.ts）。
 DEV=1
+
+# Steam 登录（迁移第 35 条，见 src/auth/steamTicket.ts）。两行都**注释掉就是不配**，
+# 那时本地开发走「任何票据都收」，steamId 由票据算出来——本机没有 Steam 客户端也测得了。
+#
+# 配上真密钥就会真的去问 Valve，本地也一样。想在本机验真流程时才打开这两行：
+# STEAM_WEB_API_KEY 从 Steamworks 后台的「发行商 Web API 密钥」拿（线上走 wrangler secret put），
+# STEAM_APP_ID 填这个游戏自己的 appId（不填是 480，Valve 的 SpaceWar 试验田）。
+# STEAM_WEB_API_KEY=从 Steamworks 后台拿的发行商密钥
+# STEAM_APP_ID=480

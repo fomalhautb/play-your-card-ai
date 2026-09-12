@@ -5,7 +5,7 @@
         "default": {
           "$value": 0.62,
           "$type": "number",
-          "$description": "墨蓝匾额内框细线的不透明度。旧样式把颜色和透明度写在一起（rgb(174 168 151 / 62%)），这里拆成 color.plaque.navy.default.line 加这一份，因为颜色令牌一律是不带透明度的 #rrggbb（Pixi 的 tint 和 alpha 本来也是分开的两件事）。来源：legacy-client/src/styles.css 的 .plaque-button --plaque-line。"
+          "$description": "墨蓝匾额内框细线的不透明度。旧样式把颜色和透明度写在一起（rgb(174 168 151 / 62%)），这里拆成 color.plaque.navy.default.line 加这一份，因为颜色令牌一律是不带透明度的 #rrggbb（Pixi 的 tint 和 alpha 本来也是分开的两件事）。来源：黑客松版的 styles.css 的 .plaque-button --plaque-line。"
         },
         "hover": {
           "$value": 0.85,
@@ -56,7 +56,7 @@
         "default": {
           "$value": 0.55,
           "$type": "number",
-          "$description": "米白匾额内框细线的不透明度。来源：legacy-client/src/screens/hero.css 的 .hero__confirm。"
+          "$description": "米白匾额内框细线的不透明度。来源：黑客松版的 screens/hero.css 的 .hero__confirm。"
         },
         "hover": {
           "$value": 0.75,
@@ -91,7 +91,7 @@
       "en": {
         "$value": 0.65,
         "$type": "number",
-        "$description": "英雄详情里那行英文名的不透明度。来源：legacy-client/src/screens/hero.css 的 .hero__detail-en。"
+        "$description": "英雄详情里那行英文名的不透明度。来源：黑客松版的 screens/hero.css 的 .hero__detail-en。"
       },
       "soonCard": {
         "$value": 0.55,

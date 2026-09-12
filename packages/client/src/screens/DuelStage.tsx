@@ -16,6 +16,18 @@
  * 建的时候把座位焊死的。整个重挂而不是加一个「换座位」的方法——那要让场景和编排层
  * 各自多一条只有热座会走的分支，而重挂之后场景自己的兜底对账会把画面摆到正确的样子
  *（契约里「中途接手一局」走的就是那条路）。
+ *
+ * ## `<canvas>` 由这个 effect 自己建，不写在 JSX 里
+ *
+ * Pixi 的 `renderer.destroy()` 会把这块画布的 WebGL 上下文**永久**丢掉，
+ * 同一个 `<canvas>` 元素上再取上下文拿到的还是那个已丢的，新场景什么都画不出来。
+ * 而开发构建下 StrictMode 会把每个 effect 跑两遍（建 → 拆 → 再建），
+ * 于是第二遍必然落在一块已经废掉的画布上——表现是画面空着、点哪儿都没反应，
+ * 而且**时有时无**：第一遍要是还没来得及建出渲染器就被拆掉，反倒没事。
+ *
+ * 写在 JSX 里没法躲开这一条（React 的 `key` 只换 DOM 元素，不影响 StrictMode 重跑 effect），
+ * 所以画布改成在 effect 里现建、清理时连元素一起摘掉：每一轮都是一块全新的画布。
+ * 房间页（`RoomStage`）早一步就是这么做的，这里跟上。
  */
 
 import {
@@ -25,10 +37,11 @@ import {
   type DirectorLocks,
   type DuelScene,
   type EffectTier,
+  type MatchStageCue,
   Rng,
 } from '@ai-duel/canvas'
 import { createCatalog, isUrgeId } from '@ai-duel/content'
-import type { PlayerId, PlayerView } from '@ai-duel/core'
+import type { GameEvent, InstanceId, PlayerId, PlayerView } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import { playSkillTargeting, playUrge } from '../audio/sounds'
@@ -70,14 +83,68 @@ export interface DuelStageProps {
   onLeave(): void
   /** 顶栏那颗静音钮。 */
   onToggleMute(): void
+  /**
+   * 右下角那颗「催一催」。等对方出牌时它才在场（场景按 `waitingForFoe` 切）。
+   *
+   * 喊哪一句由这一层挑（`pickUrgeId`），场景挑不了——喊话文案在 `content` 里，
+   * 而 canvas 不依赖 content。挑好之后 `driver.urge(id)` 发出去，
+   * 喊话回到两端时走的是另一条路（`useMatchUrge` → `director.userAction`）。
+   */
+  onUrge(): void
   /** 效果档位，不给就是默认那一档。只有开发页会传（它要现场切档看差别）。 */
   tier?: EffectTier
+  /**
+   * 玩家在设置页要求「减少动效」：场景据此关掉落地震屏和卡面跟指针跑的倾斜 / 反光。
+   *
+   * 由调用方现读存档（`loadSave(platform).reducedMotion`）：这一层不认识存档，
+   * 而这一位一局之内不会变——设置页在另一条路由上，进那一页就等于离开了这一局。
+   */
+  reducedMotion?: boolean
   /**
    * 把场景句柄透给外面。只给开发页用——它要读渲染计数和帧率（`scene.counters()`）。
    * 正式界面不该拿到这个句柄：拿到了就会有人绕过这里直接去调场景。
    */
   sceneRef?: RefObject<DuelScene | null>
+
+  // ---------- 下面这几条只有新手教程会传（迁移第 32 条），正式对局一条都不给 ----------
+
+  /**
+   * 每收到一批引擎事件就转一份出去，**在喂编排层之前**。
+   *
+   * 教程的一部分推进条件是引擎事件（「我方派出了 AI」「轮到对方出牌了」），
+   * 而事件流全局只允许一个订阅者、那个位置归这里（见 match/useMatch.ts 的 `useMatchEvents`）。
+   * 所以教程不另开一条订阅，改由这一处多转一份——旧版那条 driver 的事件旁路因此整个不需要。
+   */
+  onEvents?(events: readonly GameEvent[]): void
+  /** 舞台演出信号（教程要等的那七个时刻）。 */
+  onTutorialCue?(cue: MatchStageCue): void
+  /**
+   * 逐张手牌的教学锁：实例 id → 点它时说的那句话。null / 不给 = 不限制。
+   * 「结束出牌」那一档走下面的 `endPlayBlocked`，两者不是一回事（见 canvas 的 duelContract）。
+   */
+  blockedCards?: ReadonlyMap<InstanceId, string> | null
+  /** 教程这一步还不许点「结束出牌」。 */
+  endPlayBlocked?: boolean
+  /** 玩家点了一张被教学锁挡住的牌。调用方拿它弹一句话。 */
+  onBlocked?(tip: string): void
+  /**
+   * 那组派生锁变了就报一次（只在**变化时**报，不是每帧）。
+   *
+   * 教程要的是里面的 `cutscene`：引导层必须给全屏过场让位，
+   * 而新版过场是画在画布里的，DOM 那层盖不住它（理由见 canvas 的 `DirectorLocks.cutscene`）。
+   */
+  onLocks?(locks: DirectorLocks): void
+  /**
+   * 把「问场景要锚点」这两条透给外面，给教程的引导层每帧现量用。
+   *
+   * 只透这两个取值方法，不像 `sceneRef` 那样把整个句柄交出去：引导层要的就是
+   *「那样东西现在占哪一块」，给了整个句柄就会有人绕过这里直接去改场景。
+   */
+  anchorsRef?: RefObject<DuelAnchors | null>
 }
+
+/** 引导层要的那两条。形状就是场景句柄里的同名方法，原样转出去。 */
+export type DuelAnchors = Pick<DuelScene, 'anchorRect' | 'handCardRect'>
 
 export function DuelStage({
   driver,
@@ -86,11 +153,19 @@ export function DuelStage({
   status = null,
   onLeave,
   onToggleMute,
+  onUrge,
   tier = DEFAULT_TIER,
+  reducedMotion = false,
   sceneRef: outerSceneRef,
+  onEvents,
+  onTutorialCue,
+  blockedCards = null,
+  endPlayBlocked = false,
+  onBlocked,
+  onLocks,
+  anchorsRef,
 }: DuelStageProps) {
   const hostRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<DuelScene | null>(null)
   const directorRef = useRef<Director | null>(null)
   /** 已经摆给场景的那一份视图。同一份不重复摆（两条路都会送过来，见下面）。 */
@@ -111,13 +186,15 @@ export function DuelStage({
    * 两颗钮的回调存 ref：它们每次渲染都是新函数，而场景是建的时候把它们焊进去的。
    * 不存 ref 的话要么场景每渲染一次就重建，要么按钮永远调的是第一次那一版闭包。
    */
-  const handlers = useRef({ onLeave, onToggleMute })
-  handlers.current = { onLeave, onToggleMute }
+  const handlers = useRef({ onLeave, onToggleMute, onUrge, onTutorialCue, onBlocked, onLocks })
+  handlers.current = { onLeave, onToggleMute, onUrge, onTutorialCue, onBlocked, onLocks }
 
   useEffect(() => {
     const host = hostRef.current
-    const canvas = canvasRef.current
-    if (host === null || canvas === null) return
+    if (host === null) return
+    // 每一轮一块全新的画布，理由见文件头。
+    const canvas = document.createElement('canvas')
+    host.appendChild(canvas)
 
     let disposed = false
     let raf = 0
@@ -143,8 +220,10 @@ export function DuelStage({
         coarsePointer: platform.safeArea.isCoarsePointer(),
         // 时钟归这条帧循环推，见文件头第 2 条。
         manualClock: true,
+        reducedMotion,
         onLeave: () => handlers.current.onLeave(),
         onToggleMute: () => handlers.current.onToggleMute(),
+        onUrge: () => handlers.current.onUrge(),
       })
       if (disposed) {
         scene.destroy()
@@ -161,11 +240,13 @@ export function DuelStage({
         // 选目标那一下的音效。场景不碰音频以外的平台能力，这一声由装配层放。
         if (action.kind === 'targeting-begin') playSkillTargeting(platform)
       })
-      // 教程状态机是第 32 条，现在没人听这七个信号。
-      scene.onTutorialCue(() => undefined)
+      // 这七个信号只有教程在听，正式对局没人接（见 canvas 的 MatchStageCue）。
+      scene.onTutorialCue((cue) => handlers.current.onTutorialCue?.(cue))
+      scene.onBlocked((tip) => handlers.current.onBlocked?.(tip))
       sceneRef.current = scene
       directorRef.current = director
       if (outerSceneRef !== undefined) outerSceneRef.current = scene
+      if (anchorsRef !== undefined) anchorsRef.current = scene
       // 就位了才去订事件流，理由见 ready 的注释。
       setReady(true)
 
@@ -182,6 +263,7 @@ export function DuelStage({
         if (!sameLocks(locks, next)) {
           locks = next
           scene.setLocks(next)
+          handlers.current.onLocks?.(next)
         }
         scene.step(deltaMs)
       }
@@ -209,10 +291,12 @@ export function DuelStage({
       directorRef.current = null
       appliedRef.current = null
       if (outerSceneRef !== undefined) outerSceneRef.current = null
+      if (anchorsRef !== undefined) anchorsRef.current = null
+      canvas.remove()
       setReady(false)
     }
     // 依赖里这几样都是建场景和编排层时焊死的，换了任何一样都要整套重建。
-  }, [driver, platform, seat, tier, outerSceneRef])
+  }, [driver, platform, seat, tier, reducedMotion, outerSceneRef, anchorsRef])
 
   /**
    * 摆一份视图。两条路都会送过来（事件批和快照），同一份只摆一次。
@@ -227,9 +311,10 @@ export function DuelStage({
     scene.applyView(next)
   }
 
-  // 事件批：先摆局面再喂编排层（文件头第 1 条）。
+  // 事件批：先摆局面再喂编排层（文件头第 1 条）。教程那一份夹在中间，理由见 `onEvents`。
   useMatchEvents(ready ? driver : null, (batch) => {
     applyView(batch.view)
+    onEvents?.(batch.events)
     directorRef.current?.push(batch)
   })
 
@@ -261,6 +346,18 @@ export function DuelStage({
     sceneRef.current?.setStatus(status)
   }, [status, ready])
 
+  /*
+   * 教程那两道锁。依赖里都带上 `ready`：场景和编排层是异步建出来的，
+   * 在那之前设过也没人收，得等它们就位再补一次。
+   */
+  useEffect(() => {
+    if (ready) sceneRef.current?.setBlockedCards(blockedCards)
+  }, [blockedCards, ready])
+
+  useEffect(() => {
+    if (ready) directorRef.current?.userAction({ kind: 'tutorial-gate', endPlayBlocked })
+  }, [endPlayBlocked, ready])
+
   // 对局中断：编排层要一次性清场，否则玩家会被一层退不掉的遮罩挡死。
   useEffect(() => {
     if (view.status === 'aborted') directorRef.current?.abort()
@@ -268,12 +365,6 @@ export function DuelStage({
 
   return (
     <div className="duel-stage" ref={hostRef}>
-      {/*
-        key 挂 tier：换档位时让 React 换一个全新的 <canvas>，而不是在旧的上面重建场景。
-        Pixi 的 renderer.destroy() 会把这个 canvas 的 WebGL 上下文永久丢掉，
-        同一个元素上再取上下文拿到的还是那个已丢的，新场景画不出东西。
-      */}
-      <canvas key={tier} ref={canvasRef} />
       {error === null ? null : <p className="duel-stage__error">对局起不来：{error}</p>}
     </div>
   )

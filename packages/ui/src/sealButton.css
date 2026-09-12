@@ -1,0 +1,60 @@
+/*
+ * 按钮 J（夜色圆章图标钮）的样式。样式跟着组件走（《正式版架构》7.2 第 4 条），
+ * 数值读设计令牌，理由同 button.css。
+ *
+ * 三档状态各写两个选择器：伪类那份给真界面，`[data-state]` 那份给组件目录页。
+ */
+
+.ui-seal {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  /* 外圈那道细线。用 border 而不是另画一层：这颗是正圆，border 不会被裁掉。 */
+  border: 1px solid color-mix(in srgb, var(--color-seal-mark) 38%, transparent);
+  border-radius: 50%;
+  background: color-mix(
+    in srgb,
+    var(--color-seal-base) calc(var(--opacity-seal-base) * 100%),
+    transparent
+  );
+  color: var(--color-seal-mark);
+  cursor: pointer;
+  /* 只让 transform 参与过渡，理由同 button.css：按下要跟手。 */
+  transition: transform var(--duration-button-hover) ease-out;
+}
+
+/* ---------- 禁用 ---------- */
+
+/*
+ * 顺序是**禁用 → 悬停 → 按下**，不能调换：后两档的选择器带着 `:not(:disabled)`
+ * 因而特异度更高（同 button.css 那条注释）。
+ */
+.ui-seal:disabled {
+  /* 需求单按钮 J 的禁用档就是压到 0.34（组牌页加钮满员时那个值）。 */
+  opacity: 0.34;
+  cursor: default;
+}
+
+/* ---------- 悬停 ---------- */
+
+.ui-seal:hover:not(:disabled),
+.ui-seal[data-state="hover"]:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-seal-mark) 70%, transparent);
+  transform: scale(1.08);
+}
+
+/* ---------- 按下 ---------- */
+
+/* 缩回去，比常态还小一点：圆章按下去像被摁进纸里（同 canvas 那颗的 PRESS_SCALE）。 */
+.ui-seal:active:not(:disabled),
+.ui-seal[data-state="pressed"]:not(:disabled) {
+  transform: scale(0.94);
+  transition-duration: var(--duration-plaque-press);
+}
+
+.ui-seal:focus-visible {
+  outline: 2px solid var(--color-theme-gold);
+  outline-offset: 2px;
+}

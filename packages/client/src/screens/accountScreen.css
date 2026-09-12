@@ -1,0 +1,54 @@
+/*
+ * 账号页：一张「名目 / 值」的对照表加一颗登出。
+ * 版式归 `ui` 的 `Page`，这里只管那张表和几块之间的间距。
+ * 数值读设计令牌（架构 7.1 第 4 条）。
+ */
+
+/*
+ * 两列的对照表。列宽**写死**、不跟着内容走（`grid-template-columns: auto 1fr` 那种
+ * 会让右边一长串 id 反过来把左边的名目挤扁），也不用 `auto-fit`——
+ * 版式跟着容器宽度走是截图回归里「差一点就换一种排法」的开关
+ *（见 client/dev/storybook/README.md 的确定性第 5 条）。
+ */
+.account__facts {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: var(--space-lg) var(--space-xxl);
+  margin: var(--space-xxl) 0 28px;
+  font-size: 16px;
+  /* 行高写死：`normal` 由字体度量决定，换台机器就换一档。 */
+  line-height: 1.7;
+}
+
+.account__facts > dt {
+  color: var(--color-paper-ink-muted);
+  letter-spacing: 0.12em;
+}
+
+.account__facts > dd {
+  margin: 0;
+  color: var(--color-home-ink-lit);
+  letter-spacing: 0.06em;
+}
+
+/*
+ * 账号 id 是一串三十多位的随机字符，窄屏上必须断得开，否则它会把整栏撑破。
+ * `break-all` 而不是 `break-word`：这串东西没有词，按词断等于不断。
+ */
+.account__id {
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.account__actions {
+  display: flex;
+  margin: 28px 0 var(--space-xxl);
+}
+
+@media (max-width: 640px) {
+  .account__facts {
+    grid-template-columns: 76px 1fr;
+    gap: var(--space-md) var(--space-lg);
+    font-size: 14px;
+  }
+}

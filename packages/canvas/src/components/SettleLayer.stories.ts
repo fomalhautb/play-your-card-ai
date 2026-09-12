@@ -101,12 +101,36 @@ function mount(ctx: StoryStage, stage: Stage) {
   return done
 }
 
+/**
+ * 演到打字之后的那三段，单张截图给 120 秒，统一那档 45 秒在 ubuntu 跑机上不够。
+ *
+ * 真超时过的是「结论和确认」那一条（`canvas-settlelayer--scored`），同一天两次：
+ * PR #28 的目录页第 2/3 片，以及第 32 条那次生成 linux 基线的工作流第 2 片，
+ * 都是 `expect(locator).toHaveScreenshot` 报 `Timeout 45000ms exceeded`。
+ *
+ * 为什么慢：这一条要把整层从头演到尾（六段全跑完再加 1.6 秒静止），
+ * 一层上烤着三十来张文字纹理——题面、四张卡名、标准答案、八段作答、四枚判定章、
+ * 正确数、消耗、结论、比分，外加确认按钮那块匾额。跑机上 WebGL 走的是 SwiftShader
+ *（纯 CPU 软件光栅），这些活比本机慢一个量级，而 Playwright 判「元素稳定」
+ * 等的是合成器真出两帧，排在这批活后面就得一起等。
+ *
+ * 「打字中」和「盖章」一并给同一档：它们摆的是同一层满员的结果卡，烤的字只比它少几张，
+ * 差的只是后面少推几十帧——同一个量级，没道理等它们先在 CI 上红一次再来加
+ *（第 29、30 条给首页那三条也是这么处理的，见 scenes/home/HomeScene.stories.ts）。
+ * 前三段（立起来 / 结果卡到齐 / 答案擦入）字少得多，仍走统一那档。
+ *
+ * 本机（macOS）六条都在一秒内拍完，所以这个数只是给慢机器留的上限，平时碰不到。
+ */
+const HEAVY_STAGES: readonly Stage[] = ['typing', 'stamp', 'score']
+const HEAVY_SHOT_MS = 120_000
+
 function spec(stage: Stage, settleMs: number) {
   return {
     pixi: {
       ...SIZE,
       needsAtlas: true,
       settleMs,
+      ...(HEAVY_STAGES.includes(stage) ? { screenshotTimeoutMs: HEAVY_SHOT_MS } : {}),
       mount: (ctx: StoryStage) => mount(ctx, stage),
     },
   }

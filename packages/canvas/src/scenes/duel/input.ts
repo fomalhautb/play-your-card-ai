@@ -49,6 +49,13 @@ export interface DuelInput {
   bindTile(tile: BoardTile): void
   /** 锁变了：手牌还接不接指针、按钮灰不灰。 */
   refresh(locks: DirectorLocks, performanceLocked: boolean): void
+  /**
+   * 按教程那份逐张锁（`ctx.blockedCards`）把手牌的压暗重刷一遍。
+   *
+   * 挂在输入层而不是场景上，是因为「这张牌现在能不能点」本来就是这一层的判断，
+   * 压暗只是同一件事的画面说法。正式对局里那份锁恒为 null，这个方法等于空转。
+   */
+  refreshBlocked(): void
   /** 逐帧推进拖拽的跟随，返回还有没有事情在做。 */
   advance(deltaMs: number): boolean
   /** 合成一次按下 / 移动 / 松手，第 19 条的交互测试按它喂坐标。 */
@@ -111,13 +118,19 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     })
   }
 
+  /** 一张手牌被教程锁住时压暗，没锁就还原成全亮（正式对局里那份锁恒为 null，这里恒写 1）。 */
+  const dimBlocked = (card: CardSprite): void => {
+    card.alpha = ctx.blockedCards?.has(card.instanceId) === true ? CASTING_DIM : 1
+  }
+
   const endTargeting = (): void => {
     if (targeting === null) return
     targeting = null
     ctx.parts.targeting.end()
     ctx.parts.board.clearTargets()
-    // 施放态下没被选中的牌是压暗的，收场时统一还原。
-    for (const card of ctx.parts.fan.all()) card.alpha = 1
+    // 施放态下没被选中的牌是压暗的，收场时统一还原——但教程锁住的那几张要接着暗着，
+    // 所以还原走 dimBlocked 而不是无脑写 1。
+    for (const card of ctx.parts.fan.all()) dimBlocked(card)
     ctx.wake()
   }
 
@@ -185,6 +198,15 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
       return
     }
     if (targeting !== null) return
+    /*
+     * 教程那几步的逐张锁。挡在这儿而不是在指针状态机里：那一层只认「整只手能不能动」
+     *（`enabled`），而这一份是逐张的。挡下来必须说一句话，否则玩家只会觉得牌坏了。
+     */
+    const tip = ctx.blockedCards?.get(instanceId)
+    if (tip !== undefined) {
+      ctx.blocked(tip)
+      return
+    }
     const definition = cardOf(view, instanceId)
     if (definition === null) return
     if (beginTargeting(instanceId, definition, view)) return
@@ -246,6 +268,14 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
   return {
     bindCard(card) {
       pointer.bind(card)
+      // 新发的牌也要吃那份锁：只在换锁那一刻刷的话，之后补进来的牌会亮着，
+      // 看着像「这张能打」。
+      dimBlocked(card)
+    },
+
+    refreshBlocked() {
+      for (const card of ctx.parts.fan.all()) dimBlocked(card)
+      ctx.wake()
     },
 
     bindTile(tile) {
@@ -258,6 +288,15 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
       locks = next
       performanceLocked = locked
       ctx.parts.endPlay.setDisabled(next.endPlayLocked || locked)
+      /*
+       * 「催一催」只在等对方出牌时在场，而那正是「结束出牌」按不动的时候，
+       * 所以两颗钮是互斥地占着右下角同一个位置（见 layout/types.ts 的 `urge`）。
+       *
+       * 用 `visible` 而不是建了又销：这颗钮一局要进出好几十次（每一轮双方各一次），
+       * 每次重建都要重新烤一遍匾额上那行字的纹理（3.5 明确不许在动画期间建文字）。
+       */
+      ctx.parts.urge.visible = next.waitingForFoe
+      ctx.parts.endPlay.visible = !next.waitingForFoe
       /*
        * 英雄技能钮和「结束出牌」吃同一档锁，外加一条它自己的：一个合法目标都没有时也灰着
        *（场上空着、或者能打的那几个都到链顶 / 链底了）。

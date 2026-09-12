@@ -1,10 +1,10 @@
 /**
- * 服务端地址：两条 WebSocket，加上账号系统那三条 HTTP。
+ * 服务端地址：两条 WebSocket，加上账号系统那五条 HTTP。
  * 路径由 `packages/server/src/index.ts` 的总路由和 better-auth 的 `basePath` 定死。
  *
  * 传进来的是 http(s) 源而不是 ws(s) 源：生产环境前端和服务端是同一个 Worker、
  * 同一个域名，调用方手上现成的就是页面的 origin。本地开发是两个进程
- *（Vite 一个端口、wrangler dev 另一个），但由 Vite 的 `server.proxy` 把这五条路径原样转给
+ *（Vite 一个端口、wrangler dev 另一个），但由 Vite 的 `server.proxy` 把这几条路径原样转给
  * wrangler，所以**浏览器看到的仍然是同源**，调用方照样传页面的 origin。
  *
  * 同源不只是省事：账号的会话在 cookie 里，跨源的话每条请求都要另外处理凭据和 CORS，
@@ -55,7 +55,27 @@ export function signInAnonymousUrl(origin: string): string {
   return `${httpBase(origin)}${AUTH_BASE}/sign-in/anonymous`
 }
 
+/**
+ * 拿 Steam 票据换会话（迁移第 35 条，只有 Steam 壳走得到）。
+ *
+ * 和游客那条是**同一种东西**：进来之后都是一个会话 cookie，后面换 JWT、握手、认座位
+ * 全都一模一样。服务端那半边是 better-auth 的一个插件（server 的 src/auth/steam.ts）。
+ */
+export function signInSteamUrl(origin: string): string {
+  return `${httpBase(origin)}${AUTH_BASE}/sign-in/steam`
+}
+
 /** 用会话换一张握手用的短时效 JWT（默认十五分钟）。 */
 export function tokenUrl(origin: string): string {
   return `${httpBase(origin)}${AUTH_BASE}/token`
+}
+
+/**
+ * 登出：让服务端把会话 cookie 清掉。账号页那颗「登出」走它。
+ *
+ * 和上面三条一样必须同源——清的是 cookie，跨源的话浏览器根本不会带着它发过去。
+ * 清完之后**要整页重载**，理由见 screens/AccountScreen.tsx 的文件头。
+ */
+export function signOutUrl(origin: string): string {
+  return `${httpBase(origin)}${AUTH_BASE}/sign-out`
 }

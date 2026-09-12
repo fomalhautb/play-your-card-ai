@@ -36,7 +36,7 @@ export const COST_BADGE_SIZE = CARD_WIDTH * 0.208
  * 费用圆章的圆心离卡面左上角的距离。
  *
  * 旧版是**逐张配**的：每张原画左上角自己画了一枚星章，圆章要盖住它，而各张星章的位置
- * 都不一样（见 legacy-client/src/ui/aiModelFace.ts 的 costBadge）。那是内容数据，
+ * 都不一样（见黑客松版的 src/ui/aiModelFace.ts 的 costBadge）。那是内容数据，
  * 该跟着卡面一起从 content 包来；接上之前这里先用那批百分比的中位数当统一默认值
  * （约 11% / 7.1%）。换成逐张配之后要重新确认每张都还落在圆角矩形内。
  */
