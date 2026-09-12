@@ -209,18 +209,11 @@ function standalonePanels(
   deps: DuelDeps,
   layout: DuelLayout,
 ): { mine: PlayerPanel; theirs: PlayerPanel } {
-  const size = panelRowSize(layout)
+  const { theirs, mine } = layout.panels
   return {
-    theirs: new PlayerPanel(size, deps),
-    mine: new PlayerPanel({ ...size, tokens: true }, deps),
+    theirs: new PlayerPanel({ width: theirs.width, height: theirs.height }, deps),
+    mine: new PlayerPanel({ width: mine.width, height: mine.height, tokens: true }, deps),
   }
-}
-
-/** 折叠那一行里每块面板多大。两块平分，中间留一个空隙。 */
-function panelRowSize(layout: DuelLayout): { width: number; height: number } {
-  const row = layout.panelRow
-  if (row === null) return { width: 0, height: 0 }
-  return { width: Math.max(0, (row.width - row.gap) / 2), height: row.height }
 }
 
 /**
@@ -236,13 +229,12 @@ export function applyPartsLayout(parts: DuelParts, layout: DuelLayout): void {
   if (parts.sideBar !== null && layout.sideBar !== null) {
     parts.sideBar.resize(layout.sideBar.width, layout.sideBar.height)
     parts.sideBar.position.set(layout.sideBar.x, layout.sideBar.y)
-  } else if (layout.panelRow !== null) {
-    const size = panelRowSize(layout)
-    const row = layout.panelRow
-    parts.panels.theirs.resize(size.width, size.height)
-    parts.panels.mine.resize(size.width, size.height)
-    parts.panels.theirs.position.set(row.x, row.y)
-    parts.panels.mine.position.set(row.x + size.width + row.gap, row.y)
+  } else {
+    for (const side of ['theirs', 'mine'] as const) {
+      const rect = layout.panels[side]
+      parts.panels[side].resize(rect.width, rect.height)
+      parts.panels[side].position.set(rect.x, rect.y)
+    }
   }
 
   parts.board.resize(
@@ -259,12 +251,9 @@ export function applyPartsLayout(parts: DuelParts, layout: DuelLayout): void {
   parts.fan.position.set(layout.hand.x, layout.hand.y)
   parts.fan.scale.set(layout.hand.scale)
 
-  parts.endPlay.position.set(
-    layout.endPlay.x - parts.endPlay.boxWidth / 2,
-    layout.endPlay.y - parts.endPlay.boxHeight / 2,
-  )
+  parts.endPlay.position.set(layout.endPlay.x, layout.endPlay.y)
 
-  parts.banner.position.set(layout.width / 2, layout.height * 0.24)
+  parts.banner.position.set(layout.banner.x, layout.banner.y)
   parts.coin.resize(layout.width, layout.height)
   parts.cancel.resize(layout.width, layout.height)
   parts.reveal.resize(layout.width, layout.height)

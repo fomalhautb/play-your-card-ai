@@ -15,8 +15,8 @@
  */
 
 import type { CardId, InstanceId } from '@ai-duel/core'
-import { tokens } from '@ai-duel/design'
-import { autoDetectRenderer, Container, Rectangle, type Renderer } from 'pixi.js'
+import { autoDetectRenderer, Container, Graphics, Rectangle, type Renderer } from 'pixi.js'
+import { CANVAS_BACKGROUND } from '../../components/Box'
 import { CardSprite } from '../../components/CardSprite'
 import type { DirectorLocks } from '../../director/director'
 import { bakePlaceholderIcons, type DuelIcons } from '../../fx/controlIcons'
@@ -48,7 +48,7 @@ export async function createDuelScene(options: DuelSceneOptions): Promise<DuelSc
     antialias: true,
     // 让 Pixi 顺手把 canvas 的 CSS 尺寸设成逻辑像素，画布分辨率才和 resolution 对得上。
     autoDensity: true,
-    background: tokens.color.page.background,
+    background: CANVAS_BACKGROUND,
   })
   const scene = new DuelSceneImpl(renderer, options, true)
   scene.warmup()
@@ -82,7 +82,18 @@ export function mountDuelScene(renderer: Renderer, options: DuelSceneOptions): M
 class DuelSceneImpl {
   private readonly renderer: Renderer
   private readonly options: DuelSceneOptions
+  /**
+   * 交给渲染器的根节点。它只做一件事：把下面那个舞台等比缩放居中放进视口
+   *（桌面档是 1672×941 死版式，见 layout/desktopLayout.ts）。
+   *
+   * 和 `stage` 分成两层是为了让**舞台里所有的坐标都是设计坐标**：零件摆位、落点判定、
+   * 飞行轨迹、命中区全都不用再乘一次缩放。指针事件进来的是视口坐标，
+   * 由 `HandPointer` 过一次 `stage.toLocal` 换算（见它的文件头）。
+   */
+  private readonly root = new Container()
   private readonly stage = new Container()
+  /** 垫在最底下那块浅灰，理由同 RoomScene 的 backdrop（见 Box.ts 的 CANVAS_BACKGROUND）。 */
+  private readonly backdrop = new Graphics()
   private readonly frameLoop: FrameLoop
   private readonly deps: DuelDeps
   private readonly visuals: CardVisuals
@@ -127,10 +138,11 @@ class DuelSceneImpl {
     this.visuals = createCardVisuals(options.catalog, options.textures)
     this.ownsIcons = options.icons === undefined
     this.icons = options.icons ?? bakePlaceholderIcons(renderer)
+    this.root.addChild(this.backdrop, this.stage)
     this.parts = this.buildParts()
     this.ctx = this.makeContext()
     this.input = createDuelInput(this.ctx)
-    this.applyStageHitArea()
+    this.applyStageTransform()
     // 4.3：上下文丢了之后把「画出来的」纹理重画一遍。图片纹理 Pixi 自己会重传，这几张不会。
     options.canvas.addEventListener('webglcontextrestored', this.onContextRestored)
   }
@@ -220,16 +232,31 @@ class DuelSceneImpl {
     this.input.refresh(this.locks, this.ctx.locks.size > 0)
   }
 
-  private applyStageHitArea(): void {
+  /**
+   * 把舞台缩放居中放进视口，并按设计尺寸给它一块命中区。
+   *
+   * 命中区给的是**舞台自己那套坐标**里的矩形（`hitArea` 本来就是在局部坐标里判的），
+   * 所以桌面档给的是 1672×941 那一块。等比缩放之后短边留出的黑边不在命中区里——
+   * 那一圈本来就不属于这一页，点它不该有任何反应。
+   */
+  private applyStageTransform(): void {
+    const { stage, viewport, width, height } = this.layout
+    this.stage.scale.set(stage.scale)
+    this.stage.position.set(stage.x, stage.y)
     this.stage.eventMode = 'static'
-    this.stage.hitArea = new Rectangle(0, 0, this.layout.width, this.layout.height)
+    this.stage.hitArea = new Rectangle(0, 0, width, height)
+    this.backdrop
+      .clear()
+      .rect(0, 0, viewport.width, viewport.height)
+      .fill({ color: CANVAS_BACKGROUND })
   }
 
   /** 把这一局用得上的纹理和文字全部先过一遍 GPU，理由见 warmup.ts。 */
   warmup(): void {
     warmupScene({
       renderer: this.renderer,
-      stage: this.stage,
+      // 预热要真画一帧，画的得是交给渲染器的那个根节点（舞台只是它缩放居中之后的一层）。
+      stage: this.root,
       // 挂在战场层：它在最底下，预热卡不会盖住别的层，而这时候场上本来也是空的。
       layer: this.parts.layers.board,
       // 只热这一局用得上的贴图：调用方按纪律 3.4 只加载了当前两副牌要的那些。
@@ -259,7 +286,7 @@ class DuelSceneImpl {
   /** 一帧：推进，然后把画面交出去。自己管帧循环的那条路走这里。 */
   private render(deltaMs: number): void {
     this.advance(deltaMs)
-    this.renderer.render(this.stage)
+    this.renderer.render(this.root)
   }
 
   private idle(): boolean {
@@ -306,16 +333,17 @@ class DuelSceneImpl {
   }
 
   mounted(): MountedDuelScene {
-    return { ...this.handle(), root: this.stage, advance: (deltaMs) => this.advance(deltaMs) }
+    return { ...this.handle(), root: this.root, advance: (deltaMs) => this.advance(deltaMs) }
   }
 
   private resize(width: number, height: number): void {
-    if (width === this.layout.width && height === this.layout.height) return
+    const before = this.layout.viewport
+    if (width === before.width && height === before.height) return
     const next = pickLayout(width, height, this.options.coarsePointer)
     this.renderer.resize(width, height)
     const switched = next.tier !== this.layout.tier
     this.layout = next
-    this.applyStageHitArea()
+    this.applyStageTransform()
     if (switched) this.rebuild()
     else applyPartsLayout(this.parts, this.layout)
     this.frameLoop.wake()
@@ -382,7 +410,7 @@ class DuelSceneImpl {
     this.frameLoop.destroy()
     if (this.ownsIcons) for (const icon of Object.values(this.icons)) icon.destroy(true)
     // 只销毁场景自己建的东西：调用方传进来的卡面纹理不归我们管（谁加载谁负责）。
-    this.stage.destroy({ children: true, texture: false, textureSource: false })
+    this.root.destroy({ children: true, texture: false, textureSource: false })
     if (this.ownsRenderer) this.renderer.destroy()
   }
 }

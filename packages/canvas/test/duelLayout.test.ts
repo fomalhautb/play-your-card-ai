@@ -1,10 +1,13 @@
 /**
  * 两档对局版式：挑哪一档，以及各自的几何。
  *
- * 需求第 3 条要求两档并列、不做整体缩放，所以这里断言的重点是**两档真的不一样**
- *（侧栏折叠、战场缩一档、手牌区更高），而不是各字段的具体数值——那些数会随美术调整变，
- * 钉死了只会变成一份要跟着改的副本。真正钉死的是那几条不能破的关系：
- * 手牌不压到战场、出牌区够得着、各块都在视口里。
+ * 桌面档这一档**钉死具体的数**：它是黑客松版那块 1672×941 死版式的还原，每一行都能在
+ * 那一版的 `styles.css` 里找到对应的一条规则（见 desktopLayout.ts 的文件头）。
+ * 钉死是有意的——这些数之间互相咬着（扇形可铺宽依赖「结束出牌」的左沿、战场高度预算
+ * 依赖两排格子加中线正好用完 465），漏改一个不会当场报错，只会让画面慢慢走样。
+ *
+ * 手机档相反，断言的是**两档真的不一样**（侧栏折叠、战场缩一档、手牌区更高）和
+ * 那几条不能破的关系：手牌不压到战场、出牌区够得着、各块都在舞台里。
  */
 
 import { describe, expect, it } from 'vitest'
@@ -47,29 +50,131 @@ describe('挑哪一档版式', () => {
   })
 })
 
+describe('桌面档还原黑客松版那块 1672×941 死版式', () => {
+  const layout = desktopLayout(DESKTOP.width, DESKTOP.height)
+
+  it('舞台恒为设计尺寸，缩放和居中偏移另算', () => {
+    expect(layout.width).toBe(1672)
+    expect(layout.height).toBe(941)
+    expect(layout.viewport).toEqual(DESKTOP)
+    // 1920×1080 下高是窄的那边：941 × scale 正好铺满 1080。
+    expect(layout.stage.scale).toBeCloseTo(1080 / 941, 6)
+    expect(layout.stage.y).toBeCloseTo(0, 6)
+    expect(layout.stage.x).toBeGreaterThan(0)
+  })
+
+  it('视口再怎么变，舞台里的数一个都不动', () => {
+    const narrow = desktopLayout(1280, 800)
+    expect(narrow.boardFrame).toEqual(layout.boardFrame)
+    expect(narrow.hand).toEqual(layout.hand)
+    expect(narrow.stage.scale).toBeCloseTo(1280 / 1672, 6)
+  })
+
+  it('顶栏 72、侧栏 306 宽且从顶栏下沿铺到底', () => {
+    expect(layout.topBarHeight).toBe(72)
+    expect(layout.sideBar).toEqual({ x: 0, y: 72, width: 306, height: 869 })
+  })
+
+  it('两块玩家面板各 266×373.5，英雄牌按 2:3 填满就是 249×373.5', () => {
+    expect(layout.panels.theirs).toEqual({ x: 20, y: 112, width: 266, height: 373.5 })
+    expect(layout.panels.mine).toEqual({ x: 20, y: 527.5, width: 266, height: 373.5 })
+  })
+
+  it('战场外框 334/156/1310×535，内边距 52/24/18', () => {
+    expect(layout.boardFrame).toEqual({ x: 334, y: 156, width: 1310, height: 535 })
+    expect(layout.board.x).toBe(358)
+    expect(layout.board.y).toBe(208)
+    expect(layout.board.width).toBe(1262)
+    expect(layout.board.height).toBe(465)
+    expect(layout.board.scale).toBe(1)
+  })
+
+  it('落点判定就是战场外框本身', () => {
+    expect(layout.dropZone).toEqual(layout.boardFrame)
+  })
+
+  it('Token 细条 44×470 贴舞台右缘、纵向居中', () => {
+    expect(layout.tokenRail).toEqual({ x: 1628, y: 235.5, width: 44, height: 470 })
+  })
+
+  it('「下一题」匾在战场右上 x 1448…1616、y 72…216', () => {
+    expect(layout.nextPlaque).toEqual({ x: 1448, y: 72, width: 168, height: 144 })
+  })
+
+  it('「对方回合」吊匾 252×66，对着战场居中吊在顶栏下沿', () => {
+    expect(layout.turnPlaque).toEqual({ x: 863, y: 93, width: 252, height: 66 })
+  })
+
+  it('「结束出牌」184×60 压在手牌区右下角', () => {
+    expect(layout.endPlay).toEqual({ x: 1456, y: 849, width: 184, height: 60 })
+  })
+
+  it('手牌锚点 (989,941) 不缩放，可铺宽按「中线到结束出牌左沿」算出 934', () => {
+    expect(layout.hand.x).toBe(989)
+    expect(layout.hand.y).toBe(941)
+    expect(layout.hand.scale).toBe(1)
+    expect(layout.hand.areaWidth).toBe(934)
+  })
+
+  it('对手手牌钉在舞台顶边，可铺宽就是战场那一栏的宽', () => {
+    expect(layout.foeHand.y).toBe(0)
+    expect(layout.foeHand.x).toBe(989)
+    expect(layout.foeHand.areaWidth).toBe(1366)
+  })
+
+  it('发牌从我方英雄牌右下角那摞牌起飞', () => {
+    // 堆宽 = 英雄卡宽 249 × 0.28 = 69.72，起飞缩放就是它比卡面基准宽。
+    expect(layout.deck.scale).toBeCloseTo(69.72 / 150, 6)
+    // 起飞点在侧栏那一列里，且落在我方面板那半截上。
+    expect(layout.deck.x).toBeGreaterThan(0)
+    expect(layout.deck.x).toBeLessThan(306)
+    expect(layout.deck.y).toBeGreaterThan(layout.panels.mine.y)
+    expect(layout.deck.y).toBeLessThan(941)
+  })
+
+  it('横幅垂直居中，落点提示在战场顶部那 52px 的让位里', () => {
+    expect(layout.banner).toEqual({ x: 989, y: 470.5 })
+    const cue = layout.dropCue
+    expect(cue).not.toBeNull()
+    if (cue === null) return
+    expect(cue.y).toBeGreaterThanOrEqual(layout.boardFrame.y)
+    expect(cue.y + cue.height).toBeLessThanOrEqual(layout.board.y)
+  })
+})
+
 describe('两档真的分岔了', () => {
   const desktop = desktopLayout(DESKTOP.width, DESKTOP.height)
   const mobile = mobileLayout(MOBILE.width, MOBILE.height)
 
-  it('侧栏在手机档折叠成一行', () => {
+  it('侧栏和贴边那几样在手机档全折叠掉', () => {
     expect(desktop.sideBar).not.toBeNull()
-    expect(desktop.panelRow).toBeNull()
     expect(mobile.sideBar).toBeNull()
-    expect(mobile.panelRow).not.toBeNull()
+    expect(mobile.tokenRail).toBeNull()
+    expect(mobile.nextPlaque).toBeNull()
+    expect(mobile.turnPlaque).toBeNull()
+    expect(mobile.dropCue).toBeNull()
   })
 
-  it('折叠出来那一行装得下并排的两块面板', () => {
-    const row = mobile.panelRow
-    expect(row).not.toBeNull()
-    if (row === null) return
-    const each = (row.width - row.gap) / 2
-    expect(each).toBeGreaterThan(0)
-    expect(row.x + row.width).toBeLessThanOrEqual(mobile.width)
+  it('手机档两块面板并排，装得进屏幕', () => {
+    const { theirs, mine } = mobile.panels
+    expect(theirs.width).toBeGreaterThan(0)
+    expect(theirs.y).toBe(mine.y)
+    expect(mine.x).toBeGreaterThan(theirs.x + theirs.width)
+    expect(mine.x + mine.width).toBeLessThanOrEqual(mobile.width)
+  })
+
+  it('桌面档两块面板上下排', () => {
+    expect(desktop.panels.mine.y).toBeGreaterThan(desktop.panels.theirs.y)
   })
 
   it('战场在手机档缩一档，桌面档不缩', () => {
     expect(desktop.board.scale).toBe(1)
     expect(mobile.board.scale).toBeLessThan(1)
+  })
+
+  it('手机档不缩放整块舞台，桌面档缩', () => {
+    expect(mobile.stage).toEqual({ scale: 1, x: 0, y: 0 })
+    expect(desktop.stage.scale).not.toBe(1)
   })
 
   it('手牌区在手机档更高，顶栏更矮', () => {
@@ -107,14 +212,14 @@ describe.each([
     )
   })
 
-  it('各块都在视口里', () => {
+  it('各块都在舞台里', () => {
     expect(layout.board.x).toBeGreaterThanOrEqual(0)
     expect(layout.board.x + layout.board.width).toBeLessThanOrEqual(layout.width)
     expect(layout.board.height).toBeGreaterThan(0)
     expect(layout.deck.x).toBeGreaterThan(0)
     expect(layout.deck.x).toBeLessThan(layout.width)
-    expect(layout.endPlay.x).toBeLessThan(layout.width)
-    expect(layout.endPlay.y).toBeLessThan(layout.height)
+    expect(layout.endPlay.x + layout.endPlay.width).toBeLessThanOrEqual(layout.width)
+    expect(layout.endPlay.y + layout.endPlay.height).toBeLessThanOrEqual(layout.height)
   })
 
   it('战场在顶栏下面，不被它盖住', () => {

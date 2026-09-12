@@ -44,16 +44,22 @@ const LEAVE_DELAY_MS = 50
 const FOLLOW_TAU = 0.18 / 3
 
 export interface HandPointerOptions {
+  /**
+   * 舞台。既是事件的汇合点，也是**坐标基准**：指针事件带的是视口坐标，
+   * 而落点区、扇形锚点这些都是舞台坐标，两者在桌面档差一个整块缩放
+   *（见 scenes/duel/layout/types.ts 的文件头）。所以这里收到的每个坐标都先过一次
+   * `stage.toLocal`，之后整个文件里就只有舞台坐标一种。
+   */
   stage: Container
   fan: HandFan
   /** 被拖起来的牌画在这一层，它在扇形之上。 */
   dragLayer: Container
   animator: Animator
-  /** 现在的出牌区（视口坐标）。视口一变就跟着变，所以是函数不是值。 */
+  /** 现在的出牌区（舞台坐标）。版式一变就跟着变，所以是函数不是值。 */
   dropZone: () => DropZoneRect
-  /** 视口坐标 → 手牌容器坐标。 */
-  toFanLocal: (globalX: number, globalY: number) => { x: number; y: number }
-  /** 手牌容器坐标 → 视口坐标，连缩放一起换算。 */
+  /** 舞台坐标 → 手牌容器坐标。 */
+  toFanLocal: (stageX: number, stageY: number) => { x: number; y: number }
+  /** 手牌容器坐标 → 舞台坐标，连缩放一起换算。 */
   fanToWorld: (x: number, y: number, scale: number) => { x: number; y: number; scale: number }
   /** 这张牌的倾斜跟随，没有就是这一档不做倾斜。 */
   tiltFor: (card: CardSprite) => CardTilt | undefined
@@ -92,6 +98,8 @@ export class HandPointer {
   /** 指针离开之后还剩多少毫秒才真的收回。负数表示没有在倒计时。 */
   private leaveCountdown = -1
   private readonly scratch = new Point()
+  /** 换算指针坐标用的另一块草稿：`scratch` 那块正被倾斜跟随占着，两处共用会互相踩。 */
+  private readonly pointerScratch = new Point()
 
   constructor(options: HandPointerOptions) {
     this.options = options
@@ -141,7 +149,7 @@ export class HandPointer {
   }
 
   /**
-   * 合成一次按下。
+   * 合成一次按下。坐标是**舞台坐标**（真指针那条路已经在 `stagePoint` 里换算过了）。
    *
    * 和真指针那条路（onDown）一样先问一句「现在许不许动」：不问的话，锁着的时候
    * 合成拖拽照样能把牌从扇形里抓出来，只是松手时被判成取消——牌抬起来又掉回去，
@@ -199,12 +207,25 @@ export class HandPointer {
 
   private readonly onGlobalMove = (event: FederatedPointerEvent): void => {
     if (!this.samePointer(event)) return
-    this.handleMove(event.global.x, event.global.y)
+    const at = this.stagePoint(event)
+    this.handleMove(at.x, at.y)
   }
 
   private readonly onUp = (event: FederatedPointerEvent): void => {
     if (!this.samePointer(event)) return
-    this.handleUp(event.global.x, event.global.y)
+    const at = this.stagePoint(event)
+    this.handleUp(at.x, at.y)
+  }
+
+  /**
+   * 事件带的视口坐标换成舞台坐标。
+   *
+   * 舞台在桌面档是缩放居中过的（1672×941 的死版式放进视口），不换算的话拖着的牌会
+   * 一边走一边偏，落点判定也会整体错位。手机档舞台是恒等变换，这一步等于原样返回。
+   */
+  private stagePoint(event: FederatedPointerEvent): Point {
+    this.pointerScratch.copyFrom(event.global)
+    return this.options.stage.toLocal(this.pointerScratch, undefined, this.pointerScratch) as Point
   }
 
   /**
@@ -230,7 +251,8 @@ export class HandPointer {
     // 只认主指针的主键：中键、右键、以及多指里的第二根手指都不该把牌抓起来。
     if (!event.isPrimary || event.button !== 0) return
     if (!this.options.enabled()) return
-    this.begin(card, event.global.x, event.global.y, event.pointerId, event.pointerType)
+    const at = this.stagePoint(event)
+    this.begin(card, at.x, at.y, event.pointerId, event.pointerType)
   }
 
   private begin(
@@ -366,7 +388,9 @@ export class HandPointer {
     const tilt = this.options.tiltFor(card)
     if (tilt === undefined) return
     this.scratch.set(x, y)
-    const local = card.toLocal(this.scratch, undefined, this.scratch)
+    // 这里的 x / y 已经是舞台坐标了（见 stagePoint），所以要指明「从舞台那套坐标换过去」，
+    // 不指明 Pixi 会当成视口坐标，桌面档缩放之后就偏了。
+    const local = card.toLocal(this.scratch, this.options.stage, this.scratch)
     // 卡面在自己的坐标里占 x ∈ [−75, 75]、y ∈ [−225, 0]（原点在底边中点）。
     tilt.setPointer(local.x / CARD_WIDTH + 0.5, local.y / CARD_HEIGHT + 1)
     // 倾斜和高光都要等 advance 收敛，抬起的补间早就演完了，这时候帧循环停着，得自己叫醒。

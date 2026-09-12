@@ -33,12 +33,17 @@ import { Label } from './Label'
 /** 哪一排。和 cue 里的 `side` 同名同义。 */
 export type BoardSide = 'self' | 'opponent'
 
-/** 相邻两格之间至少留多宽。抄旧样式 `.battle__row` 的 `gap: 12px`。 */
+/**
+ * 相邻两格之间留多宽。
+ *
+ * 抄黑客松版 `.battle__row` 的 `gap: 12px`：那一排是 flex 居中排的，摆得下的时候
+ * 相邻两格的中心就正好隔开「一格宽 + 这个 gap」。它同时也是挤到压边时的下限。
+ */
 const MIN_GAP = 12
-/** 没挤到压边时，相邻两格的中心相距多远（格宽的倍数）。抄 duelLayout 里落点那一档。 */
-const SLOT_STEP = 1.12
 /** 中线上下各留多高。抄 `.battle__midline` 的 `margin: 5px 0`。 */
 const MIDLINE_MARGIN = 5
+/** 中线正中那块匾多高。抄 `.battle__midline-badge` 的 20px。 */
+const MIDLINE_BADGE_HEIGHT = 20
 
 /** 进化那一下的三样动作。数值抄黑客松版的 playSummonFx.ts，时长走 timings。 */
 const EVOLVE = { popScale: 1.16, popDur: 0.42, glowDur: 0.7, labelRise: 34 } as const
@@ -288,7 +293,11 @@ export class BoardGrid extends Container {
   }
 
   /**
-   * 两排各占一半高，中线压在正中。
+   * 两排平分「总高减去中线那一行」，中线压在正中。
+   *
+   * 中线那一行是**匾高加上下外边距**（20 + 5×2 = 30），不是只有一条线的厚度：
+   * 黑客松版那笔高度预算就是这么算的（`.battle__board` 的 padding 注释），
+   * 少算的话两排的中心会各往中间挪两三个像素。
    *
    * 两排的原点都放在**战场横向的正中**：格子是按「离中心多远」排的（见 layoutRow），
    * 原点留在左上角的话整排会往左跑出去一半。
@@ -296,8 +305,9 @@ export class BoardGrid extends Container {
   private layout(): void {
     const half = this.boxHeight / 2
     const centerX = this.boxWidth / 2
-    this.rows.opponent.position.set(centerX, half / 2 - MIDLINE_MARGIN)
-    this.rows.self.position.set(centerX, half + half / 2 + MIDLINE_MARGIN)
+    const rowHeight = (this.boxHeight - MIDLINE_BADGE_HEIGHT - MIDLINE_MARGIN * 2) / 2
+    this.rows.opponent.position.set(centerX, rowHeight / 2)
+    this.rows.self.position.set(centerX, this.boxHeight - rowHeight / 2)
     this.midline.position.set(0, half)
     this.badgeSlot.y = half
     this.layoutRow('opponent')
@@ -307,15 +317,16 @@ export class BoardGrid extends Container {
   /**
    * 一排里的格子从左到右居中排开。
    *
-   * 间距先按理想的 `SLOT_STEP` 取，装不下就压到「刚好铺满可用宽度」，
-   * 再被 `MIN_GAP` 兜住下限——那一档下相邻两张已经互相压边，但每张至少还露 12px。
+   * 间距先按「一格宽加一个 gap」取（摆得下时黑客松版那排 flex 就是这个步距），
+   * 装不下就压到「刚好铺满可用宽度」，再被 `MIN_GAP` 兜住下限——
+   * 那一档下相邻两张已经互相压边，但每张至少还露 12px。
    */
   private layoutRow(side: BoardSide): void {
     const row = this.rows[side]
     const tiles = row.children as BoardTile[]
     if (tiles.length === 0) return
     const tileWidth = tiles[0]!.boxWidth
-    const ideal = tileWidth * SLOT_STEP
+    const ideal = tileWidth + MIN_GAP
     const fit = tiles.length <= 1 ? ideal : (this.boxWidth - tileWidth) / (tiles.length - 1)
     const step = Math.max(MIN_GAP, Math.min(ideal, fit))
     tiles.forEach((tile, index) => {
