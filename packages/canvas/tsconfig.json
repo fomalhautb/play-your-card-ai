@@ -7,5 +7,6 @@
     // 误用 process、fs 这类 Node 全局要在编译期就拦下来。
     "types": []
   },
-  "include": ["src", "test"]
+  // 测试单独走 tsconfig.test.json：那份多开一个 node 类型，给快照测试读 golden 文件用。
+  "include": ["src"]
 }

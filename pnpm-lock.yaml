@@ -103,6 +103,9 @@ importers:
 
   packages/canvas:
     dependencies:
+      '@ai-duel/core':
+        specifier: workspace:*
+        version: link:../core
       '@ai-duel/design':
         specifier: workspace:*
         version: link:../design
@@ -119,6 +122,12 @@ importers:
         specifier: ^8.4.2
         version: 8.4.2
     devDependencies:
+      '@ai-duel/content':
+        specifier: workspace:*
+        version: link:../content
+      '@types/node':
+        specifier: ^26.4.0
+        version: 26.4.0
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

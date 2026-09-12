@@ -8,11 +8,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@ai-duel/core": "workspace:*",
     "@ai-duel/design": "workspace:*",
     "@ai-duel/platform": "workspace:*",
     "gsap": "^3.15.0",
@@ -20,6 +21,8 @@
     "pure-rand": "^8.4.2"
   },
   "devDependencies": {
+    "@ai-duel/content": "workspace:*",
+    "@types/node": "^26.4.0",
     "typescript": "^7.0.2",
     "vitest": "^4.1.11"
   }
