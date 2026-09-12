@@ -16,6 +16,7 @@
  * 重建的时机只有两个——立起来那一下和结算那一下，都不在动画中间，不会撞上 3.5。
  */
 
+import { tokens } from '@ai-duel/design'
 import { Container } from 'pixi.js'
 import type { Animator } from '../runtime/animator'
 import { killAndDestroy } from '../runtime/dispose'
@@ -120,12 +121,18 @@ export class SettleSquad extends Container {
      * 张数多到一行摆不下时压边（同战场那两排的处理），每张至少露出 `CARD_GAP` 那么宽。
      */
     /*
-     * 列宽按「这一侧几张就分几列」现算，再被结果卡自己的下限（300）兜住：
-     * 三张以内分得开，再多就一律按下限走，多出来的宽度由下面的压边吸收。
+     * 列宽照黑客松版那条 `repeat(auto-fill, minmax(300px, 1fr))` 算：
+     * 先看这一行**最多**摆得下几列（每列不窄于 `size.settle.cardMinWidth`、列距 14），
+     * 再把宽度在这几列里平分。列数只看容器宽、不看这一侧有几张——
+     * 只有一张时它也是那么宽的一列，不会独占整行。
+     *
+     * 不能拿 `rows[0].boxWidth` 当下限：那个数**已经被上一次摆位改过**（见 SettleRow.setWidth），
+     * 拿它算下一次就会越算越宽，第二张卡到的时候两张会几乎重叠在一起。
      */
     const usable = width - padX * 2
-    const shared = (usable - CARD_GAP * (rows.length - 1)) / rows.length
-    const cardWidth = Math.max(rows[0]!.boxWidth, shared)
+    const minWidth = tokens.size.settle.cardMinWidth
+    const columns = Math.max(1, Math.floor((usable + CARD_GAP) / (minWidth + CARD_GAP)))
+    const cardWidth = (usable - CARD_GAP * (columns - 1)) / columns
     for (const row of rows) row.setWidth(cardWidth)
 
     const ideal = cardWidth + CARD_GAP

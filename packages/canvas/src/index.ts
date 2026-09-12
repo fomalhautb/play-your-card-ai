@@ -53,7 +53,6 @@ export {
   BADGE_NAMEPLATE,
   BADGE_SOON,
   BADGE_TILE_MARK,
-  BADGE_TURN,
   Badge,
   type BadgeDeps,
   type BadgeOptions,

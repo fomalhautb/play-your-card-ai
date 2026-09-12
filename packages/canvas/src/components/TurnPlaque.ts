@@ -1,87 +1,67 @@
 /**
- * 「对方回合」吊匾：等对方出牌的那一段，从顶栏下沿吊下来的一块方块，
- * 后面跟着三个一直在跳的点。
+ * 「对方回合」吊匾：等对方出牌的那一段，从顶栏下沿吊下来的一块方块。
  *
  * 黑客松版有这一块（`.battle__turn-plaque`），正式版一直缺（`Panel` 里那个变体建好了没人摆）。
  * 正式版简化第 4 步之二把它补回来，同时剥成素方块（见 components/Box.ts）：
  * 两根挂绳、双线框、墨蓝底都不画了，只剩一圈描边加一行字。
  *
- * 三个点的跳动改成**文字逐帧变化**：素方块只印一行字，画不出三颗各自错开相位的圆点，
- * 所以改成「对方回合」后面的点一个一个加上去再清零。周期照旧 1.4 秒（`styles.css` 的
- * `battle-turn-plaque-dot`），四拍各 0.35 秒。
+ * ## 那三个点为什么不跳
  *
- * 这一段是 `repeat: -1` 的补间，**收起来时必须把它掐掉**：不掐帧循环就永远认为
- * 「还有东西在动」，停不下来（3.6）。`setOn(false)` 和 `clear()` 都会掐。
+ * 黑客松版那三个点是 CSS 的 `infinite` 动画，浏览器自己在合成线程上跑，不花我们一分钱。
+ * 画布上不行：这里唯一的补间入口是 `Animator`，而它建的每一条补间都要记进帧循环的账
+ *（纪律 3.6：真实时钟下没有动画就停帧循环）。一条 `repeat: -1` 的补间等于**帧循环永远停不下来**，
+ * 而「等对方出牌」正是一局里最长的一段静止时间。第一版真这么做了，性能剧本当场卡死
+ *（bench 的 desktop/play10 和 settle 报「推了 3000 帧还没结束」）。
+ * 所以点是印死在字里的：它仍然在说「对面在想」，只是不动。
  */
 
-import { Container } from 'pixi.js'
-import type { Animator } from '../runtime/animator'
-import { Box, type BoxDeps } from './Box'
+import { Container, Graphics } from 'pixi.js'
+import { Box, type BoxDeps, CANVAS_BACKGROUND } from './Box'
 
-/** 匾上印的那句话，以及后面那几档点。 */
-const LABEL = '对方回合'
-const DOTS = ['', ' ·', ' · ·', ' · · ·'] as const
-/** 一整圈跳完多久（秒）。抄 `styles.css` 的 `battle-turn-plaque-dot` 的 1.4s。 */
-const CYCLE = 1.4
+/** 匾上印什么。 */
+const LABEL = '对方回合 · · ·'
 
-export type TurnPlaqueDeps = BoxDeps & {
-  animator: Animator
-}
+export type TurnPlaqueDeps = BoxDeps
 
 export class TurnPlaque extends Container {
-  private readonly deps: TurnPlaqueDeps
+  /**
+   * 垫在匾底下那一块不透明的底。
+   *
+   * 素方块是空心的，而这块匾**要压住对手那排牌背**：它吊在顶栏下沿、正对着战场居中，
+   * 底下就是对手扇形中间那一两张（黑客松版那块深蓝匾体干的就是这件事）。
+   * 不垫的话字会印在深色牌背上，读不出来。
+   */
+  private readonly backdrop = new Graphics()
   private readonly box: Box
-  /** 跳动补间补的是这个普通对象，不是显示对象——它本身没有任何属性要动，只要一个节拍。 */
-  private readonly beat = { value: 0 }
-  private phase = 0
-  /** 现在挂着没有。名字不能叫 `on`——那是 Container 自带的事件方法。 */
-  private showing = false
 
   constructor(options: { width: number; height: number }, deps: TurnPlaqueDeps) {
     super()
-    this.deps = deps
     this.label = 'turn-plaque'
     // 纯显示：它盖在对手手牌上面，吃了指针事件底下的牌背就点不着了。
     this.eventMode = 'none'
     this.box = new Box({ width: options.width, height: options.height, label: LABEL }, deps)
-    this.addChild(this.box)
+    this.addChild(this.backdrop, this.box)
+    this.paintBackdrop(options.width, options.height)
     this.visible = false
   }
 
   /** 改大小。只在版式变了时调。 */
   resize(width: number, height: number): void {
     this.box.setSize(width, height)
+    this.paintBackdrop(width, height)
   }
 
-  /** 挂出来 / 收回去。重复设成同一档什么都不做。 */
+  /** 挂出来 / 收回去。 */
   setOn(on: boolean): void {
-    if (on === this.showing) return
-    this.showing = on
     this.visible = on
-    this.deps.animator.killTweensOf(this.beat)
-    if (!on) return
-    // 每次挂出来都从第一拍开始（同旧样式把动画挂在 `[data-on]` 上）。
-    this.phase = 0
-    this.box.setLabel(LABEL)
-    this.beat.value = 0
-    this.deps.animator.tween(this.beat, {
-      value: 1,
-      duration: CYCLE / DOTS.length,
-      repeat: -1,
-      ease: 'none',
-      onRepeat: () => this.step(),
-    })
   }
 
-  /** 当场收掉（对局中断时的 `clear-overlays`，以及销毁之前）。 */
+  /** 当场收掉（对局中断时的 `clear-overlays`）。 */
   clear(): void {
-    this.showing = false
     this.visible = false
-    this.deps.animator.killTweensOf(this.beat)
   }
 
-  private step(): void {
-    this.phase = (this.phase + 1) % DOTS.length
-    this.box.setLabel(`${LABEL}${DOTS[this.phase]}`)
+  private paintBackdrop(width: number, height: number): void {
+    this.backdrop.clear().rect(0, 0, width, height).fill({ color: CANVAS_BACKGROUND })
   }
 }

@@ -312,11 +312,13 @@ export function createInputProbe(view: PlayerView): InputProbe {
       },
     },
     /*
-     * 落点提示那两块和「对方回合」吊匾。
+     * 落点提示那三块和「对方回合」吊匾。
      *
-     * 它们在真场景里是桌面档才有的（手机档 null），但这个替身走的是桌面档版式，
-     * 所以照桌面档给：`setDropState` 每次拖拽都会写它俩的 visible，缺一个就当场抛。
+     * 它们在真场景里是桌面档才有的（外框两档都有，提示只有桌面档），而这个替身走的是
+     * 桌面档版式，所以照桌面档给：`setDropState` 每次拖拽都会写它们的 visible，
+     * 缺一个就当场抛。
      */
+    boardFrame: { visible: false },
     dropCue: { visible: false },
     hotRing: { visible: false },
     turnPlaque: {

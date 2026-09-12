@@ -13,8 +13,8 @@
  * 才调——一轮里只发生几次，都不在动画期间。
  */
 
-import { Container } from 'pixi.js'
-import { Box, type BoxDeps } from './Box'
+import { Container, Graphics } from 'pixi.js'
+import { Box, type BoxDeps, CANVAS_BACKGROUND } from './Box'
 
 /** 正中那一格占顶栏多宽，以及「离开」那一颗的尺寸和它离右缘多远。 */
 const CENTER_RATIO = 0.5
@@ -41,6 +41,14 @@ export interface TopBarOptions {
 export class TopBar extends Container {
   boxHeight: number
 
+  /**
+   * 垫在整条顶栏底下那块不透明的底。
+   *
+   * 素方块本身是空心的（见 components/Box.ts），而这一条**必须挡光**：对手那排手牌钉在
+   * 舞台顶边、上半截本来就该被顶栏遮住（黑客松版就是这么摆的，见版式里 foeHand 的 y=0）。
+   * 不垫的话那几张牌背会从顶栏里透出来，压在轮次比分上。
+   */
+  private readonly backdrop = new Graphics()
   private readonly plate: Box
   private readonly center: Box
   private readonly leave: Box | null
@@ -67,7 +75,7 @@ export class TopBar extends Container {
       this.leave.label = 'button:leave'
       if (options.onLeave !== undefined) this.leave.onPress(options.onLeave)
     }
-    this.addChild(this.plate, this.center)
+    this.addChild(this.backdrop, this.plate, this.center)
     if (this.leave !== null) this.addChild(this.leave)
     this.layout()
   }
@@ -120,6 +128,10 @@ export class TopBar extends Container {
 
   /** 正中那格居中、让开右端那颗钮；「离开」贴右缘、纵向居中。 */
   private layout(): void {
+    this.backdrop
+      .clear()
+      .rect(0, 0, this.boxWidth, this.boxHeight)
+      .fill({ color: CANVAS_BACKGROUND })
     const centerWidth = Math.max(1, this.boxWidth * CENTER_RATIO)
     const centerHeight = Math.max(1, this.boxHeight - PAD_Y * 2)
     this.center.setSize(centerWidth, centerHeight)

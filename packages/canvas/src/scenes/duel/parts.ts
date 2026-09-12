@@ -177,7 +177,17 @@ export function createParts(options: PartsOptions): DuelParts {
       ? null
       : new TurnPlaque({ width: layout.turnPlaque.width, height: layout.turnPlaque.height }, deps)
 
+  /*
+   * 战场外框平时**不画**。
+   *
+   * 黑客松版那条边是 `border: 1px dashed transparent`——只有拖着牌的时候才亮起来
+   *（`data-drop-ready` / `data-drop-hot`）。这里照它来，顺带躲开一笔不小的账：
+   * 过度绘制那条指标把每个 Graphics 按**包围盒**算成一整块实心（见 bench 的
+   * src/page/overdraw.ts），一个 1310×535 的空心框会被记成盖住战场那一整块，
+   * 常亮的话桌面档直接顶破 3.2 那条上限。
+   */
   const boardFrame = frameBox(layout.boardFrame, deps)
+  boardFrame.visible = false
   const hotRing = frameBox(layout.boardFrame, deps)
   hotRing.visible = false
   const dropCue =
@@ -353,10 +363,12 @@ function place(box: Box | null, rect: Rect | null): void {
 }
 
 /**
- * 拖拽期间落点提示的三档：没在拖、拖着（提示亮出来）、指针已经进到落区里（外框加粗）。
+ * 拖拽期间落点提示的三档：没在拖（外框整个不画）、拖着（外框和提示亮出来）、
+ * 指针已经进到落区里（外框里再套一圈，两条平行线看着就是加粗）。
  * 抄黑客松版 `.battle__board` 的 `data-drop-ready` / `data-drop-hot`。
  */
 export function setDropState(parts: DuelParts, state: 'off' | 'ready' | 'hot'): void {
+  parts.boardFrame.visible = state !== 'off'
   if (parts.dropCue !== null) parts.dropCue.visible = state !== 'off'
   parts.hotRing.visible = state === 'hot'
 }

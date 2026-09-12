@@ -35,6 +35,7 @@ import { createDuelInput, type DuelInput } from './input'
 import { pickLayout } from './layout/pickLayout'
 import type { DuelLayout } from './layout/types'
 import { applyPartsLayout, createParts, type DuelParts } from './parts'
+import { paintStageFrame } from './stageFrame'
 
 export async function createDuelScene(options: DuelSceneOptions): Promise<DuelScene> {
   const renderer = await autoDetectRenderer({
@@ -67,9 +68,7 @@ export interface MountedDuelScene extends DuelScene {
  *
  * 组件目录页用它：那边一条条目就是一块画布，渲染器、帧循环、固定步进都是目录页搭好的
  *（见 client 的 dev/storybook/pixiStory.tsx）。让场景自己再建一个渲染器就是两套帧循环
- * 抢同一条 GSAP 根时间线，补间会被推两遍。
- *
- * 渲染器不归它销毁（谁建的谁负责），别的东西照常自己收。
+ * 抢同一条 GSAP 根时间线，补间会被推两遍。渲染器不归它销毁（谁建的谁负责）。
  */
 export function mountDuelScene(renderer: Renderer, options: DuelSceneOptions): MountedDuelScene {
   const scene = new DuelSceneImpl(renderer, options, false)
@@ -89,8 +88,9 @@ class DuelSceneImpl {
    */
   private readonly root = new Container()
   private readonly stage = new Container()
-  /** 垫在最底下那块浅灰。理由同 RoomScene 的 backdrop，见 Box.ts 的 CANVAS_BACKGROUND。 */
-  private readonly backdrop = new Graphics()
+  /** 垫在舞台底下那一块（只有挂在别人渲染器上时才要）和盖在四周那一圈，都见 stageFrame.ts。 */
+  private readonly backdrop: Graphics | null
+  private readonly letterbox = new Container()
   private readonly frameLoop: FrameLoop
   private readonly deps: DuelDeps
   private readonly visuals: CardVisuals
@@ -114,6 +114,7 @@ class DuelSceneImpl {
     this.renderer = renderer
     this.options = options
     this.ownsRenderer = ownsRenderer
+    this.backdrop = ownsRenderer ? null : new Graphics()
     this.layout = pickLayout(options.width, options.height, options.coarsePointer)
     this.frameLoop = new FrameLoop({
       manual: options.manualClock === true,
@@ -130,7 +131,8 @@ class DuelSceneImpl {
       wake: () => this.frameLoop.wake(),
     })
     this.visuals = createCardVisuals(options.catalog, options.textures)
-    this.root.addChild(this.backdrop, this.stage)
+    if (this.backdrop !== null) this.root.addChild(this.backdrop)
+    this.root.addChild(this.stage, this.letterbox)
     this.parts = this.buildParts()
     this.ctx = this.makeContext()
     this.input = createDuelInput(this.ctx)
@@ -155,7 +157,7 @@ class DuelSceneImpl {
 
   /**
    * 组装上下文。`parts` 和 `layout` 走取值器：换档位会整套换掉零件、改视口会换掉版式，
-   * 而 cue 播放器手里的这份上下文是同一个对象，取值器让它们始终看到当前那一份。
+   * 而 cue 播放器手里的是同一个对象，取值器让它们始终看到当前那一份。
    */
   private makeContext(): DuelContext {
     const scene = this
@@ -226,15 +228,12 @@ class DuelSceneImpl {
    * 缩放之后短边留出的那一圈黑边因此不在命中区里——它不属于这一页，点了不该有反应。
    */
   private applyStageTransform(): void {
-    const { stage, viewport, width, height } = this.layout
+    const { stage, width, height } = this.layout
     this.stage.scale.set(stage.scale)
     this.stage.position.set(stage.x, stage.y)
     this.stage.eventMode = 'static'
     this.stage.hitArea = new Rectangle(0, 0, width, height)
-    this.backdrop
-      .clear()
-      .rect(0, 0, viewport.width, viewport.height)
-      .fill({ color: CANVAS_BACKGROUND })
+    paintStageFrame(this.backdrop, this.letterbox, this.layout)
   }
 
   /** 把这一局用得上的纹理和文字全部先过一遍 GPU，理由见 warmup.ts。 */

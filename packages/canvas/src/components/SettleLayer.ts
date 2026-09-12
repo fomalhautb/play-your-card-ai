@@ -19,7 +19,7 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
 import {
   SETTLE_CONFIRM_MS,
   SETTLE_COUNTS_MS,
@@ -30,7 +30,7 @@ import {
 } from '../director/timings'
 import type { Animator } from '../runtime/animator'
 import { killAndDestroy } from '../runtime/dispose'
-import { Box } from './Box'
+import { Box, CANVAS_BACKGROUND } from './Box'
 import type { CardSprite } from './CardSprite'
 import { SettleChrome, type SettleChromeDeps } from './SettleChrome'
 import { SettleRow } from './SettleRow'
@@ -70,6 +70,13 @@ export class SettleLayer extends Container {
   private readonly deps: SettleLayerDeps
   /** 内容全部按设计尺寸摆，整块再缩放到调用方给的大小（见 resize）。 */
   private readonly content = new Container()
+  /**
+   * 垫在整层底下那块不透明的底。
+   *
+   * 素方块是空心的，而结算层**必须挡住底下的战场**：它是一层盖上来的全屏纸，
+   * 不挡光的话两排小卡和手牌会从题面和结果卡中间透出来，一句话都读不清。
+   */
+  private readonly backdrop = new Graphics()
   private readonly paper: Box
   private readonly chrome: SettleChrome
   private readonly squads: Record<SettleSide, SettleSquad>
@@ -95,10 +102,12 @@ export class SettleLayer extends Container {
     this.label = 'settle-layer'
     // 整层吃指针事件：结算期间战场点不动，只有确认按钮能点。
     this.eventMode = 'static'
+    this.backdrop.rect(0, 0, DESIGN.width, DESIGN.height).fill({ color: CANVAS_BACKGROUND })
     this.paper = new Box({ width: DESIGN.width, height: DESIGN.height }, deps)
     this.chrome = new SettleChrome(DESIGN.width, deps)
     this.squads = { theirs: new SettleSquad('theirs', deps), mine: new SettleSquad('mine', deps) }
     this.content.addChild(
+      this.backdrop,
       this.paper,
       this.chrome,
       this.squads.theirs,

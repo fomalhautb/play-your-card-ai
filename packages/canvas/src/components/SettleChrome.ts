@@ -33,7 +33,11 @@ const CELL = {
 const STEPS = ['题目揭晓', 'AI 作答', '裁判结算'] as const
 /** 题面和答案框里那几格的尺寸。 */
 const QUESTION = { categoryHeight: 28, bodyHeight: 110, gap: 12 } as const
-const ANSWER_ROW = { tag: 26, main: 56, note: 48, gap: 8 } as const
+/**
+ * 答案框里那三行各多高、行距多少。
+ * 三行连内边距加起来必须塞得进 166——超出去的那一截会被擦出来的那张遮罩直接裁掉。
+ */
+const ANSWER_ROW = { tag: 24, main: 52, note: 44, gap: 6 } as const
 
 export type SettleChromeDeps = BoxDeps & {
   animator: Animator

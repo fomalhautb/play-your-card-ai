@@ -65,19 +65,19 @@ export default {
   render: () => null,
 }
 
-/** 常规：第几轮 + 比分，右端两颗图标钮。 */
+/** 常规：第几轮 + 比分，右端一颗「离开」。 */
 export const Normal = {
   name: '常规',
   parameters: spec({ score: { mine: 2, theirs: 1 }, status: null }),
 }
 
-/** 两位数比分：数字是等宽的，从个位涨到两位时整块不会歪。 */
+/** 两位数比分：正中那一格是整句一起烤的，从个位涨到两位只是那一格的字变长一点。 */
 export const TwoDigits = {
   name: '两位数比分',
   parameters: spec({ score: { mine: 12, theirs: 9 }, status: null }),
 }
 
-/** 等局面：联机客人还没拿到局面，正中那块整个空着，顶栏高度不受影响。 */
+/** 等局面：联机客人还没拿到局面，正中那格只剩轮次，顶栏高度不受影响。 */
 export const Waiting = { name: '等局面', parameters: spec({ score: null, status: null }) }
 
 /** 断线：状态字顶掉比分——链路断了的时候，几比几不是玩家最需要知道的事。 */
@@ -87,10 +87,10 @@ export const LinkDown = {
 }
 
 /**
- * 手机档：390 宽、顶栏矮一档，右端只剩「离开」那一颗。
+ * 手机档：390 宽、顶栏矮一档。
  *
- * 看点是正中那块**往左让**到不压着那颗钮为止（桌面档宽得很，让不让一个样）。
- * 静音那颗在手机上归设置页，「离开」割不得——它在手机上没有别的入口。
+ * 看点是正中那格按比例缩窄之后，长一点的那句话会被方块自己缩小字号塞进去。
+ * 「离开」两档都摆——它在手机上没有别的入口。
  */
 export const Mobile = {
   name: '手机档',
@@ -99,6 +99,5 @@ export const Mobile = {
     status: null,
     width: 390,
     height: tokens.size.battle.topbarHeightTouch,
-    actions: 'leave',
   }),
 }
