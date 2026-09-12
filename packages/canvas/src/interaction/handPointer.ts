@@ -328,6 +328,8 @@ export class HandPointer {
     const card = press.card
     tiltFor(card)?.reset()
     this.hover.cancel()
+    // 拖着的那张离手最远，投影跟着它（同 hover 那一档，见 CardSprite.setLifted）。
+    card.setLifted(true)
     const world = fanToWorld(card.x, card.y, card.scale.x)
     fan.detach(card)
     animator.killTweensOf(card)
@@ -365,6 +367,8 @@ export class HandPointer {
       scrollGuard: false,
     })
     if (outcome === 'play') {
+      // 牌要离手了：影子先落下，接下来它是被演出接管的一张飞行卡，不再"浮在手上"。
+      press.card.setLifted(false)
       this.options.onPlay(press.card)
       return
     }
@@ -411,6 +415,7 @@ export class HandPointer {
 
   /** 没落进出牌区：把牌送回扇形。 */
   private returnCard(card: CardSprite): void {
+    card.setLifted(false)
     const { fan } = this.options
     // 先挪回扇形容器再补间：位置是扇形坐标系里的，留在拖拽层上补间等于飞去另一个地方。
     // 收回去要走 adoptInOrder 而不是 addChild：后者把牌追加到末尾，这张牌就永远压在整排之上了。

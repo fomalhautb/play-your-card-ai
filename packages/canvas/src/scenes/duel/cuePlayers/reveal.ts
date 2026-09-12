@@ -40,6 +40,8 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
     dropShowcase(ctx)
     // 从对手手里飞出来的那张要先长成牌背，所以背面换成他那排用的隐藏牌背。
     const card = ctx.makeCard(cue.cardId, `reveal:${cue.handInstanceId}`, cue.fromOrigin)
+    // 展示位那张浮在遮罩上，投影跟着它（见 CardSprite.setLifted）。
+    card.setLifted(true)
     ctx.showcased = card
     const { foeHand } = ctx.parts
     let from = null
@@ -112,6 +114,7 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
     if (point === null || tile === null || cardId === null) return
     dropShowcase(ctx)
     const card = ctx.makeCard(cardId, `inspect:${cue.flipId}`)
+    card.setLifted(true)
     ctx.showcased = card
     ctx.inspectingTile = cue.flipId
     tile.setHeld(true)

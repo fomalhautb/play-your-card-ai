@@ -58,6 +58,8 @@ export class HandFan extends Container {
   private hoverIndex = -1
   /** 正在等玩家选目标的那张牌，它要从扇形里抬起来。没有就是 null。 */
   private castingId: string | null = null
+  /** 整排现在沉着没有（灰墨态）。记的是意图，理由见 setSunk。 */
+  private sunk = false
 
   constructor(options: HandFanOptions) {
     super()
@@ -198,17 +200,41 @@ export class HandFan extends Container {
   }
 
   /**
+   * 现在抬起来的那张牌，没有就是 null。
+   *
+   * 有了 `hovered` 还要这一个，是因为按下标去 `laid()` 里取会**新建一个数组**，
+   * 而问这件事的地方（scenes/duel/handMood.ts）在联机那条路上每帧都会被调一次——
+   * 「稳态每帧堆分配」（3.10）不该被一次查询占掉。这里直接数过去，一个对象都不建。
+   */
+  hoveredCard(): CardSprite | null {
+    if (this.hoverIndex < 0) return null
+    let seen = 0
+    for (const card of this.cards) {
+      if (this.detached.has(card.instanceId)) continue
+      if (seen === this.hoverIndex) return card
+      seen += 1
+    }
+    return null
+  }
+
+  /**
    * 整排沉下去（灰墨态）或者回到原位。
    *
    * 沉的是**整层**而不是逐张改 y：逐张改要和 hover、让位、施放抬起三套姿态抢同一个属性，
    * 而它们各自都有自己的补间。写 `pivot` 不碰任何一张牌的姿态——版式那边写的是
    * `position` 和 `scale`（见 scenes/duel/parts.ts），两边不重叠。
+   *
+   * 「变了没有」看的是**记下来的意图**，不是 `pivot` 现在的值。
+   * 按当前值判的话这个方法就永远不是幂等的：调用方（`scenes/duel/handMood.ts`）
+   * 每收到一次锁就调一次，而联机那条路每帧都会重发一次锁——补间还没跑完，
+   * `pivot.y` 就还不等于目标，于是每帧都新建一条把上一条顶掉，补间永远跑不完，
+   * 「没有动画时停掉帧循环」（3.6）那条从此再也不成立。跑批里表现为剧本推满三千帧还不空闲。
    */
   setSunk(sunk: boolean): void {
-    const target = sunk ? -HAND_SINK : 0
-    if (this.pivot.y === target) return
+    if (this.sunk === sunk) return
+    this.sunk = sunk
     this.animator.tween(this.pivot, {
-      y: target,
+      y: sunk ? -HAND_SINK : 0,
       duration: HOVER_DUR,
       ease: LAYOUT_EASE,
       overwrite: 'auto',

@@ -6,31 +6,25 @@
  * 这里把同样几条路径喂给 Pixi 的 `GraphicsPath`（它认 SVG 的 `d` 字符串），
  * 所以两版的匾在几何上是同一份，改动可以逐点对照。
  *
- * 整块匾烤成**一张全场共享的纹理**，不逐张卡画：十八张 AI 牌的匾长得一模一样，
- * 逐张画就是十八次绘制加十八张纹理（3.9）。
+ * 这块匾不自己占一层，而是**画进卡面那张边框纹理里**（见 fx/cardShapes.ts 的
+ * `drawCardChrome`）。两个理由，后一个是硬的：
+ * 一是十八张 AI 牌的匾长得一模一样、位置也一样，本来就该和边框一起当成"每张牌都有的那一层"；
+ * 二是过度绘制（3.2）——那条指标按**包围盒**算，单独一层就是在整张原画之上再铺一块
+ * 卡面 13% 大的实心，一屏二三十张卡（构筑页）加起来就把预算顶穿了。
+ *
  * 代价是匾上的颜色不能逐张变——黑客松那层最外圈的阴影描边调了插画主色
  *（`--card-ink` = `color-mix(accent 30%, 纸面墨色)`），这里统一用纸面墨色。
- * 那一档只有 24% 不透明度、又压在金属圈底下，逐张差别本来就看不出来，
- * 拿它换「屏幕上多摆一张牌不多一张纹理」是划算的。
+ * 那一档只有 24% 不透明度、又压在金属圈底下，逐张差别本来就看不出来。
+ * 匾上那两行字仍然逐张上色，它们本来就是各自一层。
  */
 
 import { tokens } from '@ai-duel/design'
-import { Graphics, GraphicsPath } from 'pixi.js'
+import { type Graphics, GraphicsPath } from 'pixi.js'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import { mixHex } from './colors'
-import { type Mold, mold } from './mold'
 
 /** 黑客松那段 SVG 的画布尺寸，下面所有坐标都按它写。 */
 const VIEW = { width: 760, height: 230 } as const
-
-/**
- * 烤纹理时把这张画布缩到多少。
- *
- * 匾在卡面上只有 120 宽，而它最大会被放到「放大查看 2.2 倍 × 渲染倍率 1.5」＝约 400 个设备像素
- *（组牌页卡池那张 249 宽的卡上是 300）。按 0.5 缩成 380 宽再乘渲染倍率，正好盖得住，
- * 又不至于为了一块 120 宽的装饰传一张 760 宽的纹理。
- */
-const BAKE_SCALE = 0.5
 
 /** 匾左右各离卡边多远、底边离卡底多远。抄 `.card-overlay__plaque` 的 `right/left 10%; bottom 4.5%`。 */
 const INSET = { side: 0.1, bottom: 0.045 } as const
@@ -110,13 +104,25 @@ const FLOURISH_CORNER = `M87 30C65 13 50 36 65 41C76 45 78 33 73 31M673 30C695 1
 /** 上下居中那两颗菱形。 */
 const FLOURISH_DIAMOND = 'M373 20L380 10L387 20L380 31ZM373 210L380 200L387 210L380 220Z'
 
-/** 画一整块匾（纸底 + 三圈描边 + 卷草），按 `BAKE_SCALE` 缩好。 */
-export function drawCardPlaque(): Mold {
+/**
+ * 把一整块匾（纸底 + 三圈描边 + 卷草）画进调用方的 Graphics，摆在卡面上它该在的位置。
+ *
+ * 坐标系是**卡面基准尺寸**（150×225，原点在卡的左上角），和 `drawCardChrome` 同一套。
+ * 线宽跟着那次 `setTransform` 一起缩，所以下面的 stroke 宽度可以原样照抄 SVG 上的数。
+ */
+export function paintCardPlaque(g: Graphics): void {
   const metal = mixHex(tokens.color.theme.gold, 0.35, tokens.color.paper.lineDark)
   const metalLight = mixHex(tokens.color.paper.base, 0.76, tokens.color.theme.gold)
-  const g = new Graphics()
-  // 线宽跟着这一层缩放一起缩，所以下面的 stroke 宽度可以原样照抄 SVG 上的数。
-  g.setTransform(BAKE_SCALE, 0, 0, BAKE_SCALE, 0, 0)
+  const scale = CARD_PLAQUE.width / VIEW.width
+  g.save()
+  g.setTransform(
+    scale,
+    0,
+    0,
+    scale,
+    (CARD_WIDTH - CARD_PLAQUE.width) / 2,
+    CARD_HEIGHT - CARD_PLAQUE.top,
+  )
   const rim = path(RIM)
   /*
    * 纸底直接拿外轮廓填，不另画一个圆角矩形（黑客松那边是一个单独的 div）：
@@ -134,7 +140,7 @@ export function drawCardPlaque(): Mold {
     g.path(shape).fill({ color: tokens.color.paper.shade })
     g.path(shape).stroke(flourish)
   }
-  return mold(VIEW.width * BAKE_SCALE, VIEW.height * BAKE_SCALE, g)
+  g.restore()
 }
 
 /** 路径常量写成多行是为了不超行宽，喂给 Pixi 之前要把换行折回去。 */

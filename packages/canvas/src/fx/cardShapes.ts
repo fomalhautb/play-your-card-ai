@@ -17,6 +17,7 @@
 import { tokens } from '@ai-duel/design'
 import { Graphics } from 'pixi.js'
 import { CARD_HEIGHT, CARD_RADIUS, CARD_WIDTH } from '../layout/fanMath'
+import { paintCardPlaque } from './cardPlaque'
 import { type Mold, mold } from './mold'
 
 /**
@@ -57,7 +58,17 @@ const BODY_BANDS = 40
 const SEAL_SIZE = 64
 
 /**
- * 卡面的边框：1px 米白实线，内侧再压两层羽化带。
+ * 雕花匾那一档的边框纹理按渲染倍率的几倍烤。
+ *
+ * 匾在卡面上只有 120 宽，而放大查看时会被拉到约 400 个设备像素（2.2 倍 × 渲染倍率 1.5）。
+ * 按一倍烤只有 180，拉上去糊；两倍是 360，和那个上限差得已经看不出来了。
+ * 再往上调要先看常驻纹理内存（6.9 那条按平方涨）。
+ */
+const PLAQUE_CHROME_RESOLUTION = 2
+
+/**
+ * 卡面的边框：1px 米白实线，内侧再压两层羽化带；`plaque` 为真时顺带把那块八角雕花匾
+ * 也画进同一张纹理。
  *
  * 边线、羽化带、卡面底色在黑客松那边是同一个颜色（`--card-edge-tint`），
  * 三者一致，白边和插画之间才没有一条硬邦邦的接缝。
@@ -65,8 +76,14 @@ const SEAL_SIZE = 64
  * 羽化是拿「一圈 1px 宽的描边」一层层往里画出来的，每圈各有自己的透明度，圈与圈不重叠，
  * 所以某一圈画多少透明度，屏幕上就是多少——不用去算叠加。透明度按黑客松那两层
  * inset 阴影合成：窄而实的一层贴着白边收口，宽而淡的一层把过渡拖长。
+ *
+ * 匾为什么和边框合成一张而不是自己一层：它每张牌都一样、位置也一样，本来就属于
+ * 「每张牌都有的那一层」；更硬的理由是过度绘制（3.2）按包围盒算，单独一层就是在整张原画
+ * 之上再铺一块卡面 13% 大的实心，构筑页一屏二三十张卡加起来直接顶穿预算。
+ * 分成两张纹理（有匾 / 没匾）而不是一张：技能牌的原画已经把卡名和效果印进图里了，
+ * 再盖一块匾会把画面压死。
  */
-export function drawCardChrome(): Graphics {
+export function drawCardChrome(plaque: boolean): Mold {
   const g = new Graphics()
   const edge = tokens.color.card.edgeTint
   /*
@@ -94,7 +111,8 @@ export function drawCardChrome(): Graphics {
       Math.max(0, CARD_RADIUS - d - 0.5),
     ).stroke({ width: 1, color: edge, alpha })
   }
-  return g
+  if (plaque) paintCardPlaque(g)
+  return mold(CARD_WIDTH, CARD_HEIGHT, g, plaque ? PLAQUE_CHROME_RESOLUTION : undefined)
 }
 
 /** 扩散段内是 1，出了扩散段按模糊半径线性收到 0。 */

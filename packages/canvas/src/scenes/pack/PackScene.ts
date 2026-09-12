@@ -150,6 +150,8 @@ class PackSceneImpl {
     card.on('pointertap', () => {
       if (this.view?.phase === 'closed') this.onAction?.({ kind: 'flip' })
     })
+    // 开包那一下卡是浮在页面中央的，投影开着（见 CardSprite.setLifted）。
+    card.setLifted(true)
     this.card = card
     this.world.addChild(card)
     this.place()

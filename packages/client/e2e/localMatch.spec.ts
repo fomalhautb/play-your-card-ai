@@ -60,14 +60,16 @@ const DROP = toViewport(
 )
 
 /**
- * 一处「点了什么都不会发生」的空地：侧栏里我方那块玩家面板上。
+ * 一处「点了什么都不会发生」的空地：侧栏里上下两块玩家面板中间那条缝。
  *
  * 用来收掉可能立起来的选目标层——那一层铺满全屏、点哪儿都是取消。
  * 不能拿战场当空地：点战场上的格子会打开放大查看，那反而多一层要收的东西。
+ * 也**不能拿玩家面板中间**当空地：那儿摆着英雄牌，正式版简化第 4 步之三之后点它
+ * 同样会打开放大查看（黑客松那一版就是这么设计的）。
  */
 const IDLE_SPOT = toViewport(
   LAYOUT.panels.mine.x + LAYOUT.panels.mine.width / 2,
-  LAYOUT.panels.mine.y + LAYOUT.panels.mine.height / 2,
+  (LAYOUT.panels.theirs.y + LAYOUT.panels.theirs.height + LAYOUT.panels.mine.y) / 2,
 )
 
 /** 拖第 index 张手牌（0 是最左边那张）到出牌区。 */

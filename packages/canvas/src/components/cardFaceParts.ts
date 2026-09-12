@@ -94,11 +94,20 @@ export function shadowRect(shadow: { blur: number; offsetY: number }): LayerRect
 
 /** 正面从下往上有哪几层。第一层（原画 + 边框）的矩形就是整张卡，反光会借它那份几何。 */
 export function frontLayersOf(visual: FaceContent, deps: FacePartsDeps): FaceLayer[] {
+  /*
+   * 有雕花匾的那一档换一张边框纹理，匾**画在里面**，不另占一层。
+   * 单独一层会在整张原画之上再铺一块卡面 13% 大的实心，过度绘制（3.2）吃不下，
+   * 理由见 fx/cardShapes.ts 的 drawCardChrome。
+   */
+  const plaque = visual.skillName !== undefined
   const layers: FaceLayer[] = [
     {
       rect: cardRect(),
       mesh: 'card',
-      parts: [{ texture: visual.face }, { texture: deps.baked.cardChrome }],
+      parts: [
+        { texture: visual.face },
+        { texture: plaque ? deps.baked.cardChromePlaque : deps.baked.cardChrome },
+      ],
     },
   ]
   if (visual.skillName !== undefined) layers.push(...plaqueLayers(visual, deps, visual.skillName))
@@ -108,20 +117,15 @@ export function frontLayersOf(visual: FaceContent, deps: FacePartsDeps): FaceLay
   return layers
 }
 
-/** 八角雕花匾那一档：匾 + 技能名 + 模型名。 */
+/** 八角雕花匾那一档上的两行字（匾本身画在边框纹理里，见 frontLayersOf）。 */
 function plaqueLayers(visual: FaceContent, deps: FacePartsDeps, skillName: string): FaceLayer[] {
-  const { width, height, top, skill, name } = CARD_PLAQUE
+  const { top, skill, name } = CARD_PLAQUE
   /*
    * 匾上的字色跟着插画主色走（黑客松 `--card-ink` = `color-mix(accent 30%, 纸面墨色)`）。
    * 匾本身是共享纹理、颜色统一，只有这两行字逐张上色——tint 不触发重建，符合 3.10。
    */
   const ink = mix(visual.accent, 0.3, hexToInt(tokens.color.paper.ink))
   return [
-    {
-      rect: { x: -width / 2, y: -top, width, height },
-      mesh: 'small',
-      parts: [{ texture: deps.baked.cardPlaque }],
-    },
     textLayer(deps, 'plaqueSkill', skillName, skill.fontSize, 0, -top + skill.centerY, {
       maxWidth: skill.maxWidth,
       tint: ink,

@@ -93,8 +93,7 @@ export function createHandMood(ctx: DuelContext): HandMood {
       const { fan } = ctx.parts
       // 整排下沉只看「这一排锁着没有」，和某一张买不买得起无关。
       fan.setSunk(locks?.handLockReason != null)
-      const laid = fan.laid()
-      const hovered = fan.hovered >= 0 ? laid[fan.hovered] : undefined
+      const hovered = fan.hoveredCard()
       for (const card of fan.all()) {
         const block = blockOf(card)
         // 抬起来的那张恢复本色：玩家正在看它，压暗的是"够不着的那一片"，不是他手里这张。

@@ -94,6 +94,8 @@ export interface FakeCard {
   scale: { x: number; y: number; set(value: number): void }
   position: { set(x: number, y: number): void }
   setDim(tint: number): void
+  /** 浮起来的那张才画投影（见 CardSprite.setLifted）。这一组不测它。 */
+  setLifted(lifted: boolean): void
   setTilt(): void
   on(): void
   once(): void
@@ -111,6 +113,7 @@ function fakeCard(instanceId: InstanceId): FakeCard {
     setDim(tint: number) {
       card.dim = tint
     },
+    setLifted: () => undefined,
     setTilt: () => undefined,
     once: () => undefined,
     scale: {
@@ -269,6 +272,7 @@ export function createInputProbe(view: PlayerView): InputProbe {
     // 灰墨态整排下沉写的是 pivot，提示小字的落点也要读它（见 handMood 的 place）。
     pivot: { y: 0 },
     hovered: -1,
+    hoveredCard: () => null,
     setSunk: (sunk: boolean) => calls.push(`fan.setSunk(${sunk})`),
     setCasting: (instanceId: InstanceId | null) => calls.push(`fan.setCasting(${instanceId})`),
     detach: (card: FakeCard) => {

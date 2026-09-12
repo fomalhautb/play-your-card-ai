@@ -47,7 +47,7 @@ function mountBaked(ctx: StoryStage) {
   const items = [
     { texture: baked.cardChrome, label: '边框羽化 cardChrome' },
     { texture: baked.cardShadow, label: '卡下投影 cardShadow', plate: true },
-    { texture: baked.cardPlaque, label: '雕花铭牌 cardPlaque' },
+    { texture: baked.cardChromePlaque, label: '边框带匾 cardChromePlaque' },
     { texture: baked.costDisc, label: '费用盘底 costDisc' },
     { texture: baked.costRings, label: '费用金属圈 costRings' },
     { texture: baked.cardSeal, label: '问号章 cardSeal' },

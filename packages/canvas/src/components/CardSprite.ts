@@ -155,6 +155,8 @@ export class CardSprite extends Container {
    * 投影那一组要跟着每一帧的姿态走，不管此刻朝上的是正面还是背面。
    */
   private shadowGroup: LayerGroup | null = null
+  /** 投影那一层的网格，`setLifted` 开关它。这一档不画投影时是 null。 */
+  private shadowMesh: Mesh<PerspectivePlaneGeometry, Shader> | null = null
   /** 建过的每一组，销毁和换几何时按它遍历（投影那一组也在里面，不会被漏掉或数两遍）。 */
   private readonly allGroups: LayerGroup[] = []
   private readonly projector = new CardProjector()
@@ -257,6 +259,18 @@ export class CardSprite extends Container {
   }
 
   /**
+   * 这张牌现在是不是"浮起来"的：抬起来看、被拖着、或者摆在展示层中央。浮起来才画投影。
+   *
+   * 为什么不给每张牌都常画（黑客松那边 `.card-face` 是无条件带 `box-shadow` 的）：
+   * 投影是一整张**比卡还大**的半透明贴图，一屏十几二十张牌就等于多铺十几层，
+   * 而过度绘制（3.2）按包围盒算，实测把桌面档「一轮结算」那一屏从 2.91 顶到 3.06、
+   * 直接超上限。摊平在战场上的小卡本来也没有"浮起来"的语义，真需要影子的就是这三种时候。
+   */
+  setLifted(lifted: boolean): void {
+    if (this.shadowMesh !== null) this.shadowMesh.visible = lifted
+  }
+
+  /**
    * 整张卡压暗到某一档：`tint` 乘在每一层原本的颜色上，0xffffff 就是本色。
    *
    * 黑客松那边是 CSS 滤镜（灰墨态 `saturate(.5) brightness(.9)`、打不出
@@ -341,6 +355,9 @@ export class CardSprite extends Container {
       { rect: shadowRect(CARD_SHADOW), mesh: 'small', parts: [{ texture: deps.baked.cardShadow }] },
       false,
     )
+    this.shadowMesh = this.shadowGroup.meshes[0] ?? null
+    // 平时不画，只有"浮起来"的那张才亮（理由见 setLifted）。
+    if (this.shadowMesh !== null) this.shadowMesh.visible = false
   }
 
   /**

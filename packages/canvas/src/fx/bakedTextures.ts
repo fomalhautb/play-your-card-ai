@@ -22,9 +22,7 @@
  */
 
 import { Graphics, Rectangle, type Renderer, type Texture } from 'pixi.js'
-import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import { drawCostDisc, drawCostRings } from './badgeShapes'
-import { drawCardPlaque } from './cardPlaque'
 import {
   drawCardBody,
   drawCardChrome,
@@ -47,11 +45,14 @@ const MOLDS = {
   /** 中心实、边缘透明的一团柔光。落地的烟尘用它，靠 tint 和缩放变样子。 */
   softDot: drawSoftDot,
   /** 卡面那圈 1px 米白边和它内侧的双层羽化带。 */
-  cardChrome: () => mold(CARD_WIDTH, CARD_HEIGHT, drawCardChrome()),
+  cardChrome: () => drawCardChrome(false),
+  /**
+   * 同上，外加卡面下部那块八角雕花匾（不含上面的两行字）。
+   * 具名 AI 牌用这一张替掉 `cardChrome`——合成一张是为了不多占一层，理由见 cardShapes.ts。
+   */
+  cardChromePlaque: () => drawCardChrome(true),
   /** 卡下那团软阴影，比卡面大出一圈。 */
   cardShadow: drawCardShadow,
-  /** 具名 AI 牌卡面下部那块八角雕花匾（不含上面的两行字）。 */
-  cardPlaque: drawCardPlaque,
   /** 查不到专属原画时压在卡底的那层渐变遮罩。 */
   cardBody: drawCardBody,
   /** 能翻面的牌右上角那枚问号圆章的底和圈（问号本身是文字纹理）。 */
@@ -101,7 +102,8 @@ export function bakeTextures(renderer: Renderer): BakedTextures {
         target: m.graphics,
         // 取景框写死，不让 Pixi 按包围盒算：描边和填充的包围盒天生不一样大，理由见 mold.ts。
         frame: new Rectangle(0, 0, m.width, m.height),
-        resolution,
+        // 个别模具要按更高的倍率烤（取景框比画出来的细节大得多），见 mold.ts 的 resolution。
+        resolution: resolution * (m.resolution ?? 1),
         antialias: true,
       }),
     ]),

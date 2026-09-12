@@ -58,8 +58,13 @@ export class HandHover {
   enter(card: CardSprite): void {
     this.countdown = -1
     if (this.hovered === card) return
-    if (this.hovered !== null) this.options.tiltFor(this.hovered)?.release()
+    if (this.hovered !== null) {
+      this.options.tiltFor(this.hovered)?.release()
+      this.hovered.setLifted(false)
+    }
     this.hovered = card
+    // 抬起来的那张才"浮"在整排之上，投影跟着它走（见 CardSprite.setLifted）。
+    card.setLifted(true)
     this.options.fan.setHover(this.options.fan.laid().indexOf(card))
     this.options.onHover?.(card)
   }
@@ -107,6 +112,7 @@ export class HandHover {
   private collapse(): void {
     if (this.hovered === null) return
     this.options.tiltFor(this.hovered)?.release()
+    this.hovered.setLifted(false)
     this.hovered = null
     this.options.fan.setHover(-1)
     this.options.onHover?.(null)
