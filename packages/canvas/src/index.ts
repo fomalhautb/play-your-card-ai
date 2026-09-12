@@ -20,11 +20,16 @@
  * 复合件拆出来的内部件（结算层的顶栏 / 一侧 / 一行、战场的一格）**不导出**：
  * 它们只对自己的父组件负责，拆文件是被 400 行那条上限逼的，不是多了四个可以单独用的组件。
  * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）：
- * 现在多了首页和选英雄页要的那批（图片底板按钮、文字钮、星芒花饰、夜色圆章、人物说明栏）。
+ * 现在多了选英雄页要的那批（文字钮、星芒花饰、人物说明栏）。
  * 迁移第 29、30 条的三个场景：首页 scenes/home、选英雄页 scenes/hero、开包 scenes/pack。
  *
+ * 正式版简化第 4 步之一：首页、房间页、开包页剥成了**素方块**。这三页上的按钮、面板、
+ * 一行状态字全走 components/Box.ts 这一个原语（1px 描边矩形加一行字），
+ * 只服务它们的装饰件（图片底板按钮、夜色圆章）连同底图素材一起删了。
+ * 对局、组牌、选英雄那三页还是老样子，等简化第 4 步余下三个 PR。
+ *
  * 目录：
- *   components/    Pixi 组件（卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
+ *   components/    Pixi 组件（素方块、卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
  *                  对局那批复合件，以及卡面倾斜、卡面的透视投影和网格几何）
  *   director/      对局演出编排（事件批 → 演出指令，纯 TS，不碰 Pixi / GSAP / DOM）
  *   fx/            特效和预烤纹理（命中特效、卡面反光、卡牌那批纹理、界面零件那批纹理、
@@ -62,6 +67,17 @@ export {
   type BoardGridOptions,
   type BoardSide,
 } from './components/BoardGrid'
+export {
+  BOX_DISABLED_ALPHA,
+  BOX_FONT_SIZE,
+  BOX_INK,
+  BOX_LINE,
+  Box,
+  type BoxDeps,
+  type BoxOptions,
+  type BoxSize,
+  CANVAS_BACKGROUND,
+} from './components/Box'
 export {
   BUBBLE_ERROR,
   BUBBLE_TIP,
@@ -130,14 +146,6 @@ export {
   type PlaqueVariant,
 } from './components/PlaqueButton'
 export {
-  PLATE_HOME_START,
-  PLATE_PANEL,
-  PlateButton,
-  type PlateButtonDeps,
-  type PlateButtonOptions,
-  type PlateVariant,
-} from './components/PlateButton'
-export {
   PlayerPanel,
   type PlayerPanelDeps,
   type PlayerPanelOptions,
@@ -149,11 +157,6 @@ export {
   type RevealOverlayOptions,
   type RevealPoint,
 } from './components/RevealOverlay'
-export {
-  SealButton,
-  type SealButtonDeps,
-  type SealButtonOptions,
-} from './components/SealButton'
 export { SettleLayer, type SettleLayerDeps, type SettleSide } from './components/SettleLayer'
 export { SideBar, type SideBarDeps, type SideBarOptions } from './components/SideBar'
 export { type SkillCancelDeps, SkillCancelLayer } from './components/SkillCancelLayer'
@@ -310,11 +313,9 @@ export {
   type HomeMenuItem,
   type HomeScene,
   type HomeSceneOptions,
-  type HomeTextures,
   homeMenu,
 } from './scenes/home/homeContract'
 export {
-  HOME_STAGE,
   type HomeCardSpot,
   type HomeLayout,
   type HomeRect,
@@ -329,12 +330,15 @@ export type {
   PackView,
 } from './scenes/pack/packContract'
 export { createRoomScene } from './scenes/room/RoomScene'
-export type {
-  RoomAction,
-  RoomPhase,
-  RoomReady,
-  RoomScene,
-  RoomSceneOptions,
-  RoomView,
+export {
+  type RoomAction,
+  type RoomButtonId,
+  type RoomPhase,
+  type RoomReady,
+  type RoomScene,
+  type RoomSceneOptions,
+  type RoomView,
+  roomButtons,
 } from './scenes/room/roomContract'
+export { pickRoomLayout, type RoomLayout, type RoomRect } from './scenes/room/roomLayout'
 export type { StoryStage, StoryTeardown } from './storyStage'

@@ -6,7 +6,7 @@
  * 现在首页、选英雄页、关于页都要等图，加载页还要显示进度，所以把这段接线收成一处。
  *
  * 为什么不做成 Context 或者全局 store：等图这件事是**每个界面各等各的一批**
- *（首页等 `HOME_IMAGES`、选英雄页等 `HERO_IMAGES`、关于页等 `INFO_IMAGES`），
+ *（现在只剩选英雄页等 `HERO_IMAGES`），
  * 状态天然属于那个组件。
  * 真正要全局只做一次的只有后台队列，那一条由下面的模块级开关兜住。
  */
@@ -58,19 +58,19 @@ export function useAssets(platform: Platform, urls: readonly string[]): PreloadS
 let backgroundStarted = false
 
 /**
- * 首页亮出来之后，在后台把剩下的图按 `PRELOAD_GROUPS` 的顺序全部拉完。
+ * 进了首页就在后台把剩下的图按 `PRELOAD_GROUPS` 的顺序全部拉完。
  *
- * `enabled` 传的是「首页的闸门放行了没有」：闸门还没放行时这一趟不能开——
- * 后台队列和首页那批图会抢同样的并发额度，玩家看着的那条进度条会变慢
- *（分组的意义就是「先用到的先下」，见 preload/manifests.ts 的 PRELOAD_GROUPS）。
+ * 从前这里还有一个 `enabled`，传的是「首页那道等图闸门放行了没有」——两边会抢同样的
+ * 并发额度，玩家看着的那条进度条会变慢。正式版简化第 4 步把首页剥成素方块之后
+ * 那道闸门没了（首页一张图都不等），这个参数跟着去掉。
  *
  * 不返回任何东西，也没有取消：这一趟的产出是 platform 的图片缓存，
  * 界面切走了它照样该下完——那正是「后台」的意思。
  */
-export function useBackgroundPreload(platform: Platform, enabled: boolean): void {
+export function useBackgroundPreload(platform: Platform): void {
   useEffect(() => {
-    if (!enabled || backgroundStarted) return
+    if (backgroundStarted) return
     backgroundStarted = true
     void preloadInBackground(platform, PRELOAD_GROUPS)
-  }, [platform, enabled])
+  }, [platform])
 }

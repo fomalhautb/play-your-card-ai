@@ -190,7 +190,8 @@ pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
   调时限没有用。
 - 单纯慢：CI 上 WebGL 走的是 SwiftShader（纯 CPU 软件光栅），画布越大、素材越多越慢，
   而 Playwright 判「元素稳定」等的是合成器真出两帧，排在一批没干完的 GPU 活后面就得一起等。
-  这种在这条 story 的 `screenshotTimeoutMs` 里单独给个更长的数（现在只有首页那三条有）。
+  这种在这条 story 的 `screenshotTimeoutMs` 里单独给个更长的数（现在只有结算层那几条重条目有；
+  首页那两条从前也要，正式版简化第 4 步把整页剥成素方块、不再传整幅底图之后就不需要了）。
 
 **别为了个别条目去调 `playwright.config.ts` 里的 `expect.timeout`**：那一档是全局的，
 调大之后一条真坏掉的条目也要拖满新时限才报错，而快档要跑一百多条，整体时限本来就贴着上限。

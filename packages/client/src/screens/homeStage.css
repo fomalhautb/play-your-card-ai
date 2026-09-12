@@ -1,5 +1,5 @@
 /*
- * 画布铺满这块地方。版式在画布里面（两档并列，见 canvas 的 scenes/home/homeLayout.ts），
+ * 画布铺满这块地方。版式在画布里面（见 canvas 的 scenes/home/homeLayout.ts），
  * 这里只负责给它一块矩形。写法和 duelStage.css / roomStage.css 一样。
  */
 
@@ -12,7 +12,7 @@
   display: block;
 }
 
-/* 图下不下来、WebGL 起不来时的那句话。压在画布上，居中。 */
+/* 卡面图集下不下来、WebGL 起不来时的那句话。压在画布上，居中。 */
 .home-stage__error {
   position: absolute;
   inset: 0;

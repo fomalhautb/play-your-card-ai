@@ -10,13 +10,17 @@ assets/
   dist/            build-atlas 的本地产物，不进 git
 ```
 
+首页和房间页从前各有一批界面底图（`source/home/` 四张、`source/room/` 十四张切片，
+外加切片的来源 `room-ui-sheet.png` 和切图脚本 `slice-room-ui.py`）。
+正式版简化第 4 步把这两页剥成了画布上的素方块，那批图一张都没人引用，整批删掉了。
+
 `source/` 下按用途分目录：
 
 | 目录 | 内容 | 谁在用 |
 |---|---|---|
 | `cards/` | 卡面原画（`models/`、`skills/`）和两张共用牌背（`card-back-*.webp`） | 全部打进图集 |
 | `hero/` | 七张英雄牌 + 选英雄页底图 | 直接当图用（英雄牌不进图集） |
-| `home/` `room/` `info/` `battle/` | 首页、房间页、关于页、对局场地的界面底图 | 直接当图用 |
+| `info/` `battle/` | 关于页和对局场地的界面底图 | 直接当图用 |
 | `music/` | 四首循环 BGM + 三段音效，都是 m4a（AAC） | 客户端按 `/audio/music/<名字>.m4a` 取 |
 | `favicon.svg` `icon*.png` `icon.svg` `manifest.webmanifest` | 「添加到主屏幕」那一套 | **暂时没人用**，见下 |
 
@@ -30,7 +34,7 @@ favicon 和 manifest，`assets:build` 也没把它们复制进产物。留着是
 
 - **`assets/source/`**：源。改图改音频只改这里。
 - **`apps/web/public/`**：**全是 `pnpm assets:build` 的产物**，除了 `.gitkeep` 一件手写的东西都没有，
-  整批进 `.gitignore`。内容是卡面图集（`atlas/`）、界面底图（`battle/` `home/` `hero/` `info/` `room/`）
+  整批进 `.gitignore`。内容是卡面图集（`atlas/`）、界面底图（`battle/` `hero/` `info/`）
   和音频（`audio/music/`）。卡面原画不复制过来：卡一律从图集取纹理，
   复制一份等于同一张图有两个地址。
   Steam 壳和手机壳（`apps/steam`、`apps/mobile`）的 Vite 配置直接借用这个目录当 `publicDir`，

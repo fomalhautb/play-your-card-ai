@@ -15,38 +15,6 @@
 import { HEROES } from '@ai-duel/content'
 
 /**
- * 首页那张画的各层：夜空底、桌子、道具、匾额。
- *
- * 首页要等这些全部到齐才上场——浏览器是拿到一张画一张，不等的话玩家会看着
- * 夜空、桌子、道具一层层往上冒。
- */
-export const HOME_IMAGES: readonly string[] = [
-  '/home/home-bg.webp',
-  '/home/home-table.webp',
-  '/home/home-props.webp',
-  '/home/home-plaque.webp',
-]
-
-/** 房间页：底图那一套雕花切片，外加和英雄页共用的那张背景。 */
-export const ROOM_IMAGES: readonly string[] = [
-  '/hero/hero-bg.webp',
-  '/room/book.webp',
-  '/room/flourish-l.webp',
-  '/room/flourish-r.webp',
-  '/room/substar-l.webp',
-  '/room/substar-r.webp',
-  '/room/panel.webp',
-  '/room/code-plaque.webp',
-  '/room/copy-frame.webp',
-  '/room/divider.webp',
-  '/room/input-frame.webp',
-  '/room/join-btn.webp',
-  '/room/banner-deck.webp',
-  '/room/banner-hero.webp',
-  '/room/foot.webp',
-]
-
-/**
  * 选英雄页：背景加七张人物卡。
  *
  * 卡面按英雄 id 现算而不是写死文件名（「id 即文件名」，见 content 的 test/assets.test.ts）：
@@ -84,18 +52,12 @@ export const BATTLE_IMAGES: readonly string[] = [
 /**
  * 后台预加载的排队顺序，按「主流程会先用到谁」排，前一组下完才开下一组。
  *
- * 玩家的实际路径是首页 → 房间 → 选英雄 → 对局，所以房间页排第一、对局页排第三。
- * 首页那份排最后：能跑到这行代码就说明首页的闸门已经放行、那批图早在缓存里了，
- * 列它只为让「每张图都在某份清单里」这条不变量成立，实际不会真发出请求。
- * 关于页在主流程之外，和首页一起垫底。
- *
- * 清单之间重复不要紧（房间页和英雄页都含 hero-bg）：分组是串行的，
- * 排到后一组时这张已经有结果了，会被直接跳过。
+ * 玩家的实际路径是首页 → 房间 → 选英雄 → 对局。首页和房间页已经不要图了
+ *（正式版简化第 4 步把这两页剥成素方块），所以队头就是选英雄页。
+ * 关于页在主流程之外，垫底。
  */
 export const PRELOAD_GROUPS: readonly (readonly string[])[] = [
-  ROOM_IMAGES,
   HERO_IMAGES,
   BATTLE_IMAGES,
   INFO_IMAGES,
-  HOME_IMAGES,
 ]

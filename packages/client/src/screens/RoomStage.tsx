@@ -72,7 +72,6 @@ export function RoomStage({ view, platform, onAction }: RoomStageProps) {
         width: rect.width,
         height: rect.height,
         resolution: Math.min(metrics.pixelRatio, MAX_RESOLUTION),
-        platform,
       })
       if (disposed) {
         scene.destroy()

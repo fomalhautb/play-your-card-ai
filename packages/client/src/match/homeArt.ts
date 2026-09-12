@@ -1,11 +1,12 @@
 /**
- * 装首页和选英雄页要的纹理，喂给画布场景。
+ * 装首页和选英雄页要的东西，喂给画布场景。
  *
  * 和 `cardAtlas.ts` 是同一类东西的另一半：资源从哪来、走什么协议、要不要缓存都是平台的事
  *（《正式版架构》第 2 节第 5 条），场景只收一份「已经准备好的纹理」。
- * 分成两个文件是因为要的东西不一样——那边是卡面图集，这边是一张张整幅的界面图。
  *
- * 这几张图在 `preload/manifests.ts` 里都登记过，所以走到这里时浏览器缓存里已经有了，
+ * 首页那边现在只剩四张展示卡：正式版简化第 4 步把这一页剥成素方块，
+ * 夜空底、桌面弧、前景道具、匾额底图四张整幅图连同素材一起删了。
+ * 选英雄页那几张图还在 `preload/manifests.ts` 里登记着，走到这里时浏览器缓存里已经有了，
  * `Assets.load` 只是把它们解码并上传成纹理。
  */
 
@@ -14,7 +15,7 @@ import { CARDS, HEROES } from '@ai-duel/content'
 import type { CardId, HeroId } from '@ai-duel/core'
 import { tokens } from '@ai-duel/design'
 import { Assets, type Texture } from 'pixi.js'
-import { HOME_OCCLUDERS, HOME_SHOWCASE, homeArtUrl } from '../screens/homeCast'
+import { HOME_SHOWCASE } from '../screens/homeCast'
 import { loadCardTextures } from './cardAtlas'
 
 /** 三类牌的标识色，和对局那边同一份（canvas 的 scenes/duel/cardVisuals.ts）。 */
@@ -23,35 +24,10 @@ const ACCENT = {
   skill: Number.parseInt(tokens.color.accent.skill.slice(1), 16),
 }
 
-export interface HomeArt {
-  textures: {
-    background: Texture
-    table: Texture
-    props: Texture
-    plaque: Texture
-  }
-  cards: CardVisual[]
-}
-
-/** 首页要的全部纹理：那幅画的四层，加四张展示卡的卡面（后者在卡面图集里）。 */
-export async function loadHomeTextures(): Promise<HomeArt> {
-  const files = ['home-bg', ...HOME_OCCLUDERS, 'home-plaque']
-  const [atlas, ...textures] = await Promise.all([
-    loadCardTextures(),
-    ...files.map((file) => Assets.load<Texture>(homeArtUrl(file))),
-  ])
-  const at = (file: string): Texture => textures[files.indexOf(file)] ?? atlas.back
-
-  return {
-    textures: {
-      background: at('home-bg'),
-      // 这两层的顺序就是画上的层叠顺序：桌面弧在下、前景道具在上。
-      table: at(HOME_OCCLUDERS[0]),
-      props: at(HOME_OCCLUDERS[1]),
-      plaque: at('home-plaque'),
-    },
-    cards: HOME_SHOWCASE.map((id, index) => visualOf(id, index, atlas.faces, atlas.back)),
-  }
+/** 首页橱窗里那四张展示卡的展示数据。卡面在卡面图集里。 */
+export async function loadHomeCards(): Promise<CardVisual[]> {
+  const atlas = await loadCardTextures()
+  return HOME_SHOWCASE.map((id, index) => visualOf(id, index, atlas.faces, atlas.back))
 }
 
 /** 选英雄页要的：背景一张、七位英雄各一张原画。 */

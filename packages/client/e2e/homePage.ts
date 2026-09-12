@@ -7,8 +7,9 @@
  *（`pickHomeLayout`），菜单清单也在 canvas 里（`homeMenu`），
  * 所以用例直接调它们算出落点，版式改了这边自动跟着改。
  *
- * 另外要先等图：首页有一道闸门，十几张整幅图全部有结果之前只显示一条进度条
- *（见 src/screens/HomeScreen.tsx）。等的是**画布出现**，那就是闸门放行的信号。
+ * 首页从前还有一道等图闸门（十几张整幅图全部有结果之前只显示一条进度条），
+ * 正式版简化第 4 步剥成素方块之后那批图删了、闸门也没了，
+ * 所以这里等的就是画布本身——判据见下面的 `waitForScene`。
  */
 
 import { type HomeMenuId, homeMenu, pickHomeLayout } from '@ai-duel/canvas'
@@ -38,14 +39,14 @@ function menuSpot(id: HomeMenuId): { x: number; y: number } {
  * 等某一页的场景**真的建出来**了。
  *
  * 光等 `<canvas>` 出现是不够的：那个元素是 React 一挂载就放进 DOM 的，而场景要等
- * 好几个 await（装图集、装那幅画的十几层、烤 alpha 掩码）才建得起来。这中间点上去，
+ * 一个 await（装卡面图集）才建得起来。这中间点上去，
  * 点的是一块 300×150 的空画布——那是 `<canvas>` 没人管时的默认尺寸。
  *
  * 判据就是这个尺寸：Pixi 的渲染器一接手就会按 `autoDensity` 把 CSS 宽高写成视口那么大
  *（见各 *Stage 的 `resolution` 和 `autoDensity: true`）。所以「CSS 宽度不再是空的」
  * 等价于「渲染器已经接管了这块画布」，而这正是指针事件开始有人接的那一刻。
  *
- * 图集和那幅画都要现下，第一次进站要几秒，所以给足 60 秒（同对局那条用例的口径）。
+ * 图集要现下，第一次进站要几秒，所以给足 60 秒（同对局那条用例的口径）。
  */
 export async function waitForScene(page: Page, selector: string): Promise<void> {
   await page.waitForSelector(selector, { state: 'visible', timeout: 60_000 })
