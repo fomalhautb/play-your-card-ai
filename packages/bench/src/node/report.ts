@@ -50,8 +50,8 @@ export interface DeterministicRow {
 export interface DeterministicReport {
   generatedAt: string
   rows: DeterministicRow[]
-  /** 还是占位值的上限，提醒迁移第 3 条要填实。 */
-  placeholders: LimitKey[]
+  /** 上限身上还欠着账的那几条，连同欠的是什么（见 thresholds.ts 的 `Limit.todo`）。 */
+  pending: { key: LimitKey; todo: string }[]
 }
 
 const num = (value: number, digits = 2) =>
@@ -153,9 +153,9 @@ export function renderDeterministicMarkdown(report: DeterministicReport): string
       rows,
     ),
     '',
-    report.placeholders.length === 0
+    report.pending.length === 0
       ? ''
-      : `> 还是占位值的上限：${report.placeholders.join('、')}。迁移第 3 条要用真实场景的结果填实。`,
+      : `> 还欠着账的上限：${report.pending.map((one) => `${one.key}（${one.todo}）`).join('、')}。`,
     '',
   ].join('\n')
 }

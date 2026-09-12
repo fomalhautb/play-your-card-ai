@@ -58,20 +58,20 @@ function syncChrome(ctx: DuelContext, view: PlayerView): void {
 function syncHand(ctx: DuelContext, view: PlayerView): void {
   const wanted = new Map(view.self.hand.map((card) => [card.instanceId, card.cardId]))
   for (const card of [...ctx.parts.fan.all()]) {
-    if (wanted.has(card.cardId)) continue
+    if (wanted.has(card.instanceId)) continue
     const world = fanToWorld(ctx.layout, card.x, card.y, card.scale.x)
     // 先换层再从扇形里摘：位置要换算成视口坐标，留在扇形容器上就还是扇形坐标。
     ctx.parts.layers.drag.addChild(card)
     applyPose(card, { x: world.x, y: world.y, rotation: 0, scale: world.scale })
     ctx.parts.fan.remove(card)
-    ctx.leaving.set(card.cardId, {
+    ctx.leaving.set(card.instanceId, {
       card,
-      cardId: ctx.handCardIds.get(card.cardId) ?? '',
+      cardId: ctx.handCardIds.get(card.instanceId) ?? '',
       from: world,
     })
   }
 
-  const shown = new Set(ctx.parts.fan.all().map((card) => card.cardId))
+  const shown = new Set(ctx.parts.fan.all().map((card) => card.instanceId))
   const pending = new Set(ctx.pendingHand.map((entry) => entry.instanceId))
   for (const card of view.self.hand) {
     ctx.handCardIds.set(card.instanceId, card.cardId)

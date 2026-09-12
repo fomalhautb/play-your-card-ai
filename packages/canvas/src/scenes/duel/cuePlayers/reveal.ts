@@ -98,8 +98,8 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
     if (cue.source !== 'tile') return
     const point = ctx.tilePoint(cue.flipId)
     const tile = ctx.parts.board.tile(cue.flipId)
-    // 卡面身份从视图里查，不从格子上那张卡问：`CardSprite.cardId` 存的是**实例** id
-    //（扇形和战场都按它认牌），拿它当卡牌 id 会查出一张不存在的牌。
+    // 卡面身份从视图里查，不从格子上那张卡问：`CardSprite` 上只有实例 id
+    //（扇形和战场都按它认牌），它不记自己是哪张牌面。
     const cardId = ctx.cardIdOf(cue.flipId)
     if (point === null || tile === null || cardId === null) return
     dropShowcase(ctx)

@@ -11,7 +11,11 @@
  * 而手牌归 `HandFan` 管，这一层碰不到它。所以这里把两个数导出去，由场景写到扇形上——
  * 组件是哑的，不该反过来去找别人的子节点。
  *
- * 整层**吃**指针事件：点这一层的任何位置都是取消，被它盖住的东西也就顺带点不动了。
+ * 整层**不吃**指针事件（`eventMode: 'none'`），纯粹是画上去的一层。
+ *
+ * 这一条容易想反：它铺满全屏又压在最上面，直觉上该由它来接「点空白处取消」那一下。
+ * 但它盖住的正是这一步要玩家点的东西——候选格和候选手牌。它一吃事件，那些就全点不动了，
+ * 选目标于是只剩「取消」一个出口。所以取消挂在舞台上兜底，见场景的 scenes/duel/input.ts。
  */
 
 import { tokens } from '@ai-duel/design'
@@ -55,9 +59,8 @@ export class TargetingLayer extends Container {
     super()
     this.deps = deps
     this.label = 'targeting-layer'
-    // 点这一层的任何位置都是取消，所以它必须吃指针事件。回调由调用方挂在实例上。
-    this.eventMode = 'static'
-    this.cursor = 'pointer'
+    // 不接事件，指针一路穿过去打到底下的候选格 / 候选手牌上（理由见文件头）。
+    this.eventMode = 'none'
     this.addChild(this.dim, this.hintSlot)
     this.visible = false
     this.alpha = 0

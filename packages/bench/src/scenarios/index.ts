@@ -4,12 +4,13 @@
  * 6.9 的前提是「脚本化性能场景」：没有确定性的剧本，所有数字都是噪声。
  * 驱动写法是固定的——发起动作，然后一帧一帧 step() 到动作的 Promise 兑现，再推到空闲。
  *
- * 现在只有对局那三段（duel.ts）。牌组编辑滚动、开包以后各加一个文件，
+ * 现在有对局那三段（duel.ts）加一轮结算（settle.ts）。牌组编辑滚动、开包以后各加一个文件，
  * 在 SCENARIOS 里登记一下就能单独跑。
  */
 
 import type { BenchScene } from '../scene/contract'
 import { DUEL_SCENARIOS } from './duel'
+import { settle } from './settle'
 import type { FrameDriver, Scenario, ScenarioContext } from './types'
 
 export type { FrameDriver, Scenario, ScenarioContext } from './types'
@@ -86,7 +87,7 @@ export async function runIdle(driver: FrameDriver, frames: number): Promise<void
   }
 }
 
-export const SCENARIOS: Readonly<Record<string, Scenario>> = DUEL_SCENARIOS
+export const SCENARIOS: Readonly<Record<string, Scenario>> = { ...DUEL_SCENARIOS, settle }
 
 export function scenarioNames(): string[] {
   return Object.keys(SCENARIOS)

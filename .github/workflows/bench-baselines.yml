@@ -1,0 +1,54 @@
+# 手动重新生成剧本关键帧的 linux 截图基线。
+#
+# 和目录页那条（catalog-baselines.yml）是一模一样的处境，只是命令不同：基线按平台分目录，
+# darwin 那份本机 `keyframes:update` 就有了，linux 那份得有台 Linux 机器。改了场景或者
+# 改了 director 的时长之后 linux 基线一定过期，而快档只会拿它比对、比不过就红——它不生成新的。
+#
+# 单开一条而不是并进 catalog-baselines.yml：两边跑的是两个包的两条命令、时长也差一截，
+# 合在一起的话刷新目录页基线要连带等关键帧跑完，反过来也一样。
+#
+# 只生成不比对，也不往仓库里写：跑完把整个 baselines/linux 传成 artifact，
+# 人下载下来看过再提交（怎么提交见 packages/bench/README.md 的「基线怎么刷新」）。
+# 让工作流直接推提交的话，一次误触就把基线洗成了当时那一版的样子，谁都没看过。
+name: 关键帧 linux 基线
+
+on:
+  workflow_dispatch:
+
+jobs:
+  baselines:
+    runs-on: ubuntu-latest
+    # 生成和比对一样快（`toMatchSnapshot` 收的是我们自己抓好的 PNG，不重拍也不做稳定性重试），
+    # 所以这个数只按机器差别给：八条用例本机（M2）2.7 分钟，两核跑机按三倍估，再留一倍余量。
+    timeout-minutes: 25
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+
+      # 顺序不能反：setup-node 的 cache: pnpm 要先能找到 pnpm 才知道去哪儿找 store。
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 和快档一样只装 Chromium：关键帧本来就只在这一个浏览器上拍。
+      - name: 安装 Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # 卡面图集是构建产物、不进仓库，Playwright 的 globalSetup 会自己打一份。
+      # --update-snapshots 会把 baselines/linux 下的图全部重写一遍（platform 取自 process.platform）。
+      - name: 重新生成 linux 基线
+        run: pnpm --filter @ai-duel/bench keyframes:update
+
+      - name: 上传 linux 基线
+        uses: actions/upload-artifact@v4
+        with:
+          name: keyframes-baselines-linux
+          path: packages/bench/baselines/linux
