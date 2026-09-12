@@ -43,10 +43,18 @@ export function createCardPool(deps: DuelDeps, visuals: CardVisuals): CardPool {
       const reused = queue?.pop()
       if (reused !== undefined) {
         reused.label = `card:${tag}`
-        // 还回来时被压暗、被缩过，取出来要还原成一张普通的卡。
+        /*
+         * 还回来时可能正压暗着、翻着、歪着、带着影子（送回卡池那一程末尾还在淡出），
+         * 取出来要还原成一张普通的平放卡——不然下一格会拿到一张半透明的、背面朝上的牌。
+         */
         reused.alpha = 1
         reused.visible = true
         reused.rotation = 0
+        reused.setDim(0xffffff)
+        reused.setTilt(0, 0)
+        reused.flipState.angle = 0
+        reused.setFlipAngle(0)
+        reused.setLifted(false)
         return reused
       }
       const card = new CardSprite(visuals.visualOf(cardId, tag), deps.cardDeps)

@@ -1,48 +1,73 @@
 /**
  * 牌组那 20 个卡位（需求单列表 A 的**构筑档**；对局那一档是 BoardGrid）。
  *
- * 它管三件事：把 20 个格子的底画出来、把调用方给的卡摆进各自那一格、
- * 每格上挂一颗「－」用来移除。卡由**调用方建、调用方销毁**——同 BoardGrid 那边的分工，
- * 那些卡在场景里还要飞来飞去，组件只是借来摆一会儿。
+ * 它管四件事：把 20 个格子的底画出来、把调用方给的卡摆进各自那一格、每格上挂一颗「－」
+ * 用来移除、以及**纵向滚动**（桌面档 2 列 × 10 行，一屏只看得见三四格）。
+ * 卡由**调用方建、调用方销毁**——同 BoardGrid 那边的分工，那些卡在场景里还要飞来飞去，
+ * 组件只是借来摆一会儿。
  *
  * 20 颗「－」在建的时候就全建好，之后只切 `visible`：随建随销的话，每次加牌删牌都要
- * 新烤一遍圆章、新挂一次监听，而这一页恰恰是加删最频繁的地方。
+ * 新烤一遍字、新挂一次监听，而这一页恰恰是加删最频繁的地方。
  *
  * 让位（`setGap`）只改一格的底色，不动任何卡：拖拽途中让出来的那一格是**多插一个**，
  * 卡的位置由调用方按 `slotEntries` 算好再 `place` 进来（见 scenes/deck/logic/insert.ts）。
+ *
+ * ## 滚动怎么做
+ *
+ * 里面分两层：`clip` 是一块画在**窗口**上的 Graphics，`inner` 装着全部内容、滚动就是改它的 y。
+ * 两者是**兄弟**，所以遮罩不跟着内容一起滚。遮罩走 Graphics 而不是 Sprite：
+ * Pixi 按遮罩对象的类型挑实现，Graphics 走模板缓冲、不产生离屏渲染（纪律 3.1，同 RevealOverlay）。
+ * 一屏只看得见三四格，20 格全画着不划算，但格子底是一块**静态**的 Graphics（只在换版式时画一次），
+ * 被遮罩裁掉的部分不进过度绘制，所以这里不再额外做剔除。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import { CARD_HEIGHT } from '../layout/fanMath'
 import { cellCount, cellRect, type GridSpec } from '../layout/gridMath'
+import type { Animator } from '../runtime/animator'
+import { BOX_LINE, Box, type BoxDeps } from './Box'
 import type { CardSprite } from './CardSprite'
-import { SmallButton, type SmallButtonDeps } from './SmallButton'
 
 /** 空格子里那圈虚线的实线段和空档各多长。 */
 const DASH = { on: 5, off: 4 }
 /**
- * 「－」那枚圆章占格宽的多少、最小最大多大，以及它离格子右上角多远。
+ * 「－」那颗方块占格宽的多少、最小最大多大，以及它离格子右上角多远。
  *
- * 跟着格宽走而不是写死一个数：两档版式的格子差得远（桌面六七十、手机七八十），
+ * 跟着格宽走而不是写死一个数：两档版式的格子差得远（桌面 206、手机七八十），
  * 写死的话在小格子上会盖掉小半张卡。
  */
-const REMOVE = { ratio: 0.34, min: 16, max: 26, inset: 3 }
+const REMOVE = { ratio: 0.14, min: 16, max: 28, inset: 4 }
+/** 让位那一格的底色浓度。只有这一档，不换颜色。 */
+const GAP_ALPHA = 0.18
 
-export type DeckSlotsDeps = SmallButtonDeps
+export type DeckSlotsDeps = BoxDeps & { animator: Animator }
 
 export interface DeckSlotsOptions {
   grid: GridSpec
   /** 卡缩到多大（基准 150×225）。由版式给。 */
   cardScale: number
+  /** 可视窗口。给 null 就是不滚动（手机档一屏摆得下 20 格）。 */
+  view: { x: number; y: number; width: number; height: number } | null
+  /**
+   * 让位 / 收位那一下补间多久（秒）。
+   *
+   * 由调用方给而不是这里定：节奏是构筑页那一套的一部分，正本在
+   * `scenes/deck/timings.ts`（`GAP_SHIFT_DUR`）。组件不该反过来去认某个场景的节拍表。
+   */
+  shiftDur: number
   /** 点了第 index 格上的「－」。 */
   onRemove?: (index: number) => void
 }
 
 export class DeckSlots extends Container {
+  private readonly animator: Animator
+  /** 窗口那一刀。不滚动的那一档是 null。 */
+  private readonly clip: Graphics | null
+  /** 全部内容装在这一层，滚动就是改它的 y。 */
+  private readonly inner = new Container()
   private readonly plate = new Graphics()
   /**
-   * 让位那一格的金色高亮，**单独一层**。
+   * 让位那一格的高亮，**单独一层**。
    *
    * 不画在 `plate` 上是因为两者的重画频率差着数量级：20 个格子的底加一圈虚线是一千多条
    * 路径指令，而拖拽途中让位那一格几乎每挪一下就换一次。混在一起的话每换一次落点
@@ -53,7 +78,8 @@ export class DeckSlots extends Container {
   /** 卡挂在这一层，压在格子底之上、「－」之下。 */
   private readonly cardLayer = new Container()
   private readonly removeLayer = new Container()
-  private readonly removeButtons: SmallButton[] = []
+  private readonly removeButtons: Box[] = []
+  private readonly shiftDur: number
   private grid: GridSpec
   private cardScale: number
   private gap: number | null = null
@@ -62,43 +88,56 @@ export class DeckSlots extends Container {
 
   constructor(options: DeckSlotsOptions, deps: DeckSlotsDeps) {
     super()
+    this.animator = deps.animator
+    this.shiftDur = options.shiftDur
     this.grid = options.grid
     this.cardScale = options.cardScale
-    this.addChild(this.plate, this.highlight, this.cardLayer, this.removeLayer)
+    this.inner.addChild(this.plate, this.highlight, this.cardLayer, this.removeLayer)
+    this.clip = options.view === null ? null : new Graphics()
+    this.addChild(this.inner)
+    if (this.clip !== null) {
+      this.addChild(this.clip)
+      this.inner.mask = this.clip
+    }
 
     for (let index = 0; index < cellCount(options.grid); index += 1) {
-      const button = new SmallButton(
-        {
-          variant: 'J',
-          glyph: 'minus',
-          size: removeSizeOf(options.grid.cellWidth),
-          onActivate: () => options.onRemove?.(index),
-        },
-        deps,
-      )
+      const size = removeSizeOf(options.grid.cellWidth)
+      const button = new Box({ width: size, height: size, label: '－' }, deps)
+      button.onPress(() => options.onRemove?.(index))
       button.label = `deck-remove:${index}`
       button.visible = false
       this.removeLayer.addChild(button)
       this.removeButtons.push(button)
     }
     this.paint()
+    this.paintClip(options.view)
     this.placeButtons()
   }
 
   /**
    * 换网格或换卡的大小。
    *
-   * 「－」的**直径**不跟着改：它是建的时候按格宽定的，改直径要重建那 20 颗圆章。
+   * 「－」的**边长**不跟着改：它是建的时候按格宽定的，改边长要重建那 20 颗方块。
    * 场景那边改视口一律整套重建零件（见 DeckScene 的 resize），所以走不到「格子变了但钮没变」
    * 那个状态；这个方法只在建零件的最后摆一次位。
    */
-  resize(grid: GridSpec, cardScale: number): void {
+  resize(
+    grid: GridSpec,
+    cardScale: number,
+    view: { x: number; y: number; width: number; height: number } | null,
+  ): void {
     this.grid = grid
     this.cardScale = cardScale
     this.paint()
+    this.paintClip(view)
     this.paintHighlight()
     this.placeButtons()
     this.place(this.entries)
+  }
+
+  /** 滚到哪儿了。只写一个 y，一块底板都不用重画（3.10）。 */
+  scrollTo(offset: number): void {
+    this.inner.y = -offset
   }
 
   /**
@@ -106,6 +145,10 @@ export class DeckSlots extends Container {
    *
    * 组件**不建也不销毁**这些卡：调用方那边它们还要从卡池飞过来、飞回去。
    * 上一批里没再出现的那些会被摘出去（`removeChild`），交还给调用方处理。
+   *
+   * **已经在这一层里、只是换了格的那些卡补一段 `shiftDur` 的补间**：
+   * 拖拽途中让位、松手之后收位走的就是这一下，直接写坐标会让整排牌瞬移
+   *（黑客松那边这一段是 Flip 做的）。刚挂进来的那些不补——它们没有「原来在哪儿」。
    */
   place(entries: readonly (CardSprite | null)[]): void {
     const wanted = new Set(entries.filter((one): one is CardSprite => one !== null))
@@ -123,8 +166,21 @@ export class DeckSlots extends Container {
        * 卡的原点在**底边中点**（见 CardSprite 的坐标约定），所以要摆到格子的
        * 水平中线上、纵向贴着格子底边。
        */
-      card.position.set(rect.x + rect.width / 2, rect.y + CARD_HEIGHT * this.cardScale)
-      if (card.parent !== this.cardLayer) this.cardLayer.addChild(card)
+      const x = rect.x + rect.width / 2
+      const y = rect.y + CARD_HEIGHT * this.cardScale
+      if (card.parent !== this.cardLayer) {
+        card.position.set(x, y)
+        this.cardLayer.addChild(card)
+        return
+      }
+      if (card.x === x && card.y === y) return
+      this.animator.tween(card.position, {
+        x,
+        y,
+        duration: this.shiftDur,
+        ease: 'power2.out',
+        overwrite: 'auto',
+      })
     })
     // 尾巴上那些格子这一批没被提到，「－」一律收起来。
     for (let index = entries.length; index < this.removeButtons.length; index += 1) {
@@ -133,14 +189,19 @@ export class DeckSlots extends Container {
     }
   }
 
-  /** 让位：把第 gap 格的底换成金色高亮。`null` 就是收掉。 */
+  /** 让位：把第 gap 格的底换成高亮。`null` 就是收掉。 */
   setGap(gap: number | null): void {
     if (gap === this.gap) return
     this.gap = gap
     this.paintHighlight()
   }
 
-  /** 第 index 格的中心（这个容器自己的坐标）。飞行落点按它算。 */
+  /** 第 index 格里此刻摆着哪张卡。hover 和倾斜跟随按它找卡（见 scenes/deck/hover.ts）。 */
+  cardAt(index: number): CardSprite | null {
+    return this.entries[index] ?? null
+  }
+
+  /** 第 index 格的中心（这个容器自己的坐标，**不含**滚动量）。飞行落点按它算。 */
   centerOf(index: number): { x: number; y: number } {
     const rect = cellRect(this.grid, index)
     return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
@@ -161,34 +222,33 @@ export class DeckSlots extends Container {
     })
   }
 
-  /** 20 个格子的底：一层极淡的底加一圈虚线。只在换布局时画一次。 */
+  /** 20 个格子的底：一圈虚线。只在换布局时画一次。 */
   private paint(): void {
     this.plate.clear()
     for (let index = 0; index < cellCount(this.grid); index += 1) {
-      const rect = cellRect(this.grid, index)
-      this.plate
-        .roundRect(rect.x, rect.y, rect.width, rect.height, tokens.radius.sm)
-        .fill({ color: tokens.color.paper.navy, alpha: tokens.opacity.deck.slotEmpty })
-      dashedRoundRect(this.plate, rect)
-      this.plate.stroke({ width: 1, color: tokens.color.paper.line })
+      dashedRect(this.plate, cellRect(this.grid, index))
+      this.plate.stroke({ width: 1, color: BOX_LINE })
     }
   }
 
+  private paintClip(view: { x: number; y: number; width: number; height: number } | null): void {
+    if (this.clip === null || view === null) return
+    this.clip.clear().rect(view.x, view.y, view.width, view.height).fill({ color: 0xffffff })
+  }
+
   /**
-   * 让位那一格：金底加一圈金虚线，压在原来那一格上。
-   *
-   * 虚线的分段是按同一套规则算的，所以它和底下那圈灰虚线**分毫不差地重合**，
-   * 看上去就是那一格换了个颜色，不会露出两圈边。
+   * 让位那一格：一层淡底加一圈实线，压在原来那一格上。
+   * 实线盖住底下那圈虚线，看上去就是那一格「实」了，不会露出两圈边。
    */
   private paintHighlight(): void {
     this.highlight.clear()
     if (this.gap === null) return
     const rect = cellRect(this.grid, this.gap)
     this.highlight
-      .roundRect(rect.x, rect.y, rect.width, rect.height, tokens.radius.sm)
-      .fill({ color: tokens.color.theme.gold, alpha: tokens.opacity.deck.gapHighlight })
-    dashedRoundRect(this.highlight, rect)
-    this.highlight.stroke({ width: 1, color: tokens.color.theme.gold })
+      .rect(rect.x, rect.y, rect.width, rect.height)
+      .fill({ color: BOX_LINE, alpha: GAP_ALPHA })
+      .rect(rect.x + 0.5, rect.y + 0.5, rect.width - 1, rect.height - 1)
+      .stroke({ width: 1, color: BOX_LINE })
   }
 }
 
@@ -199,10 +259,9 @@ function removeSizeOf(cellWidth: number): number {
 
 /**
  * 一圈虚线。Pixi 的 Graphics 没有 dash 这回事，只能自己沿着四条边按
- *「实线段 + 空档」步进（同 SmallButton 里那颗虚线小钮）。四个角的圆角省掉——
- * 虚线本来就断着，少那点圆角看不出来，而画圆角要多算四段弧。
+ *「实线段 + 空档」步进。
  */
-function dashedRoundRect(
+function dashedRect(
   graphics: Graphics,
   rect: { x: number; y: number; width: number; height: number },
 ): void {

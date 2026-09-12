@@ -1,56 +1,66 @@
 /**
- * 玩家的手指和鼠标：从卡池拖一张进牌组、把牌组里的一张拖回卡池、点卡看大图。
+ * 玩家的手指和鼠标：滚卡池、从卡池拖一张进牌组、把牌组里的一张拖回卡池、点卡看大图。
  *
- * 点「＋」「－」那两条不在这里——它们是按钮自己的 `onActivate`，由零件表接到场景上。
- * 这里只管**拖拽**和**轻点**，也就是需要状态机的那一半。
+ * 点「＋」「－」那两条不在这里——它们是按钮自己的 `onPress`，由零件表接到场景上。
+ * 这里只管**滚动**、**拖拽**和**轻点**，也就是需要状态机的那几件事；
+ * 每一段演成什么样归 dragFx.ts，落点和合法性归 logic/。
  *
  * 三个合成入口 `pressAt / moveTo / releaseAt` 原样透出去，交互测试和 bench 剧本按它喂坐标
  *（同对局场景的 input.ts）。真指针只是多了一层 Pixi 事件系统的坐标换算，走的是同一条路。
  *
+ * ## 一次按下有三种去向
+ *
+ * 按在卡上、横着拖 → 抓牌；按在卡上、竖着划（触屏）→ 让给滚动；按在空处 → 直接滚。
+ * 判据走 `dragRules.dragGestureOf`（和对局共用），只是判成 `scroll` 之后**不再作废**，
+ * 而是把这次按下交给滚动——黑客松那边这一下是浏览器原生滚动接走的。
+ *
  * ## 牌组内不换位置
  *
  * 旧版可以在牌组栏里拖着换顺序，这一版**不做**。两个原因：
- * 一是牌序在这个游戏里不影响任何事（开局要洗牌，见 core 的 `GameSetup`），
- * 旧版留着它更多是因为 DOM 拖拽本来就顺手；
- * 二是它和「拖回卡池 = 移除」共用同一次拖拽，落点差几十像素就是两种完全相反的结果，
- * 而这一页的卡位只有六七十像素宽。所以规矩收成一条：
- * **从牌组里拖出来，松手落在牌组栏外面就是移除，落在里面就是什么都没发生。**
+ * 一是牌序在这个游戏里不影响任何事（开局要洗牌，见 core 的 `GameSetup`）；
+ * 二是它和「拖回卡池 = 移除」共用同一次拖拽，落点差几十像素就是两种完全相反的结果。
+ * 所以规矩收成一条：**从牌组里拖出来，松手落在牌组栏外面就是移除，落在里面就是什么都没发生。**
  */
 
-import type { CardId } from '@ai-duel/core'
-import type { CardSprite } from '../../components/CardSprite'
 import { DRAG_SCALE, dragGestureOf, TOUCH_HOLD_TOLERANCE } from '../../interaction/dragRules'
-import { CARD_HEIGHT } from '../../layout/fanMath'
-import { insideGrid, nearestCell } from '../../layout/gridMath'
+import { anchorFor } from './anchors'
 import type { DeckContext } from './context'
+import { followCard, liftCard } from './dragFx'
+import { type DragPress, dropBackToPool, dropHome, dropIntoDeck, endDrag } from './drop'
+import { cellAt, insideArea } from './hit'
 import { insertIndexAt } from './logic/insert'
 import { addBlockReason } from './logic/legality'
-import { renderDeckScene, shownDeck, visiblePool } from './render'
-import { addCard, currentCards, removeAt, setDrawerOpen } from './state'
+import { filteredPool, renderDeckScene, shownDeck } from './render'
+import type { ScrollState } from './scroll'
+import { addCard, currentCards, setDrawerOpen } from './state'
 
 /** 一次按下走到现在的账。松手时按它判「这是拖还是点」。 */
-interface Press {
-  /** 按下的位置。 */
+interface Press extends DragPress {
   fromX: number
   fromY: number
-  /** 按在哪张卡上。 */
-  origin: { from: 'pool' | 'deck'; cardId: CardId; index: number }
   /** 已经过了阈值、真的在拖了。 */
   dragging: boolean
   /** 从按下到现在走了多远（取最大值，不是直线距离）。 */
   moved: number
-  /** 跟着指针跑的那张卡。起拖之后才建。 */
-  ghost: CardSprite | null
-  /** 跟手那张卡缩到多大。跟手时要按它算「往下让半张卡」。 */
+  /** 跟手那张卡缩到多大（已经乘过 `DRAG_SCALE`）。 */
   ghostScale: number
   /** 触屏那一档要走「滚动优先」的判定（见 dragRules 的 scrollGuard）。 */
   scrollGuard: boolean
+}
+
+/** 一次正在跟手的滚动。 */
+interface Scrolling {
+  state: ScrollState
 }
 
 export interface DeckInput {
   pressAt(x: number, y: number, pointerType?: string): void
   moveTo(x: number, y: number): void
   releaseAt(x: number, y: number): void
+  /** 滚轮：按指针停在哪一块滚哪一块。返回真的滚动了没有。 */
+  wheelAt(x: number, y: number, deltaY: number): boolean
+  /** 逐帧推惯性，返回还有没有事情在做。 */
+  advance(deltaMs: number): boolean
   /** 还在跟手吗。帧循环靠它决定停不停（3.6）。 */
   isBusy(): boolean
   /** 拆掉：把跟手那张卡还回回收池。 */
@@ -59,6 +69,9 @@ export interface DeckInput {
 
 export function createDeckInput(ctx: DeckContext): DeckInput {
   let press: Press | null = null
+  let scrolling: Scrolling | null = null
+  /** 现在是第几毫秒。滚动的瞬时速度按它算，由 `advance` 累加——这一页没有别的时钟。 */
+  let nowMs = 0
 
   /**
    * 牌组栏现在够不够得着。
@@ -68,36 +81,55 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
    * 指针在卡池下半截一划就会「抓到」一张看不见的牌。
    */
   const slotsReachable = (): boolean => ctx.layout.drawer === null || ctx.state.drawerOpen
-
-  /**
-   * 卡池现在够不够得着。
-   *
-   * 手机档抽屉一展开就把卡池整层藏起来了（见 render.ts 的 `renderDrawer`）。
-   * 藏起来的东西不该还能被抓到——不挡的话，指针在抽屉上一划就会「抓到」底下一张看不见的牌。
-   */
+  /** 卡池现在够不够得着。手机档抽屉一展开就把卡池整层藏起来了（见 render 的 renderDrawer）。 */
   const poolReachable = (): boolean => ctx.layout.drawer === null || !ctx.state.drawerOpen
+
+  const slotView = () => ctx.layout.slotScroll?.view ?? null
+  const poolView = () => ctx.layout.poolScroll?.view ?? null
+  const inSlots = (x: number, y: number): boolean =>
+    slotsReachable() && insideArea(ctx.layout.slots, slotView(), { x, y })
+  const inPool = (x: number, y: number): boolean =>
+    poolReachable() && insideArea(ctx.layout.poolGrid, poolView(), { x, y })
 
   /** 指针底下压着哪张卡（先看牌组栏，再看卡池——牌组栏在手机档是浮在卡池上的抽屉）。 */
   const cardUnder = (x: number, y: number): Press['origin'] | null => {
     const point = { x, y }
-    if (slotsReachable() && insideGrid(ctx.layout.slots, point)) {
+    if (inSlots(x, y)) {
       const deck = shownDeck(ctx)
-      const hit = nearestCell(ctx.layout.slots, point, deck.length)
+      const hit = cellAt(ctx.layout.slots, point, deck.length, ctx.slotScroll.offset)
       const cardId = hit === null ? undefined : deck[hit.index]
-      if (hit !== null && cardId !== undefined) {
-        return { from: 'deck', cardId, index: hit.index }
-      }
+      if (hit !== null && cardId !== undefined) return { from: 'deck', cardId, index: hit.index }
       return null
     }
-    if (poolReachable() && insideGrid(ctx.layout.poolGrid, point)) {
-      const shown = visiblePool(ctx)
-      const hit = nearestCell(ctx.layout.poolGrid, point, shown.length)
-      const entry = hit === null ? undefined : shown[hit.index]
+    if (inPool(x, y)) {
+      const all = filteredPool(ctx)
+      const hit = cellAt(ctx.layout.poolGrid, point, all.length, ctx.poolScroll.offset)
+      const entry = hit === null ? undefined : all[hit.index]
       if (hit !== null && entry !== undefined) {
         return { from: 'pool', cardId: entry.cardId, index: hit.index }
       }
     }
     return null
+  }
+
+  /** 指针停在哪一块滚动区上。两块都不在（或者那一档根本不滚）就是 null。 */
+  const scrollUnder = (x: number, y: number): ScrollState | null => {
+    if (slotView() !== null && inSlots(x, y)) return ctx.slotScroll
+    if (poolView() !== null && inPool(x, y)) return ctx.poolScroll
+    return null
+  }
+
+  /** 跟手那张卡在哪档缩放上。卡池那张本来就画得大，拖起来不该突然缩成卡位那么小。 */
+  const dragScaleOf = (from: 'pool' | 'deck'): number =>
+    from === 'pool' ? ctx.layout.poolCardScale : ctx.layout.slotCardScale
+
+  /** 让跟手那张卡贴着指针：卡的原点在底边中点，所以要往下让半张卡高。 */
+  const follow = (state: Press, x: number, y: number): void => {
+    const ghost = state.ghost
+    if (ghost === null) return
+    const point = anchorFor(x, y, state.ghostScale)
+    followCard(ctx.animator, ghost, point.x, point.y)
+    ctx.wake()
   }
 
   /** 起拖：建一张跟手的卡，原位空出来。 */
@@ -108,67 +140,34 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
      * 手机档：从卡池抓起一张牌，抽屉**自己升起来**。
      *
      * 不这么做的话这一档根本拖不动——抽屉收着时牌组栏在屏幕外面，而它一旦展开又盖住了卡池，
-     * 玩家永远没法「一手抓着卡、一眼看见要放哪儿」。抓起来那一刻就升，
-     * 比「拖到屏幕底边再升」更好猜：不用摸索到某条看不见的线才有反应。
-     * 放完不自动收回去——刚加进去的那张就在眼前，多半还想接着看看。
+     * 玩家永远没法「一手抓着卡、一眼看见要放哪儿」。放完不自动收回去：刚加进去的那张就在眼前。
      */
     if (state.origin.from === 'pool' && ctx.layout.drawer !== null && !ctx.state.drawerOpen) {
       ctx.state = setDrawerOpen(ctx.state, true)
     }
     const ghost = ctx.holdCard(state.origin.cardId, `drag:${state.origin.cardId}`)
-    state.ghostScale = dragScaleOf(state.origin.from) * DRAG_SCALE
-    ghost.scale.set(state.ghostScale)
+    const base = dragScaleOf(state.origin.from)
+    state.ghostScale = base * DRAG_SCALE
+    const start = anchorFor(state.fromX, state.fromY, state.ghostScale)
+    ghost.position.set(start.x, start.y)
+    liftCard(ctx.animator, ghost, base, base)
     ctx.parts.layers.drag.addChild(ghost)
     state.ghost = ghost
     follow(state, x, y)
     renderDeckScene(ctx)
   }
 
-  /** 跟手那张卡在哪档缩放上。卡池那张本来就画得大，拖起来不该突然缩成卡位那么小。 */
-  const dragScaleOf = (from: 'pool' | 'deck'): number =>
-    from === 'pool' ? ctx.layout.poolCardScale : ctx.layout.slotCardScale
-
-  /**
-   * 让跟手那张卡贴着指针。
-   *
-   * 卡的原点在**底边中点**（见 CardSprite 的坐标约定），所以要往下让半张卡高，
-   * 卡心才落在指针上。半张卡的高按**基准尺寸乘缩放**算，不问包围盒——
-   * 包围盒在倾斜和翻面期间每帧都在变，拿它算落点会让卡在拖的过程中飘。
-   */
-  const follow = (state: Press, x: number, y: number): void => {
-    const ghost = state.ghost
-    if (ghost === null) return
-    ghost.position.set(x, y + (CARD_HEIGHT * state.ghostScale) / 2)
-    ctx.wake()
-  }
-
-  /** 收掉跟手那张卡，恢复「没在拖」。 */
-  const endDrag = (state: Press): void => {
-    if (state.ghost !== null) ctx.releaseCard(state.ghost, state.origin.cardId)
-    state.ghost = null
-    ctx.dragging = null
-    ctx.gap = null
-  }
-
-  /** 真的把一张牌加进牌组。加不进去的时候一个字都不改，界面上那句话由提示条说。 */
-  const commitAdd = (cardId: CardId, at: number): boolean => {
-    const entry = ctx.pool.find((one) => one.cardId === cardId)
-    const blocked = addBlockReason({
-      deck: currentCards(ctx.state),
-      cardId,
-      rules: ctx.rules,
-      blockedReason: entry?.blockedReason ?? null,
-    })
-    if (blocked !== null) return false
-    ctx.state = addCard(ctx.state, cardId, at)
-    ctx.emitChange()
-    return true
-  }
-
   return {
     pressAt(x, y, pointerType = 'mouse') {
       const origin = cardUnder(x, y)
-      if (origin === null) return
+      if (origin === null) {
+        // 按在空处：直接跟手滚。按在卡上的那一条要等方向判出来才知道是拖还是滚。
+        const state = scrollUnder(x, y)
+        if (state === null) return
+        state.beginDrag(y, nowMs)
+        scrolling = { state }
+        return
+      }
       press = {
         fromX: x,
         fromY: y,
@@ -178,7 +177,7 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
         ghost: null,
         ghostScale: 1,
         /*
-         * 卡池是一块能翻页的网格，触屏上手指落点几乎必然压在某张卡上，
+         * 卡池是一块能滚的网格，触屏上手指落点几乎必然压在某张卡上，
          * 所以那一档走「滚动优先」的判定（见 dragRules 的 scrollGuard）。
          * 鼠标不受影响：`dragGestureOf` 只在 scrollGuard 为真时才分方向。
          */
@@ -187,6 +186,10 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
     },
 
     moveTo(x, y) {
+      if (scrolling !== null) {
+        if (scrolling.state.dragTo(y, nowMs)) renderDeckScene(ctx)
+        return
+      }
       const state = press
       if (state === null) return
       const dx = x - state.fromX
@@ -194,9 +197,18 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
       state.moved = Math.max(state.moved, Math.hypot(dx, dy))
       if (!state.dragging) {
         const gesture = dragGestureOf({ dx, dy, scrollGuard: state.scrollGuard })
-        // 判成滚动：这次按下整个作废（手指是在翻页，不是要抓牌）。
         if (gesture === 'scroll') {
+          /*
+           * 判成滚动：这次按下改判给滚动，而不是像从前那样整个作废。
+           * 起点用**按下那一刻**的位置，中间这段位移因此不会被吃掉——手指划到哪儿，
+           * 内容就跟到哪儿（黑客松那边这一下是浏览器原生滚动接走的）。
+           */
           press = null
+          const area = scrollUnder(state.fromX, state.fromY)
+          if (area === null) return
+          area.beginDrag(state.fromY, nowMs)
+          scrolling = { state: area }
+          if (area.dragTo(y, nowMs)) renderDeckScene(ctx)
           return
         }
         if (gesture !== 'drag') return
@@ -209,12 +221,12 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
        * **从牌组里拖出来的那张不让位**——它本来就占着一格，再让一格等于凭空多出一个空位。
        */
       const gap =
-        state.origin.from === 'pool' && slotsReachable() && insideGrid(ctx.layout.slots, { x, y })
+        state.origin.from === 'pool' && inSlots(x, y)
           ? insertIndexAt({
               grid: ctx.layout.slots,
               deckLength: currentCards(ctx.state).length,
               gap: ctx.gap,
-              point: { x, y },
+              point: { x, y: y + ctx.slotScroll.offset },
             })
           : null
       if (gap === ctx.gap) return
@@ -223,6 +235,12 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
     },
 
     releaseAt(x, y) {
+      if (scrolling !== null) {
+        scrolling.state.endDrag()
+        scrolling = null
+        ctx.wake()
+        return
+      }
       const state = press
       press = null
       if (state === null) return
@@ -233,47 +251,49 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
          * 触屏上「斜着划了一大段、两条阈值都没过」不该算点击，所以那一档要再看一眼位移。
          */
         const tapped = !state.scrollGuard || state.moved <= TOUCH_HOLD_TOLERANCE
-        if (tapped) ctx.emitInspect(state.origin.cardId)
+        if (tapped) ctx.emitInspect(state.origin)
         return
       }
 
-      const inside = slotsReachable() && insideGrid(ctx.layout.slots, { x, y })
-      const gap = ctx.gap
-      endDrag(state)
-
       if (state.origin.from === 'pool') {
-        // 落在牌组栏里才是加牌；落点用让位那一格（它就是玩家瞄着的地方）。
-        if (inside) {
-          const at =
-            gap ??
-            insertIndexAt({
-              grid: ctx.layout.slots,
-              deckLength: currentCards(ctx.state).length,
-              gap: null,
-              point: { x, y },
-            })
-          commitAdd(state.origin.cardId, at)
-        }
-      } else if (!inside) {
-        // 从牌组里拖出来、松手落在栏外：这是移除。落在栏里就是什么都没发生（不换位置）。
-        ctx.state = removeAt(ctx.state, state.origin.index)
-        ctx.emitChange()
+        if (inSlots(x, y)) dropIntoDeck(ctx, state, x, y)
+        else dropHome(ctx, state)
+        return
       }
-      renderDeckScene(ctx)
+      // 从牌组里拖出来：松手落在栏外是移除，落在栏里是什么都没发生（不换位置）。
+      if (inSlots(x, y)) dropHome(ctx, state)
+      else dropBackToPool(ctx, state)
     },
 
-    isBusy: () => press?.dragging === true,
+    wheelAt(x, y, deltaY) {
+      const state = scrollUnder(x, y)
+      if (state === null || !state.scrollBy(deltaY)) return false
+      renderDeckScene(ctx)
+      return true
+    },
+
+    advance(deltaMs) {
+      nowMs += deltaMs
+      let busy = false
+      if (ctx.poolScroll.advance(deltaMs)) busy = true
+      if (ctx.slotScroll.advance(deltaMs)) busy = true
+      if (busy) renderDeckScene(ctx)
+      return busy || press?.dragging === true
+    },
+
+    isBusy: () => press?.dragging === true || scrolling !== null,
 
     destroy() {
-      if (press !== null) endDrag(press)
+      if (press !== null) endDrag(ctx, press)
       press = null
+      scrolling = null
     },
   }
 }
 
-/** 点卡池第 index 格的「＋」：按当前这一页的第一格插进去。落点口径见 logic/pagination.ts。 */
+/** 点卡池第 index 张的「＋」：按当前视野里第一格插进去。落点口径见 scroll.ts。 */
 export function addFromPool(ctx: DeckContext, index: number, at: number): boolean {
-  const entry = visiblePool(ctx)[index]
+  const entry = filteredPool(ctx)[index]
   if (entry === undefined) return false
   const blocked = addBlockReason({
     deck: currentCards(ctx.state),
@@ -281,7 +301,10 @@ export function addFromPool(ctx: DeckContext, index: number, at: number): boolea
     rules: ctx.rules,
     blockedReason: entry.blockedReason,
   })
-  if (blocked !== null) return false
+  if (blocked !== null) {
+    ctx.refuse(entry.cardId, null)
+    return false
+  }
   ctx.state = addCard(ctx.state, entry.cardId, at)
   ctx.emitChange()
   renderDeckScene(ctx)

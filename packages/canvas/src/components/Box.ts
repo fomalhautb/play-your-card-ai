@@ -91,6 +91,8 @@ export class Box extends Container {
   private readonly size: BoxSize
   private readonly align: 'center' | 'left'
   private text: Sprite | null = null
+  /** 现在印着哪一行字。用来挡住「内容没变还重建一次」，见 setLabel。 */
+  private content: string | null = null
   private press: (() => void) | null = null
   private disabled = false
 
@@ -112,8 +114,14 @@ export class Box extends Container {
    *
    * 换的是整张纹理（同 `Label`：烤好的字没有能改内容的东西），所以别在动画期间调它。
    * 这一批界面一局只变几次状态，都不在动画期间。
+   *
+   * **内容没变就一个字都不动**。构筑页每重排一次画面就会把每一行字都问一遍
+   *（拖拽途中让一次位就是一轮），不挡住的话每帧都在建精灵——纪律 3.10 那条
+   *「稳态每帧堆分配接近 0」量的正是这个。纹理本身走缓存，重建的只是精灵。
    */
   setLabel(content: string): void {
+    if (content === this.content) return
+    this.content = content
     const before = this.text
     if (before !== null) {
       this.removeChild(before)

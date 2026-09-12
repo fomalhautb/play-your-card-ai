@@ -18,6 +18,10 @@
  * 「已选 N / 20」和进度条排在**最上面**（收起来时露出来的就是它们），
  * 页签、管理行、卡位、确认钮排在下面。
  * 这样开关抽屉只是写一个 y，一块底板都不用重画（3.10）。
+ *
+ * 这一档**不缩放、不滚动**：舞台坐标就是视口坐标（`stage.scale` 恒为 1），
+ * 卡池翻页、20 个卡位一屏摆下。桌面档那两样（死版式整块缩放、两块纵向滚动区）
+ * 是它自己的事，见 desktopLayout.ts——两档并列，这次一个数都没动。
  */
 
 import { tokens } from '@ai-duel/design'
@@ -142,6 +146,9 @@ export function mobileLayout(width: number, height: number): DeckLayout {
     tier: 'mobile',
     width,
     height,
+    // 这一档按视口实算，舞台就是视口本身，所以不缩放也没有偏移。
+    viewport: { width, height },
+    stage: { scale: 1, x: 0, y: 0 },
     topBarHeight,
     back: { x: PAGE_PAD, y: (topBarHeight - 20) / 2 },
     // 手机档标题紧挨着返回钮，没有副标题的地方。
@@ -149,13 +156,11 @@ export function mobileLayout(width: number, height: number): DeckLayout {
     pool,
     poolHead,
     poolKinds: { x: poolHead.x + HEAD_PAD, y: poolHead.y + POOL_HEAD_HEIGHT / 2 },
-    // 靠左另起一行，所以 right 给 null。
-    poolFactions: {
-      x: poolHead.x + HEAD_PAD,
-      y: poolHead.y + POOL_HEAD_HEIGHT * 1.5,
-      right: null,
-    },
+    // 靠左另起一行。
+    poolFactions: { x: poolHead.x + HEAD_PAD, y: poolHead.y + POOL_HEAD_HEIGHT * 1.5 },
     poolGrid,
+    // 这一档翻页，不滚动。
+    poolScroll: null,
     poolHint,
     pager: {
       prev: { x: pool.x + INNER_PAD, y: pagerY + 2 },
@@ -172,6 +177,8 @@ export function mobileLayout(width: number, height: number): DeckLayout {
     tally: { x: rowX + 72, y: tallyY },
     progress,
     slots,
+    // 4 列 × 5 行正好 20 格，一屏摆得下，不滚动。
+    slotScroll: null,
     sideHint,
     confirm: { x: side.x + side.width / 2, y: confirmY + CONFIRM_HEIGHT / 2 },
     slotCardScale: cardScaleFor(slotCell),

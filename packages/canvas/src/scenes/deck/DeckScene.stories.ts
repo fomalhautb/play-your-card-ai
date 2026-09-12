@@ -85,6 +85,10 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frame: 
  * 走的是场景对外那三个合成入口（`pressAt / moveTo / releaseAt`），
  * 和交互测试、bench 剧本喂的是同一条路——**不松手**，画面就停在让位那一刻。
  * 坐标按版式现算：两档的卡池和牌组栏位置差得远，写死一组数只有一档对得上。
+ *
+ * 算出来的是**舞台坐标**，而那三个入口收的是**视口坐标**（见 DeckScene 的文件头），
+ * 所以要自己乘回缩放、加上居中偏移。桌面档 1280×800 下缩放是 0.7656，
+ * 不换算的话落点会偏到别处去。
  */
 function dragFirstCard(
   scene: ReturnType<typeof mountDeckScene>,
@@ -92,15 +96,19 @@ function dragFirstCard(
 ): void {
   // 条目自己算一遍版式：场景内部那份不对外露，而这里只要几个坐标。判据是同一条。
   const layout = pickDeckLayout(size.width, size.height, false)
-  const from = {
-    x: layout.poolGrid.x + layout.poolGrid.cellWidth / 2,
-    y: layout.poolGrid.y + layout.poolGrid.cellHeight / 2,
-  }
+  const toView = (x: number, y: number) => ({
+    x: x * layout.stage.scale + layout.stage.x,
+    y: y * layout.stage.scale + layout.stage.y,
+  })
+  const from = toView(
+    layout.poolGrid.x + layout.poolGrid.cellWidth / 2,
+    layout.poolGrid.y + layout.poolGrid.cellHeight / 2,
+  )
   // 落在牌组栏第 3 格附近：前面已经有几张牌，让位那一格因此夹在中间，看得出来。
-  const slotCenter = {
-    x: layout.slots.x + layout.slots.cellWidth / 2,
-    y: layout.slots.y + layout.slots.cellHeight * 1.5 + layout.slots.gapY,
-  }
+  const slotCenter = toView(
+    layout.slots.x + layout.slots.cellWidth / 2,
+    layout.slots.y + layout.slots.cellHeight * 1.5 + layout.slots.gapY,
+  )
   scene.pressAt(from.x, from.y)
   // 分两步走：第一步过起拖阈值，第二步才是真正的落点。
   scene.moveTo(from.x + 40, from.y)
@@ -112,8 +120,16 @@ function spec(size: { width: number; height: number }, frame: Frame) {
     pixi: {
       ...size,
       needsAtlas: true,
-      // 这一页没有开场动画，挂完就是最终画面，不用步进。
-      settleMs: 0,
+      /*
+       * 推到 0.4 秒再拍。
+       *
+       * 这一页没有开场动画，但「拖入让位」那一帧有三段补间要落定：抓起的姿态
+       *（`DRAG_POSE_DUR` 0.25）、跟手（`DRAG_FOLLOW_DUR` 0.18）、整排让位
+       *（`GAP_SHIFT_DUR` 0.22，见 scenes/deck/timings.ts）。不推的话拍到的是
+       * 牌还停在原格、让出来的那一格还没让开的半路画面。
+       * 另外两帧没有补间，推多少步画面都一样。
+       */
+      settleMs: 400,
       mount: (ctx: StoryStage) => mount(ctx, size, frame),
     },
   }

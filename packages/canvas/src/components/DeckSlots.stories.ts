@@ -17,6 +17,7 @@ import { Graphics } from 'pixi.js'
 import { bakeUiTextures } from '../fx/uiTextures'
 import type { GridSpec } from '../layout/gridMath'
 import { TextTextureCache } from '../runtime/textCache'
+import { GAP_SHIFT_DUR } from '../scenes/deck/timings'
 import { storyCard, storyDeps } from '../storyCards'
 import type { StoryStage } from '../storyStage'
 import type { CardSprite } from './CardSprite'
@@ -38,7 +39,7 @@ const GRID: GridSpec = {
 /** 卡按格宽缩：格宽 88 ÷ 卡宽 150。 */
 const CARD_SCALE = GRID.cellWidth / 150
 
-const SILENT_PLATFORM = createFakePlatform()
+const _SILENT_PLATFORM = createFakePlatform()
 
 function mount(ctx: StoryStage, filled: number, gap: number | null) {
   const ui = bakeUiTextures(ctx.renderer)
@@ -50,8 +51,9 @@ function mount(ctx: StoryStage, filled: number, gap: number | null) {
   )
 
   const slots = new DeckSlots(
-    { grid: GRID, cardScale: CARD_SCALE },
-    { ui, text, animator: ctx.animator, platform: SILENT_PLATFORM, clickSound: null },
+    // 这条条目拍的是手机档那一套（4 列 × 5 行一屏摆下），所以不滚动。
+    { grid: GRID, cardScale: CARD_SCALE, view: null, shiftDur: GAP_SHIFT_DUR },
+    { text, animator: ctx.animator },
   )
   ctx.stage.addChild(slots)
 

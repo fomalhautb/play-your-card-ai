@@ -60,6 +60,8 @@ const GLARE_EPS = 0.002
 export class CardTilt {
   private readonly card: CardSprite
   private readonly enabled: boolean
+  /** 这张卡最多歪多少度。 */
+  private readonly maxDeg: number
 
   /** 目标值和当前值：绕 Y、绕 X 的角度（度），以及高光的亮度。 */
   private targetY = 0
@@ -71,9 +73,15 @@ export class CardTilt {
   /** 收手时用更快的时间常数，和旧版的 RESET_DUR 对应。 */
   private releasing = true
 
-  constructor(card: CardSprite, enabled: boolean) {
+  /**
+   * @param maxDeg 最多歪多少度。不给就走手牌那一档——对局页的手牌和战场小卡都用它。
+   *   构筑页三处各有各的角度（卡池 6、格子 5、放大 5，见 scenes/deck/timings.ts）：
+   *   同样的角度在小卡上看着更夸张，一屏几十张一起歪就是整片都在晃。
+   */
+  constructor(card: CardSprite, enabled: boolean, maxDeg: number = HOVER_TILT_DEG) {
     this.card = card
     this.enabled = enabled
+    this.maxDeg = maxDeg
   }
 
   /** 指针压在卡面上的相对位置（左上角是 0,0，右下角是 1,1）。 */
@@ -84,8 +92,8 @@ export class CardTilt {
     this.releasing = false
     // 指针在哪边，哪边就往屏幕里陷下去，像用手指把卡牌那一角按住往下按。
     // 符号：正的绕 X 让上沿往后倒、正的绕 Y 让右沿往后倒，所以指针在下半部配负的绕 X。
-    this.targetX = -(ry - 0.5) * 2 * HOVER_TILT_DEG
-    this.targetY = (rx - 0.5) * 2 * HOVER_TILT_DEG
+    this.targetX = -(ry - 0.5) * 2 * this.maxDeg
+    this.targetY = (rx - 0.5) * 2 * this.maxDeg
     this.targetGlare = GLARE_ALPHA
     /*
      * 光心不做平滑，直接跟手：它本来就该和指针一样跟手（只是取的是镜像点），

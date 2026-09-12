@@ -13,7 +13,19 @@
 
 import { type Container, Graphics } from 'pixi.js'
 import { CANVAS_BACKGROUND } from '../../components/Box'
-import type { DuelLayout } from './layout/types'
+
+/**
+ * 画这一圈要知道的全部：舞台多大、缩放居中之后落在视口的哪儿。
+ *
+ * 写成结构类型而不是收 `DuelLayout`：构筑页桌面档也是一块死版式整块缩放（见
+ * scenes/deck/layout/desktopLayout.ts），两页要的是同一圈挡边，没必要各画一份。
+ */
+export interface StageFrameLayout {
+  width: number
+  height: number
+  viewport: { width: number; height: number }
+  stage: { scale: number; x: number; y: number }
+}
 
 /** 四条边的顺序：上、下、左、右。只是给下面那个循环起个名字。 */
 const EDGES = 4
@@ -31,7 +43,7 @@ const EDGES = 4
 export function paintStageFrame(
   backdrop: Graphics | null,
   letterbox: Container,
-  layout: DuelLayout,
+  layout: StageFrameLayout,
 ): void {
   const { viewport, stage, width, height } = layout
   backdrop?.clear().rect(0, 0, viewport.width, viewport.height).fill({ color: CANVAS_BACKGROUND })
