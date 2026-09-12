@@ -7,12 +7,13 @@
  *
  * 目录：
  * - `app/`：应用壳（路由表、平台能力和当前对局两个 Context）；
- * - `screens/`：屏幕（首页、选英雄、开包、房间、对局），画布里那一套由各自的 *Stage 接线；
+ * - `screens/`：屏幕（首页、选英雄、开包、房间、对局、加载页，以及设置 / 账号 / 关于
+ *   三个文字页），画布里那一套由各自的 *Stage 接线；
  * - `match/`：对局驱动（本地和联机两种）和纹理加载，屏幕只认 driver 这一个接口；
  * - `net/`：大厅和房间的 WebSocket 客户端、会话；
  * - `save/`：本机存档（收藏和胜场、牌组），走 `platform.storage`；
  * - `audio/`：音效表、背景音乐、静音开关，走 `platform.audio`；
- * - `preload/`：图片清单和首屏闸门，走 `platform.images`；
+ * - `preload/`：图片清单、首屏闸门和后台队列，走 `platform.images`；
  * - `dev/`：开发专用页面（组件目录页、调试场景），生产构建剔除。
  *
  * 这几个模块一律不直接碰 `localStorage`、`Audio`、`Image`——平台差异全在 `platform` 里，
@@ -29,6 +30,7 @@
 export { createWebPlatform } from '@ai-duel/platform'
 export { App } from './App'
 export type { MatchMode } from './app/MatchSession'
+export { applyReducedMotion } from './app/reducedMotion'
 export type { MusicTrack } from './audio/music'
 export { currentTrack, MUSIC_TRACKS, onTrackReplay, playTrack, stopMusic } from './audio/music'
 export { restoreMuted, setMuted, toggleMuted, useMuted } from './audio/mute'
@@ -71,6 +73,7 @@ export {
 } from './preload/manifests'
 export type { PreloadState } from './preload/preload'
 export { PRELOAD_STALL_MS, preloadAll, preloadInBackground, preloadState } from './preload/preload'
+export { useAssets, useBackgroundPreload } from './preload/useAssets'
 export type { DecksData, SavedDeck } from './save/deckStore'
 export {
   createDeck,
@@ -92,4 +95,5 @@ export {
   resetSave,
   saveHero,
   saveOwnedOrder,
+  setReducedMotion,
 } from './save/saveStore'

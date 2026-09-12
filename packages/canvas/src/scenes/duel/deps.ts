@@ -26,6 +26,13 @@ export interface DuelDeps {
   clickSound: SoundSpec | null
   rng: Rng
   tier: EffectTier
+  /**
+   * 玩家要求「减少动效」。组件照它关掉会动的东西：落地震屏（HitFx）、
+   * 卡面跟指针跑的倾斜和反光（`cardDeps.glare`）。
+   * 它**不是**效果档位的一部分——档位按 GPU 能力分，这一条按玩家的意愿分，
+   * 高端机上照样可能是开着的。
+   */
+  reducedMotion: boolean
   /** 牌背。`FoeHand` 只要这一张，别的组件用不到。 */
   back: Texture
   /** 建卡要的那三样。预热和对局共用同一份，两条路建出来的卡才是一样的。 */
@@ -45,6 +52,8 @@ export interface DuelDepsOptions {
    * 而它是**整张卡那么大的一层**——一屏二三十张卡，白画一遍就是零点几倍的过度绘制（3.2）。
    */
   glare?: boolean
+  /** 见 `DuelDeps.reducedMotion`。不给就是没开。 */
+  reducedMotion?: boolean
   /** 补间一建就要叫醒帧循环，否则没人推它（3.6）。 */
   wake: () => void
 }
@@ -60,6 +69,7 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
   // 写在一个对象字面量里引用不到自己刚建的那两项。
   const baked = bakeTextures(options.renderer)
   const text = new TextTextureCache(options.renderer)
+  const reducedMotion = options.reducedMotion === true
   return {
     ui: bakeUiTextures(options.renderer),
     baked,
@@ -69,8 +79,14 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
     clickSound: null,
     rng: new Rng(options.seed),
     tier: options.tier,
+    reducedMotion,
     back: options.back,
-    cardDeps: { baked, text, glare: options.glare ?? TIER_CONFIG[options.tier].glare },
+    cardDeps: {
+      baked,
+      text,
+      // 减少动效时反光层整个不建：它跟着倾斜一起动，而倾斜正是这一档要关掉的东西。
+      glare: !reducedMotion && (options.glare ?? TIER_CONFIG[options.tier].glare),
+    },
   }
 }
 

@@ -16,6 +16,18 @@
  * 建的时候把座位焊死的。整个重挂而不是加一个「换座位」的方法——那要让场景和编排层
  * 各自多一条只有热座会走的分支，而重挂之后场景自己的兜底对账会把画面摆到正确的样子
  *（契约里「中途接手一局」走的就是那条路）。
+ *
+ * ## `<canvas>` 由这个 effect 自己建，不写在 JSX 里
+ *
+ * Pixi 的 `renderer.destroy()` 会把这块画布的 WebGL 上下文**永久**丢掉，
+ * 同一个 `<canvas>` 元素上再取上下文拿到的还是那个已丢的，新场景什么都画不出来。
+ * 而开发构建下 StrictMode 会把每个 effect 跑两遍（建 → 拆 → 再建），
+ * 于是第二遍必然落在一块已经废掉的画布上——表现是画面空着、点哪儿都没反应，
+ * 而且**时有时无**：第一遍要是还没来得及建出渲染器就被拆掉，反倒没事。
+ *
+ * 写在 JSX 里没法躲开这一条（React 的 `key` 只换 DOM 元素，不影响 StrictMode 重跑 effect），
+ * 所以画布改成在 effect 里现建、清理时连元素一起摘掉：每一轮都是一块全新的画布。
+ * 房间页（`RoomStage`）早一步就是这么做的，这里跟上。
  */
 
 import {
@@ -70,8 +82,23 @@ export interface DuelStageProps {
   onLeave(): void
   /** 顶栏那颗静音钮。 */
   onToggleMute(): void
+  /**
+   * 右下角那颗「催一催」。等对方出牌时它才在场（场景按 `waitingForFoe` 切）。
+   *
+   * 喊哪一句由这一层挑（`pickUrgeId`），场景挑不了——喊话文案在 `content` 里，
+   * 而 canvas 不依赖 content。挑好之后 `driver.urge(id)` 发出去，
+   * 喊话回到两端时走的是另一条路（`useMatchUrge` → `director.userAction`）。
+   */
+  onUrge(): void
   /** 效果档位，不给就是默认那一档。只有开发页会传（它要现场切档看差别）。 */
   tier?: EffectTier
+  /**
+   * 玩家在设置页要求「减少动效」：场景据此关掉落地震屏和卡面跟指针跑的倾斜 / 反光。
+   *
+   * 由调用方现读存档（`loadSave(platform).reducedMotion`）：这一层不认识存档，
+   * 而这一位一局之内不会变——设置页在另一条路由上，进那一页就等于离开了这一局。
+   */
+  reducedMotion?: boolean
   /**
    * 把场景句柄透给外面。只给开发页用——它要读渲染计数和帧率（`scene.counters()`）。
    * 正式界面不该拿到这个句柄：拿到了就会有人绕过这里直接去调场景。
@@ -86,11 +113,12 @@ export function DuelStage({
   status = null,
   onLeave,
   onToggleMute,
+  onUrge,
   tier = DEFAULT_TIER,
+  reducedMotion = false,
   sceneRef: outerSceneRef,
 }: DuelStageProps) {
   const hostRef = useRef<HTMLDivElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const sceneRef = useRef<DuelScene | null>(null)
   const directorRef = useRef<Director | null>(null)
   /** 已经摆给场景的那一份视图。同一份不重复摆（两条路都会送过来，见下面）。 */
@@ -111,13 +139,15 @@ export function DuelStage({
    * 两颗钮的回调存 ref：它们每次渲染都是新函数，而场景是建的时候把它们焊进去的。
    * 不存 ref 的话要么场景每渲染一次就重建，要么按钮永远调的是第一次那一版闭包。
    */
-  const handlers = useRef({ onLeave, onToggleMute })
-  handlers.current = { onLeave, onToggleMute }
+  const handlers = useRef({ onLeave, onToggleMute, onUrge })
+  handlers.current = { onLeave, onToggleMute, onUrge }
 
   useEffect(() => {
     const host = hostRef.current
-    const canvas = canvasRef.current
-    if (host === null || canvas === null) return
+    if (host === null) return
+    // 每一轮一块全新的画布，理由见文件头。
+    const canvas = document.createElement('canvas')
+    host.appendChild(canvas)
 
     let disposed = false
     let raf = 0
@@ -143,8 +173,10 @@ export function DuelStage({
         coarsePointer: platform.safeArea.isCoarsePointer(),
         // 时钟归这条帧循环推，见文件头第 2 条。
         manualClock: true,
+        reducedMotion,
         onLeave: () => handlers.current.onLeave(),
         onToggleMute: () => handlers.current.onToggleMute(),
+        onUrge: () => handlers.current.onUrge(),
       })
       if (disposed) {
         scene.destroy()
@@ -209,10 +241,11 @@ export function DuelStage({
       directorRef.current = null
       appliedRef.current = null
       if (outerSceneRef !== undefined) outerSceneRef.current = null
+      canvas.remove()
       setReady(false)
     }
     // 依赖里这几样都是建场景和编排层时焊死的，换了任何一样都要整套重建。
-  }, [driver, platform, seat, tier, outerSceneRef])
+  }, [driver, platform, seat, tier, reducedMotion, outerSceneRef])
 
   /**
    * 摆一份视图。两条路都会送过来（事件批和快照），同一份只摆一次。
@@ -268,12 +301,6 @@ export function DuelStage({
 
   return (
     <div className="duel-stage" ref={hostRef}>
-      {/*
-        key 挂 tier：换档位时让 React 换一个全新的 <canvas>，而不是在旧的上面重建场景。
-        Pixi 的 renderer.destroy() 会把这个 canvas 的 WebGL 上下文永久丢掉，
-        同一个元素上再取上下文拿到的还是那个已丢的，新场景画不出东西。
-      */}
-      <canvas key={tier} ref={canvasRef} />
       {error === null ? null : <p className="duel-stage__error">对局起不来：{error}</p>}
     </div>
   )

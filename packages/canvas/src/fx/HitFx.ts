@@ -38,6 +38,13 @@ export interface HitFxOptions {
   baked: BakedTextures
   rng: Rng
   tier: EffectTier
+  /**
+   * 玩家要求「减少动效」：不震屏。
+   *
+   * 和效果档位分开的两条理由：档位按 GPU 能力分（低档也照样震，那一下不花钱），
+   * 这一条按玩家的意愿分；而且要关掉的只有**位移**那一样，烟尘和亮环是原地的，留着。
+   */
+  reducedMotion?: boolean
 }
 
 /** 一次命中特效落在哪儿、多大范围。 */
@@ -96,7 +103,7 @@ export class HitFx {
    */
   play(target: HitFxTarget): number {
     const config = TIER_CONFIG[this.options.tier]
-    if (config.screenShake) this.shake()
+    if (config.screenShake && this.options.reducedMotion !== true) this.shake()
     // 烟尘以"卡牌底边中点"为落点：卡是砸下来的，灰是从脚下扑起来的。
     this.spawnSmoke(target.x, target.y + target.height / 2, config.smokeCount)
     if (config.edgeLight) this.runEdgeLight(target)

@@ -1,0 +1,44 @@
+/*
+ * 弹窗 E（结算遮罩）的样式。样式跟着组件走（《正式版架构》7.2 第 4 条），
+ * 数值读设计令牌，理由同 button.css。
+ */
+
+.ui-veil {
+  position: absolute;
+  inset: 0;
+  /* 顶到对局这一屏的最上层：底下还有画布和测试面板。 */
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /*
+   * 需求单弹窗 E 写的是 `rgba(8 12 20 / 78%)`，令牌里最接近的一档是对话框那层
+   *（`overlay.dialog` = #0c101a / 82%）。不为差几个百分点的黑另开一个令牌——
+   * 两层的意思是一样的「把整块战场挡死」，共用一档反而少一处会各自漂的数
+   *（同 design 的 README「明确不收什么」）。
+   *
+   * 用 color-mix 掺透明而不是给整层 opacity：整层透明会把上面那块纸一起透掉。
+   */
+  background: color-mix(
+    in srgb,
+    var(--color-overlay-dialog) calc(var(--opacity-overlay-dialog) * 100%),
+    transparent
+  );
+  /* 四边让开刘海和底部横条。安全区在这里够得着，是因为整层是真 DOM，不是画布里的东西。 */
+  padding: calc(var(--space-xxl) + env(safe-area-inset-top))
+    calc(var(--space-xxl) + env(safe-area-inset-right))
+    calc(var(--space-xxl) + env(safe-area-inset-bottom))
+    calc(var(--space-xxl) + env(safe-area-inset-left));
+}
+
+/*
+ * 内容层只负责「别被 padding 挤变形」：`min-width: 0` 让里面的 `min(775px, 100%)`
+ * 算得出正确的 100%（flex 子项默认 min-width 是 auto，会被内容撑到不肯再缩）。
+ */
+.ui-veil__content {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+}

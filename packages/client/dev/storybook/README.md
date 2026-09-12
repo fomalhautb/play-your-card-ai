@@ -139,6 +139,7 @@ pnpm --filter @ai-duel/client catalog:update    # 重新生成基线
 pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
 ```
 
+现在是三片（迁移第 31 条从两片改的：两片已经跑到 8 分 43 秒 / 7 分 54 秒，贴着 10 分钟）。
 **改 `SHARDS` 要同时改 ci.yml 和 catalog-baselines.yml 的 matrix**——工作流按标签筛用例，
 多出来的那一片会变成「一条用例都没匹配到」而不是失败，静悄悄地少拍一批条目。
 不按 `Canvas/*` 和 `UI/*` 分是因为两边条目数差得太远，分完仍然是一片扛住九成的时间。
@@ -164,6 +165,12 @@ pnpm --filter @ai-duel/client catalog:test --grep "@shard1"   # 只跑第一片
    行高写死（别用 `line-height: normal`），高度也别挂在 `100vh` 这类视口尺寸上。
    这三样都是"差一点就换一种排法"的开关，在哪一档翻面跟着平台走——
    令牌页（`packages/ui/src/tokens.stories.tsx`）就在 linux 上翻过一次，那里有原委。
+
+   由此来的一条推论：**两档版式的 React 组件，手机档那一档在这里拍不了**。
+   分档要用媒体查询（认视口），而视口钉死在 1280×900；把条目外面的盒子做窄只会得到
+   一种真界面上不存在的样子——桌面档的页眉硬塞进窄盒子里。改成容器查询就能拍，
+   但那正是上面禁掉的东西。宁可少一条条目，把手机档交给端到端和真机。
+   `packages/ui/src/Page.stories.tsx` 的文件头记了这件事的原委。
 
 阈值 `maxDiffPixelRatio` 是 0.001。顶不住了**先查是不是引入了不确定性**
 （真实时钟、没定种子的随机、字体没加载完），别先去调大这个数——调大一次就等于把这道检查关掉一点。
@@ -226,9 +233,9 @@ gh workflow run catalog-baselines.yml --ref <你的分支>
 gh run list --workflow=catalog-baselines.yml --limit 1
 
 # 3. 下载覆盖到 linux 基线目录（在仓库根目录跑）
-# 基线按分片生成（见下面「分片」），两格的 artifact 都要下，拷进同一个目录。
+# 基线按分片生成（见下面「分片」），三格的 artifact 都要下，拷进同一个目录。
 # 每格传的只有**它这一趟改过的那几张**（工作流拿 git 挑出来的），
-# 所以两份直接合并就行，谁先拷谁后拷都一样，不会互相盖。
+# 所以几份直接合并就行，谁先拷谁后拷都一样，不会互相盖。
 # 某一片一张都没变时那一格不产出 artifact，下下来只有一份是正常的。
 gh run download <run-id> -p 'catalog-baselines-linux-*' -D /tmp/catalog-linux
 cp /tmp/catalog-linux/*/*.png packages/client/dev/storybook/baselines/linux/

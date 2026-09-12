@@ -45,8 +45,27 @@ export function writeSession<T extends Session>(ws: WebSocket, session: T): void
   ws.serializeAttachment(session)
 }
 
-/** 往一条连接上发一条协议消息。 */
+/**
+ * 往一条连接上发一条协议消息。**已经关掉的连接直接跳过**。
+ *
+ * ## 为什么要这道守卫
+ *
+ * 在 workerd 里，对一条自己调过 `close()` 的连接再 `send()` 会当场抛
+ * `TypeError: Can't call WebSocket send() after close()`——不是静默丢弃。
+ * 而房间收摊那条路恰好会撞上它：`closeRoom` 先把两个座位的连接都关掉，
+ * 再 `await` 撤定时任务和把房间码还给大厅；**记录是调用方在那之后才存盘的**，
+ * 于是这中间到达的 `webSocketClose` 事件从 SQLite 读回来的还是一份「没收摊」的记录，
+ * 照常去 `broadcastPeer`，一发就发在刚关掉的那两条连接上。
+ * 联机端到端跑完时 `wrangler dev` 日志里那两条未捕获错误就是这么来的（一个座位一条）。
+ *
+ * 守在这一层而不是逐个调用方判：`sendToSeat` / `broadcastPeer` / `sendRoomError` 全从这儿走，
+ * 而「连接已经没了」对上面每一层来说都是同一件事——没什么可做的，跳过就是了。
+ *
+ * 判的是 `!== OPEN` 而不是 `=== CLOSED`：`close()` 之后先进 CLOSING，
+ * 只判 CLOSED 的话正好漏掉出问题的那一段。
+ */
 export function send(ws: WebSocket, message: ServerMessage): void {
+  if (ws.readyState !== WebSocket.OPEN) return
   ws.send(JSON.stringify(message))
 }
 

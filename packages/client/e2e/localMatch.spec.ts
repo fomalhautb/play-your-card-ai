@@ -131,7 +131,7 @@ test('从首页开一局测试对局，拖牌出牌，一路打到结算页', as
    * 每一轮「跳到答题 → 等自动交卷 → 双方确认」。题库 8 道题，所以最多 8 轮就一定收场
    *（先到 3 分会更早结束，那时循环从上面那条判断跳出去）。
    */
-  const result = page.locator('.match-result')
+  const result = page.locator('.result')
   for (let round = 0; round < 10; round += 1) {
     if (await result.isVisible()) break
     await page.getByRole('button', { name: '跳到答题' }).click()

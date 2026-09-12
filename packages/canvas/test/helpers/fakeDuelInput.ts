@@ -202,6 +202,9 @@ export interface InputProbe {
   calls: string[]
   /** 「结束出牌」现在灰不灰。null 表示 refresh 一次都没跑过。 */
   endPlayDisabled: boolean | null
+  /** 「结束出牌」和「催一催」现在各自在不在场。两颗钮摞在一起，永远一显一隐。 */
+  endPlayVisible: boolean | null
+  urgeVisible: boolean | null
   /** 侧栏那颗英雄技能钮现在灰不灰。null 表示 refresh 一次都没跑过。 */
   heroSkillDisabled: boolean | null
   /** 手牌扇形里那几张假卡，顺序同视图里的手牌。 */
@@ -254,6 +257,8 @@ export function createInputProbe(view: PlayerView): InputProbe {
     actions,
     calls,
     endPlayDisabled: null,
+    endPlayVisible: null,
+    urgeVisible: null,
     heroSkillDisabled: null,
     cards,
     card(instanceId) {
@@ -289,6 +294,18 @@ export function createInputProbe(view: PlayerView): InputProbe {
     endPlay: {
       setDisabled: (disabled: boolean) => {
         probe.endPlayDisabled = disabled
+      },
+      set visible(value: boolean) {
+        probe.endPlayVisible = value
+      },
+    },
+    /*
+     * 「催一催」。`input.refresh` 每次都会写它的 `visible`，所以这个替身不能少——
+     * 少了它连一条和催一催无关的锁测试都会当场抛（同下面那块面板）。
+     */
+    urge: {
+      set visible(value: boolean) {
+        probe.urgeVisible = value
       },
     },
     /*

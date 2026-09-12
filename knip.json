@@ -65,7 +65,8 @@
        * 组件目录页那一摊（迁移第 10 条）和端到端那一条（第 21 条）。
        * 这几个文件谁也不 import 谁：main.ts / preview.tsx 由 Storybook 按约定加载，
        * catalog.spec.ts / ensureAtlas.ts / localMatch.spec.ts 由 Playwright 加载，
-       * 全是各自独立的入口。
+       * 全是各自独立的入口。e2e/ensureServer.mjs 更彻底：它是服务端那条 webServer
+       * 命令行里 `node` 直接跑的，连 Playwright 都不认识它（理由见那个文件的头）。
        * 包入口 src/index.ts 和两份 playwright.config.ts 不用写：前者 knip 从
        * package.json 的 exports 里认，后者由它的 Playwright 插件认。
        *
@@ -78,6 +79,7 @@
         "dev/storybook/catalog.spec.ts",
         "dev/storybook/ensureAtlas.ts",
         "e2e/globalSetup.ts",
+        "e2e/ensureServer.mjs",
         "e2e/localMatch.spec.ts",
         "e2e/online.spec.ts"
       ]

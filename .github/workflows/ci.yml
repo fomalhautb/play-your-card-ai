@@ -4,7 +4,7 @@
 # 原因是第 18 条把真对局场景接进来之后，串成一条已经到 8 分 56 秒（其中目录页截图回归
 # 一步就占 6.8 分钟），再往上加任何一条检查都会顶破。现在拆成四个互不依赖的 job：
 #   check        类型、lint、设计令牌、单元测试        —— 不开浏览器
-#   catalog      组件目录页的截图回归                  —— 装 Chromium，按条目拆成两片
+#   catalog      组件目录页的截图回归                  —— 装 Chromium，按条目拆成三片
 #   scene        对局场景的交互回归                    —— 装 Chromium
 #   keyframes    剧本关键帧的截图回归                  —— 装 Chromium，按剧本段拆成四格
 # 并排跑，墙钟时间取最慢的那一个。
@@ -83,20 +83,30 @@ jobs:
       - name: 测试
         run: pnpm test
 
+      # 6.8 最后一条：size-limit 卡包体。现在只有 `ui` 一个包接了它（迁移第 31 条），
+      # 上限和「为什么是这个数」写在 packages/ui/.size-limit.js 里。
+      # 放在快档而不是慢档：它十几秒就跑完，而包体变胖这件事越早看见越好。
+      - name: 包体上限
+        run: pnpm size
+
   catalog:
-    name: 组件目录页截图回归 ${{ matrix.shard }}/2
+    name: 组件目录页截图回归 ${{ matrix.shard }}/3
     runs-on: ubuntu-latest
     # 整页一条用例跑到过 9 分 08 秒 ~ 9 分 43 秒（两核跑机，本机 M 系列约 3 分钟），
     # 离 10 分钟的快档口径只剩一线，而第 28 条一次就要往目录页加几十条条目。
-    # 所以照 keyframes 那套**按分片开成并行 job**：一格一台跑机，各拍一半条目。
+    # 所以照 keyframes 那套**按分片开成并行 job**：一格一台跑机，各拍一片条目。
     # 分片规则和「为什么不按 Canvas / UI 分」见 packages/client/dev/storybook/catalog.spec.ts。
-    # 再顶破要做的是把 2 改大（那边的 SHARDS 和这里的 matrix 要一起改），不是调这个时限。
+    #
+    # 两片时实测 8 分 43 秒 / 7 分 54 秒，已经贴着 10 分钟；第 31 条又要往目录页加二十多条
+    # React 条目，所以那一条把片数改成了 3。再顶破要做的是把 3 继续改大——
+    # catalog.spec.ts 的 `SHARDS`、这里的 matrix、catalog-baselines.yml 的 matrix
+    # 三处要一起改，不是调这个时限。
     timeout-minutes: 10
     strategy:
-      # 一片对不上不该把另一片掐掉：一次跑完能看到全部差异。
+      # 一片对不上不该把别的片掐掉：一次跑完能看到全部差异。
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -147,7 +157,7 @@ jobs:
           fi
 
       # artifact 名字带上这一片：v4 不允许两个 job 传同一个名字。
-      # 人要的是完整的一份基线，所以下载时按 catalog-baselines-linux-* 把两片都取下来。
+      # 人要的是完整的一份基线，所以下载时按 catalog-baselines-linux-* 把三片都取下来。
       # 走到这一步说明目录本来就是空的，所以每格传出去的只有自己那一片，合并没有先后之分
       # （catalog-baselines.yml 那条要靠先清空目录才有这个性质，理由在那边）。
       - name: 上传新生成的 linux 基线
