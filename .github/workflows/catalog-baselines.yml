@@ -16,8 +16,10 @@ on:
 jobs:
   baselines:
     runs-on: ubuntu-latest
-    # 只跑截图那一步，比快档还短。留 15 分钟是因为这里没有别的步骤帮忙暖依赖缓存。
-    timeout-minutes: 15
+    # 只跑截图那一步，但比快档慢：生成基线时每条条目要**连拍两张一样的**才算数
+    # （快档手上有基线，一张比过就完事），最重的几条一条就要二十多秒。
+    # 一百条实测 5 分多钟，再加上装依赖和装 Chromium，留 25 分钟。
+    timeout-minutes: 25
     steps:
       - name: 检出代码
         uses: actions/checkout@v4

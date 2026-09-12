@@ -8,12 +8,16 @@
  * 现在装着的是迁移第 1 条那批：手牌扇形、拖出出牌、翻面、命中特效，
  * 以及它们共用的帧循环、补间记账、文字纹理缓存和定种子随机数；
  * 迁移第 16 条的对局演出编排层；
- * 以及迁移第 17 条那批对局用的基础组件（匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字）。
+ * 以及迁移第 17 条那批对局用的组件，分两层：
+ * 基础件（匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字）和拿它们拼出来的复合件
+ *（顶栏、侧栏、玩家面板、Token 细条、战场、对手手牌、横幅、抛硬币、抵消层、展示层、
+ * 选目标层、结算层）。复合件都是**哑的**：只提供「摆好、播一段、改状态」的方法，
+ * 不认识引擎事件，也不认识 director——把哪条 cue 映射到哪个方法是场景的活（迁移第 18 条）。
  * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）。
  *
  * 目录：
  *   components/    Pixi 组件（卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
- *                  以及卡面倾斜、卡面的透视投影和网格几何）
+ *                  对局那批复合件，以及卡面倾斜、卡面的透视投影和网格几何）
  *   director/      对局演出编排（事件批 → 演出指令，纯 TS，不碰 Pixi / GSAP / DOM）
  *   fx/            特效和预烤纹理（命中特效、卡面反光、卡牌那批纹理、界面零件那批纹理、
  *                  各零件的模具画法、效果分档）
@@ -39,6 +43,14 @@ export {
   type BadgeTone,
   type BadgeVariant,
 } from './components/Badge'
+export { Banner, type BannerDeps } from './components/Banner'
+export {
+  BoardGrid,
+  type BoardGridDeps,
+  type BoardGridOptions,
+  type BoardSide,
+} from './components/BoardGrid'
+export { BoardTile, type BoardTileDeps, type TileMark } from './components/BoardTile'
 export {
   BUBBLE_ERROR,
   BUBBLE_SHOUT,
@@ -49,6 +61,7 @@ export {
   type BubbleVariant,
 } from './components/Bubble'
 export { CardSprite, type CardSpriteDeps, type CardVisual } from './components/CardSprite'
+export { CoinToss, type CoinTossDeps } from './components/CoinToss'
 export { CardTilt } from './components/cardTilt'
 export {
   DIVIDER_GEM,
@@ -58,6 +71,7 @@ export {
   type DividerOptions,
   type DividerVariant,
 } from './components/Divider'
+export { FoeHand, type FoeHandDeps, type FoeHandOptions } from './components/FoeHand'
 export { applyPose, HandFan, type HandFanOptions, type LayoutMode } from './components/HandFan'
 export { Label, type LabelStyle } from './components/Label'
 export { OrnateFrame, type OrnateFrameDeps } from './components/OrnateFrame'
@@ -86,6 +100,29 @@ export {
   type PlaqueSizeName,
   type PlaqueVariant,
 } from './components/PlaqueButton'
+export {
+  PlayerPanel,
+  type PlayerPanelDeps,
+  type PlayerPanelOptions,
+} from './components/PlayerPanel'
+export {
+  RevealOverlay,
+  type RevealOverlayDeps,
+  type RevealOverlayOptions,
+  type RevealPoint,
+} from './components/RevealOverlay'
+export { SettleLayer, type SettleLayerDeps, type SettleSide } from './components/SettleLayer'
+export { SettleRow, type SettleRowDeps } from './components/SettleRow'
+export { SideBar, type SideBarDeps, type SideBarOptions } from './components/SideBar'
+export { type SkillCancelDeps, SkillCancelLayer } from './components/SkillCancelLayer'
+export {
+  CASTING_DIM,
+  CASTING_LIFT,
+  TargetingLayer,
+  type TargetingLayerDeps,
+} from './components/TargetingLayer'
+export { TokenRail, type TokenRailDeps } from './components/TokenRail'
+export { TopBar, type TopBarDeps, type TopBarOptions } from './components/TopBar'
 export type { Cue, CueSides, CueSpec, LockReason, MatchStageCue } from './director/cues'
 export {
   createDirector,

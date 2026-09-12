@@ -84,6 +84,16 @@
         "$value": "#b23f33",
         "$type": "color",
         "$description": "生命值那一档红。来源：paper.css 的 --c-life。"
+      },
+      "forest": {
+        "$value": "#2f6b46",
+        "$type": "color",
+        "$description": "结算层里「对」的那一档深绿：标准答案框的描边、领先徽章的底、步骤条的勾、顶栏我方比分的方块都用它。来源：legacy-client/src/styles.css 的 .settle 一族。"
+      },
+      "brick": {
+        "$value": "#9e3a2e",
+        "$type": "color",
+        "$description": "结算层里「错」的那一档砖红：判定块答错时的底色。比 theme.life（生命值那档红）更暗更闷，盖在纸上像一枚印章而不是一块警示牌。来源：styles.css 的 .settle-card__verdict。"
       }
     },
     "battle": {
@@ -121,6 +131,11 @@
         "$value": "#253149",
         "$type": "color",
         "$description": "对局界面的墨蓝，纸白匾额上的字用它。来源：styles.css 的 .battle --battle-navy。"
+      },
+      "cueInk": {
+        "$value": "#ffeec5",
+        "$type": "color",
+        "$description": "压在战场和全屏过场上的暖白字：中央横幅、抵消层的技能名和说明、选目标的提示条都用它。比纸面那套墨色亮得多——它印在深色背景上，不是印在纸上。来源：styles.css 的 .battle__banner / .skill-cancel__title / .battle__targeting-text。"
       }
     },
     "home": {
@@ -458,6 +473,28 @@
           "$value": "#a08c68",
           "$type": "color",
           "$description": "米白匾额星芒的填色，和纸白同一档。来源：hero.css 的 .plaque-button__spark。"
+        },
+        "disabled": {
+          "fill": {
+            "$value": "{color.plaque.paper.disabled.fill}",
+            "$type": "color",
+            "$description": "米白匾额禁用时的板面。旧样式里米白只出现在英雄页那颗「确认英雄」上，那颗从来不禁用，所以 hero.css 里没有这一档；纸白和米白同属浅纸面那一族（内框细线、四角折线、星芒三处本来就同色），褪色方向一致，直接沿用纸白那档。哪天米白真有了自己的禁用样式再改成独立值。"
+          },
+          "edge": {
+            "$value": "{color.plaque.paper.disabled.edge}",
+            "$type": "color",
+            "$description": "米白匾额禁用时的外框，沿用纸白那档，理由同上。"
+          },
+          "line": {
+            "$value": "{color.plaque.paper.disabled.line}",
+            "$type": "color",
+            "$description": "米白匾额禁用时的内框细线，沿用纸白那档，理由同上。"
+          },
+          "text": {
+            "$value": "{color.plaque.paper.disabled.text}",
+            "$type": "color",
+            "$description": "米白匾额禁用时的字色，沿用纸白那档，理由同上。"
+          }
         }
       }
     },
@@ -589,6 +626,23 @@
         "$value": "#b8c2d9",
         "$type": "color",
         "$description": "「对方回合」吊匾的字色和那三颗跳动的点。来源：styles.css 的 .battle__turn-plaque-label 与 -dots。"
+      }
+    },
+    "overlay": {
+      "veil": {
+        "$value": "#000000",
+        "$type": "color",
+        "$description": "抛硬币和英雄技能抵消这两层全屏过场的遮罩底色。旧样式里带着透明度写在一起（rgb(0 0 0 / 68%)），这里按 design 的规矩拆成颜色加 opacity.overlay.veil。来源：styles.css 的 .coin-toss / .skill-cancel。"
+      },
+      "reveal": {
+        "$value": "#000000",
+        "$type": "color",
+        "$description": "展示层（强制展示、放大查看）的遮罩底色。和 overlay.veil 同色不同透明度：那两层要把整块战场推远，这一层还得让人认出背景是战场。来源：styles.css 的 .reveal-overlay。"
+      },
+      "targeting": {
+        "$value": "#060b16",
+        "$type": "color",
+        "$description": "选目标层的压暗。偏蓝的深色而不是纯黑：这一层压着的是战场，纯黑会把场上小卡的暖色压成灰。来源：styles.css 的 .battle__targeting。"
       }
     }
   }
