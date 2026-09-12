@@ -77,8 +77,7 @@
         "e2e/globalSetup.ts",
         "e2e/ensureServer.mjs",
         "e2e/localMatch.spec.ts",
-        "e2e/online.spec.ts",
-        "e2e/tutorial.spec.ts"
+        "e2e/online.spec.ts"
       ]
     },
     "apps/mobile": {

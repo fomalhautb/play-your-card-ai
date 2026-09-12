@@ -12,7 +12,6 @@ import { createFakePlatform } from '@ai-duel/platform'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   loadSave,
-  markTutorialDone,
   recordWin,
   resetSave,
   saveHero,
@@ -21,9 +20,9 @@ import {
 } from '../src/save/saveStore'
 
 /** 和 saveStore.ts 里的存档位对得上（名字 + 版本号，见 platform 的 storageKeyOf）。 */
-const SAVE_KEY = 'ai-duel-save.v2'
+const SAVE_KEY = 'ai-duel-save.v3'
 /** 上一个版本号。存档不做迁移，换号就等于旧档整份作废。 */
-const OLD_SAVE_KEY = 'ai-duel-save.v1'
+const OLD_SAVE_KEY = 'ai-duel-save.v2'
 
 /**
  * 随便挑一位技能还没实装的英雄，用来测「存档里存着她时要当作没选过」。
@@ -104,7 +103,6 @@ describe('本地存档', () => {
       ownedCards: INITIAL_COLLECTION,
       wins: 0,
       savedHero: null,
-      tutorialDone: false,
       reducedMotion: false,
     })
     expect(platform.storage.entries.has(SAVE_KEY)).toBe(false)
@@ -138,22 +136,6 @@ describe('本地存档', () => {
     expect(new Set(after)).toEqual(new Set(before))
   })
 
-  // 首页「开始游戏」照它分流：新号必须先被送进新手教程。
-  it('新号的教程标记是 false', () => {
-    expect(loadSave(platform).tutorialDone).toBe(false)
-  })
-
-  it('教程标记写入后能读回来，收藏、胜场和英雄都不受影响', () => {
-    saveHero(platform, 'grace-hopper')
-    const before = loadSave(platform)
-    markTutorialDone(platform)
-    const save = loadSave(platform)
-    expect(save.tutorialDone).toBe(true)
-    expect(save.savedHero).toBe('grace-hopper')
-    expect(save.ownedCards).toEqual(before.ownedCards)
-    expect(save.wins).toBe(before.wins)
-  })
-
   // 「减少动效」这一位的三条：默认关、写进去能读回来、写坏了按关算。
   // 默认关是安全的那一档——系统级的 prefers-reduced-motion 走 CSS，不经过存档。
   it('新号默认不开减少动效', () => {
@@ -173,19 +155,12 @@ describe('本地存档', () => {
     expect(loadSave(platform).reducedMotion).toBe(false)
   })
 
-  // 存档写坏或缺字段时宁可多放一次教程，也别把新手直接丢进匹配房。
-  it('教程标记不是布尔值时按「没走过」算', () => {
-    writeRaw(SAVE_KEY, { ownedCards: [...INITIAL_COLLECTION], wins: 0, tutorialDone: '是' })
-    expect(loadSave(platform).tutorialDone).toBe(false)
-  })
-
   // 不写迁移代码：换版本号就等于旧档整份作废，读到的是一份全新的存档。
   it('上一版存档位里的数据读不到，回落成新号', () => {
     writeRaw(OLD_SAVE_KEY, { ownedCards: [...CARD_POOL], wins: 9, savedHero: 'grace-hopper' })
     const save = loadSave(platform)
     expect(save.wins).toBe(0)
     expect(save.savedHero).toBeNull()
-    expect(save.tutorialDone).toBe(false)
   })
 
   it('存档里的英雄不在英雄表里时读回 null', () => {

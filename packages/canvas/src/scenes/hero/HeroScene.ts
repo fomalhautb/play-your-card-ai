@@ -22,8 +22,7 @@ import { Animator } from '../../runtime/animator'
 import { killAndDestroy } from '../../runtime/dispose'
 import { FrameLoop } from '../../runtime/frameLoop'
 import { TextTextureCache } from '../../runtime/textCache'
-import type { AnchorRect } from '../anchors'
-import type { HeroAction, HeroAnchor, HeroScene, HeroSceneOptions, HeroView } from './heroContract'
+import type { HeroAction, HeroScene, HeroSceneOptions, HeroView } from './heroContract'
 import { HeroDetail, type HeroDetailDeps } from './heroDetail'
 import { HeroGrid, type HeroGridDeps } from './heroGrid'
 import { type HeroLayout, pickHeroLayout } from './heroLayout'
@@ -227,31 +226,6 @@ class HeroSceneImpl {
     return !this.deps.animator.isBusy()
   }
 
-  /**
-   * 新手教程要圈的那两处（见 heroContract 的 `HeroAnchor`）。
-   *
-   * 两处都按**版式**算，不量节点：卡片在悬停时会上浮放大，量它会让引导圈跟着抖；
-   * 而那颗「确认英雄」是详情每次打开时现建的，版式里已经写死了它那一格摆在哪儿
-   *（见 heroDetail 的 buildChrome，它也是按同一组数摆的）。
-   */
-  private anchorRect(target: HeroAnchor): AnchorRect | null {
-    if (target.kind === 'heroCard') {
-      const index = this.options.heroes.findIndex((hero) => hero.id === target.hero)
-      return this.layout.cards[index] ?? null
-    }
-    // 详情没开着、或者这条入口是纯查看，那颗钮根本不在场上。
-    if (this.view.detailId === null || !this.view.confirmable) return null
-    const { buttons } = this.layout.detail
-    // 详情底下摆的是「返回」+「确认英雄」，两颗等宽居中，确认是右边那颗。
-    const total = buttons.width * 2 + buttons.gap
-    return {
-      x: (this.layout.width - total) / 2 + buttons.width + buttons.gap,
-      y: buttons.y,
-      width: buttons.width,
-      height: buttons.height,
-    }
-  }
-
   handle(): HeroScene {
     return {
       setView: (view: HeroView) => this.setView(view),
@@ -259,7 +233,6 @@ class HeroSceneImpl {
         this.onAction = callback
       },
       setMuted: (muted: boolean) => this.setMuted(muted),
-      anchorRect: (target: HeroAnchor) => this.anchorRect(target),
       hoverCard: (index: number | null) => this.grid.setHovered(index),
       step: (deltaMs) => this.frameLoop.step(deltaMs),
       isIdle: () => this.idle(),

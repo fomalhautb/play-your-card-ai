@@ -41,9 +41,9 @@ describe('文字页外壳', () => {
     expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('返回钮的名字可以换：教程里那颗写的是「跳过」', () => {
+  it('返回钮的名字可以换：多步流程里那颗可以写成「跳过」', () => {
     render(
-      <Page title="新手教程" onBack={() => undefined} backLabel="跳过">
+      <Page title="设置" onBack={() => undefined} backLabel="跳过">
         正文
       </Page>,
     )

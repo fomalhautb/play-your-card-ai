@@ -109,16 +109,6 @@ export class SideBar extends Container {
     this.layout()
   }
 
-  /**
-   * 「下一题考什么方向」那块纸匾。
-   *
-   * 透出来只为一件事：新手教程要圈住它（见 scenes/duel/anchors.ts）。
-   * 手机档整条侧栏都不存在，那一档这个锚点自然也就答不上来。
-   */
-  get nextPlaque(): Container {
-    return this.plaqueSlot
-  }
-
   /** 换纸匾上那行类别名。传的是已经译好的中文（「历史掌故」这类），组件不查表。 */
   setNextCategory(category: string): void {
     for (const child of this.nextTitle.removeChildren()) child.destroy({ children: true })

@@ -1,5 +1,5 @@
 /**
- * 装配层：路由、屏幕、状态、本地驱动（单机、教程）和服务端驱动（联机）。
+ * 装配层：路由、屏幕、状态、本地驱动（单机）和服务端驱动（联机）。
  *
  * 这是唯一一个把所有东西串起来的包——`apps/` 下的三个壳只负责挂载它，不写业务。
  * 允许依赖：`core`、`content`、`protocol`、`design`、`platform`、`canvas`、`ui`，也就是全部。
@@ -86,7 +86,6 @@ export {
   deleteDeck,
   loadDecks,
   MAX_DECKS,
-  putDeck,
   renameDeck,
   resetDecks,
   setCurrentDeck,
@@ -95,7 +94,6 @@ export {
 export type { SaveData } from './save/saveStore'
 export {
   loadSave,
-  markTutorialDone,
   recordWin,
   resetSave,
   saveHero,

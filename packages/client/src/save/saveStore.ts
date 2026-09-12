@@ -1,5 +1,5 @@
 /**
- * 本地存档：玩家的卡牌收藏、胜场，以及上次确认的英雄和教程标记。
+ * 本地存档：玩家的卡牌收藏、胜场，以及上次确认的英雄。
  *
  * 只有本机这一层，不做账号、不上服务器——换个浏览器就是新号。
  * 所有 IO 走 `platform.storage`（隐私模式下读写会抛，那一层已经吞掉了），
@@ -22,13 +22,6 @@ export interface SaveData {
   /** 上次确认的英雄；没确认过是 null。 */
   savedHero: HeroId | null
   /**
-   * 新手教程走完了没有。
-   *
-   * 只影响首页「开始游戏」去哪。房里的「新手教程」是重玩入口，不看这个字段——
-   * 已经走完也随时能再进一遍。
-   */
-  tutorialDone: boolean
-  /**
    * 玩家在设置页要求「减少动效」。
    *
    * 两边都读它：DOM 那半边由应用壳翻成 `<html data-reduced-motion="true">`，
@@ -38,7 +31,7 @@ export interface SaveData {
    *
    * 放在主存档而不是像静音那样单独一位：静音是玩家在对局里随手按的，
    * 主存档换版本号作废时不该连它一起忘掉；这一项是在设置页里点的，
-   * 和「教程走没走过」一样属于这个号的一次性选择。代价是主存档作废时它会回到默认的关，
+   * 和「上次选的英雄」一样属于这个号的一次性选择。代价是主存档作废时它会回到默认的关，
    * 而默认关本来就是安全的那一档。
    */
   reducedMotion: boolean
@@ -53,11 +46,10 @@ export interface SaveData {
 const rawSaveSchema = z.object({
   ownedCards: z.array(z.string()),
   wins: z.number().int().min(0),
-  // 缺字段和写坏都按「没选过 / 没走完 / 没开」算，所以这三项收成 unknown 再自己判。
+  // 缺字段和写坏都按「没选过 / 没开」算，所以这两项收成 unknown 再自己判。
   // `.optional()` 不能省：zod 4 里光写 z.unknown() 仍然要求这个键存在，
   // 而这几项恰恰是「上个版本的存档里根本没有」最常见的。
   savedHero: z.unknown().optional(),
-  tutorialDone: z.unknown().optional(),
   reducedMotion: z.unknown().optional(),
 })
 
@@ -79,12 +71,12 @@ const POOL = new Set<CardId>(CARD_POOL)
  */
 const SAVE_SLOT: StorageSlot<SaveData> = {
   name: 'ai-duel-save',
-  // 迁移第 31 条加了 `reducedMotion`，所以从 1 升到 2：旧档读不出来，当新号。
-  version: 2,
+  // 简化第 1 步删掉了 `tutorialDone`，所以从 2 升到 3：旧档读不出来，当新号。
+  version: 3,
   parse(raw) {
     const parsed = rawSaveSchema.safeParse(raw)
     if (!parsed.success) return null
-    const { ownedCards, wins, savedHero, tutorialDone, reducedMotion } = parsed.data
+    const { ownedCards, wins, savedHero, reducedMotion } = parsed.data
 
     // 卡池随时可能删卡，存档里残留的卡 id 必须丢掉，否则渲染时按 id 取卡会抛错。
     const owned = ownedCards.filter((id): id is CardId => POOL.has(id))
@@ -97,9 +89,7 @@ const SAVE_SLOT: StorageSlot<SaveData> = {
       ownedCards: [...new Set([...owned, ...INITIAL_COLLECTION])],
       wins,
       savedHero: validHero(savedHero),
-      // 写坏或缺字段时按「没走过教程」算：多放一次教程比把新手直接丢进匹配房好。
-      tutorialDone: tutorialDone === true,
-      // 同理按「没开」算。真需要它的人会自己去设置页打开，而系统级的
+      // 写坏或缺字段时按「没开」算。真需要它的人会自己去设置页打开，而系统级的
       // `prefers-reduced-motion` 那条路不经过存档，任何时候都照常生效。
       reducedMotion: reducedMotion === true,
     }
@@ -124,7 +114,6 @@ function initialSave(): SaveData {
     ownedCards: [...INITIAL_COLLECTION],
     wins: 0,
     savedHero: null,
-    tutorialDone: false,
     reducedMotion: false,
   }
 }
@@ -177,16 +166,6 @@ export function saveOwnedOrder(platform: Platform, order: readonly CardId[]): Sa
   // 宁可让顺序不完全如意，也不能把卡弄丢。
   const missing = current.ownedCards.filter((id) => !kept.includes(id))
   return persist(platform, { ...current, ownedCards: [...kept, ...missing] })
-}
-
-/**
- * 记下新手教程已经走完。
- *
- * 走到完成页和中途「跳过教程」都调它：对首页分流来说这两种是一回事，
- * 玩家都不该再被自动送进教程。
- */
-export function markTutorialDone(platform: Platform): SaveData {
-  return persist(platform, { ...loadSave(platform), tutorialDone: true })
 }
 
 /**

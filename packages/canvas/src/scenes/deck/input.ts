@@ -27,7 +27,6 @@ import { insertIndexAt } from './logic/insert'
 import { addBlockReason } from './logic/legality'
 import { renderDeckScene, shownDeck, visiblePool } from './render'
 import { addCard, currentCards, removeAt, setDrawerOpen } from './state'
-import { blockedByTutorial } from './tutorial'
 
 /** 一次按下走到现在的账。松手时按它判「这是拖还是点」。 */
 interface Press {
@@ -153,8 +152,6 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
 
   /** 真的把一张牌加进牌组。加不进去的时候一个字都不改，界面上那句话由提示条说。 */
   const commitAdd = (cardId: CardId, at: number): boolean => {
-    // 教学那一段只放行当前这一步点名的那张，挡下来自己会说一句话。
-    if (blockedByTutorial(ctx, cardId)) return false
     const entry = ctx.pool.find((one) => one.cardId === cardId)
     const blocked = addBlockReason({
       deck: currentCards(ctx.state),
@@ -257,9 +254,8 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
             })
           commitAdd(state.origin.cardId, at)
         }
-      } else if (!inside && !blockedByTutorial(ctx, null)) {
+      } else if (!inside) {
         // 从牌组里拖出来、松手落在栏外：这是移除。落在栏里就是什么都没发生（不换位置）。
-        // 教学那一段整段不许移除——预填的 17 张少一张，三步之后就凑不满 20 张了。
         ctx.state = removeAt(ctx.state, state.origin.index)
         ctx.emitChange()
       }
@@ -279,7 +275,6 @@ export function createDeckInput(ctx: DeckContext): DeckInput {
 export function addFromPool(ctx: DeckContext, index: number, at: number): boolean {
   const entry = visiblePool(ctx)[index]
   if (entry === undefined) return false
-  if (blockedByTutorial(ctx, entry.cardId)) return false
   const blocked = addBlockReason({
     deck: currentCards(ctx.state),
     cardId: entry.cardId,

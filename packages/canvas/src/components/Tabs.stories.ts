@@ -74,5 +74,5 @@ export const Paper = { name: '纸页签', parameters: spec('B') }
 /** 描边胶囊筛选：卡池头部按阵营筛，压在夜色底板上。 */
 export const Chip = { name: '描边胶囊筛选', parameters: spec('C') }
 
-/** 禁用：整排压暗、点了没反应（教程期间不许换牌组就是这一档）。 */
+/** 禁用：整排压暗、点了没反应。 */
 export const Disabled = { name: '禁用', parameters: spec('A', true) }

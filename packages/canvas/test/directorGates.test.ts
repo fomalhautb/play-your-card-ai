@@ -59,19 +59,6 @@ describe('横幅队列', () => {
     expect(banners.map((cue) => cue.at - banners[0]!.at)).toEqual([0, BANNER_TOTAL])
   })
 
-  it('队列彻底播空才报 round-banner-done', () => {
-    const director = makeDirector(0)
-    prime(director)
-    const cues = runBatch(director, {
-      events: [ROUND_STARTED, { type: 'PLAY_TURN_STARTED', player: 0 }],
-      view: makeView(),
-    })
-    const done = cuesOf(cues, 'tutorial').filter((cue) => cue.cue === 'round-banner-done')
-    expect(done).toHaveLength(1)
-    const banners = cuesOf(cues, 'banner')
-    expect(done[0]?.at).toBe(banners[1]!.at + BANNER_TOTAL)
-  })
-
   it('强制展示期间的横幅也憋着，展示收完才放', () => {
     const director = makeDirector(0)
     prime(director)
@@ -135,7 +122,7 @@ describe('展示层互斥', () => {
     director.push({ events: [questionRevealed()], view: makeView({ phase: 'quiz' }) })
     director.advance(0)
     const cues = director.drain()
-    expect(kindsOf(cues)).toEqual(['reveal-abort', 'settle-open', 'tutorial'])
+    expect(kindsOf(cues)).toEqual(['reveal-abort', 'settle-open'])
     // 收掉之后原来那条链路不许再往下演。
     director.advance(60_000)
     expect(cuesOf(director.drain(), 'reveal-land')).toHaveLength(0)
@@ -242,16 +229,5 @@ describe('发牌闸门', () => {
     })
     // ROUND_DEAL_FALLBACK = 2000ms，刻意取短，见 timings.ts 里的理由。
     expect(cuesOf(cues, 'deal')[0]?.at).toBe(62_000)
-  })
-
-  it('发牌全部落地那一刻报一次 deal-done', () => {
-    const director = makeDirector(0)
-    const cues = runBatch(director, {
-      events: [{ type: 'GAME_STARTED', firstPlayer: 0 }, cardDrawn(0), cardDrawn(0)],
-      view: makeView(),
-    })
-    const done = cuesOf(cues, 'tutorial').filter((cue) => cue.cue === 'deal-done')
-    // 两张牌：400 + 一次 120 的错开。
-    expect(done.map((cue) => cue.at)).toEqual([COIN_TOTAL + 520])
   })
 })

@@ -49,7 +49,6 @@ import {
   setDrawerOpen,
   setPage,
 } from './state'
-import { applyDeckTutorial, blockedByTutorial, deckAnchorRectOf } from './tutorial'
 
 export async function createDeckScene(options: DeckSceneOptions): Promise<DeckScene> {
   const renderer = await autoDetectRenderer({
@@ -107,7 +106,6 @@ class DeckSceneImpl {
   private onChangeCb: ((decks: readonly DeckView[], currentId: string) => void) | null = null
   private onInspectCb: ((cardId: CardId) => void) | null = null
   private onManageCb: ((action: DeckManageAction) => void) | null = null
-  private onBlockedCb: ((tip: string) => void) | null = null
 
   constructor(renderer: Renderer, options: DeckSceneOptions, ownsRenderer: boolean) {
     this.renderer = renderer
@@ -160,18 +158,13 @@ class DeckSceneImpl {
       onFaction: (id) =>
         this.change((state) => selectFaction(state, id === ALL_FACTIONS ? null : id)),
       onDeck: (id) => {
-        // 教学那一段只编辑那一套写死 id 的牌组，换一套走了就对不上预填的 17 张。
-        if (blockedByTutorial(this.ctx, null)) return
         this.change((state) => selectDeck(state, id))
         this.ctx.emitChange()
       },
       onNewDeck: () => this.manage({ kind: 'create' }),
       onRename: () => this.manage({ kind: 'rename', id: this.ctx.state.currentId }),
       onDelete: () => this.manage({ kind: 'delete', id: this.ctx.state.currentId }),
-      onRemoveAt: (index) => {
-        // 教学那一段整段不许移除：预填的 17 张少一张，三步之后就凑不满 20 张了。
-        if (!blockedByTutorial(this.ctx, null)) this.removeAt(index)
-      },
+      onRemoveAt: (index) => this.removeAt(index),
       onDrawer: () => this.toggleDrawer(),
       onPage: (delta) => this.turnPage(delta),
       onAddAt: (index) => this.addAt(index),
@@ -198,8 +191,6 @@ class DeckSceneImpl {
       state: createDeckState(options.decks, options.currentId, scene.layout.tier === 'desktop'),
       gap: null,
       dragging: null,
-      // 正式构筑页恒为 null，只有新手教程那一段会设进来（见 setTutorial）。
-      tutorial: null,
 
       takeCard: (cardId, tag) => {
         // 上一轮那批里有同一张牌的话原样取回来：它还在原位，谁都不用动。
@@ -229,13 +220,11 @@ class DeckSceneImpl {
       emitChange: () => this.onChangeCb?.(this.ctx.state.decks, this.ctx.state.currentId),
       emitInspect: (cardId) => this.inspect.show(cardId),
       emitManage: (action) => this.manage(action),
-      blocked: (tip) => this.onBlockedCb?.(tip),
     }
   }
 
-  /** 改名 / 新建 / 删除三件事都要弹框，交给调用方；教学那一段一律挡下。 */
+  /** 改名 / 新建 / 删除三件事都要弹框，交给调用方。 */
   private manage(action: DeckManageAction): void {
-    if (blockedByTutorial(this.ctx, null)) return
     this.onManageCb?.(action)
   }
 
@@ -330,11 +319,6 @@ class DeckSceneImpl {
       onManage: (callback) => {
         this.onManageCb = callback
       },
-      onBlocked: (callback) => {
-        this.onBlockedCb = callback
-      },
-      setTutorial: (gate) => applyDeckTutorial(this.ctx, gate, (next) => this.change(next)),
-      anchorRect: (target) => deckAnchorRectOf(this.ctx, target),
       step: (deltaMs) => this.frameLoop.step(deltaMs),
       isIdle: () => this.idle(),
       counters: (): DeckSceneCounters => ({

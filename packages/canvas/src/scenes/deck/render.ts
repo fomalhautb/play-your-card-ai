@@ -199,9 +199,7 @@ function renderSide(ctx: DeckContext): void {
   )
   ctx.parts.progress.setValue(deck.length / ctx.rules.size)
   ctx.parts.sideHint.setText(SIDE_HINT)
-  // 教学那一段只有最后一步解锁「确认牌组」：在那之前牌组虽然凑满了，玩家也还没看完提示。
-  const heldByTutorial = ctx.tutorial !== null && !ctx.tutorial.allowConfirm
-  ctx.parts.confirm.setDisabled(!isCompleteDeck(deck, ctx.rules) || heldByTutorial)
+  ctx.parts.confirm.setDisabled(!isCompleteDeck(deck, ctx.rules))
 }
 
 /** 卡池那张卡在场景树上叫什么。一张卡在卡池里只出现一次，所以卡 id 就够认。 */

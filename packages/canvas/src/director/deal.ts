@@ -28,19 +28,6 @@ export function isDealing(context: DirectorContext): boolean {
   return context.dealHeld || context.dealBusy
 }
 
-/**
- * 认「发完了」的下降沿，发一次教程信号。
- *
- * 只认下降沿：教程等的是「牌已经躺进手里」这个时刻，牌还在飞的时候说什么都没用。
- * 每次动过闸门或飞行状态都要调一次。
- */
-function syncDealing(context: DirectorContext): void {
-  const dealing = isDealing(context)
-  if (context.dealingBefore === dealing) return
-  context.dealingBefore = dealing
-  if (!dealing) context.emit({ kind: 'tutorial', durationMs: 0, cue: 'deal-done' })
-}
-
 /** 记一张刚抽到的牌。还憋着就先攒着，放行时一起飞。 */
 export function noteDrawn(context: DirectorContext, side: 'self' | 'opponent'): void {
   context.pendingDeal[side] += 1
@@ -53,15 +40,9 @@ export function noteDrawn(context: DirectorContext, side: 'self' | 'opponent'): 
  * 一批事件处理完之后调一次，不是每来一条 CARD_DRAWN 调一次。
  */
 export function flushDeal(context: DirectorContext): void {
-  if (context.dealHeld) {
-    syncDealing(context)
-    return
-  }
+  if (context.dealHeld) return
   const { self, opponent } = context.pendingDeal
-  if (self === 0 && opponent === 0) {
-    syncDealing(context)
-    return
-  }
+  if (self === 0 && opponent === 0) return
   context.pendingDeal = { self: 0, opponent: 0 }
   const selfMs = dealDuration(self)
   const foeMs = dealDuration(opponent)
@@ -76,9 +57,7 @@ export function flushDeal(context: DirectorContext): void {
   context.dealBusyTask = context.schedule(Math.max(selfMs, foeMs), () => {
     context.dealBusyTask = null
     context.dealBusy = false
-    syncDealing(context)
   })
-  syncDealing(context)
 }
 
 /** 放行憋着的牌，顺手撤掉两条兜底。抛硬币收尾和结算层退场各调一次。 */
@@ -107,7 +86,6 @@ export function resetDeal(context: DirectorContext): void {
   context.dealHeld = false
   context.dealBusy = false
   context.pendingDeal = { self: 0, opponent: 0 }
-  syncDealing(context)
 }
 
 /**
@@ -146,5 +124,4 @@ export function holdRoundDeal(context: DirectorContext): void {
     context.dealHeld = false
     flushDeal(context)
   })
-  syncDealing(context)
 }

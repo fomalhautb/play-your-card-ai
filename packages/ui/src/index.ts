@@ -18,10 +18,6 @@
  *   条 D（`CardLoader`）、提示 E（`Notice`）、图标 B / C（`Icon`）、
  *   按钮 J（`SealButton` 夜色圆章）、设置开关（`Toggle`）、文字页外壳（`Page`）。
  *
- * 第 32 条那一个：新手教程的引导层（`TutorialOverlay`，压暗 + 挖洞 + 一句话气泡）。
- * 它在需求单里也没有编号——旧版那一层是就地写在 tutorial.css 里的。
- * 选 React 而不是画到画布上的理由写在它自己的文件头里。
- *
  * `Toggle` 和 `Page` 在需求单里还没有编号（旧版压根没有设置页），
  * 理由各写在自己的文件头里。其余变体按需求单（docs/design/组件需求单.md）在用到时补，
  * 不先建完整再用。
@@ -43,7 +39,6 @@ export type { IconName, IconProps } from './Icon'
 export { Icon } from './Icon'
 export type { NoticeProps, NoticeTone } from './Notice'
 export { Notice } from './Notice'
-export type { OverlayRect } from './overlayGeometry'
 export type { PageProps } from './Page'
 export { Page } from './Page'
 export type { ProgressBarProps } from './ProgressBar'
@@ -56,7 +51,5 @@ export type { TextFieldProps } from './TextField'
 export { TextField } from './TextField'
 export type { ToggleProps, ToggleState } from './Toggle'
 export { Toggle } from './Toggle'
-export type { TutorialOverlayProps } from './TutorialOverlay'
-export { TutorialOverlay } from './TutorialOverlay'
 export type { VeilProps } from './Veil'
 export { Veil } from './Veil'

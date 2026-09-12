@@ -20,7 +20,7 @@
  *
  * `DEBUG_*` 四条同理：它们能凭空造牌、跳过阶段（见 core 的 `Command` 注释），
  * 是 dev 测试房专用的。引擎自己不做来源限制，挡住它们是这一层和服务端的事。
- * 单机和教程的 `localDriver` 想用就用 `debugCommandSchema` / `commandSchema`，
+ * 单机的 `localDriver` 想用就用 `debugCommandSchema` / `commandSchema`，
  * 那条路不过网。
  *
  * ## 和 core 的类型怎么钉在一起

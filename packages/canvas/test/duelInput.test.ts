@@ -181,9 +181,9 @@ describe('锁：这一刻许不许动', () => {
     expect(probe.calls).toContain('fan.returnToFan')
   })
 
-  it('endPlayLocked 直接落到「结束出牌」按钮的灰态上', () => {
+  it('actionsLocked 直接落到「结束出牌」按钮的灰态上', () => {
     const { probe, input } = setup()
-    input.refresh(openLocks({ endPlayLocked: true }), false)
+    input.refresh(openLocks({ actionsLocked: true }), false)
     expect(probe.endPlayDisabled).toBe(true)
     input.refresh(openLocks(), false)
     expect(probe.endPlayDisabled).toBe(false)

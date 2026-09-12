@@ -15,8 +15,7 @@ import { BANNER_TOTAL_MS, SKILL_CANCEL_TOTAL_MS } from './timings'
 /**
  * 播队列里的下一条横幅。已经有一条在播、或者全屏过场 / 展示层正占着，就先不动。
  *
- * 播完在排程回调里再调自己接着播下一条，队列彻底空了才报 `round-banner-done`——
- * 教程的提示要等它，否则会和横幅糊在一起。
+ * 播完在排程回调里再调自己接着播下一条。
  */
 export function pumpBanner(context: DirectorContext): void {
   if (context.bannerBusy || context.coinUp || context.quizUp || context.cancelUp) return
@@ -28,10 +27,6 @@ export function pumpBanner(context: DirectorContext): void {
   context.schedule(BANNER_TOTAL_MS, () => {
     context.bannerBusy = false
     pumpBanner(context)
-    // pumpBanner 已经把下一条起起来了的话 bannerBusy 是开着的，这一下不成立。
-    if (!context.bannerBusy && context.bannerQueue.length === 0) {
-      context.emit({ kind: 'tutorial', durationMs: 0, cue: 'round-banner-done' })
-    }
   })
 }
 
