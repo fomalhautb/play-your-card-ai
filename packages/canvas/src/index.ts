@@ -7,13 +7,16 @@
  *
  * 现在装着的是迁移第 1 条那批：手牌扇形、拖出出牌、翻面、命中特效，
  * 以及它们共用的帧循环、补间记账、文字纹理缓存和定种子随机数；
- * 外加迁移第 16 条的对局演出编排层。
+ * 迁移第 16 条的对局演出编排层；
+ * 以及迁移第 17 条那批对局用的基础组件（匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字）。
  * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）。
  *
  * 目录：
- *   components/    Pixi 组件（卡牌、手牌扇形、卡面倾斜、卡面的透视投影和网格几何）
+ *   components/    Pixi 组件（卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
+ *                  以及卡面倾斜、卡面的透视投影和网格几何）
  *   director/      对局演出编排（事件批 → 演出指令，纯 TS，不碰 Pixi / GSAP / DOM）
- *   fx/            特效（命中特效、卡面反光、预烤纹理、效果分档）
+ *   fx/            特效和预烤纹理（命中特效、卡面反光、卡牌那批纹理、界面零件那批纹理、
+ *                  各零件的模具画法、效果分档）
  *   interaction/   交互（拖拽判定的纯函数、手牌的指针状态机）
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
@@ -24,9 +27,65 @@
  * 它只依赖类型和纯函数，不碰 Pixi、GSAP、DOM、platform（依赖方向由 .dependency-cruiser.cjs 卡着）。
  */
 
+export {
+  BADGE_COST,
+  BADGE_HELP,
+  BADGE_NAMEPLATE,
+  BADGE_TILE_MARK,
+  BADGE_TURN,
+  Badge,
+  type BadgeDeps,
+  type BadgeOptions,
+  type BadgeTone,
+  type BadgeVariant,
+} from './components/Badge'
+export {
+  BUBBLE_ERROR,
+  BUBBLE_SHOUT,
+  BUBBLE_TIP,
+  Bubble,
+  type BubbleDeps,
+  type BubbleOptions,
+  type BubbleVariant,
+} from './components/Bubble'
 export { CardSprite, type CardSpriteDeps, type CardVisual } from './components/CardSprite'
 export { CardTilt } from './components/cardTilt'
+export {
+  DIVIDER_GEM,
+  DIVIDER_MIDLINE,
+  Divider,
+  type DividerDeps,
+  type DividerOptions,
+  type DividerVariant,
+} from './components/Divider'
 export { applyPose, HandFan, type HandFanOptions, type LayoutMode } from './components/HandFan'
+export { Label, type LabelStyle } from './components/Label'
+export { OrnateFrame, type OrnateFrameDeps } from './components/OrnateFrame'
+export {
+  PANEL_NEXT_PLAQUE,
+  PANEL_SIDEBAR,
+  PANEL_SKILL_BACK,
+  PANEL_TOKEN_RAIL,
+  PANEL_TOPBAR,
+  PANEL_TURN_PLAQUE,
+  Panel,
+  type PanelDeps,
+  type PanelOptions,
+  type PanelVariant,
+} from './components/Panel'
+export {
+  PLAQUE_NAVY,
+  PLAQUE_PAPER,
+  PLAQUE_PLAIN,
+  PLAQUE_SIZES,
+  PLAQUE_TERRACOTTA,
+  PlaqueButton,
+  type PlaqueButtonDeps,
+  type PlaqueButtonOptions,
+  type PlaqueButtonState,
+  type PlaqueSizeName,
+  type PlaqueVariant,
+} from './components/PlaqueButton'
 export type { Cue, CueSides, CueSpec, LockReason, MatchStageCue } from './director/cues'
 export {
   createDirector,
@@ -37,6 +96,7 @@ export {
 } from './director/director'
 export { EVENT_PLAN, type EventPlan } from './director/ignored'
 export { type EffectTier, TIER_CONFIG, type TierConfig } from './fx/effectTier'
+export { bakeUiTextures, type UiTextureKey, type UiTextures } from './fx/uiTextures'
 export {
   DRAG_FOLLOW_DUR,
   DRAG_POSE_DUR,

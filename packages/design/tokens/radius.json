@@ -25,6 +25,11 @@
       "$type": "dimension",
       "$description": "圆角阶梯最大的一档。同一份统计里 12px 出现 6 次。"
     },
+    "xxl": {
+      "$value": "14px",
+      "$type": "dimension",
+      "$description": "喊话气泡的圆角。旧样式里只有这一处用 14px，收进阶梯是为了气泡不必写死数值。来源：styles.css 的 .battle__urge-bubble。"
+    },
     "pill": {
       "$value": "999px",
       "$type": "dimension",

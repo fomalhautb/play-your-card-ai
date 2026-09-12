@@ -30,8 +30,8 @@ import {
   TextStyle,
   type Texture,
 } from 'pixi.js'
+import { COST_BADGE_CENTER, COST_BADGE_SIZE, NAMEPLATE_HEIGHT } from '../fx/badgeShapes'
 import type { BakedTextures } from '../fx/bakedTextures'
-import { COST_BADGE_CENTER, COST_BADGE_SIZE, NAMEPLATE_HEIGHT } from '../fx/bakedTextures'
 import { CardGlare } from '../fx/cardGlare'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import type { TextTextureCache } from '../runtime/textCache'
