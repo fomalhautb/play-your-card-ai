@@ -149,11 +149,6 @@ export const DEAL_CARD_MS = sec(tokens.duration.hand.layout)
 /** 相邻两张牌起飞的间隔（HandFan.tsx 的 `DEAL_STAGGER`）。 */
 export const DEAL_STAGGER_MS = sec(0.12)
 
-// ---------- 催一催气泡（MatchStage.tsx:457） ----------
-
-/** 气泡挂多久（`URGE_BUBBLE_MS`）。够读完最长那句，又不至于赖在屏幕上。 */
-export const URGE_BUBBLE_MS = 3200
-
 // ---------- 回合结算层（RoundSettleLayer.tsx:49-143、时间线 294 / 370 / 434 / 660） ----------
 
 /**

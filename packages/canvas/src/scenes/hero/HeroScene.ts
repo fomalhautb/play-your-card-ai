@@ -1,7 +1,7 @@
 /**
  * 选英雄页渲染器（需求单里归 canvas 的那一页）。
  *
- * 层叠自下而上：背景图 → 返回 / 标题 / 副标题 / 静音 → 两排卡 → 技能详情浮层。
+ * 层叠自下而上：背景图 → 返回 / 标题 / 副标题 → 两排卡 → 技能详情浮层。
  * 这一页**受控**：选中谁、详情开在谁身上都由装配层通过 `setView` 摆进来，
  * 场景自己只管悬停（理由见 heroContract.ts）。
  *
@@ -14,9 +14,7 @@ import { createFakePlatform } from '@ai-duel/platform'
 import { autoDetectRenderer, Container, type Renderer, Sprite } from 'pixi.js'
 import { Flourish } from '../../components/Flourish'
 import { Label } from '../../components/Label'
-import { SealButton } from '../../components/SealButton'
 import { TEXT_BUTTON_BACK, TextButton } from '../../components/TextButton'
-import { bakeMuteIcons, type MuteIcons } from '../../fx/controlIcons'
 import { bakeUiTextures } from '../../fx/uiTextures'
 import { Animator } from '../../runtime/animator'
 import { killAndDestroy } from '../../runtime/dispose'
@@ -68,14 +66,9 @@ class HeroSceneImpl {
   private readonly grid: HeroGrid
   private readonly detail: HeroDetail
   private readonly ownsRenderer: boolean
-  /** 静音钮那两枚剪影。外面不给就现画一对占位，自己烤的才归自己销毁。 */
-  private readonly muteIcons: MuteIcons
-  private readonly ownIcons: boolean
   private viewport: { width: number; height: number }
   private layout: HeroLayout
   private view: HeroView = { selectedId: null, detailId: null, confirmable: true }
-  private seal: SealButton | null = null
-  private muted: boolean
   private onAction: ((action: HeroAction) => void) | null = null
   private destroyed = false
 
@@ -83,7 +76,6 @@ class HeroSceneImpl {
     this.renderer = renderer
     this.options = options
     this.ownsRenderer = ownsRenderer
-    this.muted = options.muted === true
     this.viewport = { width: options.width, height: options.height }
     this.frameLoop = new FrameLoop({
       manual: options.manualClock === true,
@@ -99,9 +91,6 @@ class HeroSceneImpl {
       clickSound: null,
     }
 
-    // 真图标还没有（需求单图标 B），外面不给就现画一对占位（同 DuelScene 顶栏那两颗钮）。
-    this.ownIcons = options.muteIcons === undefined
-    this.muteIcons = options.muteIcons ?? bakeMuteIcons(renderer)
     if (options.background !== undefined) this.background.texture = options.background
     this.grid = new HeroGrid(options.heroes, this.deps)
     this.grid.setOnOpen((hero) => this.onAction?.({ kind: 'open', hero }))
@@ -137,11 +126,10 @@ class HeroSceneImpl {
     this.detail.place(this.layout)
   }
 
-  /** 标题、副标题、返回、静音那一层。换版式整层重建（同首页的理由）。 */
+  /** 标题、副标题、返回那一层。换版式整层重建（同首页的理由）。 */
   private buildChrome(): void {
     for (const child of this.chrome.removeChildren()) killAndDestroy(this.deps.animator, child)
-    this.seal = null
-    const { title, subtitle, back, seal } = this.layout
+    const { title, subtitle, back } = this.layout
 
     const heading = new Label(
       TITLE,
@@ -203,18 +191,6 @@ class HeroSceneImpl {
     )
     backButton.position.set(back.x, back.y)
     this.chrome.addChild(backButton)
-
-    const button = new SealButton(
-      {
-        size: seal.width,
-        icon: this.muted ? this.muteIcons.off : this.muteIcons.on,
-        onActivate: () => this.onAction?.({ kind: 'toggle-mute' }),
-      },
-      this.deps,
-    )
-    button.position.set(seal.x, seal.y)
-    this.chrome.addChild(button)
-    this.seal = button
   }
 
   /** 这一页动的只有补间，全在 animator 账上，所以画一帧不需要自己推任何虚拟时钟。 */
@@ -232,7 +208,6 @@ class HeroSceneImpl {
       onAction: (callback: (action: HeroAction) => void) => {
         this.onAction = callback
       },
-      setMuted: (muted: boolean) => this.setMuted(muted),
       hoverCard: (index: number | null) => this.grid.setHovered(index),
       step: (deltaMs) => this.frameLoop.step(deltaMs),
       isIdle: () => this.idle(),
@@ -264,12 +239,6 @@ class HeroSceneImpl {
     this.paint()
   }
 
-  private setMuted(muted: boolean): void {
-    this.muted = muted
-    this.seal?.setIcon(muted ? this.muteIcons.off : this.muteIcons.on)
-    this.paint()
-  }
-
   /**
    * 摆完新东西之后立刻画一帧，理由同 RoomScene 的 `paint`：Pixi 的命中判定读的是
    * `worldTransform`，而那份变换只在渲染时才算——不补这一帧，刚建出来的按钮点不中。
@@ -297,11 +266,7 @@ class HeroSceneImpl {
     this.frameLoop.destroy()
     this.deps.ui.destroy()
     this.deps.text.destroy()
-    // 外面给的纹理不归这里收（那是调用方的资源），自己烤的那两枚才收。
-    if (this.ownIcons) {
-      this.muteIcons.on.destroy(true)
-      this.muteIcons.off.destroy(true)
-    }
+    // 外面给的纹理不归这里收（那是调用方的资源）。
     this.stage.destroy({ children: true, texture: false, textureSource: false })
     if (this.ownsRenderer) this.renderer.destroy()
   }

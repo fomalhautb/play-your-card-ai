@@ -4,13 +4,12 @@
  * 这里只有「谁订阅了什么、什么时候通知」这一件事，不碰网络也不碰引擎，
  * 所以 `localDriver`（迁移第 21 条）和 `serverDriver` 各自只写自己那部分差异。
  *
- * 三条订阅规矩各不相同，因为三样东西的性质不一样：
+ * 两条订阅规矩不一样，因为两样东西的性质不同：
  *
  * | 订阅 | 订阅者 | 没人听的时候 |
  * |---|---|---|
  * | 局面（subscribe） | 多个 | 无所谓，快照一直在 |
  * | 事件（subscribeEvents） | **只有一个** | 攒着，第一个订阅者来了补发 |
- * | 喊话（subscribeUrge） | 多个 | 直接丢 |
  */
 
 import type { MatchEventBatch, MatchView } from './driver'
@@ -30,9 +29,6 @@ export interface DriverCore {
   patch(changes: Partial<MatchView>): void
   /** 发一批事件给演出层。空批直接丢——没有事件就没有要演的东西。 */
   emitBatch(batch: MatchEventBatch): void
-  subscribeUrge(listener: (id: string) => void): () => void
-  /** 把一句喊话播给本端的订阅者。发不发给对面由各个 driver 自己决定。 */
-  emitUrge(id: string): void
 }
 
 export function createDriverCore(initial: MatchView): DriverCore {
@@ -52,14 +48,6 @@ export function createDriverCore(initial: MatchView): DriverCore {
    */
   let eventListener: ((batch: MatchEventBatch) => void) | null = null
   let buffered: MatchEventBatch[] = []
-
-  /*
-   * 喊话和事件两条规矩正好相反，因为要的东西不一样：
-   * 允许多个订阅者（界面之外将来还想加别的反馈就直接挂上去，不用抢那一个位置），
-   * 而且没人听的时候直接丢掉——催促是当下的一句话，
-   * 攒到界面挂上来再补播就成了迟到的鬼叫。
-   */
-  const urgeListeners = new Set<(id: string) => void>()
 
   return {
     subscribe(listener) {
@@ -98,18 +86,6 @@ export function createDriverCore(initial: MatchView): DriverCore {
       if (batch.events.length === 0) return
       if (eventListener !== null) eventListener(batch)
       else buffered.push(batch)
-    },
-
-    subscribeUrge(listener) {
-      urgeListeners.add(listener)
-      return () => {
-        urgeListeners.delete(listener)
-      }
-    },
-
-    emitUrge(id) {
-      // 先拷一份再遍历：订阅者在回调里退订自己是常见写法。
-      for (const listener of [...urgeListeners]) listener(id)
     },
   }
 }

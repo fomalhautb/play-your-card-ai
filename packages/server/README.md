@@ -32,7 +32,7 @@ src/
     MatchRoom.ts      房间 DO：连接生命周期 + 消息分发 + alarm 回调，不留任何内存状态
     session.ts        房间特有的连接细节：座位标签、按座位发、座位在不在线
     state.ts          SQLite：房间成员关系一行、权威 GameState 一行、两个定时任务的到点时刻一行
-    membership.ts     room:loadout / ready / leave / resync / urge、双方就绪后开局、三种建房方式
+    membership.ts     room:loadout / ready / leave / resync、双方就绪后开局、三种建房方式
     commands.ts       match:command：核座位 → execute → 存盘 → 分发
     dispatch.ts       一批事件 → 每座位 filterEvent + viewFor + stripCatalog → match:events
     alarms.ts         一个 DO 只有一个 alarm，两件定时的事怎么共用它

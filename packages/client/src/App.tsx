@@ -13,11 +13,13 @@
  * 现在有首页、选英雄页、开包、牌组页、房间页、对局、三个文字页（设置 / 账号 / 关于）
  * 和开发页。首页那颗「开始游戏」直接进联机房（见 screens/HomeScreen.tsx）。
  *
- * ## 应用壳开机时要做的三件事
+ * ## 应用壳开机时要做的两件事
  *
- * 装回静音状态、装回「减少动效」、把竖屏提示和全屏入口挂上。前两件是**上一次的选择**
- *（存在本机上），不装回去的话玩家每次进站都要重新关一遍声音；后两件是两层常驻的浮层，
- * 它们和当前在哪一页无关，所以挂在路由外面（见 screens/OrientationNotice.tsx）。
+ * 装回静音状态、装回「减少动效」。两件都是**上一次的选择**（存在本机上），
+ * 不装回去的话玩家每次进站都要重新关一遍声音。
+ *
+ * 这里原先还挂着两层常驻浮层（竖屏提示、全屏入口），在正式版简化第 2 步删掉了。
+ * `platform` 的 safeArea / fullscreen 两样能力都留着：设置页那两条开关还在用。
  */
 
 import type { Platform } from '@ai-duel/platform'
@@ -31,12 +33,10 @@ import { AuthProvider } from './auth/useSession'
 import { loadSave } from './save/saveStore'
 import { AccountScreen } from './screens/AccountScreen'
 import { DeckScreen } from './screens/DeckScreen'
-import { FullscreenEntry } from './screens/FullscreenEntry'
 import { HeroScreen } from './screens/HeroScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { InfoScreen } from './screens/InfoScreen'
 import { MatchScreen } from './screens/MatchScreen'
-import { OrientationNotice } from './screens/OrientationNotice'
 import { PackScreen } from './screens/PackScreen'
 import { RoomScreen } from './screens/RoomScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
@@ -100,12 +100,6 @@ export function App({ platform }: { platform: Platform }) {
               <p className="app-notice">没有这一页</p>
             </Route>
           </Switch>
-          {/*
-            两层常驻浮层，挂在 Switch 外面：它们和当前在哪一页无关，
-            跟着路由重挂的话每换一页竖屏提示都会重新弹一次。
-          */}
-          <OrientationNotice />
-          <FullscreenEntry />
         </MatchSessionProvider>
       </AuthProvider>
     </PlatformProvider>

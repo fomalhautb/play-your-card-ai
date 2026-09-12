@@ -1,5 +1,5 @@
 /**
- * 房间成员这一层：谁坐进来、装载牌组、就绪、离开、重同步、催一催，
+ * 房间成员这一层：谁坐进来、装载牌组、就绪、离开、重同步，
  * 以及「双方都就绪」之后开局。
  *
  * 和 commands.ts 的分工按协议的两个前缀切：`room:` 是成员关系（开局前后都要用），
@@ -7,7 +7,7 @@
  * 座位是怎么占上的（大厅那三条路）在下面 `setupRoom` / `reserveRoom` / `joinRoom` 三个函数里。
  */
 
-import { createCatalog, HEROES, isLegalDeck, isUrgeId, QUESTION_POOL } from '@ai-duel/content'
+import { createCatalog, HEROES, isLegalDeck, QUESTION_POOL } from '@ai-duel/content'
 import type { PlayerId } from '@ai-duel/core'
 import { createGame, other } from '@ai-duel/core'
 import type { ClientMessage } from '@ai-duel/protocol'
@@ -166,21 +166,6 @@ export function handleResync(
   }
   console.log(`房间重同步：座位 ${seat} 手上是 ${haveSeq}，服务端在 ${room.record.seq[seat]}`)
   sendSnapshot(ws, room.record, state, seat)
-}
-
-/**
- * `room:urge`：催一催，转给对面。
- *
- * 只带 id 不带文字（见 `roomUrgeSchema`），所以没人能借它往对方屏幕上打任意文字。
- * 认不出的 id 回 `unknown-urge` 不转发：对面拿它查不到文字，只会得到一个静默的空气泡，
- * 与其让它到对面去落空，不如在这里就告诉发送方。
- */
-export function handleUrge(room: RoomContext, ws: WebSocket, seat: PlayerId, id: string): void {
-  if (!isUrgeId(id)) {
-    sendRoomError(ws, 'unknown-urge', '这句喊话不认识')
-    return
-  }
-  sendToSeat(room.ctx, other(seat), { type: 'room:urged', from: seat, id })
 }
 
 /**

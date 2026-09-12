@@ -259,13 +259,11 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
       performanceLocked = locked
       ctx.parts.endPlay.setDisabled(next.actionsLocked || locked)
       /*
-       * 「催一催」只在等对方出牌时在场，而那正是「结束出牌」按不动的时候，
-       * 所以两颗钮是互斥地占着右下角同一个位置（见 layout/types.ts 的 `urge`）。
+       * 等对方出牌时整颗收起来——那正是它按不动的时候，留一颗灰着的钮只是占地方。
        *
        * 用 `visible` 而不是建了又销：这颗钮一局要进出好几十次（每一轮双方各一次），
        * 每次重建都要重新烤一遍匾额上那行字的纹理（3.5 明确不许在动画期间建文字）。
        */
-      ctx.parts.urge.visible = next.waitingForFoe
       ctx.parts.endPlay.visible = !next.waitingForFoe
       /*
        * 英雄技能钮和「结束出牌」吃同一档锁，外加一条它自己的：一个合法目标都没有时也灰着

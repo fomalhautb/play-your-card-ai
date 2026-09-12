@@ -26,7 +26,6 @@ import { handleBatch } from './events'
 import { acquirePlayLanding, releaseLanding } from './locks'
 import { abortInspect, abortReveal, closeInspect, openInspect } from './reveal'
 import { confirmSettle } from './settleTimeline'
-import { URGE_BUBBLE_MS } from './timings'
 
 /** 手牌为什么出不了牌。它不挡操作（那归 `actionsLocked`），只决定灰墨态和点上去弹哪句提示。 */
 export type HandLockReason = 'foe-turn' | 'quiz' | 'deal'
@@ -75,11 +74,6 @@ export type UserAction =
   | { kind: 'inspect-close' }
   /** 结算层点确认。 */
   | { kind: 'settle-confirm' }
-  /**
-   * 收到一句「催一催」的喊话。
-   * 本端点的和对面发来的走同一条路（驱动自己也会回调回来），两台机器上弹的是同一句。
-   */
-  | { kind: 'urge'; lineId: string }
 
 export interface Director {
   /** 喂一批事件和它之后的视图，也就是驱动一次 execute 的产出。 */
@@ -149,9 +143,6 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
           context.awaiting = true
           return true
         }
-        case 'urge':
-          context.emit({ kind: 'urge', durationMs: URGE_BUBBLE_MS, lineId: action.lineId })
-          return true
       }
     },
 

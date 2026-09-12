@@ -76,7 +76,6 @@ sequenceDiagram
 | `room:ready` | 房间 | 无。双方都就绪才开局 |
 | `room:leave` | 房间 | 无。主动退出，和掉线不是一回事 |
 | `room:resync` | 房间 | `haveSeq`：手上最后一个序号，0 表示一条没收到 |
-| `room:urge` | 房间 | `id`：催一催的那句话的 id，**不带文字** |
 | `match:command` | 房间 | `command`：只认 `PLAY_CARD` / `END_PLAY` / `USE_HERO_SKILL` / `CONFIRM_ROUND` |
 
 ### 服务端 → 客户端
@@ -90,7 +89,6 @@ sequenceDiagram
 | `lobby:room` | 大厅 | `code` + `origin`（`queue` / `create` / `join`）。拿着码去连房间 |
 | `lobby:error` | 大厅 | `reason` + `notice`。连接不关 |
 | `room:peer` | 房间 | 对手的 `seat` / `online` / `loaded` / `ready`，每次都是完整状态 |
-| `room:urged` | 房间 | `from`（哪个座位喊的）+ `id` |
 | `room:closed` | 房间 | `reason`（`match-over` / `peer-left` / `idle-timeout`）+ `notice`。别再重连 |
 | `room:error` | 房间 | `reason`（含 `not-your-seat`）+ `notice`。连接不关 |
 | `match:started` | 房间 | `seat`、`seq`、开局事件、开局后的**完整**裁剪视图（带 `catalog`） |
@@ -116,8 +114,7 @@ DO 在休眠中收到 `ping` 由运行时直接回 `pong`，既不唤醒对象�
 1. **序号 `seq` 从 1 开始，按座位各算一串**，不是房间共用一串。
    这样一批事件被 `filterEvent` 对某一方过滤成空时就整条不发，不用为了对齐编号发空包。
 2. **只有 `match:started` 和 `match:events` 占号**，每发一条 +1。
-   `match:rejected`（指令回执）和 `room:urged`（催一催）不占：
-   它们不是「局面上发生的事」，丢了也不影响局面——催一催本来就是故意走不可靠通道的。
+   `match:rejected`（指令回执）不占：它不是「局面上发生的事」，丢了也不影响局面。
 3. **客户端记住最后一个号。** 下一条的 `seq` 不等于「上一个 + 1」就是漏包了，发 `room:resync`。
    TCP 不会乱序也不会丢，所以漏包实际只有一个来源：断线期间服务端发出去的那些。
 4. **重连也发 `room:resync`**：连上、收到带座位的 `session:welcome` 之后就发，`haveSeq` 填手上最后一个号。

@@ -137,7 +137,6 @@ const SAMPLE_CUES: Record<Cue['kind'], Cue> = {
   'settle-exit': { kind: 'settle-exit', at: 0, durationMs: 450 },
   'lock-acquire': { kind: 'lock-acquire', at: 0, durationMs: 0, token: 1, reason: 'play' },
   'lock-release': { kind: 'lock-release', at: 0, durationMs: 0, token: 1 },
-  urge: { kind: 'urge', at: 0, durationMs: 3200, lineId: '快点啊' },
   error: { kind: 'error', at: 0, durationMs: 0, reason: 'Token 不够' },
   'clear-overlays': { kind: 'clear-overlays', at: 0, durationMs: 0 },
 }

@@ -7,7 +7,7 @@
  *
  * ## 谁管什么
  *
- * 场景管**画面和文案**：菜单上印哪几个字、人物介绍卡怎么排、按钮长什么样。
+ * 场景管**画面和文案**：菜单上印哪几个字、按钮长什么样。
  * 装配层管**去哪**：按了「开始游戏」进联机房、按了「牌组」跳哪条路由。
  * 所以下面这些操作只说「玩家点了哪一颗」，不带任何路由信息。
  * 这条分工和房间页是一样的：canvas 里有中文文案不奇怪，那是界面的一部分；
@@ -16,8 +16,7 @@
  * ## 图片和卡牌数据都由装配层给
  *
  * 场景不管资源从哪来（架构第 2 节第 5 条），也不许 import `content`
- *（依赖方向见 7.2 第 1 条）。所以七个人物是谁、四张展示卡是哪四张，
- * 全部由装配层查好、连纹理一起传进来。
+ *（依赖方向见 7.2 第 1 条）。所以四张展示卡是哪四张，由装配层查好、连纹理一起传进来。
  */
 
 import type { Platform } from '@ai-duel/platform'
@@ -61,46 +60,18 @@ export function homeMenu(dev: boolean): HomeMenuItem[] {
 /** 玩家在首页上能做的事。装配层收到之后自己决定怎么办。 */
 export type HomeAction =
   /** 主入口。去哪一页由装配层决定（现在是联机房）。 */
-  { kind: 'start' } | { kind: 'menu'; item: HomeMenuId } | { kind: 'toggle-mute' }
+  { kind: 'start' } | { kind: 'menu'; item: HomeMenuId }
 
-/** 一个人物：抠图，加上 hover 时那张介绍卡上的文案。 */
-export interface HomeCastMember {
-  /** 只用来当键，场景不解释它的含义。 */
-  id: string
-  name: string
-  /** 人物经历的简介。 */
-  intro: string
-  skillName: string
-  /** 技能在对局里的效果。 */
-  skillText: string
-  /** 技能的使用定位。没有就不摆那一段。 */
-  roleText?: string
-  /**
-   * 和舞台等比的整幅透明抠图。
-   *
-   * 人已经画在各自该在的位置上，所以这里不需要任何坐标——整张铺满舞台叠上去就是对的位置，
-   * 和夜空底、桌面弧、前景道具是同一种用法。
-   * 数组顺序就是**叠放顺序**（后面的盖住前面的），也是命中的优先级：
-   * 两个人重叠的地方判给排在后面的那个。
-   */
-  art: Texture
-}
-
-/** 那幅画的其余几层。都是和舞台等比的整幅图。 */
+/** 那幅画的各层。都是和舞台等比的整幅图。 */
 export interface HomeTextures {
   /** 夜空底。 */
   background: Texture
-  /** 桌面弧。压在人物之上，也当命中的遮挡层。 */
+  /** 桌面弧，压在展示卡之上。 */
   table: Texture
-  /** 前景道具（地球仪、望远镜）。同样既是画面也是遮挡层。 */
+  /** 前景道具（地球仪、望远镜），压在桌面弧之上。 */
   props: Texture
   /** 「开始游戏」那颗匾额的底图。 */
   plaque: Texture
-  /**
-   * 静音钮的两枚剪影（有声 / 静音）。真图标是美术资源（需求单图标 B），还没有；
-   * 不给就用场景现画的占位（见 fx/controlIcons.ts，同对局顶栏那两颗钮的做法）。
-   */
-  mute?: { on: Texture; off: Texture }
 }
 
 export interface HomeSceneOptions {
@@ -111,16 +82,12 @@ export interface HomeSceneOptions {
   /** 渲染倍率，调用方负责封顶（纪律 3.3）。 */
   resolution: number
   textures: HomeTextures
-  /** 七个人物，顺序就是叠放顺序（后排在前）。 */
-  cast: HomeCastMember[]
   /** 四张展示卡。取的是卡池里的真卡，查好了传进来。 */
   cards: CardVisual[]
   /** 效果档位，决定展示卡要不要跟指针倾斜和反光。不给就是中档。 */
   tier?: EffectTier
   /** 开发构建才摆「测试对局」那一项。 */
   dev?: boolean
-  /** 一开始是不是静音的。 */
-  muted?: boolean
   /**
    * 触感和音效。只要这两样——首页不碰网络、存储、全屏。
    * 不给就静音、不震动（目录页就是这么跑的）。
@@ -135,15 +102,6 @@ export interface HomeSceneOptions {
 export interface HomeScene {
   /** 玩家按了某颗钮。全局只有一个回调，后设的顶掉前一个。 */
   onAction(callback: (action: HomeAction) => void): void
-  /** 静音钮换一枚剪影。 */
-  setMuted(muted: boolean): void
-  /**
-   * 把指针停在第 index 个人身上（null 是谁都不停）。
-   *
-   * 只给目录页用：那边没有真指针，而「hover 某个人」正是这一页最要紧的一张图。
-   * 真实交互走的是画布上的 pointermove 加 alpha 命中，不经过这里。
-   */
-  hoverCast(index: number | null): void
   /** 手动推进一帧。 */
   step(deltaMs: number): void
   /**

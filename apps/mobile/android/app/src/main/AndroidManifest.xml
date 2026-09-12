@@ -9,7 +9,7 @@
         android:theme="@style/AppTheme">
         <!--
             screenOrientation 是横屏锁：对局版式两档都是横的，竖屏下战场那一排五格和手牌区
-            上下叠不下（见 packages/client/src/screens/OrientationNotice.tsx）。
+            上下叠不下（见 packages/canvas/src/scenes/duel/layout/）。
             写在这儿而不是运行时调插件锁：写死的话应用从启动第一帧就是横的，
             不会先竖着画一帧再转过来，也不用管系统的旋转锁定开没开。
             用 sensorLandscape 不是 landscape：两个方向的横屏都认，玩家手机横过来的方向不用猜。

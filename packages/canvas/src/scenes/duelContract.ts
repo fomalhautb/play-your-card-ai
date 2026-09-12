@@ -98,14 +98,6 @@ export interface DuelSceneOptions {
   onLeave?: () => void
   onToggleMute?: () => void
   /**
-   * 右下角那颗「催一催」按下时叫谁。等对方出牌时它才在场。
-   *
-   * 场景不挑喊哪一句：喊话文案在 `content` 里，而 canvas 不依赖 content
-   *（依赖方向见《正式版架构》7.2 第 1 条）。装配层收到之后自己 `pickUrgeId()`
-   * 再 `driver.urge(id)`，喊话回到两端时走的是另一条路（`useMatchUrge` → `userAction`）。
-   */
-  onUrge?: () => void
-  /**
    * 关掉会动的那些东西：落地震屏、卡面跟指针跑的倾斜和反光。
    *
    * 玩家在设置页点的那一档（存档里的 `reducedMotion`）由装配层透进来。

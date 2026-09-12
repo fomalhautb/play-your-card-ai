@@ -146,7 +146,6 @@ class DuelSceneImpl {
         this.onUserActionCb?.({ kind: 'end-play' })
         this.onCommandCb?.({ type: 'END_PLAY', player: this.options.seat })
       },
-      onUrge: this.options.onUrge,
       onLeave: this.options.onLeave,
       onToggleMute: this.options.onToggleMute,
     })

@@ -1,16 +1,15 @@
 /**
- * 剩下那四种：演出锁的上 / 放、催一催的喊话气泡、指令被拒的红字。
+ * 剩下那三种：演出锁的上 / 放、指令被拒的红字。
  *
- * 它们的共同点是**不产生动画**（`durationMs` 都是 0，气泡那条除外），
- * 只是把某个状态切一下。
+ * 它们的共同点是**不产生动画**（`durationMs` 都是 0），只是把某个状态切一下。
  */
 
 import { tokens } from '@ai-duel/design'
-import { BUBBLE_ERROR, BUBBLE_SHOUT, Bubble } from '../../../components/Bubble'
+import { BUBBLE_ERROR, Bubble } from '../../../components/Bubble'
 import type { DuelContext } from '../context'
 import type { CuePlayerGroup } from './types'
 
-/** 气泡挂多久（毫秒）。`urge` 的时长由 cue 给，被拒那条 cue 记 0，用这个兜底。 */
+/** 气泡挂多久（毫秒）。被拒那条 cue 的 `durationMs` 记 0，挂多久由这里定。 */
 const BUBBLE_HOLD_MS = Math.round(tokens.duration.bubble.hold * 1000)
 
 /** 气泡一行最多多宽。超了组件自己把整块缩小。 */
@@ -21,19 +20,17 @@ const BUBBLE_MAX_WIDTH = 320
  *
  * 同一时刻只留一个：两条提示叠在同一个位置谁也读不清，而后来的那条总是更要紧的。
  */
-function popBubble(
-  ctx: DuelContext,
-  variant: typeof BUBBLE_SHOUT | typeof BUBBLE_ERROR,
-  content: string,
-  holdMs: number,
-): void {
+function popBubble(ctx: DuelContext, content: string, holdMs: number): void {
   const layer = ctx.parts.layers.bubble
   for (const child of layer.removeChildren()) {
     // 上一颗可能还在淡入淡出，掐干净再拆——它的补间挂在私有的内层上，只有组件自己掐得到。
     if (child instanceof Bubble) child.clear()
     child.destroy({ children: true })
   }
-  const bubble = new Bubble({ variant, content, maxWidth: BUBBLE_MAX_WIDTH }, ctx.deps)
+  const bubble = new Bubble(
+    { variant: BUBBLE_ERROR, content, maxWidth: BUBBLE_MAX_WIDTH },
+    ctx.deps,
+  )
   bubble.position.set(
     ctx.layout.bubble.x - bubble.boxWidth / 2,
     ctx.layout.bubble.y - bubble.boxHeight / 2,
@@ -49,7 +46,7 @@ function popBubble(
   })
 }
 
-type MiscKind = 'lock-acquire' | 'lock-release' | 'urge' | 'error'
+type MiscKind = 'lock-acquire' | 'lock-release' | 'error'
 
 export const miscPlayers: CuePlayerGroup<MiscKind> = {
   /**
@@ -68,11 +65,6 @@ export const miscPlayers: CuePlayerGroup<MiscKind> = {
     ctx.refreshLocks()
   },
 
-  /** 「催一催」的喊话。本端点的和对面发来的走同一条路，两台机器上弹的是同一句。 */
-  urge(ctx, cue) {
-    popBubble(ctx, BUBBLE_SHOUT, cue.lineId, cue.durationMs > 0 ? cue.durationMs : BUBBLE_HOLD_MS)
-  },
-
   /**
    * 指令被拒的红字。
    *
@@ -81,6 +73,6 @@ export const miscPlayers: CuePlayerGroup<MiscKind> = {
    * 期间又被拒一次就当场换成新的那句（popBubble 只留一个）。
    */
   error(ctx, cue) {
-    popBubble(ctx, BUBBLE_ERROR, cue.reason, BUBBLE_HOLD_MS)
+    popBubble(ctx, cue.reason, BUBBLE_HOLD_MS)
   },
 }

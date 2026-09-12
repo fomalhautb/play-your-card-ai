@@ -17,7 +17,7 @@ assets/
 | `cards/` | 卡面原画（`models/`、`skills/`）和两张共用牌背（`card-back-*.webp`） | 全部打进图集 |
 | `hero/` | 七张英雄牌 + 选英雄页底图 | 直接当图用（英雄牌不进图集） |
 | `home/` `room/` `info/` `battle/` | 首页、房间页、关于页、对局场地的界面底图 | 直接当图用 |
-| `music/` | 四首循环 BGM + 七段音效，都是 m4a（AAC） | 客户端按 `/audio/music/<名字>.m4a` 取 |
+| `music/` | 四首循环 BGM + 三段音效，都是 m4a（AAC） | 客户端按 `/audio/music/<名字>.m4a` 取 |
 | `favicon.svg` `icon*.png` `icon.svg` `manifest.webmanifest` | 「添加到主屏幕」那一套 | **暂时没人用**，见下 |
 
 站点图标那一套现在没有任何构建步骤会碰它：网页壳（`apps/web`）的 `index.html` 还没挂

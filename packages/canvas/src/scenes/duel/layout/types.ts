@@ -58,18 +58,9 @@ export interface DuelLayout {
   deck: { x: number; y: number; scale: number }
   /** 「结束出牌」按钮的中心（视口坐标）。 */
   endPlay: { x: number; y: number }
-  /**
-   * 「催一催」按钮的中心（视口坐标）。
-   *
-   * 它和「结束出牌」共用右下角那一块，而且**永远不同时出现**：等对方出牌时手牌是灰的、
-   * 「结束出牌」按不动，那正是「催一催」挂出来的时候（判据是 `DirectorLocks.waitingForFoe`）。
-   * 所以两颗钮摞在同一个位置上，谁在场谁占着——各给一块地方的话，
-   * 右下角在手机档会挤成两行按钮，而其中一行永远是灰的。
-   */
-  urge: { x: number; y: number }
   /** 放大查看时卡在屏幕中央放到多大。触屏档更大，见 `size.card.revealScaleTouch`。 */
   revealScale: number
-  /** 提示气泡（催一催、指令被拒）的中心。 */
+  /** 提示气泡（指令被拒的红字）的中心。 */
   bubble: { x: number; y: number }
 }
 

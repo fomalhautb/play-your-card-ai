@@ -10,10 +10,8 @@
  *   （AndroidManifest 的 `android:screenOrientation`、Info.plist 的 `UISupportedInterfaceOrientations`，
  *   见 apps/mobile/README.md）。写死比运行时锁可靠：应用从启动第一帧就是横的，
  *   不会先竖着画一帧再转过来。既然锁不掉也不用锁，这里就该老实说「没有这个能力」——
- *   竖屏提示那颗「一键横屏」按钮于是不出现（见 client 的 OrientationNotice.tsx），
- *   而它本来也没有用武之地：屏幕根本转不到竖的。
- * - `isStandalone()` 恒为 true。手机壳里没有地址栏，不该再劝玩家去全屏
- *   （见 client 的 FullscreenEntry.tsx）。
+ *   调用方据此不摆「一键横屏」那类入口，而它本来也没有用武之地：屏幕根本转不到竖的。
+ * - `isStandalone()` 恒为 true。手机壳里没有地址栏，不该再劝玩家去全屏。
  *
  * 初值是「已经全屏」：两条栏在应用启动时就藏好了，由 capacitor.config.ts 里
  * `plugins.SystemBars.hidden` 那条声明式地做掉，不用壳里写一行代码。

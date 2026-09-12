@@ -1,5 +1,5 @@
 /*
- * 整屏加载页的版式：铺满，正中竖着排三样东西。
+ * 整屏加载页的版式：铺满，正中一行字。
  * 数值读设计令牌（架构 7.1 第 4 条）。
  */
 
@@ -7,12 +7,10 @@
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xxl);
   background: var(--color-page-background);
-  color: var(--color-card-loader-line);
+  color: var(--color-page-foreground);
   font-family: var(--font-family-serif);
 }
 

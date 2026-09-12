@@ -107,14 +107,6 @@ export interface MatchDriver {
    * 别把这条口子放宽——放宽了作弊防线就只剩服务端一道。
    */
   send(command: PlayerCommand): void
-  /**
-   * 「催一催」：本端喊一句，同步给对面，两边一起放录音、弹气泡。
-   *
-   * 不走 send：它不是指令，引擎不认识它，也不该进局面。
-   */
-  urge(id: string): void
-  /** 订阅喊话（本端和对面的都会到）。可以有多个订阅者，也没有补发缓冲——见 driverCore.ts。 */
-  subscribeUrge(listener: (id: string) => void): () => void
   /** 界面卸载时调用：断连接、清定时器。 */
   dispose(): void
 }

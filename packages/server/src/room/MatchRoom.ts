@@ -57,7 +57,6 @@ import {
   handleLoadout,
   handleReady,
   handleResync,
-  handleUrge,
   type JoinOutcome,
   joinRoom,
   reserveRoom,
@@ -238,9 +237,6 @@ export class MatchRoom extends DurableObject<Env> {
         break
       case 'room:resync':
         handleResync(room, ws, seat, message.haveSeq)
-        break
-      case 'room:urge':
-        handleUrge(room, ws, seat, message.id)
         break
       case 'match:command':
         await handlePlayerCommand(room, ws, seat, message.command)

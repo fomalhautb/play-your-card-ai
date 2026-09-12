@@ -21,8 +21,7 @@
  * 它们只对自己的父组件负责，拆文件是被 400 行那条上限逼的，不是多了四个可以单独用的组件。
  * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）：
  * 现在多了首页和选英雄页要的那批（图片底板按钮、文字钮、星芒花饰、夜色圆章、人物说明栏）。
- * 迁移第 29、30 条的三个场景：首页 scenes/home（含人物的 alpha 命中）、
- * 选英雄页 scenes/hero、开包 scenes/pack。
+ * 迁移第 29、30 条的三个场景：首页 scenes/home、选英雄页 scenes/hero、开包 scenes/pack。
  *
  * 目录：
  *   components/    Pixi 组件（卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
@@ -65,7 +64,6 @@ export {
 } from './components/BoardGrid'
 export {
   BUBBLE_ERROR,
-  BUBBLE_SHOUT,
   BUBBLE_TIP,
   Bubble,
   type BubbleDeps,
@@ -94,7 +92,6 @@ export { FoeHand, type FoeHandDeps, type FoeHandOptions } from './components/Foe
 export { applyPose, HandFan, type HandFanOptions, type LayoutMode } from './components/HandFan'
 export { HintBar, type HintBarDeps, type HintBarOptions, type HintTone } from './components/HintBar'
 export {
-  INFO_CARD_CAST,
   INFO_CARD_HERO,
   InfoCard,
   type InfoCardDeps,
@@ -206,7 +203,6 @@ export {
   type UserAction,
 } from './director/director'
 export { EVENT_PLAN, type EventPlan } from './director/ignored'
-export { bakeMuteIcons, type MuteIcons } from './fx/controlIcons'
 export { type EffectTier, TIER_CONFIG, type TierConfig } from './fx/effectTier'
 export { bakeUiTextures, type UiTextureKey, type UiTextures } from './fx/uiTextures'
 export {
@@ -307,18 +303,9 @@ export type {
 } from './scenes/hero/heroContract'
 export type { HeroLayout, HeroRect } from './scenes/hero/heroLayout'
 export { pickHeroLayout } from './scenes/hero/heroLayout'
-export {
-  type AlphaMask,
-  alphaBBox,
-  CAST_ALPHA_THRESHOLD,
-  CAST_MASK_WIDTH,
-  hitTestMasks,
-  type NormalizedBox,
-} from './scenes/home/castHit'
 export { createHomeScene } from './scenes/home/HomeScene'
 export {
   type HomeAction,
-  type HomeCastMember,
   type HomeMenuId,
   type HomeMenuItem,
   type HomeScene,

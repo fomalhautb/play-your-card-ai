@@ -12,7 +12,6 @@
  *（架构 5.6）。只有两处按 `mode` 分岔，各自都写了理由：测试面板挂不挂、离开之后回哪一页。
  */
 
-import { pickUrgeId } from '@ai-duel/content'
 import type { CardId } from '@ai-duel/core'
 import { Dialog } from '@ai-duel/ui'
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -169,13 +168,6 @@ function Match({ driver }: { driver: MatchDriver }) {
         status={linkStatusOf(view)}
         onLeave={() => setLeaving(true)}
         onToggleMute={() => toggleMuted(platform)}
-        /*
-         * 喊哪一句在这儿摇。随机数从这里给而不是让 content 自己摇，理由同 `recordWin`：
-         * content 要保持可复现（见 content 的 urgeLines.ts 的 pickUrgeId）。
-         * 发出去之后本端和对面都会从 `subscribeUrge` 收到它，气泡和那一声由那条路播
-         *（见 DuelStage 的 useMatchUrge）——所以这里只发，不自己播。
-         */
-        onUrge={() => driver.urge(pickUrgeId(Math.random()))}
         reducedMotion={reducedMotion}
       />
 

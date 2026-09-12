@@ -14,7 +14,6 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'wouter'
 import { usePlatform } from '../app/platform'
 import { playTrack } from '../audio/music'
-import { toggleMuted, useMuted } from '../audio/mute'
 import { HERO_IMAGES } from '../preload/manifests'
 import { useAssets } from '../preload/useAssets'
 import { loadSave, saveHero } from '../save/saveStore'
@@ -25,7 +24,6 @@ import './heroScreen.css'
 export function HeroScreen() {
   const platform = usePlatform()
   const [, navigate] = useLocation()
-  const muted = useMuted(platform)
   const assets = useAssets(platform, HERO_IMAGES)
   /** 存档里确认过的那位当初值。之后以玩家在这一页上的选择为准。 */
   const [selectedId, setSelectedId] = useState<HeroId | null>(() => loadSave(platform).savedHero)
@@ -56,9 +54,6 @@ export function HeroScreen() {
       case 'back':
         navigate('/')
         break
-      case 'toggle-mute':
-        toggleMuted(platform)
-        break
     }
   }
 
@@ -70,13 +65,11 @@ export function HeroScreen() {
     confirmable: true,
   }
 
-  if (!assets.ready) {
-    return <LoadingScreen progress={assets.progress} text="正在请他们上场…" />
-  }
+  if (!assets.ready) return <LoadingScreen progress={assets.progress} />
 
   return (
     <main className="hero">
-      <HeroStage view={view} platform={platform} muted={muted} onAction={act} />
+      <HeroStage view={view} platform={platform} onAction={act} />
     </main>
   )
 }

@@ -190,8 +190,6 @@ export type CueSpec =
   | { kind: 'lock-release'; durationMs: number; token: number }
 
   // ---------- 提示 ----------
-  /** 「催一催」的喊话气泡。本端点的和对面发来的走同一条路，两台机器上弹的是同一句。 */
-  | { kind: 'urge'; durationMs: number; lineId: string }
   /**
    * 指令被拒的红字提示。
    * 旧版是常驻文案（跟着 `MatchView.lastRejection` 挂到下一条指令有结果），
