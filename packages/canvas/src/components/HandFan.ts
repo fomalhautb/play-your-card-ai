@@ -24,6 +24,15 @@ import {
 } from '../layout/handLayout'
 import type { Animator } from '../runtime/animator'
 import type { CardSprite } from './CardSprite'
+import { CASTING_LIFT } from './TargetingLayer'
+
+/**
+ * 灰墨态下整排往下沉多少。
+ *
+ * 抄黑客松 `.hand-fan[data-locked]` 的 `translateY(12px)`：出不了牌的时候整排往下缩一点，
+ * 和压暗一起说明「这排现在不归你动」。
+ */
+const HAND_SINK = 12
 
 /** hover 引起的补间要更快，重排则用统一的慢一点的节奏。 */
 export type LayoutMode = 'hover' | 'reflow'
@@ -47,6 +56,8 @@ export class HandFan extends Container {
   /** 摘出去不参与排布的牌（正在拖、已经打出等结果）。 */
   private readonly detached = new Set<string>()
   private hoverIndex = -1
+  /** 正在等玩家选目标的那张牌，它要从扇形里抬起来。没有就是 null。 */
+  private castingId: string | null = null
 
   constructor(options: HandFanOptions) {
     super()
@@ -186,6 +197,35 @@ export class HandFan extends Container {
     return this.hoverIndex
   }
 
+  /**
+   * 整排沉下去（灰墨态）或者回到原位。
+   *
+   * 沉的是**整层**而不是逐张改 y：逐张改要和 hover、让位、施放抬起三套姿态抢同一个属性，
+   * 而它们各自都有自己的补间。写 `pivot` 不碰任何一张牌的姿态——版式那边写的是
+   * `position` 和 `scale`（见 scenes/duel/parts.ts），两边不重叠。
+   */
+  setSunk(sunk: boolean): void {
+    const target = sunk ? -HAND_SINK : 0
+    if (this.pivot.y === target) return
+    this.animator.tween(this.pivot, {
+      y: target,
+      duration: HOVER_DUR,
+      ease: LAYOUT_EASE,
+      overwrite: 'auto',
+    })
+  }
+
+  /**
+   * 哪张牌正在等玩家选目标：它从扇形里抬起 `CASTING_LIFT`，其余的位置不动。
+   *
+   * 只抬不放大——放大就又把战场挡住了，而选目标时战场正是要看的地方（同黑客松）。
+   */
+  setCasting(instanceId: string | null): void {
+    if (this.castingId === instanceId) return
+    this.castingId = instanceId
+    this.layout('hover')
+  }
+
   /** 第 index 张牌（参与排布的下标）此刻该摆成什么样。 */
   poseAt(index: number): SlotPose {
     const poses = handPoses(this.laid().length, this.areaWidth, this.geometry, this.hoverIndex)
@@ -209,10 +249,12 @@ export class HandFan extends Container {
       const pose = poses[index]
       if (pose === undefined) return
       const hovered = index === this.hoverIndex
+      // 正在施放的那张从它的基准位再抬一截；它这时不会同时被 hover（整排都不接指针）。
+      const lift = card.instanceId === this.castingId ? CASTING_LIFT : 0
       const delay = delays?.get(card.instanceId) ?? 0
       this.animator.tween(card, {
         x: pose.x,
-        y: pose.y,
+        y: pose.y - lift,
         rotation: (pose.rotation * Math.PI) / 180,
         alpha: 1,
         duration,

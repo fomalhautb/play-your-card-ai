@@ -79,13 +79,24 @@ export interface DuelContext {
   readonly markKeys: Map<InstanceId, string>
   /** 现在拿着演出锁的那些编号。非空就是手牌整个冻住。 */
   readonly locks: Set<number>
-  /** 展示层里那张临时卡（强制展示、我方技能亮相、放大查看共用一张位置）。 */
-  showcased: CardSprite | null
+  /**
+   * 展示层里那张临时卡（强制展示、我方技能亮相、放大查看共用一张位置）。
+   *
+   * 类型是 `Container` 不是 `CardSprite`：侧栏那张英雄牌放大时摆进来的是一张原画精灵
+   *（名字都印在图里，不套铭牌和费用章，见 duelContract 的 `CardTextures.heroes`）。
+   */
+  showcased: Container | null
   /** 正在放大查看的那一格；关掉时要把格子重新露出来。 */
   inspectingTile: InstanceId | null
 
-  /** 建一张卡。`instanceId` 同时是扇形和战场认牌用的标识。 */
-  makeCard(cardId: CardId, instanceId: string): CardSprite
+  /**
+   * 建一张卡。`instanceId` 同时是扇形和战场认牌用的标识。
+   *
+   * @param hiddenBack 真值时背面换成对手那张**隐藏牌背**（纸白底 + 藏青纹章）。
+   *   强制展示那张卡要用：它是从对手手里飞出来的，起飞那一瞬间和那排牌背必须长得一样，
+   *   否则会跳变（两处用同一张纹理，见 fx/cardShapes.ts 的 drawFoeBack）。
+   */
+  makeCard(cardId: CardId, instanceId: string, hiddenBack?: boolean): CardSprite
   /**
    * 建一张英雄牌（就一张按卡面基准尺寸摆好的原画，不是 `CardSprite`，理由见 duelContract
    * 的 `CardTextures.heroes`）。调用方没给这位的原画就返回 null，那时英雄位空着。
@@ -93,6 +104,8 @@ export interface DuelContext {
   makeHero(heroId: HeroId): Container | null
   /** 某个战场格子在**视口坐标**里的中心、尺寸和该有的缩放。查不到就是那一格不在场上。 */
   tilePoint(instanceId: InstanceId): (RevealPoint & { width: number; height: number }) | null
+  /** 我方侧栏那张英雄牌在**视口坐标**里的中心和缩放。放大查看拿它当起飞点和落点。 */
+  heroPoint(): RevealPoint
   /**
    * 场上某个单位现在是哪张牌。查的是视图，不是格子上那张 `CardSprite`——
    * 后者身上只有实例 id（扇形和战场按它认牌），压根不记自己是哪张牌面。

@@ -227,6 +227,22 @@ function costLayers(visual: FaceContent, deps: FacePartsDeps): FaceLayer[] {
 /** 问号圆章离卡的上边和右边各留多远。抄黑客松手牌上那枚的位置。 */
 const SEAL_INSET = 6
 
+/**
+ * 问号章在卡自己的坐标里占的矩形（原点在卡的底边中点）。
+ *
+ * 点它翻面的那块热区用的是**同一份**：热区和画出来的章对不上，玩家就会点在章上没反应、
+ * 或者点在旁边反而翻了（判定在 interaction/handPointer.ts）。
+ */
+export function sealRect(): LayerRect {
+  const size = tokens.size.seal.helpMark
+  return {
+    x: CARD_WIDTH / 2 - SEAL_INSET - size,
+    y: -CARD_HEIGHT + SEAL_INSET,
+    width: size,
+    height: size,
+  }
+}
+
 /** 能翻面的牌右上角那枚问号章：底圈一层 + 问号一层。 */
 function sealLayers(deps: FacePartsDeps): FaceLayer[] {
   const size = tokens.size.seal.helpMark

@@ -148,6 +148,24 @@ export class PlayerPanel extends Container {
     return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
   }
 
+  /** 英雄牌现在画多宽。放大查看要按它算起飞时的缩放。 */
+  get heroWidth(): number {
+    return this.heroRect().width
+  }
+
+  /**
+   * 点这张英雄牌要叫谁（点开放大查看）。传 null 摘掉。
+   *
+   * 英雄位平时不吃指针事件：它底下压着面板那块底板，开着的话「点空白处取消选目标」
+   * 那条就会被它吃掉一块。挂了回调才打开。
+   */
+  onHeroTap(callback: (() => void) | null): void {
+    this.heroSlot.removeAllListeners()
+    this.heroSlot.eventMode = callback === null ? 'none' : 'static'
+    this.heroSlot.cursor = callback === null ? 'default' : 'pointer'
+    if (callback !== null) this.heroSlot.on('pointertap', callback)
+  }
+
   /** 名字那一格上写的是**玩家**的名字，不是卡名。传 null 就不写。 */
   setName(name: string | null): void {
     if (this.heroName === name) return

@@ -138,6 +138,13 @@ export class CardSprite extends Container {
   readonly instanceId: string
   /** 卡面那一小块反光，平时藏着（visible 为 false）。这一档不开反光时是 null。 */
   readonly glare: CardGlare | null
+  /**
+   * 这张牌能不能翻面看背面（右上角挂着那枚问号章）。
+   *
+   * 翻不翻由调用方在 `CardVisual.flippable` 上说了算，这里只是把它记下来给指针那边看
+   *（点章翻面的判定在 interaction/handPointer.ts）。
+   */
+  readonly flippable: boolean
 
   private readonly frontLayer = new Container()
   private readonly backLayer = new Container()
@@ -165,9 +172,20 @@ export class CardSprite extends Container {
   /** 翻面用的角度代理。补间改它，onUpdate 再调 setFlipAngle。 */
   readonly flipState = { angle: 0 }
 
+  /**
+   * 每一层原本该是什么颜色。压暗（`setDim`）时拿它当底，压暗解除后照它还原。
+   *
+   * 非记不可：卡上有两层本来就带自己的颜色（费用章的盘底按牌上色、匾上的字按主色），
+   * 直接往 `mesh.tint` 上写压暗色会把那两层的原色抹掉，还原时也没处找回来。
+   */
+  private readonly baseTints: number[] = []
+  /** 现在整张卡压到哪一档（0xffffff 是本色）。 */
+  private dimTint = 0xffffff
+
   constructor(visual: CardVisual, deps: CardSpriteDeps) {
     super()
     this.instanceId = visual.instanceId
+    this.flippable = visual.flippable === true
     this.label = `card:${visual.instanceId}`
 
     this.backLayer.visible = false
@@ -190,6 +208,10 @@ export class CardSprite extends Container {
       this.frontGroups[0]?.meshes.push(this.glare)
     }
     this.addLayer(this.backLayer, this.backGroups, backLayerOf(visual.back), true)
+    // 记下各层的本色，压暗时要拿它当底（见 setDim）。反光那一层也在里面，顺序和遍历时一致。
+    for (const group of [...this.frontGroups, ...this.backGroups]) {
+      for (const mesh of group.meshes) this.baseTints.push(Number(mesh.tint))
+    }
 
     this.eventMode = 'static'
     this.cursor = 'pointer'
@@ -232,6 +254,29 @@ export class CardSprite extends Container {
   /** 现在朝上的是不是背面。 */
   isFacingBack(): boolean {
     return this.backLayer.visible
+  }
+
+  /**
+   * 整张卡压暗到某一档：`tint` 乘在每一层原本的颜色上，0xffffff 就是本色。
+   *
+   * 黑客松那边是 CSS 滤镜（灰墨态 `saturate(.5) brightness(.9)`、打不出
+   * `grayscale(.6) brightness(.72)`），而纪律 3.1 不许挂 Filter，所以只能用 tint 近似：
+   * tint 是逐通道相乘，压得暗但去不了饱和度，颜色上会比旧版艳一点，
+   * 「这排牌现在动不了」这件事仍然一眼看得出来。
+   *
+   * 卡下那团投影不跟着压：它本来就是黑的，再乘一个灰没有任何区别。
+   */
+  setDim(tint: number): void {
+    if (tint === this.dimTint) return
+    this.dimTint = tint
+    let index = 0
+    for (const group of [...this.frontGroups, ...this.backGroups]) {
+      for (const mesh of group.meshes) {
+        const base = this.baseTints[index] ?? 0xffffff
+        index += 1
+        mesh.tint = tint === 0xffffff ? base : multiplyTint(base, tint)
+      }
+    }
   }
 
   /**
@@ -343,4 +388,11 @@ export class CardSprite extends Container {
     this.glare?.shader?.destroy()
     super.destroy(options)
   }
+}
+
+/** 两个 tint 逐通道相乘。tint 本来就是乘上去的，叠两层就是再乘一次。 */
+function multiplyTint(base: number, dim: number): number {
+  const channel = (shift: number): number =>
+    Math.round((((base >> shift) & 0xff) * ((dim >> shift) & 0xff)) / 255)
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0)
 }

@@ -10,6 +10,7 @@
  */
 
 import type { Catalog, HeroId, InstanceId, PlayerView } from '@ai-duel/core'
+import { Texture } from 'pixi.js'
 import type { BoardTile } from '../../src/components/BoardTile'
 import type { CardSprite } from '../../src/components/CardSprite'
 import type { DirectorLocks, UserAction } from '../../src/director/director'
@@ -85,9 +86,17 @@ export interface FakeCard {
   x: number
   y: number
   alpha: number
+  /** 灰墨态和「打不出」把它压暗到哪一档（0xffffff 是本色）。 */
+  dim: number
+  cursor: string
+  /** 倾斜跟随会读它（这份替身一律关着倾斜，所以永远是 null）。 */
+  glare: null
   scale: { x: number; y: number; set(value: number): void }
   position: { set(x: number, y: number): void }
+  setDim(tint: number): void
+  setTilt(): void
   on(): void
+  once(): void
 }
 
 function fakeCard(instanceId: InstanceId): FakeCard {
@@ -96,6 +105,14 @@ function fakeCard(instanceId: InstanceId): FakeCard {
     x: 0,
     y: 0,
     alpha: 1,
+    dim: 0xffffff,
+    cursor: 'pointer',
+    glare: null,
+    setDim(tint: number) {
+      card.dim = tint
+    },
+    setTilt: () => undefined,
+    once: () => undefined,
     scale: {
       x: 1,
       y: 1,
@@ -158,6 +175,12 @@ export function fakeView(spec: ViewSpec): PlayerView {
     catalog: INPUT_CATALOG,
     self: {
       id: 0,
+      /*
+       * Token 给得足够多、也没有减免：这一组测的是拖拽和选目标，不是买不买得起。
+       * 不给的话每张牌都会被算成「Token 不够」，点下去只会弹一句小字（见 handMood.ts）。
+       */
+      tokens: 99,
+      costReduction: 0,
       hand: spec.hand.map(([instanceId, cardId]) => ({ instanceId, cardId })),
       board: (spec.board ?? []).map(unit(0)),
       hero: spec.hero ?? null,
@@ -172,6 +195,9 @@ export interface FakeTile {
   instanceId: InstanceId
   eventMode: string
   cursor: string
+  /** 格子上那张卡和它缩到战场尺寸的倍数。hover 那套（tileHover.ts）要读它们。 */
+  sprite: FakeCard
+  cardScale: number
   on(event: string, handler: () => void): void
   /** 点这一格。没被 bindTile 挂过监听就什么都不发生。 */
   tap(): void
@@ -183,6 +209,8 @@ export function fakeTile(instanceId: InstanceId): FakeTile {
     instanceId,
     eventMode: 'none',
     cursor: 'default',
+    sprite: fakeCard(`${instanceId}:card` as InstanceId),
+    cardScale: 0.733,
     on(event, handler) {
       if (event === 'pointertap') tap = handler
     },
@@ -238,6 +266,11 @@ export function createInputProbe(view: PlayerView): InputProbe {
   const fan = {
     all: () => cards.filter((card) => !detached.has(card.instanceId)),
     laid: () => cards.filter((card) => !detached.has(card.instanceId)),
+    // 灰墨态整排下沉写的是 pivot，提示小字的落点也要读它（见 handMood 的 place）。
+    pivot: { y: 0 },
+    hovered: -1,
+    setSunk: (sunk: boolean) => calls.push(`fan.setSunk(${sunk})`),
+    setCasting: (instanceId: InstanceId | null) => calls.push(`fan.setCasting(${instanceId})`),
     detach: (card: FakeCard) => {
       detached.add(card.instanceId)
       calls.push('fan.detach')
@@ -280,7 +313,19 @@ export function createInputProbe(view: PlayerView): InputProbe {
 
   const parts = {
     fan,
-    layers: { drag: { addChild: () => calls.push('drag.addChild') } },
+    layers: {
+      drag: { addChild: () => calls.push('drag.addChild') },
+      // 灰墨态那几句小字挂在气泡层上（见 handMood.ts）。
+      bubble: { addChild: () => undefined },
+    },
+    /** 拖拽提示那一组（dropCue.ts）。这份替身只要它们能被写 visible。 */
+    drop: {
+      boardFrame: { visible: false },
+      hotRing: { visible: false },
+      boardCue: { visible: false },
+      returnZone: { visible: false },
+      returnCue: { visible: false },
+    },
     targeting: {
       begin: (name: string) => calls.push(`targeting.begin(${name})`),
       end: () => calls.push('targeting.end'),
@@ -309,18 +354,11 @@ export function createInputProbe(view: PlayerView): InputProbe {
         setHeroSkillDisabled: (disabled: boolean) => {
           probe.heroSkillDisabled = disabled
         },
+        // 点侧栏英雄牌放大查看那条。这一组不测它，能被挂上和摘掉就行。
+        onHeroTap: () => undefined,
       },
     },
-    /*
-     * 落点提示那三块和「对方回合」吊匾。
-     *
-     * 它们在真场景里是桌面档才有的（外框两档都有，提示只有桌面档），而这个替身走的是
-     * 桌面档版式，所以照桌面档给：`setDropState` 每次拖拽都会写它们的 visible，
-     * 缺一个就当场抛。
-     */
-    boardFrame: { visible: false },
-    dropCue: { visible: false },
-    hotRing: { visible: false },
+    /** 「对方回合」吊匾。`input.refresh` 每次都会写它，缺了就当场抛。 */
     turnPlaque: {
       setOn: (on: boolean) => {
         probe.turnPlaqueOn = on
@@ -345,7 +383,16 @@ export function createInputProbe(view: PlayerView): InputProbe {
       animator: {
         tween: () => calls.push('animator.tween'),
         killTweensOf: () => undefined,
+        // 小字提示是一条「淡入 → 停 → 淡出」的时间线，链式调用要能接得住。
+        timeline: () => {
+          const line = { to: () => line }
+          return line
+        },
       },
+      // 小字提示是真的 `Box`，它建的时候要烤一张文字纹理；这份替身直接给一张空的。
+      text: { get: () => Texture.EMPTY },
+      // 这份替身一律关着倾斜：测的是指针判定，不是卡面姿态。
+      cardTilt: false,
     },
     layout: desktopLayout(FAKE_SIZE.width, FAKE_SIZE.height),
     view,

@@ -35,7 +35,15 @@ export interface DuelDeps {
   reducedMotion: boolean
   /** 牌背。`FoeHand` 只要这一张，别的组件用不到。 */
   back: Texture
-  /** 建卡要的那三样。预热和对局共用同一份，两条路建出来的卡才是一样的。 */
+  /**
+   * 卡跟不跟指针倾斜（手牌抬起来那张、战场小卡）。
+   *
+   * 和 `cardDeps.glare` 是同一个物理模型的两半，判据也一样：效果档位开着、而且玩家没要求
+   * 「减少动效」。摆出来是因为要它的有两处（`interaction/handPointer` 和 `scenes/duel/tileHover`），
+   * 各算一遍迟早走岔。
+   */
+  cardTilt: boolean
+  /** 建卡要的那几样。预热和对局共用同一份，两条路建出来的卡才是一样的。 */
   cardDeps: CardSpriteDeps
 }
 
@@ -87,6 +95,7 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
     rng: new Rng(options.seed),
     tier: options.tier,
     reducedMotion,
+    cardTilt: !reducedMotion && TIER_CONFIG[options.tier].cardTilt,
     back: options.back,
     cardDeps: {
       baked,

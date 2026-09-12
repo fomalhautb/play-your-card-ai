@@ -41,6 +41,9 @@ function fakeCard(calls: string[], id: string) {
     alpha: 1,
     scale: { x: 1, y: 1, set: () => undefined },
     position: { set: () => undefined },
+    // 强制展示那张卡在飞的途中要从背面翻正（见 cuePlayers/reveal.ts 的 flipToFront）。
+    flipState: { angle: 0 },
+    setFlipAngle: () => undefined,
     destroy: () => calls.push('card.destroy'),
   }
 }

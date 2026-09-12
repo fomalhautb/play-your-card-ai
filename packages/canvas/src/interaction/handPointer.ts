@@ -1,6 +1,9 @@
 /**
- * 手牌的指针状态机：hover 抬牌、按下、走过阈值起拖、跟着指针走、松手判定。
+ * 手牌的指针状态机：按下、走过阈值起拖、跟着指针走、松手判定。
  * 阈值和节奏抄自旧客户端 `src/ui/useCardDrag.ts` 和 `HandFan.tsx`，判定规则在 dragRules.ts。
+ *
+ * 没按下时的那一档（停留抬牌、离开收回、跟着指针倾斜）拆在 `handHover.ts`，
+ * 分界线就是「指针有没有按下去」——按下之后 hover 立刻收手，理由见那个文件的头。
  *
  * 跟随不用 GSAP 的 quickTo，而是每帧朝目标位收一段（见 advance）。两个理由：
  * 一是 quickTo 建的补间不在场景的活动补间账上，帧循环（3.6）会以为没事在做而停掉；
@@ -20,9 +23,10 @@
 import type { Container, FederatedPointerEvent } from 'pixi.js'
 import { Point } from 'pixi.js'
 import type { CardSprite } from '../components/CardSprite'
+import { sealRect } from '../components/cardFaceParts'
 import type { CardTilt } from '../components/cardTilt'
 import type { HandFan } from '../components/HandFan'
-import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
+import { CARD_HEIGHT } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
 import {
   DRAG_POSE_DUR,
@@ -32,14 +36,7 @@ import {
   pointInZone,
   resolveDrop,
 } from './dragRules'
-
-/**
- * 指针离开卡牌后延迟这么久才缩回去。
- *
- * 几何上放大后的卡已经盖住了自己原来的位置，但补间途中卡还没长到最大，
- * 卡角附近会短暂空出几个像素。这点延迟让"扫过空档又立刻回来"的指针不会触发一次缩放。
- */
-const LEAVE_DELAY_MS = 50
+import { HandHover } from './handHover'
 
 /** 跟随指针的时间常数（秒）。旧版是 0.18s 的 quickTo，换算成指数收敛就是它的三分之一。 */
 const FOLLOW_TAU = 0.18 / 3
@@ -66,6 +63,19 @@ export interface HandPointerOptions {
   tiltFor: (card: CardSprite) => CardTilt | undefined
   /** 玩家把牌拖进出牌区松手了，或者鼠标轻点了一下。 */
   onPlay: (card: CardSprite) => void
+  /**
+   * 玩家点了能翻面那张牌的问号章（或者点了已经翻过去的牌想翻回来）。
+   *
+   * 翻面本身归场景演（时长和缓动在那边），这里只负责判「这一下点的是不是那枚章」。
+   */
+  onFlip?: (card: CardSprite) => void
+  /**
+   * 抬起来的换成了哪一张（没有就是 null）。
+   *
+   * 给「抬起的那张恢复本色、其余跟着整排压暗」用（见 scenes/duel/handMood.ts）。
+   * 抬牌本身的补间归扇形自己管，这里只是报一声换人了。
+   */
+  onHover?: (card: CardSprite | null) => void
   /**
    * 落点提示该处在哪一档：没在拖（off）、拖着（ready）、指针已经进到落区里（hot）。
    *
@@ -102,17 +112,16 @@ interface PressState {
 export class HandPointer {
   private readonly options: HandPointerOptions
   private press: PressState | null = null
-  private hovered: CardSprite | null = null
-  /** 指针离开之后还剩多少毫秒才真的收回。负数表示没有在倒计时。 */
-  private leaveCountdown = -1
-  private readonly scratch = new Point()
+  /** 没按下时那一档（停留抬牌、跟着倾斜）。 */
+  private readonly hover: HandHover
   /** 上一次报给调用方的落点提示档位。 */
   private dropState: 'off' | 'ready' | 'hot' = 'off'
-  /** 换算指针坐标用的另一块草稿：`scratch` 那块正被倾斜跟随占着，两处共用会互相踩。 */
+  /** 换算指针坐标用的草稿。复用同一块，逐次指针移动不产生堆分配（3.10）。 */
   private readonly pointerScratch = new Point()
 
   constructor(options: HandPointerOptions) {
     this.options = options
+    this.hover = new HandHover(options)
     const stage = options.stage
     stage.on('globalpointermove', this.onGlobalMove)
     stage.on('pointerup', this.onUp)
@@ -137,16 +146,7 @@ export class HandPointer {
    * 返回还有没有事情在做——拖拽期间恒为 true，帧循环不能停。
    */
   advance(deltaMs: number): boolean {
-    let busy = false
-    if (this.leaveCountdown >= 0) {
-      this.leaveCountdown -= deltaMs
-      if (this.leaveCountdown < 0) {
-        this.leaveCountdown = -1
-        this.collapseHover()
-      }
-      busy = true
-    }
-
+    let busy = this.hover.advance(deltaMs)
     const press = this.press
     if (press?.dragging === true) {
       const k = 1 - Math.exp(-deltaMs / 1000 / FOLLOW_TAU)
@@ -181,6 +181,16 @@ export class HandPointer {
     this.handleUp(x, y)
   }
 
+  /**
+   * 把一张还挂在拖拽层上的牌送回扇形。
+   *
+   * 场景要它是因为「拖出去松手」不一定等于「这张牌走了」：带目标的技能牌松手之后进的是
+   * 选目标态，牌得先回到扇形里再抬起来等玩家点（见 scenes/duel/input.ts 的 beginTargeting）。
+   */
+  returnToFan(card: CardSprite): void {
+    this.returnCard(card)
+  }
+
   destroy(): void {
     const stage = this.options.stage
     stage.off('globalpointermove', this.onGlobalMove)
@@ -193,26 +203,12 @@ export class HandPointer {
     // 只要还按着（不管进没进入拖拽）就不接 hover：指针被捕获之后，
     // 各浏览器发不发、什么时候发边界事件并不统一，与其猜它们的行为，不如在这里挡掉。
     if (this.press !== null) return
-    this.leaveCountdown = -1
-    if (this.hovered === card) return
-    if (this.hovered !== null) this.options.tiltFor(this.hovered)?.release()
-    this.hovered = card
-    const index = this.options.fan.laid().indexOf(card)
-    this.options.fan.setHover(index)
+    this.hover.enter(card)
   }
 
   private onOut(card: CardSprite): void {
-    if (this.press !== null || this.hovered !== card) return
-    this.leaveCountdown = LEAVE_DELAY_MS
-    // 倒计时是在 advance 里减的，不叫醒帧循环就永远减不到零，抬起来的牌收不回去。
-    this.options.wake()
-  }
-
-  private collapseHover(): void {
-    if (this.hovered === null) return
-    this.options.tiltFor(this.hovered)?.release()
-    this.hovered = null
-    this.options.fan.setHover(-1)
+    if (this.press !== null) return
+    this.hover.leave(card)
   }
 
   private readonly onGlobalMove = (event: FederatedPointerEvent): void => {
@@ -290,7 +286,7 @@ export class HandPointer {
   private handleMove(x: number, y: number): void {
     const press = this.press
     if (press === null) {
-      this.updateTilt(x, y)
+      this.hover.point(x, y)
       return
     }
     press.x = x
@@ -331,9 +327,7 @@ export class HandPointer {
     const { fan, dragLayer, animator, fanToWorld, tiltFor } = this.options
     const card = press.card
     tiltFor(card)?.reset()
-    this.hovered = null
-    this.leaveCountdown = -1
-
+    this.hover.cancel()
     const world = fanToWorld(card.x, card.y, card.scale.x)
     fan.detach(card)
     animator.killTweensOf(card)
@@ -375,6 +369,15 @@ export class HandPointer {
       return
     }
     if (outcome === 'tap') {
+      /*
+       * 先看这一下是不是冲着问号章去的：点章翻到背面，翻过去之后点**整张牌**都翻回来
+       *（章画在正面那一层上，背面朝上时它跟着一起看不见了）。
+       * 判在打出之前：这两件事共用同一次点击，翻面的优先——出牌不可撤销，翻面可以。
+       */
+      if (this.flipTapped(press.card, x, y)) {
+        this.options.onFlip?.(press.card)
+        return
+      }
       // 鼠标点一下就打出；触屏点一下只是把牌抬起来看清楚——手指划过屏幕太容易蹭出一次点击，
       // 而出牌不可撤销，所以触屏不走这条路（旧版触屏还要再点一颗「打出」，原型里先只抬牌）。
       if (press.pointerType === 'mouse') this.options.onPlay(press.card)
@@ -382,6 +385,21 @@ export class HandPointer {
       return
     }
     if (press.dragging) this.returnCard(press.card)
+  }
+
+  /** 这一下点的是不是「翻面」：正面朝上时要点在问号章上，背面朝上时点哪儿都算。 */
+  private flipTapped(card: CardSprite, stageX: number, stageY: number): boolean {
+    if (!card.flippable || this.options.onFlip === undefined) return false
+    if (card.isFacingBack()) return true
+    this.pointerScratch.set(stageX, stageY)
+    const local = card.toLocal(this.pointerScratch, this.options.stage, this.pointerScratch)
+    const rect = sealRect()
+    return (
+      local.x >= rect.x &&
+      local.x <= rect.x + rect.width &&
+      local.y >= rect.y &&
+      local.y <= rect.y + rect.height
+    )
   }
 
   /** 落点提示换一档。没变就不报——调用方那边一档对一次 visible 的开关。 */
@@ -400,21 +418,5 @@ export class HandPointer {
     fan.adoptInOrder(card)
     card.position.set(local.x, local.y)
     fan.returnToFan(card)
-  }
-
-  /** 指针在放大的那张牌上移动时，把相对位置喂给倾斜跟随。 */
-  private updateTilt(x: number, y: number): void {
-    const card = this.hovered
-    if (card === null) return
-    const tilt = this.options.tiltFor(card)
-    if (tilt === undefined) return
-    this.scratch.set(x, y)
-    // 这里的 x / y 已经是舞台坐标了（见 stagePoint），所以要指明「从舞台那套坐标换过去」，
-    // 不指明 Pixi 会当成视口坐标，桌面档缩放之后就偏了。
-    const local = card.toLocal(this.scratch, this.options.stage, this.scratch)
-    // 卡面在自己的坐标里占 x ∈ [−75, 75]、y ∈ [−225, 0]（原点在底边中点）。
-    tilt.setPointer(local.x / CARD_WIDTH + 0.5, local.y / CARD_HEIGHT + 1)
-    // 倾斜和高光都要等 advance 收敛，抬起的补间早就演完了，这时候帧循环停着，得自己叫醒。
-    this.options.wake()
   }
 }
