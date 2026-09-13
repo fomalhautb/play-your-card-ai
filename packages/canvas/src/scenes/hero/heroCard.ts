@@ -168,6 +168,11 @@ export class HeroCardArt extends Container {
    * 那是全场共用的一份（见 fx/cardGlare.ts）。
    */
   override destroy(options?: Parameters<Container['destroy']>[0]): void {
+    /*
+     * 收两次是允许发生的（同 runtime/dispose.ts 那条）：关详情时卡要等飞完才收，
+     * 而那半秒里换一次窗口尺寸就会把整层连它一起拆掉。几何和着色器只归还一次。
+     */
+    if (this.destroyed) return
     this.artGeometry.destroy()
     this.shadowGeometry?.destroy()
     this.glare?.shader?.destroy()
