@@ -30,6 +30,11 @@ function inside(rect: HeroRect, width: number, height: number): boolean {
   )
 }
 
+/** 两块矩形有没有叠在一起。 */
+function overlaps(a: HeroRect, b: HeroRect): boolean {
+  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+}
+
 /** 把一串卡按 y 分成若干排。同一排的 y 完全相等（版式是一排一排摆下去的）。 */
 function groupRows(cards: readonly HeroRect[]): HeroRect[][] {
   const rows: HeroRect[][] = []
@@ -86,6 +91,11 @@ describe('选英雄页桌面档', () => {
     }
   })
 
+  it('返回和标题不叠在一起', () => {
+    expect(overlaps(layout.back, layout.title)).toBe(false)
+    expect(overlaps(layout.back, layout.subtitle)).toBe(false)
+  })
+
   it('详情浮层：大卡 22cqi 偏左、说明 30cqi 摆右边，两块不重叠', () => {
     const { detail } = layout
     // 放大倍数是「22cqi ÷ 卡面基准宽 150」。
@@ -124,6 +134,11 @@ describe('选英雄页手机档', () => {
   it('不缩放：舞台坐标就是视口坐标', () => {
     expect(layout.stage).toEqual({ scale: 1, x: 0, y: 0 })
     expect({ width: layout.width, height: layout.height }).toEqual(MOBILE)
+  })
+
+  it('返回和标题不叠在一起——这一档两者在同一行，标题那格要给它让位', () => {
+    expect(overlaps(layout.back, layout.title)).toBe(false)
+    expect(overlaps(layout.back, layout.subtitle)).toBe(false)
   })
 
   it('卡是 2:3，整片卡阵留在屏幕里', () => {

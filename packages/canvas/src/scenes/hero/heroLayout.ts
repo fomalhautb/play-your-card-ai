@@ -35,6 +35,14 @@ const DESIGN_HEIGHT = 941
 const CQI = DESIGN_WIDTH / 100
 
 /**
+ * 左上角那颗返回占多大，两档同用一档（取组牌页返回钮那一档）。
+ * 它和标题是同一行，标题那格的宽要给它让路，见 titleRoom。
+ */
+const BACK = { width: 88, height: 34 } as const
+/** 返回和标题之间至少留这么宽。 */
+const TITLE_CLEARANCE = 8
+
+/**
  * 桌面档那一摞数，全部出自 `screens/hero.css`：
  *
  * - `titleTop` = `.hero__head` 的 `top: 3.35%`；`titleHeight` = `.hero__title` 的 `2.85cqi`
@@ -54,7 +62,7 @@ const DESKTOP = {
   subtitleGap: 0.5 * CQI,
   subtitleWidth: 18 * CQI,
   subtitleHeight: 1.2 * CQI,
-  back: { x: 3.09 * CQI, y: DESIGN_HEIGHT * 0.042, width: 88, height: 34 },
+  back: { x: 3.09 * CQI, y: DESIGN_HEIGHT * 0.042 },
   gridTop: DESIGN_HEIGHT * 0.19,
   card: 12.5 * CQI,
   rowGap: 2.4 * CQI,
@@ -156,6 +164,17 @@ function gridCards(
   return cards
 }
 
+/**
+ * 居中的标题那一格最宽能到多少：两边都要给左上角那颗返回让出位置。
+ *
+ * 只有手机档真的会撞上——那一档标题的中线（视口高 7%）和返回落在同一行，
+ * 而桌面档的标题在 16.72cqi 里就印得下，离返回还差着大半个屏。字印不下时素方块会
+ * 自己把字缩进格子里（见 components/Box.ts），所以这里只管别让两格叠在一起。
+ */
+function titleRoom(stageWidth: number, side: number): number {
+  return Math.max(1, stageWidth - (side + BACK.width + TITLE_CLEARANCE) * 2)
+}
+
 /** 在一条横线上居中摆一个方块。 */
 function centeredRow(stageWidth: number, top: number, width: number, height: number): HeroRect {
   return { x: (stageWidth - width) / 2, y: top, width, height }
@@ -199,7 +218,7 @@ function desktopLayout(viewWidth: number, viewHeight: number): HeroLayout {
     }),
     title,
     subtitle,
-    back: { ...DESKTOP.back },
+    back: { ...DESKTOP.back, ...BACK },
     detail: {
       anchorX: (bodyLeft + cardWidth / 2) / width,
       anchorY: (columnTop + cardHeight / 2) / height,
@@ -254,14 +273,19 @@ function mobileLayout(width: number, height: number): HeroLayout {
     viewport: { width, height },
     stage: { scale: 1, x: 0, y: 0 },
     cards: gridCards(spec.rows, gridTop, width, cardWidth, { row: gap, col: gap }),
-    title: centeredRow(width, height * spec.titleY - titleHeight / 2, width * 0.8, titleHeight),
+    title: centeredRow(
+      width,
+      height * spec.titleY - titleHeight / 2,
+      titleRoom(width, side),
+      titleHeight,
+    ),
     subtitle: centeredRow(
       width,
       height * spec.subtitleY - subtitleHeight / 2,
       width * 0.85,
       subtitleHeight,
     ),
-    back: { x: side, y: height * 0.03, width: 88, height: 34 },
+    back: { x: side, y: height * 0.03, ...BACK },
     detail: {
       anchorX: spec.detailAnchorX,
       anchorY: 0.5,
