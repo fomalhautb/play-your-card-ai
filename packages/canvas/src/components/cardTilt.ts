@@ -10,12 +10,24 @@
  * 这里改成每帧朝目标值收一段，收敛没收敛由 advance 自己报，账目和帧循环是同一本。
  * 时长换算成时间常数就是除以三（指数收敛跑三个时间常数约到 95%）。
  *
- * 倾斜本身是真透视，不是压扁错切：角度交给 CardSprite，由它换算成各层的四个角
- * （见 cardProjection.ts）。
+ * 倾斜本身是真透视，不是压扁错切：角度交给卡自己（`TiltableCard.setTilt`），
+ * 由它换算成各层的四个角（见 cardProjection.ts）。
  */
 
+import type { CardGlare } from '../fx/cardGlare'
 import { HOVER_TILT_DEG } from '../layout/handLayout'
-import type { CardSprite } from './CardSprite'
+
+/**
+ * 这一套能驱动的东西：一张会做**真透视**的卡面，外加一层可选的反光。
+ *
+ * 写成结构类型而不是收 `CardSprite`：选英雄页那张人物卡是一整幅原画（见
+ * scenes/hero/heroCard.ts），它不带铭牌和费用章，但坐标系、透视口径、反光层和卡牌完全一样。
+ * 限死成 `CardSprite` 只会逼出第二份一模一样的跟随。
+ */
+export interface TiltableCard {
+  setTilt(rotXDeg: number, rotYDeg: number): void
+  readonly glare: CardGlare | null
+}
 
 /** 倾斜跟随指针的时间常数（秒），对应旧版 FOLLOW_DUR = 0.35s。太短会跟得发飘，太长会拖成"甩尾"。 */
 const FOLLOW_TAU = 0.35 / 3
@@ -58,7 +70,7 @@ const GLARE_EPS = 0.002
  * （扇形里没放大的小卡本身就是斜的，再叠一层就是一团乱，旧版同样只给放大的那张开）。
  */
 export class CardTilt {
-  private readonly card: CardSprite
+  private readonly card: TiltableCard
   private readonly enabled: boolean
   /** 这张卡最多歪多少度。 */
   private readonly maxDeg: number
@@ -78,7 +90,7 @@ export class CardTilt {
    *   构筑页三处各有各的角度（卡池 6、格子 5、放大 5，见 scenes/deck/timings.ts）：
    *   同样的角度在小卡上看着更夸张，一屏几十张一起歪就是整片都在晃。
    */
-  constructor(card: CardSprite, enabled: boolean, maxDeg: number = HOVER_TILT_DEG) {
+  constructor(card: TiltableCard, enabled: boolean, maxDeg: number = HOVER_TILT_DEG) {
     this.card = card
     this.enabled = enabled
     this.maxDeg = maxDeg

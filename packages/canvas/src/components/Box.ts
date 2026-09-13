@@ -57,6 +57,15 @@ export interface BoxOptions {
   /** 横向对齐，默认居中。 */
   align?: 'center' | 'left'
   /**
+   * 字折不折行。
+   *
+   * 默认**不折**：一行印不下就整体缩小（见 placeText）。折行是给英雄详情那一栏说明用的——
+   * 那里是成段的正文，一整段压到一行只会小到读不了。折行必须顺带开 `breakWords`：
+   * Pixi 按空格断词，而中文一句话里一个空格都没有，不开的话整段会当成一个「词」顶出去。
+   * 折行宽度就是方块的内宽，所以**建好之后不要再改尺寸**，改了字不会重新折。
+   */
+  wrap?: boolean
+  /**
    * 吃不吃指针事件。
    *
    * 按钮不用自己传：`onPress` 会顺手打开。这一项是给「只想挡住底下的东西」
@@ -66,18 +75,32 @@ export interface BoxOptions {
 }
 
 /**
- * 三档字号各自的样式，全局缓存一份。
+ * 每一档样式全局缓存一份。键是「字号档 + 折行宽度」——折行宽度进了样式，
+ * 同一档字号在两种宽度下量出来的行数不一样，不能共用一份 TextStyle。
  *
  * 不设 `fontFamily`（理由见文件头），颜色直接烤成黑的——这个组件的字一辈子只有一种颜色，
  * 不需要像 `Label` 那样烤成白的再靠 tint 换色。
  */
-const styleCache = new Map<BoxSize, TextStyle>()
+const styleCache = new Map<string, TextStyle>()
 
-function styleOf(size: BoxSize): TextStyle {
-  const cached = styleCache.get(size)
+/** @param wrapWidth 折行宽度；0 是不折行。 */
+function styleOf(size: BoxSize, wrapWidth: number): TextStyle {
+  const key = `${size}|${wrapWidth}`
+  const cached = styleCache.get(key)
   if (cached !== undefined) return cached
-  const created = new TextStyle({ fontSize: BOX_FONT_SIZE[size], fill: BOX_INK })
-  styleCache.set(size, created)
+  const created = new TextStyle({
+    fontSize: BOX_FONT_SIZE[size],
+    fill: BOX_INK,
+    ...(wrapWidth > 0
+      ? {
+          wordWrap: true,
+          wordWrapWidth: wrapWidth,
+          breakWords: true,
+          lineHeight: BOX_FONT_SIZE[size] * 1.6,
+        }
+      : {}),
+  })
+  styleCache.set(key, created)
   return created
 }
 
@@ -90,6 +113,8 @@ export class Box extends Container {
   private readonly frame = new Graphics()
   private readonly size: BoxSize
   private readonly align: 'center' | 'left'
+  /** 折行宽度（0 是不折行）。建的时候按内宽定死，见 `BoxOptions.wrap`。 */
+  private readonly wrapWidth: number
   private text: Sprite | null = null
   /** 现在印着哪一行字。用来挡住「内容没变还重建一次」，见 setLabel。 */
   private content: string | null = null
@@ -103,6 +128,7 @@ export class Box extends Container {
     this.boxHeight = options.height
     this.size = options.size ?? 'body'
     this.align = options.align ?? 'center'
+    this.wrapWidth = options.wrap === true ? Math.max(1, options.width - PAD_X * 2) : 0
     this.addChild(this.frame)
     this.drawFrame()
     if (options.label !== undefined) this.setLabel(options.label)
@@ -130,12 +156,27 @@ export class Box extends Container {
       this.text = null
     }
     if (content === '') return
-    const texture = this.deps.text.get(`box|${this.size}|${content}`, content, styleOf(this.size))
+    const texture = this.deps.text.get(
+      `box|${this.size}|${this.wrapWidth}|${content}`,
+      content,
+      styleOf(this.size, this.wrapWidth),
+    )
     const sprite = new Sprite(texture)
     sprite.anchor.set(this.align === 'center' ? 0.5 : 0, 0.5)
     this.text = sprite
     this.addChild(sprite)
     this.placeText()
+  }
+
+  /**
+   * 里面那行（或那几行）字烤出来多高。
+   *
+   * 折行的方块要它：一段正文折成几行事先不知道，调用方得先建出来、读这个数，
+   * 再把方块的高改成「字高加上下留白」并往下摞（英雄详情那一栏就是这么排的）。
+   * 没有字时是 0。
+   */
+  get textHeight(): number {
+    return this.text === null ? 0 : this.text.texture.height
   }
 
   /** 点不点得动。只改透明度，不换颜色（见文件头）。 */
@@ -151,6 +192,10 @@ export class Box extends Container {
    *
    * 覆盖的是 Pixi 自带的 `setSize`（那一个是靠缩放硬拉整棵子树的），
    * 这里改的是几何——描边被拉粗、字被拉变形都不是想要的。
+   *
+   * **折行宽度不跟着改**：它是建的时候按内宽定死的（见 `BoxOptions.wrap`），
+   * 改尺寸只重画边框、重摆那张已经折好的字。折行的方块本来就是「先量字、再定高」那条路
+   * 用的（英雄详情那一栏），宽度从头到尾不变。
    *
    * **尺寸没变就一个指令都不发**：进度条和滚动条的滑块每重排一次画面就会来问一遍
    *（拖拽途中让一次位就是一轮），不挡住的话每次都要把那圈描边重新攒一遍路径指令，

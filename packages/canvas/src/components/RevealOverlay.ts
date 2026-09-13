@@ -75,6 +75,14 @@ export interface RevealOverlayOptions {
    */
   anchorY?: number
   /**
+   * 遮罩的底色和不透明度。不给就是展示层那一档令牌（对局页和组牌页走它）。
+   *
+   * 选英雄页自己一档：那一页底下是七张高对比的人物原画，展示层那个 66% 压下去卡面还是亮的，
+   * 技能说明压在人脸上读不了。抄黑客松 `.hero__detail-veil` 的 `rgb(5 8 12 / 82%)`
+   *（那一版还叠了 14px 的背景模糊，这里没有——模糊要挂 Filter，纪律 3.1 不许）。
+   */
+  veil?: { color: number | string; alpha: number }
+  /**
    * 顶上裁掉多高（0 就是不裁）。
    *
    * 对局页传顶栏的高度：强制展示的那张牌起飞时正停在对手手牌的位置，那张牌本来有一截
@@ -111,6 +119,7 @@ export class RevealOverlay extends Container {
   private activeZoom: number
   private readonly anchorX: number
   private readonly anchorY: number
+  private readonly veilPaint: { color: number | string; alpha: number }
   private readonly topClip: number
   private card: Container | null = null
   private boxWidth = 0
@@ -123,6 +132,10 @@ export class RevealOverlay extends Container {
     this.activeZoom = this.zoom
     this.anchorX = options.anchorX ?? 0.5
     this.anchorY = options.anchorY ?? 0.5
+    this.veilPaint = options.veil ?? {
+      color: tokens.color.overlay.reveal,
+      alpha: tokens.opacity.overlay.reveal,
+    }
     this.topClip = options.topClip ?? 0
     this.clip = this.topClip > 0 ? new Graphics() : null
     this.label = 'reveal-overlay'
@@ -144,10 +157,7 @@ export class RevealOverlay extends Container {
   resize(width: number, height: number): void {
     this.boxWidth = width
     this.boxHeight = height
-    this.veil
-      .clear()
-      .rect(0, 0, width, height)
-      .fill({ color: tokens.color.overlay.reveal, alpha: tokens.opacity.overlay.reveal })
+    this.veil.clear().rect(0, 0, width, height).fill(this.veilPaint)
     this.clip
       ?.clear()
       .rect(0, this.topClip, width, Math.max(0, height - this.topClip))
