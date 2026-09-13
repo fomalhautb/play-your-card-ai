@@ -13,13 +13,11 @@ import { createFakePlatform, type Platform, type SoundSpec } from '@ai-duel/plat
 import type { Texture } from 'pixi.js'
 import { CardSprite, type CardVisual } from './components/CardSprite'
 import { type BakedTextures, bakeTextures } from './fx/bakedTextures'
-import { bakeUiTextures, type UiTextures } from './fx/uiTextures'
 import { TextTextureCache } from './runtime/textCache'
 import type { StoryStage } from './storyStage'
 
 /** 一条条目要用到的全部依赖，外加一个把它们一起收掉的函数。 */
 export interface StoryDeps {
-  ui: UiTextures
   baked: BakedTextures
   text: TextTextureCache
   animator: StoryStage['animator']
@@ -37,20 +35,17 @@ export interface StoryDeps {
  */
 const SILENT_PLATFORM: Platform = createFakePlatform()
 
-/** 烤好这条条目要的两批纹理和文字缓存。返回的 `dispose` 交给条目的清理函数。 */
+/** 烤好这条条目要的那批纹理和文字缓存。返回的 `dispose` 交给条目的清理函数。 */
 export function storyDeps(ctx: StoryStage): StoryDeps {
-  const ui = bakeUiTextures(ctx.renderer)
   const baked = bakeTextures(ctx.renderer)
   const text = new TextTextureCache(ctx.renderer)
   return {
-    ui,
     baked,
     text,
     animator: ctx.animator,
     platform: SILENT_PLATFORM,
     clickSound: null,
     dispose() {
-      ui.destroy()
       baked.destroy()
       text.destroy()
     },

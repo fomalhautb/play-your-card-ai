@@ -1,10 +1,12 @@
 /**
- * 徽章类零件的模具和尺寸：卡面的费用圆章、夜色圆章、角标药丸。
+ * 徽章类零件的模具和尺寸：现在只剩卡面的费用圆章。
  *
  * 费用圆章原本长在 `bakedTextures.ts` 里、只服务卡牌，搬到这里之后全项目只有一份定义。
  * 卡面铭牌从前也在这儿（需求单的徽章 C），正式版简化第 4 步之三把卡面的名字条换成了
  * 八角雕花匾（见 `fx/cardPlaque.ts`），素纸条那一版连同 `Badge` 的 A / B / C 三个变体
  * 一起不再用——卡上的每一层都要过透视投影，普通容器挂上去就没有近大远小了。
+ * 之五又把夜色圆章和角标药丸那两组模具删了：`Badge` 整个组件连同选英雄页那几处实例
+ * 一起换成了素方块（见 `components/Box.ts`），剥完之后全项目再没有调用方。
  *
  * 注意这里只有**形状**，不是显示对象。
  */
@@ -98,51 +100,4 @@ export function drawCostRings(): Mold {
   g.moveTo(22, 16).quadraticCurveTo(50, 0, 78, 16).stroke({ width: 1, color: metalLight })
   g.moveTo(22, 84).quadraticCurveTo(50, 100, 78, 84).stroke({ width: 1, color: metalLight })
   return mold(BADGE_VIEW, BADGE_VIEW, g)
-}
-
-/** 夜色圆章模具的采样直径。用的时候会缩到 22~52，按 64 烤在高分屏上也够。 */
-const SEAL_SIZE = 64
-
-/** 夜色圆章的底：一枚实心圆。 */
-export function drawSealDisc(): Mold {
-  const r = SEAL_SIZE / 2
-  return mold(SEAL_SIZE, SEAL_SIZE, new Graphics().circle(r, r, r).fill({ color: 0xffffff }))
-}
-
-/**
- * 夜色圆章的外圈。
- *
- * 旧版特意不用 CSS 的 border 而是自己画一圈，理由是「border 抖不起来，会和圈里的问号对不上」
- *（手绘滤镜只作用在图形上）。这里不挂滤镜，单独一层是为了它和底色能分别上色。
- * 线宽按直径取比例：这一枚会被缩到 22 也会被放到 52，写死像素的话小尺寸上粗得像个铁环。
- */
-export function drawSealRing(): Mold {
-  const r = SEAL_SIZE / 2
-  const width = SEAL_SIZE * 0.045
-  const g = new Graphics().circle(r, r, r - width).stroke({ width, color: 0xffffff })
-  return mold(SEAL_SIZE, SEAL_SIZE, g)
-}
-
-/**
- * 药丸的基准尺寸。高度固定 20，所以九宫格的上下两条边加起来就是整高、中间那行是零高，
- * 拉伸只发生在横向——圆头永远是正圆，不会被拉成椭圆。
- */
-export const PILL_BASE = { width: 40, height: 20 }
-/** 九宫格四条边的宽度，就是圆头的半径。 */
-export const PILL_INSET = PILL_BASE.height / 2
-
-/** 角标药丸的底。 */
-export function drawPillFill(): Mold {
-  const { width, height } = PILL_BASE
-  const g = new Graphics().roundRect(0, 0, width, height, PILL_INSET).fill({ color: 0xffffff })
-  return mold(width, height, g)
-}
-
-/** 角标药丸的描边。描边画在内侧半个线宽处，才不会被取景框切掉半条。 */
-export function drawPillLine(): Mold {
-  const { width, height } = PILL_BASE
-  const g = new Graphics()
-    .roundRect(0.5, 0.5, width - 1, height - 1, PILL_INSET - 0.5)
-    .stroke({ width: 1, color: 0xffffff })
-  return mold(width, height, g)
 }
