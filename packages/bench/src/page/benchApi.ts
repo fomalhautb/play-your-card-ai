@@ -5,6 +5,7 @@
  * setup 阶段的帧不记录：它只是把场景摆到被测动作开始前的样子，混进去会污染峰值。
  */
 
+import type { HitPoint } from '@ai-duel/canvas'
 import { diffCounters, diffScene, summarize } from '../metrics/diff'
 import type { FrameLoopHandle } from '../metrics/frameLoop'
 import type { GlCounterHandle } from '../metrics/glCounters'
@@ -20,8 +21,6 @@ import { createStubDuelScene } from '../scene/stubScene'
 import type { LoadedTextures } from '../scene/textures'
 import { createProceduralTextures, createWhiteTexture, loadAtlasTextures } from '../scene/textures'
 import { grabFrame } from './grabFrame'
-import type { HitPoint } from './hitPoints'
-import { hitPointsOf } from './hitPoints'
 import type { KeyframeShots } from './keyframes'
 import { captureKeyframes } from './keyframes'
 import { measureOverdraw } from './overdraw'
@@ -264,11 +263,21 @@ export function createBenchApi(
       manual: current.opts.manualClock,
       step: () => record(() => current.scene.step(FRAME_MS)),
       waitFrame: async () => {
-        // 真实时钟：帧由场景自己的 ticker 推，这里只是等一帧过去再取快照。
+        /*
+         * 真实时钟：**画面**由场景自己的帧循环推，这里等一帧过去再取快照。
+         *
+         * 但 `scene.step` 还是得叫——剧本这一侧的东西只在它里面走：编排层按这一帧的
+         * 实际间隔排期、等着收尾的动作靠它才兑现。不叫的话 `ctx.act` 永远等不到
+         * 那个 Promise，剧本会一路推到上限然后报「推了 3000 帧还没结束」
+         *（这正是时间指标那一档从前跑不起来的原因）。场景那边不会因此被推两遍：
+         * 真实时钟下它的 `step` 只转给剧本这一侧，见 scene/duelSession.ts 的说明。
+         */
+        const before = performance.now()
         await new Promise<void>((resolve) => {
           requestAnimationFrame(() => resolve())
         })
-        record(() => {})
+        const deltaMs = performance.now() - before
+        record(() => current.scene.step(deltaMs))
       },
     }
   }
@@ -384,7 +393,7 @@ export function createBenchApi(
 
     commands: () => need().scene.commands(),
     handCards: () => need().scene.handCards(),
-    hitPoints: (prefix) => hitPointsOf(probe, prefix),
+    hitPoints: (prefix) => probe.pointsOf(prefix),
 
     segments: () => Object.keys(SCENARIOS),
     counters: () => glCounters.snapshot(),

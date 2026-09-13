@@ -159,7 +159,7 @@ cp /tmp/kf/*/*.png packages/bench/baselines/linux/
 `test/duelHeroSkill.test.ts`（vitest，组件是替身）。两边分工：那边保证「判定对」，这边保证「点得到」——第一版跑起来就抓到两处
 只有真浏览器才暴露得出来的问题（选目标层吃掉了候选的点击、命中点落在卡牌命中区的边线上）。
 
-「按屏幕哪个坐标点得到某张卡」由 `src/page/hitPoints.ts` 回答：从场景树上按 label 找到目标
+「按屏幕哪个坐标点得到某张卡」由 `@ai-duel/canvas` 的 `installHitProbe()` 回答：从场景树上按 label 找到目标
 （卡是 `card:<实例 id>`、格子是 `tile:<实例 id>`、「结束出牌」是 `button:end-play`、
 英雄技能钮是 `button:hero-skill`），再用 Pixi 自己的命中测试验一遍那个**整数**坐标真的会命中它。
 手牌扇形里的卡互相压着一大半，自己算包围盒中心多半会落在邻座那张上。

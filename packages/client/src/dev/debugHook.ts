@@ -10,6 +10,10 @@
  *   此刻在屏幕哪儿。**拖牌本身已经由单机那条用例守着了**（e2e/localMatch.spec.ts
  *   真的按 pointerdown / move / up 拖），联机这条要守的是别的东西：两端的序号、
  *   重同步、房间成员关系、掉线重连。所以这里给它一条直达 driver 的路。
+ * - **画布上的东西按坐标反查**（`stage`）。单机那条用例要真的拖一张牌出去，
+ *   而卡在屏幕上的位置由版式、扇形几何和这一刻的动画共同决定，Node 那边算不出来。
+ *   这一格把 `@ai-duel/canvas` 的 `installHitProbe()` 转出去：按 label 找到对象、
+ *   用 Pixi 自己的命中测试验一遍坐标。实现只有一份，bench 的交互用例读的也是它。
  *
  * ## 为什么这不是一个作弊口子
  *
@@ -22,7 +26,7 @@
  *    只是省掉了「先把牌拖到屏幕上某个位置」这一步。
  */
 
-import type { RoomView } from '@ai-duel/canvas'
+import { type HitBox, type HitPoint, installHitProbe, type RoomView } from '@ai-duel/canvas'
 import type { PlayerCommand } from '@ai-duel/protocol'
 import type { MatchDriver, MatchView } from '../match/driver'
 
@@ -38,6 +42,19 @@ export interface RoomDebug {
   view(): RoomView
 }
 
+/** 画布上的东西在屏幕的哪儿。三个方法都是 `installHitProbe()` 的原样转出。 */
+export interface StageDebug {
+  /**
+   * label 以 `prefix` 开头、此刻真点得到的那些对象，各给一个视口坐标。
+   * `within` 限定「只要这个 label 底下的」——手牌和战场上的卡 label 同前缀，靠它分开。
+   */
+  points(prefix: string, within?: string): HitPoint[]
+  /** 这个视口坐标点下去会命中谁（返回 label），点空返回 null。 */
+  labelAt(x: number, y: number): string | null
+  /** label 正好等于这个的那个对象在屏幕上占的矩形。不做命中验证，给不吃指针的容器用。 */
+  box(label: string): HitBox | null
+}
+
 /**
  * 两页各占一格。分成两格而不是一个大对象：两页的生命周期不一样，
  * 用例也要靠「这一格在不在」判断自己现在停在哪一页。
@@ -45,6 +62,7 @@ export interface RoomDebug {
 export interface AiDuelDebug {
   match?: MatchDebug
   room?: RoomDebug
+  stage?: StageDebug
 }
 
 declare global {
@@ -76,4 +94,23 @@ export function installMatchDebug(driver: MatchDriver): () => void {
 /** 房间页那一格。传的是取值器而不是当时那份状态——这一页每变一次都会换一个新对象。 */
 export function installRoomDebug(read: () => RoomView): () => void {
   return install('room', { view: read })
+}
+
+/**
+ * 画布那一格。和上面两格不一样，它**不跟着某一页的生命周期走**：
+ * 探针是包在 `WebGLRenderer.prototype.render` 上的一层，装一次就一直在，
+ * 问的永远是「最后一次画到屏幕上的那棵树」。所以它不返回摘掉自己的函数。
+ *
+ * 必须在**建场景之前**装好：帧循环在没有动画时会停（纪律 3.6），晚装的话可能一直等不到下一帧。
+ * 调用方是 MatchScreen 那个 `import.meta.env.DEV` 守着的动态 import——它在挂载时就跑，
+ * 而场景要等卡面图集下完才建得起来，早了好几百毫秒。
+ */
+export function installStageDebug(): void {
+  const probe = installHitProbe()
+  window.__aiDuel ??= {}
+  window.__aiDuel.stage = {
+    points: (prefix, within) => probe.pointsOf(prefix, within),
+    labelAt: (x, y) => probe.labelAt(x, y),
+    box: (label) => probe.boxOf(label),
+  }
 }

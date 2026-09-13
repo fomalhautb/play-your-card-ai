@@ -170,6 +170,7 @@ export {
 } from './layout/handLayout'
 export { Animator } from './runtime/animator'
 export { FrameLoop, type FrameLoopCounters, type FrameLoopOptions } from './runtime/frameLoop'
+export { type HitBox, type HitPoint, type HitProbe, installHitProbe } from './runtime/hitProbe'
 export { Rng } from './runtime/rng'
 export { TextTextureCache } from './runtime/textCache'
 export { createDeckScene } from './scenes/deck/DeckScene'

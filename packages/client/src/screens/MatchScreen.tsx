@@ -106,10 +106,12 @@ function Match({ driver }: { driver: MatchDriver }) {
     if (!import.meta.env.DEV) return
     let remove: (() => void) | null = null
     let disposed = false
-    void import('../dev/debugHook').then(({ installMatchDebug }) => {
+    void import('../dev/debugHook').then(({ installMatchDebug, installStageDebug }) => {
       // 等这个 await 的工夫组件可能已经卸载了，那就别再挂上去。
       if (disposed) return
       remove = installMatchDebug(driver)
+      // 画布那一格不跟着这一页走（理由见 installStageDebug），所以不进 remove。
+      installStageDebug()
     })
     return () => {
       disposed = true

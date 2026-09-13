@@ -1,25 +1,28 @@
 /**
- * 包一层 Pixi 的 `render`，用来拿到「谁在渲染、渲染的是哪棵树」，顺便给每帧计 GPU 时间。
+ * 逐帧 GPU 计时，外加「谁在渲染、渲染的是哪棵树」。
  *
- * 为什么要这么绕：过度绘制那条指标要遍历场景的 stage，GPU 计时要卡在渲染前后，
- * 但契约（contract.ts）里没有 stage 也没有 renderer——真实场景不该为了被测量而多开接口。
- * 包 `WebGLRenderer.prototype.render` 就什么都不用它配合：只要它是用 Pixi 渲染的，就抓得到。
+ * 后半件事由 `@ai-duel/canvas` 的 `installHitProbe()` 办（那边也要用，所以实现只有一份）：
+ * 它同样是包一层 `WebGLRenderer.prototype.render`，顺带提供「按 label 反查点得到的坐标」，
+ * 交互用例（tests/interaction.spec.ts）和 client 的端到端用例读的都是它。
+ * 这个文件只补上 bench 自己要的那一半——GPU 计时卡在渲染前后，别处用不着。
+ *
+ * 为什么都要包 `render`：过度绘制那条指标要遍历场景的 stage，而契约（contract.ts）里没有
+ * stage 也没有 renderer——真实场景不该为了被测量而多开接口。包原型就什么都不用它配合。
  *
  * 前提是 bench 和 canvas 解析到同一份 pixi.js。pnpm 里同版本会指向 store 里同一个目录，
- * Vite 打包时是同一个模块实例，所以补在原型上的这一层两边都生效。
+ * Vite 打包时是同一个模块实例，所以补在原型上的这两层都生效。
  * 版本对不上时 stage() 会一直是 null，overdraw() 会明说「没抓到场景」而不是给一个假数字。
  */
 
-import { Container, type Renderer, WebGLRenderer } from 'pixi.js'
+import { type HitProbe, installHitProbe } from '@ai-duel/canvas'
+import { WebGLRenderer } from 'pixi.js'
 
 /** GPU 计时最多留多少个查询在飞。查询对象是显存资源，不封顶会一直涨。 */
 const MAX_PENDING_QUERIES = 8
 /** 最多留多少个采样。一段剧本几百帧，取中位数用不了更多。 */
 const MAX_SAMPLES = 1200
 
-export interface RenderProbe {
-  renderer(): Renderer | null
-  stage(): Container | null
+export interface RenderProbe extends HitProbe {
   /** 打开逐帧 GPU 计时。扩展不存在返回 false，调用方据此写「不可用」而不是失败。 */
   enableGpuTiming(gl: WebGL2RenderingContext): boolean
   /** 已经取回结果的那些帧的 GPU 耗时，毫秒。 */
@@ -32,8 +35,8 @@ let installed: RenderProbe | null = null
 export function installRenderProbe(): RenderProbe {
   if (installed) return installed
 
-  let lastRenderer: Renderer | null = null
-  let lastStage: Container | null = null
+  // 场景树那一半归 canvas 的探针，先把它装上（幂等）。
+  const hits = installHitProbe()
 
   let gl: WebGL2RenderingContext | null = null
   let ext: { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number } | null = null
@@ -79,23 +82,6 @@ export function installRenderProbe(): RenderProbe {
   const holder = WebGLRenderer.prototype as unknown as { render: RenderFn }
   const original = holder.render
   holder.render = function patched(this: WebGLRenderer, ...args: unknown[]) {
-    const first = args[0]
-    lastRenderer = this
-    /*
-     * 只记**画到屏幕上**的那次，带 `target` 的一概不记。
-     *
-     * 烤纹理走的是同一个 render（`renderer.render({ container, target })`：文字缓存、
-     * 界面底图、过度绘制自己那趟调试渲染都是），而那些容器只有几个节点。
-     * 不区分的话，随便一句新文字被烤出来，`stage()` 就从整棵场景树变成那几个节点，
-     * 之后问「场景里有什么」得到的是空的——而且下一帧一渲染又自己好了，现场极难查。
-     */
-    const target = (first as { target?: unknown } | undefined)?.target
-    if (target === undefined || target === null) {
-      lastStage =
-        first instanceof Container
-          ? first
-          : ((first as { container?: Container } | undefined)?.container ?? null)
-    }
     beginQuery()
     try {
       return original.apply(this, args)
@@ -105,8 +91,7 @@ export function installRenderProbe(): RenderProbe {
   }
 
   installed = {
-    renderer: () => lastRenderer,
-    stage: () => lastStage,
+    ...hits,
     enableGpuTiming: (context) => {
       // 顺手清掉上一轮的采样：一次跑批要跑好几段剧本，样本混在一起每一行的数字都没意义了。
       samples.length = 0
