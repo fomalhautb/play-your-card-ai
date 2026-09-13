@@ -83,6 +83,8 @@ export class HeroGrid extends Container {
   private readonly scratch = new PixiPoint()
   private hovered: number | null = null
   private hint: Box | null = null
+  /** 正在演的那段入场。演完自己置空，指针一压上来也当场收尾（见 finishIntro）。 */
+  private intro: ReturnType<Animator['timeline']> | null = null
   private onOpen: ((hero: string) => void) | null = null
 
   constructor(heroes: readonly HeroEntry[], deps: HeroGridDeps) {
@@ -111,6 +113,7 @@ export class HeroGrid extends Container {
       if (rect === undefined) return
       this.cards.push(this.build(hero, rect, index))
     })
+    this.intro = null
     if (intro) this.playIntro()
   }
 
@@ -122,6 +125,7 @@ export class HeroGrid extends Container {
    */
   setHovered(index: number | null): void {
     if (index === this.hovered) return
+    this.finishIntro()
     const before = this.hovered
     this.hovered = index
     if (before !== null) this.pose(before, false)
@@ -244,12 +248,16 @@ export class HeroGrid extends Container {
    * 从 0.96 放到原大，按 DOM 顺序（第一排从左到右、再第二排）错峰 0.05。
    *
    * 整条线记一笔账就够（见 runtime/animator.ts），所以用 timeline 而不是七条各自的补间。
-   * 被悬停的 `overwrite: 'auto'` 顶掉是允许的：那说明玩家已经把指针压上来了，
-   * 这时候还把卡拽回入场的半路才是错的。
    */
   private playIntro(): void {
     if (this.cards.length === 0) return
-    const timeline = this.deps.animator.timeline({ defaults: { ease: INTRO_EASE } })
+    const timeline = this.deps.animator.timeline({
+      defaults: { ease: INTRO_EASE },
+      onComplete: () => {
+        this.intro = null
+      },
+    })
+    this.intro = timeline
     this.cards.forEach((card, index) => {
       const at = INTRO_CARD.at + index * INTRO_CARD.stagger
       timeline.fromTo(
@@ -265,6 +273,24 @@ export class HeroGrid extends Container {
         at,
       )
     })
+  }
+
+  /**
+   * 指针一压上来就把入场推到结尾。
+   *
+   * 非做不可，不能指望悬停那条补间的 `overwrite: 'auto'`：入场是**错峰**的，每张卡那一段
+   * 都带一段 delay，而 GSAP 的 auto 只顶掉「此刻正在跑」的补间——还没起跑的那一段照样会在
+   * 几十毫秒后醒过来，把刚抬起来的卡按回原位（目录页那条「卡片悬停」拍到的正是这一幕）。
+   *
+   * 整段一起收尾而不是只收这一张：指针都压上来了，入场已经不重要，
+   * 让一张卡半路被抢反而更难看。
+   */
+  private finishIntro(): void {
+    const intro = this.intro
+    if (intro === null) return
+    this.intro = null
+    intro.totalProgress(1)
+    intro.kill()
   }
 
   /** 抬起或落回。上浮和放大一起补间，时长一致；倾斜归 `CardTilt`，不在这里碰。 */
