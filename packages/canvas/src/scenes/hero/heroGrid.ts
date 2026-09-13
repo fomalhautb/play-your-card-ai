@@ -40,14 +40,17 @@ import {
 } from './timings'
 
 /**
- * 「敬请期待」那块牌和悬停提示那一条在**设计稿上**多大，以及提示离卡上沿多远。
+ * 「敬请期待」那块牌和悬停提示那一条在**舞台坐标**里多大，以及各自摆在卡的哪一处。
  *
- * 数出自 `hero.css`：角标是一块 103×31 的小牌（见令牌 `color.soon.paper` 的说明）压在卡面
- * 64% 处；提示 `.hero__card-hint` 摆在 `top: 0.9cqi`（= 15），高是字号 14.4 加上下内边距。
+ * 两块的宽高是从需求单的截图实测换算来的（那批图是在 1440 宽的舞台上拍的，1cqi = 14.4；
+ * 这里的舞台是 1672，所以一律乘 1672/1440）：角标 103×31 → 119.6×36，
+ * 提示 108×24.5 → 125.4×28.5。位置出自 `hero.css`：角标压在卡面 64% 处
+ *（上面是脸、最底下是卡面自带的名字牌，两处都不能压），提示在 `top: 0.9cqi` = 15。
+ *
  * 两块都按「卡实际多宽 ÷ 设计稿上多宽」跟着卡一起缩——手机档的卡只有一半宽。
  */
-const SOON_BADGE = { width: 103, height: 31, top: 0.64 } as const
-const HINT = { width: 116, height: 27, top: 15 } as const
+const SOON_BADGE = { width: 119.6, height: 36, top: 0.64 } as const
+const HINT = { width: 125.4, height: 28.5, top: 15 } as const
 /** 上面那两块是按这个卡宽量的（`.hero__card` 的 12.5cqi）。 */
 const DESIGN_CARD_WIDTH = 209
 
