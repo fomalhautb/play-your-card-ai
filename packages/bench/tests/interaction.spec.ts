@@ -16,7 +16,7 @@
 
 import type { Page } from '@playwright/test'
 import { DECK, SEED } from '../src/node/profiles'
-import type { BenchInitOptions } from '../src/page/benchApi'
+import type { BenchInitOptions } from '../src/page/benchContract'
 import { INTERACTION_DECK, INTERACTION_HERO, INTERACTION_SKILL } from '../src/scene/duelScript'
 // 每条用例各开一个新浏览器，不共用 worker 那一个——为什么见 freshBrowser.ts。
 import { expect, test } from './freshBrowser'

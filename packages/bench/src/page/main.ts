@@ -8,8 +8,8 @@
  * 页面本身不自动跑任何东西——什么时候 init、跑哪段剧本，全由 Playwright 那边说了算。
  */
 
-import type { BenchApi, SceneKind } from './benchApi'
 import { createBenchApi } from './benchApi'
+import type { BenchApi, SceneKind } from './benchContract'
 import { frameLoop, glCounters } from './install'
 import { installRenderProbe } from './renderProbe'
 
