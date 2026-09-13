@@ -16,9 +16,9 @@
  */
 
 import type { CardId } from '@ai-duel/core'
-import { autoDetectRenderer, Container, Graphics, Rectangle, type Renderer } from 'pixi.js'
-import { CANVAS_BACKGROUND } from '../../components/Box'
+import { Container, Graphics, Rectangle, type Renderer } from 'pixi.js'
 import { FrameLoop } from '../../runtime/frameLoop'
+import { createSceneRenderer } from '../../runtime/sceneRenderer'
 import type {
   DeckManageAction,
   DeckScene,
@@ -54,17 +54,7 @@ import { ScrollState } from './scroll'
 import { currentCards, type DeckState, selectDeck, selectFaction, selectKind } from './state'
 
 export async function createDeckScene(options: DeckSceneOptions): Promise<DeckScene> {
-  const renderer = await autoDetectRenderer({
-    canvas: options.canvas,
-    width: options.width,
-    height: options.height,
-    resolution: options.resolution,
-    // 3.8：显式走 WebGL。数组形式是排除式的——WebGPU 不在名单里就整个不试。
-    preference: ['webgl'],
-    antialias: true,
-    autoDensity: true,
-    background: CANVAS_BACKGROUND,
-  })
+  const renderer = await createSceneRenderer(options)
   return new DeckSceneImpl(renderer, options, true).handle()
 }
 

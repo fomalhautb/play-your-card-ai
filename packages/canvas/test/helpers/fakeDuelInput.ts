@@ -9,7 +9,7 @@
  * 拿假数字喂进去等于测了一套现实里不存在的版式。
  */
 
-import type { Catalog, HeroId, InstanceId, PlayerView } from '@ai-duel/core'
+import type { HeroId, InstanceId, PlayerView } from '@ai-duel/core'
 import { Texture } from 'pixi.js'
 import type { BoardTile } from '../../src/components/BoardTile'
 import type { CardSprite } from '../../src/components/CardSprite'
@@ -17,68 +17,10 @@ import type { DirectorLocks, UserAction } from '../../src/director/director'
 import type { DuelContext } from '../../src/scenes/duel/context'
 import { desktopLayout } from '../../src/scenes/duel/layout/desktopLayout'
 import type { DuelCommand } from '../../src/scenes/duelContract'
+import { INPUT_CATALOG } from './fakeCatalog'
 
 /** 测试用的视口。短边 800 ≥ 断点 768，所以走桌面档。 */
 const FAKE_SIZE = { width: 1280, height: 800 }
-
-/**
- * 一份最小卡池：一张 AI 牌、三张技能牌。
- * 技能牌的 `target` 是 `skillTargets.ts` 唯一的分档依据，这里覆盖「无目标 / 打对面场上 /
- * 打自己手牌」三条分支——`own-ai` 和 `own-affected-ai` 走的是和 `foe-ai` 同一条战场分支。
- */
-const INPUT_CATALOG: Catalog = {
-  cards: {
-    ai: {
-      kind: 'ai',
-      id: 'ai',
-      name: '假模型',
-      model: 'fake',
-      skillName: '假技能',
-      skillText: '假',
-      openrouter: null,
-      tokenCost: 1,
-      text: '假',
-    },
-    /*
-     * 老一代的假模型，`evolvesTo` 指着上面那张。
-     *
-     * 英雄技能的候选名单是「这个单位升（降）得动吗」，而这一条最终问的是
-     * core 的 `upgradeTargetOf` / `downgradeTargetOf`，也就是卡定义上有没有 `evolvesTo`。
-     * 所以这份卡池必须有一条真的两代链，否则「有合法目标」那一档根本摆不出来。
-     * 反过来，只带 `ai` 的场上单位就天然是「升不动也降不动」，正好当反例用。
-     */
-    'ai-old': {
-      kind: 'ai',
-      id: 'ai-old',
-      name: '假模型（旧）',
-      model: 'fake-old',
-      skillName: '假技能',
-      skillText: '假',
-      openrouter: null,
-      tokenCost: 1,
-      text: '假',
-      evolvesTo: 'ai',
-    },
-    plain: { kind: 'skill', id: 'plain', name: '无目标技能', tokenCost: 1, text: '假' },
-    'hit-foe': {
-      kind: 'skill',
-      id: 'hit-foe',
-      name: '打对面',
-      tokenCost: 1,
-      text: '假',
-      target: 'foe-ai',
-    },
-    distill: {
-      kind: 'skill',
-      id: 'distill',
-      name: '模型蒸馏',
-      tokenCost: 1,
-      text: '假',
-      target: 'own-hand-ai',
-    },
-  },
-  heroes: {},
-} as unknown as Catalog
 
 /** 一张能被指针状态机摆弄的假卡：它只会被读 id、改姿态、进出各层。 */
 export interface FakeCard {

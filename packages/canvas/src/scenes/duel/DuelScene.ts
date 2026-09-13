@@ -15,11 +15,11 @@
  */
 
 import type { CardId, InstanceId } from '@ai-duel/core'
-import { autoDetectRenderer, Container, Graphics, Rectangle, type Renderer } from 'pixi.js'
-import { CANVAS_BACKGROUND } from '../../components/Box'
+import { Container, Graphics, Rectangle, type Renderer } from 'pixi.js'
 import { CardSprite } from '../../components/CardSprite'
 import type { DirectorLocks } from '../../director/director'
 import { FrameLoop } from '../../runtime/frameLoop'
+import { createSceneRenderer } from '../../runtime/sceneRenderer'
 import type { DuelCommand, DuelScene, DuelSceneCounters, DuelSceneOptions } from '../duelContract'
 import { warmupScene } from '../warmup'
 import { applyView, reconcile } from './applyView'
@@ -38,18 +38,7 @@ import { applyPartsLayout, createParts, type DuelParts } from './parts'
 import { paintStageFrame } from './stageFrame'
 
 export async function createDuelScene(options: DuelSceneOptions): Promise<DuelScene> {
-  const renderer = await autoDetectRenderer({
-    canvas: options.canvas,
-    width: options.width,
-    height: options.height,
-    resolution: options.resolution,
-    // 3.8：显式走 WebGL。数组形式是排除式的——WebGPU 不在名单里就整个不试。
-    preference: ['webgl'],
-    antialias: true,
-    // 让 Pixi 顺手把 canvas 的 CSS 尺寸设成逻辑像素，画布分辨率才和 resolution 对得上。
-    autoDensity: true,
-    background: CANVAS_BACKGROUND,
-  })
+  const renderer = await createSceneRenderer(options)
   const scene = new DuelSceneImpl(renderer, options, true)
   scene.warmup()
   return scene.handle()

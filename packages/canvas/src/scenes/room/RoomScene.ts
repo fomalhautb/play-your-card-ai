@@ -14,26 +14,16 @@
  * 这一页现在**一条补间都没有**，所以它永远是空闲的：改完画面靠 `paint()` 补一帧。
  */
 
-import { autoDetectRenderer, Container, Graphics, type Renderer } from 'pixi.js'
+import { Container, Graphics, type Renderer } from 'pixi.js'
 import { CANVAS_BACKGROUND } from '../../components/Box'
 import { FrameLoop } from '../../runtime/frameLoop'
+import { createSceneRenderer } from '../../runtime/sceneRenderer'
 import { TextTextureCache } from '../../runtime/textCache'
 import type { RoomAction, RoomScene, RoomSceneOptions, RoomView } from './roomContract'
 import { RoomPanel, type RoomPanelDeps } from './roomPanel'
 
 export async function createRoomScene(options: RoomSceneOptions): Promise<RoomScene> {
-  const renderer = await autoDetectRenderer({
-    canvas: options.canvas,
-    width: options.width,
-    height: options.height,
-    resolution: options.resolution,
-    // 3.8：显式走 WebGL。数组形式是排除式的——WebGPU 不在名单里就整个不试。
-    preference: ['webgl'],
-    antialias: true,
-    // 让 Pixi 顺手把 canvas 的 CSS 尺寸设成逻辑像素，画布分辨率才和 resolution 对得上。
-    autoDensity: true,
-    background: CANVAS_BACKGROUND,
-  })
+  const renderer = await createSceneRenderer(options)
   return new RoomSceneImpl(renderer, options, true).handle()
 }
 
