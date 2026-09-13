@@ -142,6 +142,11 @@ class HeroSceneImpl {
     return this.options.heroes.findIndex((entry) => entry.id === hero)
   }
 
+  /** 详情开在第几张卡上，没开是 null。卡阵照它把那一张藏起来。 */
+  private zoomedIndex(): number | null {
+    return this.view.detailId === null ? null : this.indexOf(this.view.detailId)
+  }
+
   private applyLayout(): void {
     const { stage } = this.layout
     this.stage.scale.set(stage.scale)
@@ -151,6 +156,8 @@ class HeroSceneImpl {
     this.introPlayed = true
     this.buildChrome(intro)
     this.grid.place(this.layout, intro)
+    // 卡阵是整层重建的，藏起来的那张要按现在这份状态重新藏一次。
+    this.grid.setZoomed(this.zoomedIndex())
     this.detail.place(this.layout)
   }
 
@@ -193,11 +200,16 @@ class HeroSceneImpl {
     })
   }
 
-  /** 画一帧：先把倾斜那一路推一步，再画。两档都不需要自己推任何虚拟时钟。 */
-  private render(deltaMs: number): void {
+  /** 把倾斜那一路推一步，并记下还在不在收敛。 */
+  private advanceTilts(deltaMs: number): void {
     const grid = this.grid.advance(deltaMs)
     const detail = this.detail.advance(deltaMs)
     this.tiltBusy = grid || detail
+  }
+
+  /** 画一帧：先把倾斜那一路推一步，再画。两档都不需要自己推任何虚拟时钟。 */
+  private render(deltaMs: number): void {
+    this.advanceTilts(deltaMs)
     this.renderer.render(this.root)
   }
 
@@ -224,9 +236,7 @@ class HeroSceneImpl {
       ...this.handle(),
       root: this.root,
       advance: (deltaMs: number) => {
-        const grid = this.grid.advance(deltaMs)
-        const detail = this.detail.advance(deltaMs)
-        this.tiltBusy = grid || detail
+        this.advanceTilts(deltaMs)
         return !this.idle()
       },
     }
@@ -244,7 +254,7 @@ class HeroSceneImpl {
     }
     const hero = this.options.heroes.find((entry) => entry.id === view.detailId) ?? null
     // 详情开着时原位那张卡要藏起来：屏幕中央和原位同时出现两张一模一样的卡会穿帮。
-    this.grid.setZoomed(hero === null ? null : this.indexOf(hero.id))
+    this.grid.setZoomed(this.zoomedIndex())
     this.detail.setOpen(hero, view.confirmable)
     this.paint()
   }

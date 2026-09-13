@@ -294,6 +294,8 @@ export class HeroGrid extends Container {
    * 「点击查看技能」那一条提示。
    *
    * 跟着悬停走，摆在卡上沿里侧（同旧版 `.hero__card-hint` 的 `top: 0.9cqi`）。
+   * 挂在 `lift` 上而不是这一层：旧版那一条就长在抬起层里，跟着卡一起上浮和放大；
+   * 顺带也就跟着 `setZoomed` 一起藏起来，不会在详情的暗幕背后留一块。
    * 每换一张就重建一块：素方块建好之后只有 `setLabel` 能换内容，而这一步一秒最多发生几次。
    */
   private refreshHint(): void {
@@ -309,8 +311,9 @@ export class HeroGrid extends Container {
     const width = HINT.width * scale
     const height = HINT.height * scale
     const hint = new Box({ width, height, label: '点击查看技能', size: 'small' }, this.deps)
-    hint.position.set(card.rect.x + (card.rect.width - width) / 2, card.rect.y + HINT.top * scale)
-    this.addChild(hint)
+    // lift 的原点在卡心上，所以横向让半块、纵向从卡的上沿往下量。
+    hint.position.set(-width / 2, -card.rect.height / 2 + HINT.top * scale)
+    card.lift.addChild(hint)
     this.hint = hint
     this.deps.animator.fromTo(hint, { alpha: 0 }, { alpha: 1, duration: HINT_FADE })
   }
