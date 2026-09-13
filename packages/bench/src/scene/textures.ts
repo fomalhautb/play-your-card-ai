@@ -6,19 +6,19 @@
  * 「常驻纹理内存」这类确定性指标在不同机器上差出一点来。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Assets, BufferImageSource, type Spritesheet, Texture } from 'pixi.js'
 import type { AtlasOptions } from './atlas'
 import type { CardTextures } from './contract'
+import { BENCH_COLORS } from './palette'
 
 /** 卡面纹理尺寸，凑近真实卡牌的 9:12.5 比例。 */
 const FACE_WIDTH = 128
 const FACE_HEIGHT = 176
 
-/** 卡面边框颜色读设计令牌，不写死（7.1 第 4 条）。这里要的是字节，所以拆成三个通道。 */
-const EDGE = hexToRgb(tokens.color.paper.base)
+/** 卡面边框颜色（见 scene/palette.ts）。这里要的是字节，所以拆成三个通道。 */
+const EDGE = hexToRgb(BENCH_COLORS.paperBase)
 
-/** '#rrggbb' → [r, g, b]。令牌是给 CSS 和 Pixi 用的字符串，写像素得自己拆。 */
+/** '#rrggbb' → [r, g, b]。那张表里存的是字符串，写像素得自己拆。 */
 function hexToRgb(hex: string): [number, number, number] {
   const value = Number.parseInt(hex.replace('#', ''), 16)
   return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]

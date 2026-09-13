@@ -12,8 +12,8 @@
  * 而透明底在 PNG 里和「画了一层同色的背景」是两张不同的图。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Rectangle } from 'pixi.js'
+import { BENCH_COLORS } from '../scene/palette'
 import type { RenderProbe } from './renderProbe'
 
 /**
@@ -35,7 +35,7 @@ export function grabFrame(probe: RenderProbe, width: number, height: number): st
     frame: new Rectangle(0, 0, width, height),
     // 倍率和渲染倍率（3.3 允许到 1.5）脱钩，固定按这个数抓，改渲染倍率不用重拍基线。
     resolution: SHOT_SCALE,
-    clearColor: tokens.color.page.background,
+    clearColor: BENCH_COLORS.pageBackground,
   })
   if (typeof canvas.toDataURL !== 'function') throw new Error('这个环境的画布不支持 toDataURL')
   return canvas.toDataURL('image/png')

@@ -1,5 +1,5 @@
 /**
- * 设计令牌的生成脚本：读 tokens/*.json（W3C DTCG 格式），产出 src/generated 下的 TS 和 CSS。
+ * 设计令牌的生成脚本：读 tokens/*.json（W3C DTCG 格式），产出 src/generated/tokens.ts。
  *
  * 两个入口都在这个文件里：
  *   node sd.config.mjs            重新生成产物（pnpm build）
@@ -8,6 +8,9 @@
  *
  * 产物是提交进仓库的。改了 tokens/*.json 就得跑一次 build 并把产物一起提交，
  * 否则 check 会红。理由见 README。
+ *
+ * 正式版简化第 5 步之后只剩 TS 一个平台：令牌瘦到尺寸和时长两组，消费方只有画布那边的
+ * Pixi 代码（要的是纯数字），React 那边一条 `var(--…)` 都不剩，CSS 产物没有调用方了。
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -16,34 +19,14 @@ import StyleDictionary from 'style-dictionary'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
-/** 生成文件顶部的说明，两种产物共用。 */
+/** 生成文件顶部的说明。 */
 const HEADER_LINES = [
   '本文件由 sd.config.mjs 自动生成，不要手改。',
   '改令牌请改 packages/design/tokens/*.json，然后跑 `pnpm --filter @ai-duel/design build` 并把产物一起提交。',
 ]
 
-StyleDictionary.registerFileHeader({
-  name: 'zh/generated',
-  fileHeader: () => [...HEADER_LINES],
-})
-
 /*
- * 字体栈：DTCG 里 fontFamily 的值是字符串数组，两边都要拼成一行 CSS font-family。
- * 带空格的名字要加引号，否则 `Noto Serif SC` 会被解析成三个族名。
- * CSS 那边内置的 fontFamily/css 也做同一件事，这里自己写一份是为了让 TS 产物和 CSS 产物
- * 一定是同一个字符串——两边各用一套实现，早晚会分叉。
- */
-StyleDictionary.registerTransform({
-  name: 'fontFamily/stack',
-  type: 'value',
-  filter: (token) => token.$type === 'fontFamily',
-  transform: (token) =>
-    token.$value.map((name) => (name.includes(' ') ? `'${name}'` : name)).join(', '),
-})
-
-/*
- * TS 那边的尺寸一律是纯数字：Pixi 只认数字，React 那边要用带单位的值时读 CSS 变量。
- * 单位记在令牌名和 $description 里（px 是默认；font.sizeCqi.* 那一组是 cqi）。
+ * 尺寸一律是纯数字：Pixi 只认数字。单位记在令牌名和 $description 里（全是 px）。
  */
 StyleDictionary.registerTransform({
   name: 'dimension/number',
@@ -132,26 +115,9 @@ const config = {
   platforms: {
     ts: {
       // 只留值变换，不要 transformGroup 'js'：它带的 size/rem 会把 150px 换算成 rem。
-      transforms: ['fontFamily/stack', 'dimension/number', 'duration/seconds'],
+      transforms: ['dimension/number', 'duration/seconds'],
       buildPath: `${join(here, 'src/generated')}/`,
       files: [{ destination: 'tokens.ts', format: 'ts/nested-const' }],
-    },
-    css: {
-      // 源里的值本来就是 CSS 能直接吃的（#rrggbb、150px、0.4s、0.95cqi），
-      // 所以只需要一个起名规则和字体栈的拼接，不需要 transformGroup 'css'。
-      transforms: ['name/kebab', 'fontFamily/stack'],
-      buildPath: `${join(here, 'src/generated')}/`,
-      files: [
-        {
-          destination: 'tokens.css',
-          format: 'css/variables',
-          options: {
-            fileHeader: 'zh/generated',
-            // 注释另起一行：中文说明都挺长，跟在值后面会把每行拖到看不下去。
-            formatting: { commentPosition: 'above' },
-          },
-        },
-      ],
     },
   },
   // 生成脚本平时不需要看每个平台的进度，只在出错时说话。
@@ -186,5 +152,5 @@ if (checking) {
       await writeFile(destination, output)
     }
   }
-  console.log('设计令牌产物已生成：src/generated/tokens.ts、src/generated/tokens.css')
+  console.log('设计令牌产物已生成：src/generated/tokens.ts')
 }

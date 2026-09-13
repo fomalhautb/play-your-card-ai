@@ -187,7 +187,7 @@ export type {
   PoolCard,
   PoolKind,
 } from './scenes/deckContract'
-export { createCardVisuals } from './scenes/duel/cardVisuals'
+export { CARD_KIND_INK, createCardVisuals } from './scenes/duel/cardVisuals'
 export { createDuelScene } from './scenes/duel/DuelScene'
 export { pickLayout, pickTier, TOUCH_BREAKPOINT } from './scenes/duel/layout/pickLayout'
 export type { DuelLayout, LayoutTier } from './scenes/duel/layout/types'

@@ -15,6 +15,7 @@ import { tokens } from '@ai-duel/design'
 import { gsap } from 'gsap'
 import { Container, type Sprite, Ticker, WebGLRenderer } from 'pixi.js'
 import type { BenchScene, BenchSceneOptions, DuelSceneCounters } from './contract'
+import { BENCH_COLORS } from './palette'
 import { mulberry32 } from './random'
 import { configureGsap } from './stubGsap'
 import { boardSlot, deckAnchor, fanSlot } from './stubLayout'
@@ -350,7 +351,7 @@ export async function createStubDuelScene(opts: BenchSceneOptions): Promise<Benc
     resolution: opts.resolution,
     autoDensity: true,
     antialias: false,
-    background: tokens.color.page.background,
+    background: BENCH_COLORS.pageBackground,
   })
   // 不用 Application 而是自己拿 renderer：Application 会建一个自动启动的 Ticker，
   // 那就是一个 rAF 循环，手动时钟下必须没有它。帧循环由 StubScene 自己管。

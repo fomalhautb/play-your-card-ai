@@ -11,27 +11,16 @@ function flatten(node: unknown, prefix = ''): Array<[string, Leaf]> {
   )
 }
 
-/** 阶梯必须严格递增：相邻两档一样大等于其中一档没用，多半是抄错了。 */
-function expectAscending(name: string, ladder: Readonly<Record<string, number>>) {
-  const steps = Object.entries(ladder)
-  for (let i = 1; i < steps.length; i += 1) {
-    const [prevKey, prev] = steps[i - 1]!
-    const [key, value] = steps[i]!
-    expect(value, `${name}: ${key} 应该大于 ${prevKey}`).toBeGreaterThan(prev)
-  }
-}
-
 describe('设计令牌', () => {
-  it('颜色一律是 #rrggbb', () => {
-    // Pixi v8 和 CSS 都直接认这种写法，所以颜色令牌里不许出现别的形式；
-    // 旧样式里带透明度的那几个颜色，透明度拆到了 opacity 那一组。
-    for (const [name, value] of flatten(tokens.color)) {
-      expect(value, `color.${name}`).toMatch(/^#[0-9a-f]{6}$/)
-    }
+  it('只剩尺寸和时长两组', () => {
+    // 正式版简化第 5 步把别的组全删了（理由见 src/index.ts 的文件头）。
+    // 卡这一条是为了让「顺手又加一组颜色回来」这件事先在这儿绊一下：
+    // 要加就得连同 README 的「收了什么」一起改。
+    expect(Object.keys(tokens).sort()).toEqual(['duration', 'size'])
   })
 
   it('尺寸和时长都是正数', () => {
-    // TS 这边尺寸是 px 数字、时长是秒，都不带单位，所以 0 或负数只可能是写错。
+    // 尺寸是 px 数字、时长是秒，都不带单位，所以 0 或负数只可能是写错。
     const entries = [...flatten(tokens.size, 'size'), ...flatten(tokens.duration, 'duration')]
     for (const [name, value] of entries) {
       expect(typeof value, name).toBe('number')
@@ -39,26 +28,17 @@ describe('设计令牌', () => {
     }
   })
 
-  it('不透明度落在 0 到 1 之间', () => {
-    for (const [name, value] of flatten(tokens.opacity, 'opacity')) {
-      expect(typeof value, name).toBe('number')
-      expect(value, name).toBeGreaterThan(0)
-      expect(value, name).toBeLessThanOrEqual(1)
-    }
+  it('战场小卡和卡面同比例', () => {
+    // 不同比例的话，打出时那一段「卡面飞到格子上」的补间会把卡面拉变形。
+    const { width, height, tileWidth, tileHeight, tileScale } = tokens.size.card
+    expect(tileWidth / width).toBeCloseTo(tileHeight / height, 5)
+    expect(tileScale).toBeCloseTo(tileWidth / width, 5)
   })
 
-  it('字号阶梯单调递增', () => {
-    expectAscending('font.size', tokens.font.size)
-    expectAscending('font.sizeCqi', tokens.font.sizeCqi)
-  })
-
-  it('间距和圆角阶梯单调递增', () => {
-    expectAscending('space', tokens.space)
-    expectAscending('radius', tokens.radius)
-  })
-
-  it('字体栈是一行能直接写进 font-family 的字符串', () => {
-    expect(tokens.font.family.serif).toContain('EB Garamond')
-    expect(tokens.font.family.serif.endsWith('serif')).toBe(true)
+  it('触屏档的放大倍数不小于桌面档', () => {
+    // 触屏档屏幕小，放大查看只会更大——反过来就说明那两档抄岔了。
+    const card = tokens.size.card
+    expect(card.revealScaleTouch).toBeGreaterThanOrEqual(card.revealScale)
+    expect(card.revealScaleHeroTouch).toBeGreaterThanOrEqual(card.revealScaleHero)
   })
 })

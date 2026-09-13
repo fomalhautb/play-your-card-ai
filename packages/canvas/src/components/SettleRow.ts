@@ -25,6 +25,7 @@ import {
   SETTLE_REASONING_MAX_MS,
   SETTLE_STAMP_MS,
 } from '../director/timings'
+import { PALETTE } from '../fx/colors'
 import { CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
 import type { TextTextureCache } from '../runtime/textCache'
@@ -43,10 +44,20 @@ const BOX = {
   avatarWidth: 77,
   gap: 14,
 } as const
+/**
+ * 次级文字的字色，和推理那行的字号。
+ *
+ * 字号 13 是旧样式小字号阶梯的基准档（`--fs-base`），字色是对局界面的次级文字
+ * （`.battle --battle-ink-muted`）；两样都只有这个文件在读，所以不进 `fx/colors.ts`
+ * 的那张表，也不进令牌（判据见 design 包的 README）。
+ */
+const INK_MUTED = '#6d6b61'
+const REASONING_FONT_SIZE = 13
+
 const TYPE = {
   name: { fontSize: 18, letterSpacing: 0 },
   answer: { fontSize: 30, letterSpacing: 0, weight: '700' },
-  reasoning: { fontSize: tokens.font.size.base, letterSpacing: 0 },
+  reasoning: { fontSize: REASONING_FONT_SIZE, letterSpacing: 0 },
   verdict: { fontSize: 20, letterSpacing: 1.2, weight: '700' },
 } as const
 /**
@@ -97,7 +108,7 @@ export class SettleRow extends Container {
       name,
       { ...TYPE.name, align: 'left', maxWidth: BOX.minWidth - bodyX - BOX.pad },
       deps,
-      tokens.color.battle.inkMuted,
+      INK_MUTED,
     )
     nameLabel.position.set(bodyX, BOX.pad + 10)
     this.answerSlot.position.set(bodyX, BOX.pad + 48)
@@ -159,12 +170,12 @@ export class SettleRow extends Container {
     const answerDur = usable * (answerWeight / totalWeight)
 
     const startAt = SETTLE_LOADER_FADE_MS / 1000
-    this.typeInto(this.answerSlot, answer, TYPE.answer, tokens.color.battle.ink, answerDur, startAt)
+    this.typeInto(this.answerSlot, answer, TYPE.answer, PALETTE.battleInk, answerDur, startAt)
     this.typeInto(
       this.reasoningSlot,
       reasoning,
       TYPE.reasoning,
-      tokens.color.battle.inkMuted,
+      INK_MUTED,
       usable - answerDur,
       startAt + answerDur,
     )
@@ -214,9 +225,7 @@ export class SettleRow extends Container {
   /** 三个跳动的点。答完就淡出（见 fadeLoader）。 */
   private buildLoader(x: number): void {
     for (let i = 0; i < 3; i += 1) {
-      const dot = new Graphics()
-        .circle(0, 0, LOADER.dot / 2)
-        .fill({ color: tokens.color.battle.inkMuted })
+      const dot = new Graphics().circle(0, 0, LOADER.dot / 2).fill({ color: INK_MUTED })
       dot.position.set(x + i * (LOADER.dot + LOADER.gap), BOX.height / 2)
       this.loader.addChild(dot)
       this.deps.animator.tween(dot, {

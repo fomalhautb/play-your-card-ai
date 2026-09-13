@@ -14,9 +14,8 @@
  * title 和导出名一律用英文，理由见 CardSprite.stories.ts 的文件头。
  */
 
-import { tokens } from '@ai-duel/design'
 import { TextTextureCache } from '../runtime/textCache'
-import type { StoryStage } from '../storyStage'
+import { STORY_INK, type StoryStage } from '../storyStage'
 import { Label } from './Label'
 
 const SIZE = { width: 360, height: 160 }
@@ -30,7 +29,7 @@ function mount(ctx: StoryStage, content: string, maxWidth?: number, align?: 'cen
     content,
     { fontSize: 20, weight: '600', letterSpacing: 2, maxWidth, align },
     { text },
-    tokens.color.page.foreground,
+    STORY_INK,
   )
   label.position.set(align === 'left' ? 24 : ctx.width / 2, ctx.height / 2)
   ctx.stage.addChild(label)

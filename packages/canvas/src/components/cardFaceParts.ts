@@ -16,15 +16,14 @@
  * 屏幕上多摆一张牌不会多一张文字纹理（3.9 那条计数器实际量的就是纹理条数）。
  */
 
-import { tokens } from '@ai-duel/design'
 import { TextStyle, type Texture } from 'pixi.js'
 import { COST_BADGE_SIZE, COST_BADGE_TEXT, DEFAULT_COST_BADGE_CENTER } from '../fx/badgeShapes'
 import type { BakedTextures } from '../fx/bakedTextures'
 import { CARD_PLAQUE } from '../fx/cardPlaque'
 import { CARD_BODY_HEIGHT } from '../fx/cardShapes'
-import { hexToInt, mix } from '../fx/colors'
+import { hexToInt, mix, PALETTE } from '../fx/colors'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
-import type { TextTextureCache } from '../runtime/textCache'
+import { FONT_STACK, type TextTextureCache } from '../runtime/textCache'
 import type { LayerRect } from './cardGeometry'
 
 /**
@@ -150,7 +149,7 @@ function plaqueLayers(visual: FaceContent, deps: FacePartsDeps, skillName: strin
    * 匾上的字色跟着插画主色走（黑客松 `--card-ink` = `color-mix(accent 30%, 纸面墨色)`）。
    * 匾本身是共享纹理、颜色统一，只有这两行字逐张上色——tint 不触发重建，符合 3.10。
    */
-  const ink = mix(visual.accent, 0.3, hexToInt(tokens.color.paper.ink))
+  const ink = mix(visual.accent, 0.3, hexToInt(PALETTE.paperInk))
   return [
     textLayer(deps, 'plaqueSkill', skillName, skill.fontSize, 0, -top + skill.centerY, {
       maxWidth: skill.maxWidth,
@@ -185,11 +184,11 @@ function bodyLayers(
     },
     textLayer(deps, 'bodyName', visual.name, BODY.name, 0, nameCenter, {
       maxWidth: CARD_WIDTH - 20,
-      tint: hexToInt(tokens.color.card.edgeTint),
+      tint: hexToInt(PALETTE.cardEdgeTint),
     }),
     textLayer(deps, 'bodyText', clampLines(body.text), BODY.text, 0, textTop, {
       maxWidth: CARD_WIDTH - 20,
-      tint: hexToInt(tokens.color.battle.paperShade),
+      tint: hexToInt(PALETTE.battlePaperShade),
       alpha: 0.82,
       wrapWidth: CARD_WIDTH - 20,
       // 描述有一到三行，按顶边对齐才不会因为行数不同上下乱跳。
@@ -238,7 +237,7 @@ function costLayers(visual: FaceContent, deps: FacePartsDeps): FaceLayer[] {
       ],
     },
     textLayer(deps, 'costNumber', label, number.fontSize, cx, top + number.centerY, {
-      tint: hexToInt(tokens.color.paper.base),
+      tint: hexToInt(PALETTE.paperBase),
     }),
     textLayer(
       deps,
@@ -248,14 +247,19 @@ function costLayers(visual: FaceContent, deps: FacePartsDeps): FaceLayer[] {
       cx,
       top + COST_BADGE_TEXT.unit.centerY,
       {
-        tint: hexToInt(tokens.color.paper.base),
+        tint: hexToInt(PALETTE.paperBase),
       },
     ),
   ]
 }
 
-/** 问号圆章离卡的上边和右边各留多远。抄黑客松手牌上那枚的位置。 */
+/**
+ * 问号圆章离卡的上边和右边各留多远，以及它的直径。抄黑客松手牌上那枚的位置和 ui/CardHelpMark.tsx
+ * 的 22px。直径原先是 `size.seal.helpMark` 令牌，正式版简化第 5 步只有这一个文件在读，
+ * 按 design 包 README 的判据收回到这里。
+ */
 const SEAL_INSET = 6
+const SEAL_DIAMETER = 22
 
 /**
  * 这一点（卡自己的坐标，原点在底边中点）落在问号章上没有。
@@ -264,7 +268,7 @@ const SEAL_INSET = 6
  * 没反应、或者点在旁边反而翻了。判定的调用方在 interaction/handPointer.ts。
  */
 export function hitsSeal(x: number, y: number): boolean {
-  const size = tokens.size.seal.helpMark
+  const size = SEAL_DIAMETER
   const left = CARD_WIDTH / 2 - SEAL_INSET - size
   const top = -CARD_HEIGHT + SEAL_INSET
   return x >= left && x <= left + size && y >= top && y <= top + size
@@ -272,7 +276,7 @@ export function hitsSeal(x: number, y: number): boolean {
 
 /** 能翻面的牌右上角那枚问号章：底圈一层 + 问号一层。 */
 function sealLayers(deps: FacePartsDeps): FaceLayer[] {
-  const size = tokens.size.seal.helpMark
+  const size = SEAL_DIAMETER
   const cx = CARD_WIDTH / 2 - SEAL_INSET - size / 2
   const cy = -CARD_HEIGHT + SEAL_INSET + size / 2
   return [
@@ -283,7 +287,7 @@ function sealLayers(deps: FacePartsDeps): FaceLayer[] {
     },
     // 问号在圆里略微偏上一点点才像印上去的；0.68 倍直径是 Badge 那边同一个比例。
     textLayer(deps, 'sealMark', '?', size * 0.68, cx, cy, {
-      tint: hexToInt(tokens.color.seal.mark),
+      tint: hexToInt(PALETTE.sealMark),
     }),
   ]
 }
@@ -301,7 +305,7 @@ function styleOf(fontSize: number, wrapWidth: number | undefined): TextStyle {
   const hit = styles.get(key)
   if (hit !== undefined) return hit
   const style = new TextStyle({
-    fontFamily: tokens.font.family.serif,
+    fontFamily: FONT_STACK,
     fontSize,
     fontWeight: '600',
     // 一律烤白色，颜色靠 tint 给：同一句话在不同颜色下才只占一张纹理（见文件头）。

@@ -20,7 +20,6 @@
  * 这里只用 `tileAt` 把落点交出去。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import { EVOLVE_FX_MS, EVOLVE_STAGGER_MS, POP_IN_MS, REMOVAL_FX_MS } from '../director/timings'
 import type { Animator } from '../runtime/animator'
@@ -49,6 +48,15 @@ const MIDLINE_BADGE_WIDTH = 140
 
 /** 进化那一下的三样动作。数值抄黑客松版的 playSummonFx.ts，时长走 timings。 */
 const EVOLVE = { popScale: 1.16, popDur: 0.42, glowDur: 0.7, labelRise: 34 } as const
+/**
+ * 进化那圈外发光和「↑ 升级」浮字的颜色，以及最里那圈的圆角。
+ *
+ * 绿是整个战场上仅有的两种冷色之一，专留给升降级。圆角 6 是旧样式里出现最多的那一档
+ * （同一份统计里 6px 出现 10 次）。两个数都只有这个文件在读，所以不进 `fx/colors.ts`
+ * 的那张表（判据见那个文件的头）。来源：黑客松版 styles.css 的 .battle__tile-mark--up。
+ */
+const EVOLVE_INK = '#a9dcb8'
+const EVOLVE_GLOW_RADIUS = 6
 /** 罚下时那张卡往下沉多少。抄 playSummonFx.ts 的 `REMOVAL_DROP`。 */
 const REMOVAL_DROP = 26
 /** 简易进场从多小弹起来、用哪档回弹。抄旧版 MatchStage.tsx:2322-2328 的那条 fromTo。 */
@@ -354,8 +362,8 @@ export class BoardGrid extends Container {
       const w = width + spread * 2
       const h = height + spread * 2
       glow
-        .roundRect(-w / 2, -h / 2, w, h, tokens.radius.md + spread)
-        .stroke({ width: 3, color: tokens.color.mark.up.line, alpha: 0.5 - ring * 0.15 })
+        .roundRect(-w / 2, -h / 2, w, h, EVOLVE_GLOW_RADIUS + spread)
+        .stroke({ width: 3, color: EVOLVE_INK, alpha: 0.5 - ring * 0.15 })
     }
     glow.position.set(at.x, at.y)
     glow.alpha = 0
@@ -371,7 +379,7 @@ export class BoardGrid extends Container {
    * 它是这一批里最长的一样（0.9 秒），所以整段进化的时长就按它算，见 EVOLVE_FX_MS。
    */
   private playEvolveLabel(at: { x: number; y: number }, height: number, delay: number): void {
-    const label = new Label('↑ 升级', EVOLVE_LABEL, this.deps, tokens.color.mark.up.ink)
+    const label = new Label('↑ 升级', EVOLVE_LABEL, this.deps, EVOLVE_INK)
     const startY = at.y - height / 2
     label.position.set(at.x, startY)
     label.alpha = 0

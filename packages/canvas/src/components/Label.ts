@@ -9,16 +9,15 @@
  * 而且换色（按钮悬停、禁用）只是写一个属性，不重建任何东西（3.10）。
  * 代价是纹理里的字必须是纯白的，所以下面建 TextStyle 时 fill 写死 0xffffff。
  *
- * 字体阶段一用系统衬线体（`font.family.serif` 的兜底那几档），第 34 条一致性检查之前
- * 不自托管子集化（4.1）。所以目录页基线图上的字形跟着机器走，基线必须按平台分目录。
+ * 字体栈在 `runtime/textCache.ts` 的 `FONT_STACK`（那儿也写着为什么它不在令牌里）。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Sprite, TextStyle, Texture } from 'pixi.js'
-import type { TextTextureCache } from '../runtime/textCache'
+import { PALETTE } from '../fx/colors'
+import { FONT_STACK, type TextTextureCache } from '../runtime/textCache'
 
 export interface LabelStyle {
-  /** 字号（px）。按钮那几档是中号字，旧样式里就地写死、互不成阶梯，所以不进令牌。 */
+  /** 字号（px）。旧样式里各档就地写死、互不成阶梯，所以不进令牌。 */
   fontSize: number
   /** 字重。旧样式用到的只有常规和 600 两档。 */
   weight?: '400' | '600' | '700'
@@ -82,7 +81,7 @@ function styleOf(style: LabelStyle): TextStyle {
   if (cached !== undefined) return cached
   const wrap = style.wrapWidth
   const created = new TextStyle({
-    fontFamily: tokens.font.family.serif,
+    fontFamily: FONT_STACK,
     fontSize: style.fontSize,
     fontWeight: style.weight ?? '400',
     letterSpacing: style.letterSpacing ?? 0,
@@ -113,7 +112,7 @@ export class Label extends Container {
     content: string,
     style: LabelStyle,
     deps: { text: TextTextureCache },
-    color: string = tokens.color.paper.ink,
+    color: string = PALETTE.paperInk,
   ) {
     super()
     const texture = deps.text.get(textureKey(content, style), content, styleOf(style))

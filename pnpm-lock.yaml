@@ -240,9 +240,6 @@ importers:
       '@ai-duel/core':
         specifier: workspace:*
         version: link:../core
-      '@ai-duel/design':
-        specifier: workspace:*
-        version: link:../design
       '@ai-duel/platform':
         specifier: workspace:*
         version: link:../platform

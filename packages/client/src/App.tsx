@@ -20,6 +20,8 @@
  *
  * 这里原先还挂着两层常驻浮层（竖屏提示、全屏入口），在正式版简化第 2 步删掉了。
  * `platform` 的 safeArea / fullscreen 两样能力都留着：设置页那两条开关还在用。
+ * 原先这里还 import 过 `@ai-duel/design/tokens.css`，第 5 步连同那份 CSS 产物一起删了：
+ * 样式剥成素方块之后没有一条 `var(--…)` 还在读它。
  */
 
 import type { Platform } from '@ai-duel/platform'
@@ -40,9 +42,6 @@ import { MatchScreen } from './screens/MatchScreen'
 import { PackScreen } from './screens/PackScreen'
 import { RoomScreen } from './screens/RoomScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
-// 设计令牌的 CSS 变量，全应用只在这里 import 一次挂到 :root 上——
-// 每个组件各引一遍的话同一份变量会被打进包里好几次（见 ui 包的 index.ts）。
-import '@ai-duel/design/tokens.css'
 import './app/app.css'
 
 /**

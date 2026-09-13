@@ -67,7 +67,12 @@ const TABS_HEIGHT = 30
 const MANAGE_HEIGHT = 26
 const TALLY_HEIGHT = 24
 const PROGRESS_HEIGHT = 10
-const CONFIRM_HEIGHT = tokens.size.plaque.endTurnHeight
+/*
+ * 确认钮的高抄对局那颗「结束出牌」的 60（`.battle__end-turn .plaque-button`）。
+ * 原先读 `size.plaque.endTurnHeight` 令牌，正式版简化第 5 步撤掉了按钮尺寸那一组；
+ * 这一档只有这里在读，所以写在这儿（判据见 design 包的 README）。
+ */
+const CONFIRM_HEIGHT = 60
 /** 牌组栏里上下两行之间留多宽。 */
 const ROW_GAP = 10
 

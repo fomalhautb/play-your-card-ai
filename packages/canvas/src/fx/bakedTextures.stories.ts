@@ -11,10 +11,9 @@
  * 命名和 title 用英文的理由见 components/CardSprite.stories.ts 的文件头。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Graphics, Sprite, TextStyle } from 'pixi.js'
-import { TextTextureCache } from '../runtime/textCache'
-import type { StoryStage } from '../storyStage'
+import { FONT_STACK, TextTextureCache } from '../runtime/textCache'
+import { STORY_INK, STORY_PLATE, type StoryStage } from '../storyStage'
 import { bakeTextures } from './bakedTextures'
 
 /** 画布尺寸：三列三行，每格 220×260，下面留一行说明。 */
@@ -26,9 +25,9 @@ const FIT = { width: 170, height: 200 }
 /** 说明文字的样式。目录页自己的标签，不是组件的一部分，所以就地建。 */
 function labelStyle(): TextStyle {
   return new TextStyle({
-    fontFamily: tokens.font.family.serif,
-    fontSize: tokens.font.size.md,
-    fill: tokens.color.page.foreground,
+    fontFamily: FONT_STACK,
+    fontSize: 12,
+    fill: STORY_INK,
   })
 }
 
@@ -69,7 +68,7 @@ function mountBaked(ctx: StoryStage) {
     if (item.plate === true) {
       const plate = new Graphics()
         .rect(cx - width / 2, cy - height / 2, width, height)
-        .fill({ color: tokens.color.paper.shade })
+        .fill({ color: STORY_PLATE })
       columns.addChild(plate)
     }
     const sprite = new Sprite(item.texture)

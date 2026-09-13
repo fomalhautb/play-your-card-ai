@@ -29,8 +29,10 @@ const ALLOWED = {
   platform: [],
   // canvas 多一个 core：演出编排层（src/director）要读引擎的事件和视图类型。
   canvas: ['core', 'design', 'platform'],
-  ui: ['design', 'platform'],
-  client: ['core', 'content', 'protocol', 'design', 'platform', 'canvas', 'ui'],
+  // ui 和 client 原先各有一条 design，正式版简化第 3 / 5 步按到期条款删掉了：
+  // React 那边剥成素方块、令牌瘦到只剩尺寸和时长之后，这两个包一个字都不读它了。
+  ui: ['platform'],
+  client: ['core', 'content', 'protocol', 'platform', 'canvas', 'ui'],
   server: ['core', 'content', 'protocol'],
   // bench 多一个 core：性能剧本要开一局真对局（脚本化），指令进事件出都走引擎。
   bench: ['canvas', 'core', 'design', 'platform'],

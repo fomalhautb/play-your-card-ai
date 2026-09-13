@@ -18,10 +18,9 @@
  * 匾上那两行字仍然逐张上色，它们本来就是各自一层。
  */
 
-import { tokens } from '@ai-duel/design'
 import { type Graphics, GraphicsPath } from 'pixi.js'
 import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
-import { mixHex } from './colors'
+import { mixHex, PALETTE } from './colors'
 
 /** 黑客松那段 SVG 的画布尺寸，下面所有坐标都按它写。 */
 const VIEW = { width: 760, height: 230 } as const
@@ -111,8 +110,8 @@ const FLOURISH_DIAMOND = 'M373 20L380 10L387 20L380 31ZM373 210L380 200L387 210L
  * 线宽跟着那次 `setTransform` 一起缩，所以下面的 stroke 宽度可以原样照抄 SVG 上的数。
  */
 export function paintCardPlaque(g: Graphics): void {
-  const metal = mixHex(tokens.color.theme.gold, 0.35, tokens.color.paper.lineDark)
-  const metalLight = mixHex(tokens.color.paper.base, 0.76, tokens.color.theme.gold)
+  const metal = mixHex(PALETTE.gold, 0.35, PALETTE.paperLineDark)
+  const metalLight = mixHex(PALETTE.paperBase, 0.76, PALETTE.gold)
   const scale = CARD_PLAQUE.width / VIEW.width
   g.save()
   g.setTransform(
@@ -128,16 +127,16 @@ export function paintCardPlaque(g: Graphics): void {
    * 纸底直接拿外轮廓填，不另画一个圆角矩形（黑客松那边是一个单独的 div）：
    * 填的形状和描边的形状完全一致，边上才不会露出半圈纸白或者半圈空。
    */
-  g.path(rim).fill({ color: tokens.color.paper.base })
+  g.path(rim).fill({ color: PALETTE.paperBase })
   // 最外那圈粗描边是「匾投在卡面上的影子」，所以又宽又淡，压在金属圈底下。
-  g.path(rim).stroke({ width: 8, color: tokens.color.paper.ink, alpha: 0.24 })
+  g.path(rim).stroke({ width: 8, color: PALETTE.paperInk, alpha: 0.24 })
   g.path(rim).stroke({ width: 3, color: metal })
   g.path(path(RIM_LIGHT)).stroke({ width: 2, color: metalLight })
   g.path(path(RIM_INNER)).stroke({ width: 1.5, color: metal })
   const flourish = { width: 2, color: metal, cap: 'round', join: 'round' } as const
   for (const d of [FLOURISH_SIDE, FLOURISH_CORNER, FLOURISH_DIAMOND]) {
     const shape = path(d)
-    g.path(shape).fill({ color: tokens.color.paper.shade })
+    g.path(shape).fill({ color: PALETTE.paperShade })
     g.path(shape).stroke(flourish)
   }
   g.restore()

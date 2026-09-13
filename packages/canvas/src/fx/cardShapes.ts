@@ -14,11 +14,22 @@
  * 那条路在不同后端上的插值不完全一致（4.4 要求各浏览器一样），而一堆纯色形状是确定的。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Graphics } from 'pixi.js'
 import { CARD_HEIGHT, CARD_RADIUS, CARD_WIDTH } from '../layout/fanMath'
 import { paintCardPlaque } from './cardPlaque'
+import { PALETTE } from './colors'
 import { type Mold, mold } from './mold'
+
+/**
+ * 只有这张牌背用得到的两个颜色。
+ *
+ * 夜色圆章的底在旧样式里连着透明度写（`rgb(20 17 12 / 78%)`），Pixi 的 fill 和 alpha 分开，
+ * 所以拆成两项。来源：黑客松版 styles.css 的 .card-help-mark。
+ * 墨蓝是对局界面的那一档，这里只有对手牌背上那枚纹章在用。
+ * 来源：styles.css 的 .battle --battle-navy。
+ */
+const SEAL_BASE = { color: '#141110', alpha: 0.78 } as const
+const BATTLE_NAVY = '#253149'
 
 /**
  * 白边内侧那圈羽化带的基准宽度（卡面基准尺寸下的像素）。
@@ -85,7 +96,7 @@ const PLAQUE_CHROME_RESOLUTION = 2
  */
 export function drawCardChrome(plaque: boolean): Mold {
   const g = new Graphics()
-  const edge = tokens.color.card.edgeTint
+  const edge = PALETTE.cardEdgeTint
   /*
    * 描边画在内侧半个线宽的位置，描边的**外沿**才正好落在卡的轮廓上；
    * 圆角跟着一起往里缩半个线宽。原画和牌背的圆角是构建期烤进 alpha 的
@@ -201,8 +212,8 @@ export function drawCardSeal(): Mold {
   const r = SEAL_SIZE / 2
   const width = SEAL_SIZE * 0.045
   const g = new Graphics()
-  g.circle(r, r, r).fill({ color: tokens.color.seal.base, alpha: tokens.opacity.seal.base })
-  g.circle(r, r, r - width).stroke({ width, color: tokens.color.seal.mark })
+  g.circle(r, r, r).fill({ color: SEAL_BASE.color, alpha: SEAL_BASE.alpha })
+  g.circle(r, r, r - width).stroke({ width, color: PALETTE.sealMark })
   return mold(SEAL_SIZE, SEAL_SIZE, g)
 }
 
@@ -221,9 +232,9 @@ const CREST = { ratio: 0.58, max: 76, viewBox: 64 } as const
  */
 export function drawFoeBack(): Mold {
   const g = new Graphics()
-  const navy = tokens.color.battle.navy
+  const navy = BATTLE_NAVY
   g.roundRect(0, 0, CARD_WIDTH, CARD_HEIGHT, CARD_RADIUS).fill({
-    color: tokens.color.battle.paperShade,
+    color: PALETTE.battlePaperShade,
   })
   /*
    * 纸面中间那块亮一点的椭圆光，抄 `radial-gradient(ellipse at 50% 32%, …)`。
@@ -234,7 +245,7 @@ export function drawFoeBack(): Mold {
   for (let i = rings; i >= 1; i -= 1) {
     const t = i / rings
     g.ellipse(CARD_WIDTH / 2, CARD_HEIGHT * 0.32, CARD_WIDTH * 0.76 * t, CARD_HEIGHT * 0.76 * t)
-    g.fill({ color: tokens.color.battle.paper, alpha: step })
+    g.fill({ color: PALETTE.battlePaper, alpha: step })
   }
   g.roundRect(0.5, 0.5, CARD_WIDTH - 1, CARD_HEIGHT - 1, CARD_RADIUS - 0.5).stroke({
     width: 1,

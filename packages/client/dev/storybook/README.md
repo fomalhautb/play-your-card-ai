@@ -109,9 +109,10 @@ export const Normal = { name: '普通' }
 export const Disabled = { name: '禁用', args: { disabled: true } }
 ```
 
-数值一律从 `@ai-duel/design` 读，别在 story 里写死颜色和间距（7.1 第 4 条）。
-**React 这边现在是例外**：正式版简化第 3 步把 `ui` 剥成了素方块，那个包不再依赖
-`design`，条目里也没有颜色和间距可写。重做视觉时这一条跟着接回来。
+尺寸和时长从 `@ai-duel/design` 读，别在 story 里写死（7.1 第 4 条）。**颜色和字号不是**：
+正式版简化第 5 步把那几组令牌删了（理由见 design 包的 README），画布条目要颜色就从
+`canvas` 自己的 `fx/colors.ts` 读，目录页外壳那几档写在 `pixiStory.tsx` 的 `PAGE` 里。
+`ui` 那边在第 3 步剥成了素方块，条目里没有颜色和间距可写。重做视觉时这两条跟着接回来。
 
 悬停和按下这两个态目前**没有**装插件来模拟 CSS 伪类，所以光靠 `:hover` / `:active`
 那两条 story 拍出来会和普通态一模一样。从前的做法是让组件认一个 `data-state` prop，
