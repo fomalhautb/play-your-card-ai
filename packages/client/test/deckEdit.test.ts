@@ -1,5 +1,5 @@
 /**
- * 牌组存档「改」的那半：改名、新建、删除、改卡表，以及教程那条固定 id 的写入。
+ * 牌组存档「改」的那半：改名、新建、删除、改卡表。
  * 用例从旧客户端 test/deckStore.test.ts 搬过来。
  *
  * 「读」的那半（播种预设、坏档回落、currentId、存储不可用）在 deckStore.test.ts，
@@ -19,7 +19,6 @@ import {
   deleteDeck,
   loadDecks,
   MAX_DECKS,
-  putDeck,
   renameDeck,
   setCurrentDeck,
   updateDeckCards,
@@ -199,26 +198,6 @@ describe('牌组编辑', () => {
     it('id 不存在时什么都不改', () => {
       const before = loadDecks(platform)
       expect(updateDeckCards(platform, '不存在', [CARD_A])).toEqual(before)
-    })
-  })
-
-  describe('putDeck（教程那条固定 id 的路）', () => {
-    it('同一个 id 反复写只覆盖那一套，不动它在列表里的位置', () => {
-      loadDecks(platform)
-      putDeck(platform, 'tutorial', '教程牌组', [CARD_A])
-      const after = putDeck(platform, 'tutorial', '教程牌组', [CARD_B])
-      expect(after.decks.filter((deck) => deck.id === 'tutorial')).toHaveLength(1)
-      expect(after.decks.at(-1)?.cards).toEqual([CARD_B])
-      expect(after.currentId).toBe('tutorial')
-    })
-
-    it('已经满 MAX_DECKS 套时挤掉列表最前面那套', () => {
-      loadDecks(platform)
-      for (let i = 0; i < MAX_DECKS - PRESET_IDS.length; i += 1) createDeck(platform, newId)
-      const data = putDeck(platform, 'tutorial', '教程牌组', [CARD_A])
-      expect(data.decks).toHaveLength(MAX_DECKS)
-      expect(data.decks.map((deck) => deck.id)).not.toContain('preset-balanced')
-      expect(data.decks.at(-1)?.id).toBe('tutorial')
     })
   })
 })

@@ -17,7 +17,6 @@ import {
   createDeckScene,
   type DeckManageAction,
   type DeckScene,
-  type DeckTutorialGate,
   type DeckView,
   type EffectTier,
 } from '@ai-duel/canvas'
@@ -33,7 +32,7 @@ import {
 } from '@ai-duel/content'
 import type { CardId } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
-import { type RefObject, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadCardTextures } from '../match/cardAtlas'
 import { MAX_DECKS } from '../save/deckStore'
 import './deckStage.css'
@@ -78,19 +77,7 @@ export interface DeckStageProps {
   onBack(): void
   /** 「确认牌组」按下时把这一副交出去。 */
   onConfirm(cards: readonly CardId[]): void
-
-  // ---------- 下面这三条只有新手教程会传（迁移第 32 条），正式构筑页一条都不给 ----------
-
-  /** 教学期间的放行闸门。传 null 就是正常构筑（见 canvas 的 `DeckTutorialGate`）。 */
-  tutorial?: DeckTutorialGate | null
-  /** 玩家点了被闸门挡住的东西。调用方拿它弹一句话。 */
-  onBlocked?(tip: string): void
-  /** 把「问场景要锚点」那一条透给外面，给引导层每帧现量用（同 DuelStage 的 anchorsRef）。 */
-  anchorsRef?: RefObject<DeckAnchors | null>
 }
-
-/** 引导层要的那一条。形状就是场景句柄里的同名方法，原样转出去。 */
-export type DeckAnchors = Pick<DeckScene, 'anchorRect'>
 
 export function DeckStage({
   platform,
@@ -100,9 +87,6 @@ export function DeckStage({
   onManage,
   onBack,
   onConfirm,
-  tutorial = null,
-  onBlocked,
-  anchorsRef,
 }: DeckStageProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -113,13 +97,10 @@ export function DeckStage({
    * 回调存 ref：它们每次渲染都是新函数，而场景是建的时候把它们焊进去的。
    * 不存 ref 的话要么场景每渲染一次就重建，要么它调的永远是第一次那一版闭包。
    */
-  const handlers = useRef({ onChange, onManage, onBack, onConfirm, onBlocked })
-  handlers.current = { onChange, onManage, onBack, onConfirm, onBlocked }
+  const handlers = useRef({ onChange, onManage, onBack, onConfirm })
+  handlers.current = { onChange, onManage, onBack, onConfirm }
   /** 建场景那一刻的存档。它只在首次挂载时用一次，之后的变化走下面那条 `applyDecks`。 */
   const initial = useRef({ decks, currentId })
-  /** 同理：建场景要等一个 await，这中间教学可能已经走到下一步了。 */
-  const tutorialRef = useRef(tutorial)
-  tutorialRef.current = tutorial
 
   useEffect(() => {
     const host = hostRef.current
@@ -161,12 +142,7 @@ export function DeckStage({
       scene.onManage((action) => handlers.current.onManage(action))
       // 放大查看的音效和统计将来接在这儿；场景自己已经把卡放大了。
       scene.onInspect(() => undefined)
-      scene.onBlocked((tip) => handlers.current.onBlocked?.(tip))
       sceneRef.current = scene
-      if (anchorsRef !== undefined) anchorsRef.current = scene
-      // 教学闸门要在第一帧就设上：这一页是**先**进教学再建场景的，
-      // 下面那条 effect 在场景还没建出来时跑过一次，没人收。
-      scene.setTutorial(tutorialRef.current)
     }
 
     boot().catch((cause: unknown) => {
@@ -185,10 +161,9 @@ export function DeckStage({
       observer.disconnect()
       sceneRef.current?.destroy()
       sceneRef.current = null
-      if (anchorsRef !== undefined) anchorsRef.current = null
     }
     // platform 是建场景时焊死的，换了要整套重建。回调走 ref，不进依赖。
-  }, [platform, anchorsRef])
+  }, [platform])
 
   /*
    * 存档变了（改名、新建、删除做完之后）就摆回场景。
@@ -199,11 +174,6 @@ export function DeckStage({
   useEffect(() => {
     sceneRef.current?.applyDecks(decks, currentId)
   }, [decks, currentId])
-
-  // 教学走到下一步就换一道闸门（顺带让场景翻到目标那一页，见 canvas 的 setTutorial）。
-  useEffect(() => {
-    sceneRef.current?.setTutorial(tutorial)
-  }, [tutorial])
 
   return (
     <div className="deck-stage" ref={hostRef}>

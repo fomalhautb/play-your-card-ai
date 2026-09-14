@@ -141,7 +141,7 @@ describe('自动交卷', () => {
       seat: 0,
       setup: localSetup(),
       timers,
-      // 教程（第 32 条）要把每一轮的对错写死，走的就是这个参数。
+      // 想把每一轮的对错写死就走这个参数（见 quizAutopilot 的 `QuizAnswersFor`）。
       answersFor: (_question, aiUnits) => {
         asked += 1
         return aiUnits.map((ai) => ({

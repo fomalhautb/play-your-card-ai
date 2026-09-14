@@ -220,7 +220,7 @@ export interface GameState {
    * 打满只发生在双方一路同分加赛的情况下。
    */
   totalRounds: number
-  /** 本轮先出牌的一方。第一轮抛硬币决定（教程可用 GameSetup.firstPlayer 指定），之后每轮交换。 */
+  /** 本轮先出牌的一方。第一轮抛硬币决定（可用 GameSetup.firstPlayer 指定），之后每轮交换。 */
   firstPlayer: PlayerId
   /**
    * play 阶段轮到谁出牌。

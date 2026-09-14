@@ -23,7 +23,7 @@
 
 | 文件 | 对着 `src/` 的哪一份 | 管什么 |
 |---|---|---|
-| `engineSetup.test.ts` | `engineSetup.ts` | 开局：抛硬币、发牌、洗牌洗题序、教程的两个覆盖项 |
+| `engineSetup.test.ts` | `engineSetup.ts` | 开局：抛硬币、发牌、洗牌洗题序、排剧本的两个覆盖项 |
 | `enginePlay.test.ts` | `enginePlay.ts` | 出牌、轮次、结束出牌 |
 | `engineTokens.test.ts` | `enginePlay.ts` + `engineRound.ts` | Token 怎么扣、怎么补满涨上限、本轮消耗怎么记 |
 | `engineSkillsTarget.test.ts` | `enginePlay.ts` 的 `denyReason` | 要选目标的技能牌那套校验，以及撞上英雄抵消时的表现 |

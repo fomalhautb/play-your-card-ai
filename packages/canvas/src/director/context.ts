@@ -155,8 +155,6 @@ export interface DirectorContext {
   dealBusyTask: ScheduledTask | null
   /** 憋着还没飞的牌各有几张，放行时一次性发出去。 */
   pendingDeal: { self: number; opponent: number }
-  /** 上一次算出来的「发牌还没演完」，用来认下降沿发 `deal-done`。 */
-  dealingBefore: boolean
 
   // ---------- 回合结算层（settleTimeline.ts） ----------
   settle: SettleState | null
@@ -166,8 +164,6 @@ export interface DirectorContext {
   awaiting: boolean
   /** 正在给一张技能牌或英雄技能选目标。 */
   targeting: boolean
-  /** 教程要求先完成别的操作，「结束出牌」这一步还不许点。 */
-  tutorialEndPlayBlocked: boolean
 
   // ---------- 局面 ----------
   /** 最近一批事件带来的视图；第一批之前是 null（还没连上）。 */
@@ -275,13 +271,11 @@ export function createContext(seat: PlayerId, rng: Rng): DirectorContext {
     roundDealFallback: null,
     dealBusyTask: null,
     pendingDeal: { self: 0, opponent: 0 },
-    dealingBefore: true,
 
     settle: null,
 
     awaiting: false,
     targeting: false,
-    tutorialEndPlayBlocked: false,
 
     view: null,
     aborted: false,

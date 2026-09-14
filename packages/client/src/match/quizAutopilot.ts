@@ -26,8 +26,8 @@ export const QUIZ_AUTOPILOT_DELAY_MS = 2500
 /**
  * 生成本轮答题结果的那一步，形状和 `content` 的 `scriptedAnswers` 一致。
  *
- * 单独起个类型名是为了让「换一份结果来源」变成传一个参数：教程（第 32 条）要把每一轮的
- * 对错写死，将来改成对局中途真去调模型 API 也是换掉这一处实现，
+ * 单独起个类型名是为了让「换一份结果来源」变成传一个参数：测试要把每一轮的对错写死，
+ * 将来改成对局中途真去调模型 API 也是换掉这一处实现，
  * 指令形状和这一层的时序都不用动。
  */
 export type QuizAnswersFor = (question: Question, aiUnits: readonly AiInstance[]) => AnswerResult[]

@@ -10,9 +10,8 @@
  * 没有 loader、没有嵌套路由那一套——这个应用的页面之间没有数据依赖关系，
  * 「匹配 → 选卡组 → 选英雄」那种流程是在**同一条路由内换 phase**（旧版就是这么做的）。
  *
- * 现在有首页、选英雄页、开包、牌组页、房间页、对局、新手教程、三个文字页
- *（设置 / 账号 / 关于）和开发页。首页菜单上那颗「开始游戏」在没走过教程时指向 `/tutorial`
- * （见 screens/HomeScreen.tsx）。
+ * 现在有首页、选英雄页、开包、牌组页、房间页、对局、三个文字页（设置 / 账号 / 关于）
+ * 和开发页。首页那颗「开始游戏」直接进联机房（见 screens/HomeScreen.tsx）。
  *
  * ## 应用壳开机时要做的三件事
  *
@@ -41,7 +40,6 @@ import { OrientationNotice } from './screens/OrientationNotice'
 import { PackScreen } from './screens/PackScreen'
 import { RoomScreen } from './screens/RoomScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
-import { TutorialScreen } from './screens/TutorialScreen'
 // 设计令牌的 CSS 变量，全应用只在这里 import 一次挂到 :root 上——
 // 每个组件各引一遍的话同一份变量会被打进包里好几次（见 ui 包的 index.ts）。
 import '@ai-duel/design/tokens.css'
@@ -86,7 +84,6 @@ export function App({ platform }: { platform: Platform }) {
             <Route path="/deck" component={DeckScreen} />
             <Route path="/room" component={RoomScreen} />
             <Route path="/match" component={MatchScreen} />
-            <Route path="/tutorial" component={TutorialScreen} />
             <Route path="/settings" component={SettingsScreen} />
             <Route path="/account" component={AccountScreen} />
             <Route path="/info" component={InfoScreen} />

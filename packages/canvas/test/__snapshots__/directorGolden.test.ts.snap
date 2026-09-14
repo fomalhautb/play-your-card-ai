@@ -6,9 +6,7 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
   3540ms +1400 banner text=第 1 轮 · 刻板印象
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=对方出牌中
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p1-c29 cardKind=ai fromOrigin=true
  60550ms +1500 reveal-hold
@@ -25,7 +23,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 123450ms +0    lock-release token=2
 --- 第 3 批（1 条事件） ---
 180000ms +1400 banner text=轮到你出牌
-181400ms +0    tutorial cue=round-banner-done
 --- 第 4 批（1 条事件） ---
 240000ms +0    lock-acquire token=3 reason=play
 240000ms +650  play-flip instanceId=p0-c9
@@ -34,10 +31,8 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 --- 第 5 批（1 条事件） ---
 300000ms +1400 banner text=精准检索！DeepSeek R1 → D…(30字)
 300000ms +200  hit-fx instanceId=p0-c9
-301400ms +0    tutorial cue=round-banner-done
 --- 第 6 批（1 条事件） ---
 360000ms +550  settle-open round=1 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:0,theirs:0}
-360000ms +0    tutorial cue=quiz-open
 --- 第 7 批（4 条事件） ---
 420000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=true correct=true
 420000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -49,20 +44,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 424168ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
 424388ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 424608ms +280  settle-stamp instanceId=p1-c28 correct=true safePassed=false
-424888ms +0    tutorial cue=quiz-rows-done
 424888ms +400  settle-counts correctCounts={mine:1,theirs:2}
 425288ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:1} spent={mine:3,theirs:5} verdict=more-correct
-426338ms +0    tutorial cue=quiz-score-shown
 426338ms +350  settle-confirm
 --- 第 9 批（7 条事件） ---
 540000ms +450  settle-exit
-540450ms +0    tutorial cue=quiz-closed
 540450ms +1400 banner text=第 2 轮 · 刻板印象
 540450ms +520  deal side=self count=2
 540450ms +520  deal side=opponent count=2
-540970ms +0    tutorial cue=deal-done
 541850ms +1400 banner text=轮到你出牌
-543250ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +0    lock-acquire token=4 reason=play
 600000ms +650  play-flip instanceId=p0-c1
@@ -73,11 +63,9 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 660000ms +780  skill-showcase cardId=fixed-answer targetInstanceId=p1-c29
 660780ms +420  skill-fly from=showcase cardId=fixed-answer targetInstanceId=p1-c29
 661200ms +200  hit-fx instanceId=p1-c29
-661200ms +0    tutorial cue=skill-hit
 661200ms +0    lock-release token=5
 --- 第 12 批（1 条事件） ---
 720000ms +1400 banner text=对方出牌中
-721400ms +0    tutorial cue=round-banner-done
 --- 第 13 批（1 条事件） ---
 780000ms +550  reveal-enter cardId=black-white-reversal handInstanceId=p1-c35 cardKind=skill fromOrigin=true
 780550ms +1500 reveal-hold
@@ -86,10 +74,8 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 --- 第 14 批（1 条事件） ---
 840000ms +1400 banner text=化繁为简！DeepSeek V4 → D…(30字)
 840000ms +200  hit-fx instanceId=p0-c9
-841400ms +0    tutorial cue=round-banner-done
 --- 第 15 批（1 条事件） ---
 900000ms +550  settle-open round=2 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:0,theirs:1}
-900000ms +0    tutorial cue=quiz-open
 --- 第 16 批（6 条事件） ---
 960000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-r1 mine=true correct=true
 960000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -104,23 +90,17 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 964466ms +280  settle-stamp instanceId=p0-c1 correct=false safePassed=false
 964686ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 964906ms +280  settle-stamp instanceId=p1-c28 correct=true safePassed=false
-965186ms +0    tutorial cue=quiz-rows-done
 965186ms +400  settle-counts correctCounts={mine:1,theirs:2}
 965586ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:2} spent={mine:6,theirs:3} verdict=more-correct
-966636ms +0    tutorial cue=quiz-score-shown
 966636ms +350  settle-confirm
 --- 第 18 批（7 条事件） ---
 1080000ms +450  settle-exit
-1080450ms +0    tutorial cue=quiz-closed
 1080450ms +1400 banner text=第 3 轮 · 生活类
 1080450ms +520  deal side=self count=2
 1080450ms +520  deal side=opponent count=2
-1080970ms +0    tutorial cue=deal-done
 1081850ms +1400 banner text=对方出牌中
-1083250ms +0    tutorial cue=round-banner-done
 --- 第 19 批（1 条事件） ---
 1140000ms +1400 banner text=轮到你出牌
-1141400ms +0    tutorial cue=round-banner-done
 --- 第 20 批（1 条事件） ---
 1200000ms +0    lock-acquire token=6 reason=play
 1200000ms +650  play-flip instanceId=p0-c2
@@ -133,7 +113,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 1261450ms +0    lock-release token=7
 --- 第 22 批（1 条事件） ---
 1320000ms +550  settle-open round=3 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:0,theirs:2}
-1320000ms +0    tutorial cue=quiz-open
 --- 第 23 批（8 条事件） ---
 1380000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-r1 mine=true correct=true
 1380000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -151,20 +130,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 1386879ms +280  settle-stamp instanceId=p0-c11 correct=true safePassed=false
 1387099ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 1387319ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
-1387599ms +0    tutorial cue=quiz-rows-done
 1387599ms +400  settle-counts correctCounts={mine:2,theirs:1}
 1387999ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:2} spent={mine:7,theirs:0} verdict=more-correct
-1389049ms +0    tutorial cue=quiz-score-shown
 1389049ms +350  settle-confirm
 --- 第 25 批（7 条事件） ---
 1500000ms +450  settle-exit
-1500450ms +0    tutorial cue=quiz-closed
 1500450ms +1400 banner text=第 4 轮 · 生活类
 1500450ms +520  deal side=self count=2
 1500450ms +520  deal side=opponent count=2
-1500970ms +0    tutorial cue=deal-done
 1501850ms +1400 banner text=轮到你出牌
-1503250ms +0    tutorial cue=round-banner-done
 --- 第 26 批（1 条事件） ---
 1560000ms +0    lock-acquire token=8 reason=play
 1560000ms +1800 skill-showcase cardId=nuclear-power-station targetInstanceId=null
@@ -176,7 +150,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 1621450ms +0    lock-release token=9
 --- 第 28 批（1 条事件） ---
 1680000ms +1400 banner text=对方出牌中
-1681400ms +0    tutorial cue=round-banner-done
 --- 第 29 批（1 条事件） ---
 1740000ms +550  reveal-enter cardId=qwen handInstanceId=p1-c31 cardKind=ai fromOrigin=true
 1740550ms +1500 reveal-hold
@@ -199,10 +172,8 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 1860550ms +1500 reveal-hold
 1862050ms +320  reveal-fade
 1862350ms +1400 banner text=鸡犬升天！我方 1 个、对方 2 个 A…(27字)
-1863750ms +0    tutorial cue=round-banner-done
 --- 第 32 批（1 条事件） ---
 1920000ms +550  settle-open round=4 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:1,theirs:2}
-1920000ms +0    tutorial cue=quiz-open
 --- 第 33 批（7 条事件） ---
 1980000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=true correct=true
 1980000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -223,20 +194,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 1987484ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 1987704ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 1987924ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
-1988204ms +0    tutorial cue=quiz-rows-done
 1988204ms +400  settle-counts correctCounts={mine:3,theirs:3}
 1988604ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:2} spent={mine:5,theirs:8} verdict=fewer-tokens
-1989654ms +0    tutorial cue=quiz-score-shown
 1989654ms +350  settle-confirm
 --- 第 35 批（7 条事件） ---
 2100000ms +450  settle-exit
-2100450ms +0    tutorial cue=quiz-closed
 2100450ms +1400 banner text=第 5 轮 · 生活类
 2100450ms +520  deal side=self count=2
 2100450ms +520  deal side=opponent count=2
-2100970ms +0    tutorial cue=deal-done
 2101850ms +1400 banner text=对方出牌中
-2103250ms +0    tutorial cue=round-banner-done
 --- 第 36 批（1 条事件） ---
 2160000ms +550  reveal-enter cardId=doubao handInstanceId=p1-c27 cardKind=ai fromOrigin=true
 2160550ms +1500 reveal-hold
@@ -258,13 +224,11 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 2282470ms +200  hit-fx instanceId=p0-c5
 --- 第 39 批（1 条事件） ---
 2340000ms +1400 banner text=轮到你出牌
-2341400ms +0    tutorial cue=round-banner-done
 --- 第 40 批（1 条事件） ---
 2400000ms +0    lock-acquire token=14 reason=play
 2400000ms +780  skill-showcase cardId=jade-purification-vase targetInstanceId=p0-c5
 2400780ms +420  skill-fly from=showcase cardId=jade-purification-vase targetInstanceId=p0-c5
 2401200ms +200  hit-fx instanceId=p0-c5
-2401200ms +0    tutorial cue=skill-hit
 2401200ms +0    lock-release token=14
 --- 第 41 批（1 条事件） ---
 2460000ms +0    lock-acquire token=15 reason=play
@@ -278,7 +242,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 2521450ms +0    lock-release token=16
 --- 第 43 批（1 条事件） ---
 2580000ms +550  settle-open round=5 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:2,theirs:2}
-2580000ms +0    tutorial cue=quiz-open
 --- 第 44 批（13 条事件） ---
 2640000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=true correct=true
 2640000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -311,37 +274,29 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 2654361ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
 2654581ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 2654801ms +280  settle-stamp instanceId=p1-c30 correct=false safePassed=false
-2655081ms +0    tutorial cue=quiz-rows-done
 2655081ms +400  settle-counts correctCounts={mine:4,theirs:4}
 2655481ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2656531ms +0    tutorial cue=quiz-score-shown
 2656531ms +350  settle-confirm
 --- 第 46 批（7 条事件） ---
 2760000ms +450  settle-exit
-2760450ms +0    tutorial cue=quiz-closed
 2760450ms +1400 banner text=第 6 轮 · 梗题
 2760450ms +520  deal side=self count=2
 2760450ms +520  deal side=opponent count=2
-2760970ms +0    tutorial cue=deal-done
 2761850ms +1400 banner text=轮到你出牌
-2763250ms +0    tutorial cue=round-banner-done
 --- 第 47 批（1 条事件） ---
 2820000ms +0    lock-acquire token=17 reason=play
 2820000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p0-c9
 2820780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p0-c9
 2821200ms +200  hit-fx instanceId=p0-c9
-2821200ms +0    tutorial cue=skill-hit
 2821200ms +0    lock-release token=17
 --- 第 48 批（1 条事件） ---
 2880000ms +1400 banner text=对方出牌中
-2881400ms +0    tutorial cue=round-banner-done
 --- 第 49 批（1 条事件） ---
 2940000ms +550  reveal-enter cardId=nuclear-power-station handInstanceId=p1-c39 cardKind=skill fromOrigin=true
 2940550ms +1500 reveal-hold
 2942050ms +320  reveal-fade
 --- 第 50 批（1 条事件） ---
 3000000ms +550  settle-open round=6 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:3,theirs:3}
-3000000ms +0    tutorial cue=quiz-open
 --- 第 51 批（13 条事件） ---
 3060000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=true correct=false
 3060000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -368,20 +323,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 3068956ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 3069176ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
 3069396ms +280  settle-stamp instanceId=p1-c27 correct=false safePassed=false
-3069676ms +0    tutorial cue=quiz-rows-done
 3069676ms +400  settle-counts correctCounts={mine:2,theirs:2}
 3070076ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:4,theirs:4} spent={mine:3,theirs:3} verdict=equal-tokens
-3071126ms +0    tutorial cue=quiz-score-shown
 3071126ms +350  settle-confirm
 --- 第 53 批（7 条事件） ---
 3180000ms +450  settle-exit
-3180450ms +0    tutorial cue=quiz-closed
 3180450ms +1400 banner text=第 7 轮 · 梗题
 3180450ms +520  deal side=self count=2
 3180450ms +520  deal side=opponent count=2
-3180970ms +0    tutorial cue=deal-done
 3181850ms +1400 banner text=对方出牌中
-3183250ms +0    tutorial cue=round-banner-done
 --- 第 54 批（1 条事件） ---
 3240000ms +550  reveal-enter cardId=claude-5-sonnet handInstanceId=p1-c24 cardKind=ai fromOrigin=true
 3240550ms +1500 reveal-hold
@@ -391,13 +341,11 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 3243450ms +0    lock-release token=18
 --- 第 55 批（1 条事件） ---
 3300000ms +1400 banner text=轮到你出牌
-3301400ms +0    tutorial cue=round-banner-done
 --- 第 56 批（1 条事件） ---
 3360000ms +0    lock-acquire token=19 reason=play
 3360000ms +780  skill-showcase cardId=black-white-reversal targetInstanceId=p1-c24
 3360780ms +420  skill-fly from=showcase cardId=black-white-reversal targetInstanceId=p1-c24
 3361200ms +200  hit-fx instanceId=p1-c24
-3361200ms +0    tutorial cue=skill-hit
 3361200ms +0    lock-release token=19
 --- 第 57 批（1 条事件） ---
 3420000ms +0    lock-acquire token=20 reason=play
@@ -411,7 +359,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 3481450ms +0    lock-release token=21
 --- 第 59 批（1 条事件） ---
 3540000ms +550  settle-open round=7 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:4,theirs:4}
-3540000ms +0    tutorial cue=quiz-open
 --- 第 60 批（10 条事件） ---
 3600000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=true correct=true
 3600000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -438,14 +385,11 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 0 号座位 1`]
 3609612ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 3609832ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
 3610052ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
-3610332ms +0    tutorial cue=quiz-rows-done
 3610332ms +400  settle-counts correctCounts={mine:5,theirs:2}
 3610732ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:5,theirs:4} spent={mine:7,theirs:4} verdict=more-correct
-3611782ms +0    tutorial cue=quiz-score-shown
 3611782ms +350  settle-confirm
 --- 第 62 批（2 条事件） ---
-3720000ms +450  settle-exit
-3720450ms +0    tutorial cue=quiz-closed"
+3720000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`] = `
@@ -454,9 +398,7 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
   3540ms +1400 banner text=第 1 轮 · 刻板印象
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=轮到你出牌
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +0    lock-acquire token=1 reason=play
  60000ms +650  play-flip instanceId=p1-c29
@@ -469,7 +411,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 121450ms +0    lock-release token=2
 --- 第 3 批（1 条事件） ---
 180000ms +1400 banner text=对方出牌中
-181400ms +0    tutorial cue=round-banner-done
 --- 第 4 批（1 条事件） ---
 240000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p0-c9 cardKind=ai fromOrigin=true
 240550ms +1500 reveal-hold
@@ -480,10 +421,8 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 --- 第 5 批（1 条事件） ---
 300000ms +1400 banner text=精准检索！DeepSeek R1 → D…(30字)
 300000ms +200  hit-fx instanceId=p0-c9
-301400ms +0    tutorial cue=round-banner-done
 --- 第 6 批（1 条事件） ---
 360000ms +550  settle-open round=1 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:0,theirs:0}
-360000ms +0    tutorial cue=quiz-open
 --- 第 7 批（4 条事件） ---
 420000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=false correct=true
 420000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -495,20 +434,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 424168ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
 424388ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 424608ms +280  settle-stamp instanceId=p1-c28 correct=true safePassed=false
-424888ms +0    tutorial cue=quiz-rows-done
 424888ms +400  settle-counts correctCounts={mine:2,theirs:1}
 425288ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:0} spent={mine:5,theirs:3} verdict=more-correct
-426338ms +0    tutorial cue=quiz-score-shown
 426338ms +350  settle-confirm
 --- 第 9 批（7 条事件） ---
 540000ms +450  settle-exit
-540450ms +0    tutorial cue=quiz-closed
 540450ms +1400 banner text=第 2 轮 · 刻板印象
 540450ms +520  deal side=self count=2
 540450ms +520  deal side=opponent count=2
-540970ms +0    tutorial cue=deal-done
 541850ms +1400 banner text=对方出牌中
-543250ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +550  reveal-enter cardId=gpt-3-5 handInstanceId=p0-c1 cardKind=ai fromOrigin=true
 600550ms +1500 reveal-hold
@@ -523,21 +457,17 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 662470ms +200  hit-fx instanceId=p1-c29
 --- 第 12 批（1 条事件） ---
 720000ms +1400 banner text=轮到你出牌
-721400ms +0    tutorial cue=round-banner-done
 --- 第 13 批（1 条事件） ---
 780000ms +0    lock-acquire token=5 reason=play
 780000ms +780  skill-showcase cardId=black-white-reversal targetInstanceId=p0-c1
 780780ms +420  skill-fly from=showcase cardId=black-white-reversal targetInstanceId=p0-c1
 781200ms +200  hit-fx instanceId=p0-c1
-781200ms +0    tutorial cue=skill-hit
 781200ms +0    lock-release token=5
 --- 第 14 批（1 条事件） ---
 840000ms +1400 banner text=化繁为简！DeepSeek V4 → D…(30字)
 840000ms +200  hit-fx instanceId=p0-c9
-841400ms +0    tutorial cue=round-banner-done
 --- 第 15 批（1 条事件） ---
 900000ms +550  settle-open round=2 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:1,theirs:0}
-900000ms +0    tutorial cue=quiz-open
 --- 第 16 批（6 条事件） ---
 960000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-r1 mine=false correct=true
 960000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -552,23 +482,17 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 964466ms +280  settle-stamp instanceId=p0-c1 correct=false safePassed=false
 964686ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 964906ms +280  settle-stamp instanceId=p1-c28 correct=true safePassed=false
-965186ms +0    tutorial cue=quiz-rows-done
 965186ms +400  settle-counts correctCounts={mine:2,theirs:1}
 965586ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:0} spent={mine:3,theirs:6} verdict=more-correct
-966636ms +0    tutorial cue=quiz-score-shown
 966636ms +350  settle-confirm
 --- 第 18 批（7 条事件） ---
 1080000ms +450  settle-exit
-1080450ms +0    tutorial cue=quiz-closed
 1080450ms +1400 banner text=第 3 轮 · 生活类
 1080450ms +520  deal side=self count=2
 1080450ms +520  deal side=opponent count=2
-1080970ms +0    tutorial cue=deal-done
 1081850ms +1400 banner text=轮到你出牌
-1083250ms +0    tutorial cue=round-banner-done
 --- 第 19 批（1 条事件） ---
 1140000ms +1400 banner text=对方出牌中
-1141400ms +0    tutorial cue=round-banner-done
 --- 第 20 批（1 条事件） ---
 1200000ms +550  reveal-enter cardId=gpt-4o handInstanceId=p0-c2 cardKind=ai fromOrigin=true
 1200550ms +1500 reveal-hold
@@ -585,7 +509,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 1263450ms +0    lock-release token=7
 --- 第 22 批（1 条事件） ---
 1320000ms +550  settle-open round=3 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:2,theirs:0}
-1320000ms +0    tutorial cue=quiz-open
 --- 第 23 批（8 条事件） ---
 1380000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-r1 mine=false correct=true
 1380000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -603,20 +526,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 1386879ms +280  settle-stamp instanceId=p0-c11 correct=true safePassed=false
 1387099ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 1387319ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
-1387599ms +0    tutorial cue=quiz-rows-done
 1387599ms +400  settle-counts correctCounts={mine:1,theirs:2}
 1387999ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:1} spent={mine:0,theirs:7} verdict=more-correct
-1389049ms +0    tutorial cue=quiz-score-shown
 1389049ms +350  settle-confirm
 --- 第 25 批（7 条事件） ---
 1500000ms +450  settle-exit
-1500450ms +0    tutorial cue=quiz-closed
 1500450ms +1400 banner text=第 4 轮 · 生活类
 1500450ms +520  deal side=self count=2
 1500450ms +520  deal side=opponent count=2
-1500970ms +0    tutorial cue=deal-done
 1501850ms +1400 banner text=对方出牌中
-1503250ms +0    tutorial cue=round-banner-done
 --- 第 26 批（1 条事件） ---
 1560000ms +550  reveal-enter cardId=nuclear-power-station handInstanceId=p0-c19 cardKind=skill fromOrigin=true
 1560550ms +1500 reveal-hold
@@ -630,7 +548,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 1623450ms +0    lock-release token=8
 --- 第 28 批（1 条事件） ---
 1680000ms +1400 banner text=轮到你出牌
-1681400ms +0    tutorial cue=round-banner-done
 --- 第 29 批（1 条事件） ---
 1740000ms +0    lock-acquire token=9 reason=play
 1740000ms +650  play-flip instanceId=p1-c31
@@ -648,11 +565,9 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 1860000ms +900  evolve-fx instanceId=p0-c9 fromCardId=deepseek-r1 toCardId=deepseek-v4
 1860160ms +900  evolve-fx instanceId=p1-c29 fromCardId=deepseek-r1 toCardId=deepseek-v4
 1860320ms +900  evolve-fx instanceId=p1-c32 fromCardId=kimi-k2-6 toCardId=kimi-k3
-1861400ms +0    tutorial cue=round-banner-done
 1861800ms +0    lock-release token=11
 --- 第 32 批（1 条事件） ---
 1920000ms +550  settle-open round=4 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:2,theirs:1}
-1920000ms +0    tutorial cue=quiz-open
 --- 第 33 批（7 条事件） ---
 1980000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=false correct=true
 1980000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -673,20 +588,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 1987484ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 1987704ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 1987924ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
-1988204ms +0    tutorial cue=quiz-rows-done
 1988204ms +400  settle-counts correctCounts={mine:3,theirs:3}
 1988604ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:2} spent={mine:8,theirs:5} verdict=fewer-tokens
-1989654ms +0    tutorial cue=quiz-score-shown
 1989654ms +350  settle-confirm
 --- 第 35 批（7 条事件） ---
 2100000ms +450  settle-exit
-2100450ms +0    tutorial cue=quiz-closed
 2100450ms +1400 banner text=第 5 轮 · 生活类
 2100450ms +520  deal side=self count=2
 2100450ms +520  deal side=opponent count=2
-2100970ms +0    tutorial cue=deal-done
 2101850ms +1400 banner text=轮到你出牌
-2103250ms +0    tutorial cue=round-banner-done
 --- 第 36 批（1 条事件） ---
 2160000ms +0    lock-acquire token=12 reason=play
 2160000ms +650  play-flip instanceId=p1-c27
@@ -702,11 +612,9 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 2280000ms +780  skill-showcase cardId=fixed-answer targetInstanceId=p0-c5
 2280780ms +420  skill-fly from=showcase cardId=fixed-answer targetInstanceId=p0-c5
 2281200ms +200  hit-fx instanceId=p0-c5
-2281200ms +0    tutorial cue=skill-hit
 2281200ms +0    lock-release token=14
 --- 第 39 批（1 条事件） ---
 2340000ms +1400 banner text=对方出牌中
-2341400ms +0    tutorial cue=round-banner-done
 --- 第 40 批（1 条事件） ---
 2400000ms +550  reveal-enter cardId=jade-purification-vase handInstanceId=p0-c18 cardKind=skill fromOrigin=true
 2400550ms +1500 reveal-hold
@@ -728,7 +636,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 2523450ms +0    lock-release token=16
 --- 第 43 批（1 条事件） ---
 2580000ms +550  settle-open round=5 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:2,theirs:2}
-2580000ms +0    tutorial cue=quiz-open
 --- 第 44 批（13 条事件） ---
 2640000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=false correct=true
 2640000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -761,20 +668,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 2654361ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
 2654581ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 2654801ms +280  settle-stamp instanceId=p1-c30 correct=false safePassed=false
-2655081ms +0    tutorial cue=quiz-rows-done
 2655081ms +400  settle-counts correctCounts={mine:4,theirs:4}
 2655481ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2656531ms +0    tutorial cue=quiz-score-shown
 2656531ms +350  settle-confirm
 --- 第 46 批（7 条事件） ---
 2760000ms +450  settle-exit
-2760450ms +0    tutorial cue=quiz-closed
 2760450ms +1400 banner text=第 6 轮 · 梗题
 2760450ms +520  deal side=self count=2
 2760450ms +520  deal side=opponent count=2
-2760970ms +0    tutorial cue=deal-done
 2761850ms +1400 banner text=对方出牌中
-2763250ms +0    tutorial cue=round-banner-done
 --- 第 47 批（1 条事件） ---
 2820000ms +550  reveal-enter cardId=safe-pass handInstanceId=p0-c16 cardKind=skill fromOrigin=true
 2820550ms +1500 reveal-hold
@@ -782,14 +684,12 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 2822470ms +200  hit-fx instanceId=p0-c9
 --- 第 48 批（1 条事件） ---
 2880000ms +1400 banner text=轮到你出牌
-2881400ms +0    tutorial cue=round-banner-done
 --- 第 49 批（1 条事件） ---
 2940000ms +0    lock-acquire token=17 reason=play
 2940000ms +1800 skill-showcase cardId=nuclear-power-station targetInstanceId=null
 2941800ms +0    lock-release token=17
 --- 第 50 批（1 条事件） ---
 3000000ms +550  settle-open round=6 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:3,theirs:3}
-3000000ms +0    tutorial cue=quiz-open
 --- 第 51 批（13 条事件） ---
 3060000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=false correct=false
 3060000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -816,20 +716,15 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 3068956ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 3069176ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
 3069396ms +280  settle-stamp instanceId=p1-c27 correct=false safePassed=false
-3069676ms +0    tutorial cue=quiz-rows-done
 3069676ms +400  settle-counts correctCounts={mine:2,theirs:2}
 3070076ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:4,theirs:4} spent={mine:3,theirs:3} verdict=equal-tokens
-3071126ms +0    tutorial cue=quiz-score-shown
 3071126ms +350  settle-confirm
 --- 第 53 批（7 条事件） ---
 3180000ms +450  settle-exit
-3180450ms +0    tutorial cue=quiz-closed
 3180450ms +1400 banner text=第 7 轮 · 梗题
 3180450ms +520  deal side=self count=2
 3180450ms +520  deal side=opponent count=2
-3180970ms +0    tutorial cue=deal-done
 3181850ms +1400 banner text=轮到你出牌
-3183250ms +0    tutorial cue=round-banner-done
 --- 第 54 批（1 条事件） ---
 3240000ms +0    lock-acquire token=18 reason=play
 3240000ms +650  play-flip instanceId=p1-c24
@@ -837,7 +732,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 3241450ms +0    lock-release token=18
 --- 第 55 批（1 条事件） ---
 3300000ms +1400 banner text=对方出牌中
-3301400ms +0    tutorial cue=round-banner-done
 --- 第 56 批（1 条事件） ---
 3360000ms +550  reveal-enter cardId=black-white-reversal handInstanceId=p0-c15 cardKind=skill fromOrigin=true
 3360550ms +1500 reveal-hold
@@ -859,7 +753,6 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 3483450ms +0    lock-release token=20
 --- 第 59 批（1 条事件） ---
 3540000ms +550  settle-open round=7 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:4,theirs:4}
-3540000ms +0    tutorial cue=quiz-open
 --- 第 60 批（10 条事件） ---
 3600000ms +300  settle-row instanceId=p0-c9 cardId=deepseek-v4 mine=false correct=true
 3600000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -886,14 +779,11 @@ exports[`golden 回放的演出指令序列 > balanced-mirror · 1 号座位 1`]
 3609612ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 3609832ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
 3610052ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
-3610332ms +0    tutorial cue=quiz-rows-done
 3610332ms +400  settle-counts correctCounts={mine:2,theirs:5}
 3610732ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:4,theirs:5} spent={mine:4,theirs:7} verdict=more-correct
-3611782ms +0    tutorial cue=quiz-score-shown
 3611782ms +350  settle-confirm
 --- 第 62 批（2 条事件） ---
-3720000ms +450  settle-exit
-3720450ms +0    tutorial cue=quiz-closed"
+3720000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位 1`] = `
@@ -902,9 +792,7 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
   3540ms +1400 banner text=第 1 轮 · 梗题
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=轮到你出牌
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +0    lock-acquire token=1 reason=play
  60000ms +650  play-flip instanceId=p0-c7
@@ -912,7 +800,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
  61450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=对方出牌中
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p1-c23 cardKind=ai fromOrigin=true
 180550ms +1500 reveal-hold
@@ -922,7 +809,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 183450ms +0    lock-release token=2
 --- 第 4 批（1 条事件） ---
 240000ms +550  settle-open round=1 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:0,theirs:0}
-240000ms +0    tutorial cue=quiz-open
 --- 第 5 批（5 条事件） ---
 300000ms +300  settle-row instanceId=p0-c7 cardId=doubao mine=true correct=false
 300000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -931,20 +817,15 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 302812ms +610  settle-typing instanceId=p1-c23 answer=但丁非中国人 reasoning=因是意大利人。
 303422ms +280  settle-stamp instanceId=p0-c7 correct=false safePassed=false
 303642ms +280  settle-stamp instanceId=p1-c23 correct=false safePassed=false
-303922ms +0    tutorial cue=quiz-rows-done
 303922ms +400  settle-counts correctCounts={mine:0,theirs:0}
 304322ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:0} spent={mine:2,theirs:3} verdict=fewer-tokens
-305372ms +0    tutorial cue=quiz-score-shown
 305372ms +350  settle-confirm
 --- 第 7 批（7 条事件） ---
 420000ms +450  settle-exit
-420450ms +0    tutorial cue=quiz-closed
 420450ms +1400 banner text=第 2 轮 · 梗题
 420450ms +520  deal side=self count=2
 420450ms +520  deal side=opponent count=2
-420970ms +0    tutorial cue=deal-done
 421850ms +1400 banner text=对方出牌中
-423250ms +0    tutorial cue=round-banner-done
 --- 第 8 批（2 条事件） ---
 480000ms +550  reveal-enter cardId=rising-tide handInstanceId=p1-c34 cardKind=skill fromOrigin=true
 480550ms +1500 reveal-hold
@@ -960,10 +841,8 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 --- 第 10 批（1 条事件） ---
 600000ms +1400 banner text=精准检索！Kimi K2.6 → Kimi K3
 600000ms +200  hit-fx instanceId=p1-c26
-601400ms +0    tutorial cue=round-banner-done
 --- 第 11 批（1 条事件） ---
 660000ms +1400 banner text=轮到你出牌
-661400ms +0    tutorial cue=round-banner-done
 --- 第 12 批（1 条事件） ---
 720000ms +0    lock-acquire token=4 reason=play
 720000ms +650  play-flip instanceId=p0-c2
@@ -976,7 +855,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 781450ms +0    lock-release token=5
 --- 第 14 批（1 条事件） ---
 840000ms +550  settle-open round=2 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:1,theirs:0}
-840000ms +0    tutorial cue=quiz-open
 --- 第 15 批（4 条事件） ---
 900000ms +300  settle-row instanceId=p0-c2 cardId=gpt-4o mine=true correct=true
 900000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -988,20 +866,15 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 902845ms +280  settle-stamp instanceId=p0-c2 correct=true safePassed=false
 903065ms +280  settle-stamp instanceId=p0-c1 correct=true safePassed=false
 903285ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-903565ms +0    tutorial cue=quiz-rows-done
 903565ms +400  settle-counts correctCounts={mine:2,theirs:1}
 903965ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:0} spent={mine:6,theirs:5} verdict=more-correct
-905015ms +0    tutorial cue=quiz-score-shown
 905015ms +350  settle-confirm
 --- 第 17 批（7 条事件） ---
 1020000ms +450  settle-exit
-1020450ms +0    tutorial cue=quiz-closed
 1020450ms +1400 banner text=第 3 轮 · 梗题
 1020450ms +520  deal side=self count=2
 1020450ms +520  deal side=opponent count=2
-1020970ms +0    tutorial cue=deal-done
 1021850ms +1400 banner text=轮到你出牌
-1023250ms +0    tutorial cue=round-banner-done
 --- 第 18 批（1 条事件） ---
 1080000ms +0    lock-acquire token=6 reason=play
 1080000ms +1800 skill-showcase cardId=nuclear-power-station targetInstanceId=null
@@ -1017,11 +890,9 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 1200000ms +1400 banner text=鸡犬升天！我方 2 个 Agent 进化
 1200000ms +900  evolve-fx instanceId=p0-c2 fromCardId=gpt-4o toCardId=chatgpt-5-6-sol
 1200160ms +900  evolve-fx instanceId=p0-c1 fromCardId=gpt-3-5 toCardId=gpt-4o
-1201400ms +0    tutorial cue=round-banner-done
 1201800ms +0    lock-release token=8
 --- 第 21 批（1 条事件） ---
 1260000ms +1400 banner text=对方出牌中
-1261400ms +0    tutorial cue=round-banner-done
 --- 第 22 批（1 条事件） ---
 1320000ms +550  reveal-enter cardId=doubao handInstanceId=p1-c30 cardKind=ai fromOrigin=true
 1320550ms +1500 reveal-hold
@@ -1031,7 +902,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 1323450ms +0    lock-release token=9
 --- 第 23 批（1 条事件） ---
 1380000ms +550  settle-open round=3 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:2,theirs:0}
-1380000ms +0    tutorial cue=quiz-open
 --- 第 24 批（11 条事件） ---
 1440000ms +300  settle-row instanceId=p0-c2 cardId=chatgpt-5-6-sol mine=true correct=false
 1440000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -1049,26 +919,20 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 1447835ms +280  settle-stamp instanceId=p0-c13 correct=false safePassed=false
 1448055ms +280  settle-stamp instanceId=p1-c26 correct=false safePassed=false
 1448275ms +280  settle-stamp instanceId=p1-c30 correct=false safePassed=false
-1448555ms +0    tutorial cue=quiz-rows-done
 1448555ms +400  settle-counts correctCounts={mine:0,theirs:0}
 1448955ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:1} spent={mine:7,theirs:2} verdict=fewer-tokens
-1450005ms +0    tutorial cue=quiz-score-shown
 1450005ms +350  settle-confirm
 --- 第 26 批（7 条事件） ---
 1560000ms +450  settle-exit
-1560450ms +0    tutorial cue=quiz-closed
 1560450ms +1400 banner text=第 4 轮 · 刻板印象
 1560450ms +520  deal side=self count=2
 1560450ms +520  deal side=opponent count=2
-1560970ms +0    tutorial cue=deal-done
 1561850ms +1400 banner text=对方出牌中
-1563250ms +0    tutorial cue=round-banner-done
 --- 第 27 批（1 条事件） ---
 1620000ms +550  reveal-enter cardId=rising-tide handInstanceId=p1-c36 cardKind=skill fromOrigin=true
 1620550ms +1500 reveal-hold
 1622050ms +320  reveal-fade
 1622350ms +1400 banner text=鸡犬升天！场上没有可进化的 Agent
-1623750ms +0    tutorial cue=round-banner-done
 --- 第 28 批（1 条事件） ---
 1680000ms +550  reveal-enter cardId=doubao handInstanceId=p1-c29 cardKind=ai fromOrigin=true
 1680550ms +1500 reveal-hold
@@ -1086,29 +950,22 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 1802050ms +320  reveal-fade
 --- 第 31 批（1 条事件） ---
 1860000ms +1400 banner text=轮到你出牌
-1861400ms +0    tutorial cue=round-banner-done
 --- 第 32 批（1 条事件） ---
 1920000ms +550  settle-open round=4 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:2,theirs:1}
-1920000ms +0    tutorial cue=quiz-open
 --- 第 33 批（2 条事件） ---
 1980000ms +300  settle-row instanceId=p1-c29 cardId=doubao mine=false correct=true
 1980000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
 1981600ms +880  settle-typing instanceId=p1-c29 answer=无法确定 reasoning=法院门口的人身份多样，仅凭种族和在场状态…(25字)
 1982480ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
-1982760ms +0    tutorial cue=quiz-rows-done
 1982760ms +400  settle-counts correctCounts={mine:0,theirs:1}
 1983160ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:2} spent={mine:0,theirs:8} verdict=more-correct
-1984210ms +0    tutorial cue=quiz-score-shown
 1984210ms +350  settle-confirm
 --- 第 35 批（7 条事件） ---
 2100000ms +450  settle-exit
-2100450ms +0    tutorial cue=quiz-closed
 2100450ms +1400 banner text=第 5 轮 · 刻板印象
 2100450ms +520  deal side=self count=2
 2100450ms +520  deal side=opponent count=2
-2100970ms +0    tutorial cue=deal-done
 2101850ms +1400 banner text=轮到你出牌
-2103250ms +0    tutorial cue=round-banner-done
 --- 第 36 批（1 条事件） ---
 2160000ms +0    lock-acquire token=11 reason=play
 2160000ms +650  play-flip instanceId=p0-c10
@@ -1126,7 +983,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 2281450ms +0    lock-release token=13
 --- 第 39 批（1 条事件） ---
 2340000ms +1400 banner text=对方出牌中
-2341400ms +0    tutorial cue=round-banner-done
 --- 第 40 批（1 条事件） ---
 2400000ms +550  reveal-enter cardId=gpt-3-5 handInstanceId=p1-c20 cardKind=ai fromOrigin=true
 2400550ms +1500 reveal-hold
@@ -1157,7 +1013,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 2583450ms +0    lock-release token=17
 --- 第 44 批（1 条事件） ---
 2640000ms +550  settle-open round=5 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:2,theirs:2}
-2640000ms +0    tutorial cue=quiz-open
 --- 第 45 批（11 条事件） ---
 2700000ms +300  settle-row instanceId=p0-c10 cardId=deepseek-r1 mine=true correct=true
 2700000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -1184,20 +1039,15 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 2709510ms +280  settle-stamp instanceId=p1-c21 correct=false safePassed=false
 2709730ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 2709950ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
-2710230ms +0    tutorial cue=quiz-rows-done
 2710230ms +400  settle-counts correctCounts={mine:3,theirs:3}
 2710630ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2711680ms +0    tutorial cue=quiz-score-shown
 2711680ms +350  settle-confirm
 --- 第 47 批（7 条事件） ---
 2820000ms +450  settle-exit
-2820450ms +0    tutorial cue=quiz-closed
 2820450ms +1400 banner text=第 6 轮 · 生活类
 2820450ms +520  deal side=self count=2
 2820450ms +520  deal side=opponent count=2
-2820970ms +0    tutorial cue=deal-done
 2821850ms +1400 banner text=对方出牌中
-2823250ms +0    tutorial cue=round-banner-done
 --- 第 48 批（1 条事件） ---
 2880000ms +550  reveal-enter cardId=minimax handInstanceId=p1-c33 cardKind=ai fromOrigin=true
 2880550ms +1500 reveal-hold
@@ -1214,7 +1064,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 2943450ms +0    lock-release token=19
 --- 第 50 批（1 条事件） ---
 3000000ms +1400 banner text=轮到你出牌
-3001400ms +0    tutorial cue=round-banner-done
 --- 第 51 批（1 条事件） ---
 3060000ms +0    lock-acquire token=20 reason=play
 3060000ms +650  play-flip instanceId=p0-c0
@@ -1225,7 +1074,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 3120000ms +780  skill-showcase cardId=fixed-answer targetInstanceId=p1-c24
 3120780ms +420  skill-fly from=showcase cardId=fixed-answer targetInstanceId=p1-c24
 3121200ms +200  hit-fx instanceId=p1-c24
-3121200ms +0    tutorial cue=skill-hit
 3121200ms +0    lock-release token=21
 --- 第 53 批（1 条事件） ---
 3180000ms +0    lock-acquire token=22 reason=play
@@ -1234,7 +1082,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 3181450ms +0    lock-release token=22
 --- 第 54 批（1 条事件） ---
 3240000ms +550  settle-open round=6 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:3,theirs:3}
-3240000ms +0    tutorial cue=quiz-open
 --- 第 55 批（18 条事件） ---
 3300000ms +300  settle-row instanceId=p0-c10 cardId=deepseek-r1 mine=true correct=true
 3300000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -1267,14 +1114,11 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 0 号座位
 3314506ms +280  settle-stamp instanceId=p1-c31 correct=false safePassed=false
 3314726ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
 3314946ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
-3315226ms +0    tutorial cue=quiz-rows-done
 3315226ms +400  settle-counts correctCounts={mine:2,theirs:1}
 3315626ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:4,theirs:3} spent={mine:9,theirs:6} verdict=more-correct
-3316676ms +0    tutorial cue=quiz-score-shown
 3316676ms +350  settle-confirm
 --- 第 57 批（2 条事件） ---
-3420000ms +450  settle-exit
-3420450ms +0    tutorial cue=quiz-closed"
+3420000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位 1`] = `
@@ -1283,9 +1127,7 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
   3540ms +1400 banner text=第 1 轮 · 梗题
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=对方出牌中
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +550  reveal-enter cardId=doubao handInstanceId=p0-c7 cardKind=ai fromOrigin=true
  60550ms +1500 reveal-hold
@@ -1295,7 +1137,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
  63450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=轮到你出牌
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +0    lock-acquire token=2 reason=play
 180000ms +650  play-flip instanceId=p1-c23
@@ -1303,7 +1144,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 181450ms +0    lock-release token=2
 --- 第 4 批（1 条事件） ---
 240000ms +550  settle-open round=1 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:0,theirs:0}
-240000ms +0    tutorial cue=quiz-open
 --- 第 5 批（5 条事件） ---
 300000ms +300  settle-row instanceId=p0-c7 cardId=doubao mine=false correct=false
 300000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -1312,20 +1152,15 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 302812ms +610  settle-typing instanceId=p1-c23 answer=但丁非中国人 reasoning=因是意大利人。
 303422ms +280  settle-stamp instanceId=p0-c7 correct=false safePassed=false
 303642ms +280  settle-stamp instanceId=p1-c23 correct=false safePassed=false
-303922ms +0    tutorial cue=quiz-rows-done
 303922ms +400  settle-counts correctCounts={mine:0,theirs:0}
 304322ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:1} spent={mine:3,theirs:2} verdict=fewer-tokens
-305372ms +0    tutorial cue=quiz-score-shown
 305372ms +350  settle-confirm
 --- 第 7 批（7 条事件） ---
 420000ms +450  settle-exit
-420450ms +0    tutorial cue=quiz-closed
 420450ms +1400 banner text=第 2 轮 · 梗题
 420450ms +520  deal side=self count=2
 420450ms +520  deal side=opponent count=2
-420970ms +0    tutorial cue=deal-done
 421850ms +1400 banner text=轮到你出牌
-423250ms +0    tutorial cue=round-banner-done
 --- 第 8 批（2 条事件） ---
 480000ms +0    lock-acquire token=3 reason=play
 480000ms +1800 skill-showcase cardId=rising-tide targetInstanceId=null
@@ -1339,10 +1174,8 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 --- 第 10 批（1 条事件） ---
 600000ms +1400 banner text=精准检索！Kimi K2.6 → Kimi K3
 600000ms +200  hit-fx instanceId=p1-c26
-601400ms +0    tutorial cue=round-banner-done
 --- 第 11 批（1 条事件） ---
 660000ms +1400 banner text=对方出牌中
-661400ms +0    tutorial cue=round-banner-done
 --- 第 12 批（1 条事件） ---
 720000ms +550  reveal-enter cardId=gpt-4o handInstanceId=p0-c2 cardKind=ai fromOrigin=true
 720550ms +1500 reveal-hold
@@ -1359,7 +1192,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 783450ms +0    lock-release token=6
 --- 第 14 批（1 条事件） ---
 840000ms +550  settle-open round=2 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:0,theirs:1}
-840000ms +0    tutorial cue=quiz-open
 --- 第 15 批（4 条事件） ---
 900000ms +300  settle-row instanceId=p0-c2 cardId=gpt-4o mine=false correct=true
 900000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -1371,20 +1203,15 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 902845ms +280  settle-stamp instanceId=p0-c2 correct=true safePassed=false
 903065ms +280  settle-stamp instanceId=p0-c1 correct=true safePassed=false
 903285ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-903565ms +0    tutorial cue=quiz-rows-done
 903565ms +400  settle-counts correctCounts={mine:1,theirs:2}
 903965ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:2} spent={mine:5,theirs:6} verdict=more-correct
-905015ms +0    tutorial cue=quiz-score-shown
 905015ms +350  settle-confirm
 --- 第 17 批（7 条事件） ---
 1020000ms +450  settle-exit
-1020450ms +0    tutorial cue=quiz-closed
 1020450ms +1400 banner text=第 3 轮 · 梗题
 1020450ms +520  deal side=self count=2
 1020450ms +520  deal side=opponent count=2
-1020970ms +0    tutorial cue=deal-done
 1021850ms +1400 banner text=对方出牌中
-1023250ms +0    tutorial cue=round-banner-done
 --- 第 18 批（1 条事件） ---
 1080000ms +550  reveal-enter cardId=nuclear-power-station handInstanceId=p0-c19 cardKind=skill fromOrigin=true
 1080550ms +1500 reveal-hold
@@ -1403,10 +1230,8 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 1200550ms +1500 reveal-hold
 1202050ms +320  reveal-fade
 1202350ms +1400 banner text=鸡犬升天！对方 2 个 Agent 进化
-1203750ms +0    tutorial cue=round-banner-done
 --- 第 21 批（1 条事件） ---
 1260000ms +1400 banner text=轮到你出牌
-1261400ms +0    tutorial cue=round-banner-done
 --- 第 22 批（1 条事件） ---
 1320000ms +0    lock-acquire token=8 reason=play
 1320000ms +650  play-flip instanceId=p1-c30
@@ -1414,7 +1239,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 1321450ms +0    lock-release token=8
 --- 第 23 批（1 条事件） ---
 1380000ms +550  settle-open round=3 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:0,theirs:2}
-1380000ms +0    tutorial cue=quiz-open
 --- 第 24 批（11 条事件） ---
 1440000ms +300  settle-row instanceId=p0-c2 cardId=chatgpt-5-6-sol mine=false correct=false
 1440000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -1432,25 +1256,19 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 1447835ms +280  settle-stamp instanceId=p0-c13 correct=false safePassed=false
 1448055ms +280  settle-stamp instanceId=p1-c26 correct=false safePassed=false
 1448275ms +280  settle-stamp instanceId=p1-c30 correct=false safePassed=false
-1448555ms +0    tutorial cue=quiz-rows-done
 1448555ms +400  settle-counts correctCounts={mine:0,theirs:0}
 1448955ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:2} spent={mine:2,theirs:7} verdict=fewer-tokens
-1450005ms +0    tutorial cue=quiz-score-shown
 1450005ms +350  settle-confirm
 --- 第 26 批（7 条事件） ---
 1560000ms +450  settle-exit
-1560450ms +0    tutorial cue=quiz-closed
 1560450ms +1400 banner text=第 4 轮 · 刻板印象
 1560450ms +520  deal side=self count=2
 1560450ms +520  deal side=opponent count=2
-1560970ms +0    tutorial cue=deal-done
 1561850ms +1400 banner text=轮到你出牌
-1563250ms +0    tutorial cue=round-banner-done
 --- 第 27 批（1 条事件） ---
 1620000ms +0    lock-acquire token=9 reason=play
 1620000ms +1800 skill-showcase cardId=rising-tide targetInstanceId=null
 1620000ms +1400 banner text=鸡犬升天！场上没有可进化的 Agent
-1621400ms +0    tutorial cue=round-banner-done
 1621800ms +0    lock-release token=9
 --- 第 28 批（1 条事件） ---
 1680000ms +0    lock-acquire token=10 reason=play
@@ -1467,29 +1285,22 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 1801800ms +0    lock-release token=12
 --- 第 31 批（1 条事件） ---
 1860000ms +1400 banner text=对方出牌中
-1861400ms +0    tutorial cue=round-banner-done
 --- 第 32 批（1 条事件） ---
 1920000ms +550  settle-open round=4 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:1,theirs:2}
-1920000ms +0    tutorial cue=quiz-open
 --- 第 33 批（2 条事件） ---
 1980000ms +300  settle-row instanceId=p1-c29 cardId=doubao mine=true correct=true
 1980000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
 1981600ms +880  settle-typing instanceId=p1-c29 answer=无法确定 reasoning=法院门口的人身份多样，仅凭种族和在场状态…(25字)
 1982480ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
-1982760ms +0    tutorial cue=quiz-rows-done
 1982760ms +400  settle-counts correctCounts={mine:1,theirs:0}
 1983160ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:2} spent={mine:8,theirs:0} verdict=more-correct
-1984210ms +0    tutorial cue=quiz-score-shown
 1984210ms +350  settle-confirm
 --- 第 35 批（7 条事件） ---
 2100000ms +450  settle-exit
-2100450ms +0    tutorial cue=quiz-closed
 2100450ms +1400 banner text=第 5 轮 · 刻板印象
 2100450ms +520  deal side=self count=2
 2100450ms +520  deal side=opponent count=2
-2100970ms +0    tutorial cue=deal-done
 2101850ms +1400 banner text=对方出牌中
-2103250ms +0    tutorial cue=round-banner-done
 --- 第 36 批（1 条事件） ---
 2160000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p0-c10 cardKind=ai fromOrigin=true
 2160550ms +1500 reveal-hold
@@ -1513,7 +1324,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 2283450ms +0    lock-release token=15
 --- 第 39 批（1 条事件） ---
 2340000ms +1400 banner text=轮到你出牌
-2341400ms +0    tutorial cue=round-banner-done
 --- 第 40 批（1 条事件） ---
 2400000ms +0    lock-acquire token=16 reason=play
 2400000ms +650  play-flip instanceId=p1-c20
@@ -1536,7 +1346,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 2581450ms +0    lock-release token=19
 --- 第 44 批（1 条事件） ---
 2640000ms +550  settle-open round=5 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:2,theirs:2}
-2640000ms +0    tutorial cue=quiz-open
 --- 第 45 批（11 条事件） ---
 2700000ms +300  settle-row instanceId=p0-c10 cardId=deepseek-r1 mine=false correct=true
 2700000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -1563,20 +1372,15 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 2709510ms +280  settle-stamp instanceId=p1-c21 correct=false safePassed=false
 2709730ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 2709950ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
-2710230ms +0    tutorial cue=quiz-rows-done
 2710230ms +400  settle-counts correctCounts={mine:3,theirs:3}
 2710630ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2711680ms +0    tutorial cue=quiz-score-shown
 2711680ms +350  settle-confirm
 --- 第 47 批（7 条事件） ---
 2820000ms +450  settle-exit
-2820450ms +0    tutorial cue=quiz-closed
 2820450ms +1400 banner text=第 6 轮 · 生活类
 2820450ms +520  deal side=self count=2
 2820450ms +520  deal side=opponent count=2
-2820970ms +0    tutorial cue=deal-done
 2821850ms +1400 banner text=轮到你出牌
-2823250ms +0    tutorial cue=round-banner-done
 --- 第 48 批（1 条事件） ---
 2880000ms +0    lock-acquire token=20 reason=play
 2880000ms +650  play-flip instanceId=p1-c33
@@ -1589,7 +1393,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 2941450ms +0    lock-release token=21
 --- 第 50 批（1 条事件） ---
 3000000ms +1400 banner text=对方出牌中
-3001400ms +0    tutorial cue=round-banner-done
 --- 第 51 批（1 条事件） ---
 3060000ms +550  reveal-enter cardId=gpt-3-5 handInstanceId=p0-c0 cardKind=ai fromOrigin=true
 3060550ms +1500 reveal-hold
@@ -1611,7 +1414,6 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 3183450ms +0    lock-release token=23
 --- 第 54 批（1 条事件） ---
 3240000ms +550  settle-open round=6 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:3,theirs:3}
-3240000ms +0    tutorial cue=quiz-open
 --- 第 55 批（18 条事件） ---
 3300000ms +300  settle-row instanceId=p0-c10 cardId=deepseek-r1 mine=false correct=true
 3300000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -1644,14 +1446,11 @@ exports[`golden 回放的演出指令序列 > balanced-vs-lowcost · 1 号座位
 3314506ms +280  settle-stamp instanceId=p1-c31 correct=false safePassed=false
 3314726ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
 3314946ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
-3315226ms +0    tutorial cue=quiz-rows-done
 3315226ms +400  settle-counts correctCounts={mine:1,theirs:2}
 3315626ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:3,theirs:4} spent={mine:6,theirs:9} verdict=more-correct
-3316676ms +0    tutorial cue=quiz-score-shown
 3316676ms +350  settle-confirm
 --- 第 57 批（2 条事件） ---
-3420000ms +450  settle-exit
-3420450ms +0    tutorial cue=quiz-closed"
+3420000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座位 1`] = `
@@ -1660,9 +1459,7 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
   3540ms +1400 banner text=第 1 轮 · 刻板印象
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=轮到你出牌
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +0    lock-acquire token=1 reason=play
  60000ms +650  play-flip instanceId=p0-c9
@@ -1670,29 +1467,22 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
  61450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=对方出牌中
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +550  settle-open round=1 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:0,theirs:0}
-180000ms +0    tutorial cue=quiz-open
 --- 第 4 批（2 条事件） ---
 240000ms +300  settle-row instanceId=p0-c9 cardId=minimax mine=true correct=true
 240000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
 241600ms +560  settle-typing instanceId=p0-c9 answer=无法确定 reasoning=题目未提律师性别。
 242160ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
-242440ms +0    tutorial cue=quiz-rows-done
 242440ms +400  settle-counts correctCounts={mine:1,theirs:0}
 242840ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:0} spent={mine:3,theirs:0} verdict=more-correct
-243890ms +0    tutorial cue=quiz-score-shown
 243890ms +350  settle-confirm
 --- 第 6 批（7 条事件） ---
 360000ms +450  settle-exit
-360450ms +0    tutorial cue=quiz-closed
 360450ms +1400 banner text=第 2 轮 · 生活类
 360450ms +520  deal side=self count=2
 360450ms +520  deal side=opponent count=2
-360970ms +0    tutorial cue=deal-done
 361850ms +1400 banner text=对方出牌中
-363250ms +0    tutorial cue=round-banner-done
 --- 第 7 批（1 条事件） ---
 420000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p1-c29 cardKind=ai fromOrigin=true
 420550ms +1500 reveal-hold
@@ -1709,7 +1499,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 483450ms +0    lock-release token=3
 --- 第 9 批（1 条事件） ---
 540000ms +1400 banner text=轮到你出牌
-541400ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +0    lock-acquire token=4 reason=play
 600000ms +650  play-flip instanceId=p0-c2
@@ -1722,7 +1511,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 661450ms +0    lock-release token=5
 --- 第 12 批（1 条事件） ---
 720000ms +550  settle-open round=2 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:1,theirs:0}
-720000ms +0    tutorial cue=quiz-open
 --- 第 13 批（6 条事件） ---
 780000ms +300  settle-row instanceId=p0-c9 cardId=minimax mine=true correct=true
 780000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -1740,20 +1528,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 785284ms +280  settle-stamp instanceId=p0-c1 correct=true safePassed=false
 785504ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 785724ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
-786004ms +0    tutorial cue=quiz-rows-done
 786004ms +400  settle-counts correctCounts={mine:3,theirs:2}
 786404ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:0} spent={mine:6,theirs:6} verdict=more-correct
-787454ms +0    tutorial cue=quiz-score-shown
 787454ms +350  settle-confirm
 --- 第 15 批（7 条事件） ---
 900000ms +450  settle-exit
-900450ms +0    tutorial cue=quiz-closed
 900450ms +1400 banner text=第 3 轮 · 生活类
 900450ms +520  deal side=self count=2
 900450ms +520  deal side=opponent count=2
-900970ms +0    tutorial cue=deal-done
 901850ms +1400 banner text=轮到你出牌
-903250ms +0    tutorial cue=round-banner-done
 --- 第 16 批（1 条事件） ---
 960000ms +0    lock-acquire token=6 reason=play
 960000ms +650  play-flip instanceId=p0-c12
@@ -1766,7 +1549,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 1021450ms +0    lock-release token=7
 --- 第 18 批（1 条事件） ---
 1080000ms +1400 banner text=对方出牌中
-1081400ms +0    tutorial cue=round-banner-done
 --- 第 19 批（1 条事件） ---
 1140000ms +550  reveal-enter cardId=gpt-3-5 handInstanceId=p1-c20 cardKind=ai fromOrigin=true
 1140550ms +1500 reveal-hold
@@ -1781,7 +1563,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 1200550ms +1500 reveal-hold
 1202050ms +320  reveal-fade
 1202350ms +1400 banner text=鸡犬升天！对方 2 个 Agent 进化
-1203750ms +0    tutorial cue=round-banner-done
 --- 第 21 批（1 条事件） ---
 1260000ms +550  reveal-enter cardId=qwen handInstanceId=p1-c31 cardKind=ai fromOrigin=true
 1260550ms +1500 reveal-hold
@@ -1791,7 +1572,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 1263450ms +0    lock-release token=9
 --- 第 22 批（1 条事件） ---
 1320000ms +550  settle-open round=3 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:2,theirs:0}
-1320000ms +0    tutorial cue=quiz-open
 --- 第 23 批（15 条事件） ---
 1380000ms +300  settle-row instanceId=p0-c9 cardId=minimax mine=true correct=false
 1380000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -1821,20 +1601,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 1392233ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 1392453ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
 1392673ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
-1392953ms +0    tutorial cue=quiz-rows-done
 1392953ms +400  settle-counts correctCounts={mine:1,theirs:3}
 1393353ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:1} spent={mine:6,theirs:7} verdict=more-correct
-1394403ms +0    tutorial cue=quiz-score-shown
 1394403ms +350  settle-confirm
 --- 第 25 批（7 条事件） ---
 1500000ms +450  settle-exit
-1500450ms +0    tutorial cue=quiz-closed
 1500450ms +1400 banner text=第 4 轮 · 生活类
 1500450ms +520  deal side=self count=2
 1500450ms +520  deal side=opponent count=2
-1500970ms +0    tutorial cue=deal-done
 1501850ms +1400 banner text=对方出牌中
-1503250ms +0    tutorial cue=round-banner-done
 --- 第 26 批（1 条事件） ---
 1560000ms +550  reveal-enter cardId=doubao handInstanceId=p1-c28 cardKind=ai fromOrigin=true
 1560550ms +1500 reveal-hold
@@ -1858,7 +1633,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 1683450ms +0    lock-release token=12
 --- 第 29 批（1 条事件） ---
 1740000ms +1400 banner text=轮到你出牌
-1741400ms +0    tutorial cue=round-banner-done
 --- 第 30 批（1 条事件） ---
 1800000ms +0    lock-acquire token=13 reason=play
 1800000ms +650  play-flip instanceId=p0-c5
@@ -1871,7 +1645,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 1861800ms +0    lock-release token=14
 --- 第 32 批（1 条事件） ---
 1920000ms +550  settle-open round=4 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:2,theirs:1}
-1920000ms +0    tutorial cue=quiz-open
 --- 第 33 批（9 条事件） ---
 1980000ms +300  settle-row instanceId=p0-c12 cardId=grok mine=true correct=true
 1980000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -1898,20 +1671,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 1991088ms +280  settle-stamp instanceId=p1-c28 correct=true safePassed=false
 1991308ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 1991528ms +280  settle-stamp instanceId=p1-c22 correct=true safePassed=false
-1991808ms +0    tutorial cue=quiz-rows-done
 1991808ms +400  settle-counts correctCounts={mine:2,theirs:6}
 1992208ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:2} spent={mine:8,theirs:8} verdict=more-correct
-1993258ms +0    tutorial cue=quiz-score-shown
 1993258ms +350  settle-confirm
 --- 第 35 批（7 条事件） ---
 2100000ms +450  settle-exit
-2100450ms +0    tutorial cue=quiz-closed
 2100450ms +1400 banner text=第 5 轮 · 梗题
 2100450ms +520  deal side=self count=2
 2100450ms +520  deal side=opponent count=2
-2100970ms +0    tutorial cue=deal-done
 2101850ms +1400 banner text=轮到你出牌
-2103250ms +0    tutorial cue=round-banner-done
 --- 第 36 批（5 条事件） ---
 2160000ms +0    lock-acquire token=15 reason=play
 2160000ms +1800 skill-showcase cardId=memory-shortage targetInstanceId=null
@@ -1927,7 +1695,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 2221450ms +0    lock-release token=16
 --- 第 38 批（1 条事件） ---
 2280000ms +1400 banner text=对方出牌中
-2281400ms +0    tutorial cue=round-banner-done
 --- 第 39 批（1 条事件） ---
 2340000ms +550  reveal-enter cardId=nuclear-power-station handInstanceId=p1-c39 cardKind=skill fromOrigin=true
 2340550ms +1500 reveal-hold
@@ -1941,7 +1708,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 2403450ms +0    lock-release token=17
 --- 第 41 批（1 条事件） ---
 2460000ms +550  settle-open round=5 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:2,theirs:2}
-2460000ms +0    tutorial cue=quiz-open
 --- 第 42 批（11 条事件） ---
 2520000ms +300  settle-row instanceId=p0-c5 cardId=doubao mine=true correct=false
 2520000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -1962,20 +1728,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 2527209ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
 2527429ms +280  settle-stamp instanceId=p1-c27 correct=false safePassed=false
 2527649ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-2527929ms +0    tutorial cue=quiz-rows-done
 2527929ms +400  settle-counts correctCounts={mine:1,theirs:1}
 2528329ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2529379ms +0    tutorial cue=quiz-score-shown
 2529379ms +350  settle-confirm
 --- 第 44 批（7 条事件） ---
 2640000ms +450  settle-exit
-2640450ms +0    tutorial cue=quiz-closed
 2640450ms +1400 banner text=第 6 轮 · 梗题
 2640450ms +520  deal side=self count=2
 2640450ms +520  deal side=opponent count=2
-2640970ms +0    tutorial cue=deal-done
 2641850ms +1400 banner text=对方出牌中
-2643250ms +0    tutorial cue=round-banner-done
 --- 第 45 批（1 条事件） ---
 2700000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p1-c30 cardKind=ai fromOrigin=true
 2700550ms +1500 reveal-hold
@@ -1999,7 +1760,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 2823450ms +0    lock-release token=20
 --- 第 48 批（1 条事件） ---
 2880000ms +1400 banner text=轮到你出牌
-2881400ms +0    tutorial cue=round-banner-done
 --- 第 49 批（3 条事件） ---
 2940000ms +0    lock-acquire token=21 reason=play
 2940000ms +1800 skill-showcase cardId=memory-shortage targetInstanceId=null
@@ -2013,7 +1773,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 3001450ms +0    lock-release token=22
 --- 第 51 批（1 条事件） ---
 3060000ms +550  settle-open round=6 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:3,theirs:3}
-3060000ms +0    tutorial cue=quiz-open
 --- 第 52 批（5 条事件） ---
 3120000ms +300  settle-row instanceId=p0-c13 cardId=gemini mine=true correct=true
 3120000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -2028,20 +1787,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 3124264ms +280  settle-stamp instanceId=p0-c11 correct=true safePassed=false
 3124484ms +280  settle-stamp instanceId=p1-c21 correct=true safePassed=false
 3124704ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
-3124984ms +0    tutorial cue=quiz-rows-done
 3124984ms +400  settle-counts correctCounts={mine:2,theirs:2}
 3125384ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:4,theirs:4} spent={mine:9,theirs:9} verdict=equal-tokens
-3126434ms +0    tutorial cue=quiz-score-shown
 3126434ms +350  settle-confirm
 --- 第 54 批（7 条事件） ---
 3240000ms +450  settle-exit
-3240450ms +0    tutorial cue=quiz-closed
 3240450ms +1400 banner text=第 7 轮 · 梗题
 3240450ms +520  deal side=self count=2
 3240450ms +520  deal side=opponent count=2
-3240970ms +0    tutorial cue=deal-done
 3241850ms +1400 banner text=轮到你出牌
-3243250ms +0    tutorial cue=round-banner-done
 --- 第 55 批（1 条事件） ---
 3300000ms +0    lock-acquire token=23 reason=play
 3300000ms +650  play-flip instanceId=p0-c8
@@ -2049,7 +1803,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 3301450ms +0    lock-release token=23
 --- 第 56 批（1 条事件） ---
 3360000ms +1400 banner text=对方出牌中
-3361400ms +0    tutorial cue=round-banner-done
 --- 第 57 批（1 条事件） ---
 3420000ms +550  reveal-enter cardId=black-white-reversal handInstanceId=p1-c35 cardKind=skill fromOrigin=true
 3420550ms +1500 reveal-hold
@@ -2064,7 +1817,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 3483450ms +0    lock-release token=24
 --- 第 59 批（1 条事件） ---
 3540000ms +550  settle-open round=7 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:4,theirs:4}
-3540000ms +0    tutorial cue=quiz-open
 --- 第 60 批（13 条事件） ---
 3600000ms +300  settle-row instanceId=p0-c13 cardId=gemini mine=true correct=false
 3600000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -2085,14 +1837,11 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 0 号座�
 3608278ms +280  settle-stamp instanceId=p1-c21 correct=false safePassed=false
 3608498ms +280  settle-stamp instanceId=p1-c33 correct=false safePassed=false
 3608718ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
-3608998ms +0    tutorial cue=quiz-rows-done
 3608998ms +400  settle-counts correctCounts={mine:0,theirs:0}
 3609398ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:5,theirs:4} spent={mine:3,theirs:7} verdict=fewer-tokens
-3610448ms +0    tutorial cue=quiz-score-shown
 3610448ms +350  settle-confirm
 --- 第 62 批（2 条事件） ---
-3720000ms +450  settle-exit
-3720450ms +0    tutorial cue=quiz-closed"
+3720000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座位 1`] = `
@@ -2101,9 +1850,7 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
   3540ms +1400 banner text=第 1 轮 · 刻板印象
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=对方出牌中
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +550  reveal-enter cardId=minimax handInstanceId=p0-c9 cardKind=ai fromOrigin=true
  60550ms +1500 reveal-hold
@@ -2113,29 +1860,22 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
  63450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=轮到你出牌
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +550  settle-open round=1 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:0,theirs:0}
-180000ms +0    tutorial cue=quiz-open
 --- 第 4 批（2 条事件） ---
 240000ms +300  settle-row instanceId=p0-c9 cardId=minimax mine=false correct=true
 240000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
 241600ms +560  settle-typing instanceId=p0-c9 answer=无法确定 reasoning=题目未提律师性别。
 242160ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
-242440ms +0    tutorial cue=quiz-rows-done
 242440ms +400  settle-counts correctCounts={mine:0,theirs:1}
 242840ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:1} spent={mine:0,theirs:3} verdict=more-correct
-243890ms +0    tutorial cue=quiz-score-shown
 243890ms +350  settle-confirm
 --- 第 6 批（7 条事件） ---
 360000ms +450  settle-exit
-360450ms +0    tutorial cue=quiz-closed
 360450ms +1400 banner text=第 2 轮 · 生活类
 360450ms +520  deal side=self count=2
 360450ms +520  deal side=opponent count=2
-360970ms +0    tutorial cue=deal-done
 361850ms +1400 banner text=轮到你出牌
-363250ms +0    tutorial cue=round-banner-done
 --- 第 7 批（1 条事件） ---
 420000ms +0    lock-acquire token=2 reason=play
 420000ms +650  play-flip instanceId=p1-c29
@@ -2148,7 +1888,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 481450ms +0    lock-release token=3
 --- 第 9 批（1 条事件） ---
 540000ms +1400 banner text=对方出牌中
-541400ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +550  reveal-enter cardId=yuanbao handInstanceId=p0-c2 cardKind=ai fromOrigin=true
 600550ms +1500 reveal-hold
@@ -2165,7 +1904,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 663450ms +0    lock-release token=5
 --- 第 12 批（1 条事件） ---
 720000ms +550  settle-open round=2 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:0,theirs:1}
-720000ms +0    tutorial cue=quiz-open
 --- 第 13 批（6 条事件） ---
 780000ms +300  settle-row instanceId=p0-c9 cardId=minimax mine=false correct=true
 780000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -2183,20 +1921,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 785284ms +280  settle-stamp instanceId=p0-c1 correct=true safePassed=false
 785504ms +280  settle-stamp instanceId=p1-c29 correct=true safePassed=false
 785724ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
-786004ms +0    tutorial cue=quiz-rows-done
 786004ms +400  settle-counts correctCounts={mine:2,theirs:3}
 786404ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:2} spent={mine:6,theirs:6} verdict=more-correct
-787454ms +0    tutorial cue=quiz-score-shown
 787454ms +350  settle-confirm
 --- 第 15 批（7 条事件） ---
 900000ms +450  settle-exit
-900450ms +0    tutorial cue=quiz-closed
 900450ms +1400 banner text=第 3 轮 · 生活类
 900450ms +520  deal side=self count=2
 900450ms +520  deal side=opponent count=2
-900970ms +0    tutorial cue=deal-done
 901850ms +1400 banner text=对方出牌中
-903250ms +0    tutorial cue=round-banner-done
 --- 第 16 批（1 条事件） ---
 960000ms +550  reveal-enter cardId=grok handInstanceId=p0-c12 cardKind=ai fromOrigin=true
 960550ms +1500 reveal-hold
@@ -2213,7 +1946,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 1023450ms +0    lock-release token=7
 --- 第 18 批（1 条事件） ---
 1080000ms +1400 banner text=轮到你出牌
-1081400ms +0    tutorial cue=round-banner-done
 --- 第 19 批（1 条事件） ---
 1140000ms +0    lock-acquire token=8 reason=play
 1140000ms +650  play-flip instanceId=p1-c20
@@ -2225,7 +1957,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 1200000ms +1400 banner text=鸡犬升天！我方 2 个 Agent 进化
 1200000ms +900  evolve-fx instanceId=p1-c29 fromCardId=deepseek-r1 toCardId=deepseek-v4
 1200160ms +900  evolve-fx instanceId=p1-c20 fromCardId=gpt-3-5 toCardId=gpt-4o
-1201400ms +0    tutorial cue=round-banner-done
 1201800ms +0    lock-release token=9
 --- 第 21 批（1 条事件） ---
 1260000ms +0    lock-acquire token=10 reason=play
@@ -2234,7 +1965,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 1261450ms +0    lock-release token=10
 --- 第 22 批（1 条事件） ---
 1320000ms +550  settle-open round=3 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:0,theirs:2}
-1320000ms +0    tutorial cue=quiz-open
 --- 第 23 批（15 条事件） ---
 1380000ms +300  settle-row instanceId=p0-c9 cardId=minimax mine=false correct=false
 1380000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -2264,20 +1994,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 1392233ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 1392453ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
 1392673ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
-1392953ms +0    tutorial cue=quiz-rows-done
 1392953ms +400  settle-counts correctCounts={mine:3,theirs:1}
 1393353ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:2} spent={mine:7,theirs:6} verdict=more-correct
-1394403ms +0    tutorial cue=quiz-score-shown
 1394403ms +350  settle-confirm
 --- 第 25 批（7 条事件） ---
 1500000ms +450  settle-exit
-1500450ms +0    tutorial cue=quiz-closed
 1500450ms +1400 banner text=第 4 轮 · 生活类
 1500450ms +520  deal side=self count=2
 1500450ms +520  deal side=opponent count=2
-1500970ms +0    tutorial cue=deal-done
 1501850ms +1400 banner text=轮到你出牌
-1503250ms +0    tutorial cue=round-banner-done
 --- 第 26 批（1 条事件） ---
 1560000ms +0    lock-acquire token=11 reason=play
 1560000ms +650  play-flip instanceId=p1-c28
@@ -2295,7 +2020,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 1681450ms +0    lock-release token=13
 --- 第 29 批（1 条事件） ---
 1740000ms +1400 banner text=对方出牌中
-1741400ms +0    tutorial cue=round-banner-done
 --- 第 30 批（1 条事件） ---
 1800000ms +550  reveal-enter cardId=doubao handInstanceId=p0-c5 cardKind=ai fromOrigin=true
 1800550ms +1500 reveal-hold
@@ -2310,7 +2034,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 1862350ms +2260 skill-cancel heroId=grace-hopper title=Debug! text=格蕾丝·霍珀 发动 Debug，抵消了对…(30字)
 --- 第 32 批（1 条事件） ---
 1920000ms +550  settle-open round=4 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:1,theirs:2}
-1920000ms +0    tutorial cue=quiz-open
 --- 第 33 批（9 条事件） ---
 1980000ms +300  settle-row instanceId=p0-c12 cardId=grok mine=false correct=true
 1980000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -2337,20 +2060,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 1991088ms +280  settle-stamp instanceId=p1-c28 correct=true safePassed=false
 1991308ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 1991528ms +280  settle-stamp instanceId=p1-c22 correct=true safePassed=false
-1991808ms +0    tutorial cue=quiz-rows-done
 1991808ms +400  settle-counts correctCounts={mine:6,theirs:2}
 1992208ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:2} spent={mine:8,theirs:8} verdict=more-correct
-1993258ms +0    tutorial cue=quiz-score-shown
 1993258ms +350  settle-confirm
 --- 第 35 批（7 条事件） ---
 2100000ms +450  settle-exit
-2100450ms +0    tutorial cue=quiz-closed
 2100450ms +1400 banner text=第 5 轮 · 梗题
 2100450ms +520  deal side=self count=2
 2100450ms +520  deal side=opponent count=2
-2100970ms +0    tutorial cue=deal-done
 2101850ms +1400 banner text=对方出牌中
-2103250ms +0    tutorial cue=round-banner-done
 --- 第 36 批（5 条事件） ---
 2160000ms +550  reveal-enter cardId=memory-shortage handInstanceId=p0-c17 cardKind=skill fromOrigin=true
 2160000ms +450  removal-fx instanceId=p0-c12 cardId=grok by=memory-shortage
@@ -2368,7 +2086,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 2223450ms +0    lock-release token=15
 --- 第 38 批（1 条事件） ---
 2280000ms +1400 banner text=轮到你出牌
-2281400ms +0    tutorial cue=round-banner-done
 --- 第 39 批（1 条事件） ---
 2340000ms +0    lock-acquire token=16 reason=play
 2340000ms +1800 skill-showcase cardId=nuclear-power-station targetInstanceId=null
@@ -2380,7 +2097,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 2401450ms +0    lock-release token=17
 --- 第 41 批（1 条事件） ---
 2460000ms +550  settle-open round=5 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:2,theirs:2}
-2460000ms +0    tutorial cue=quiz-open
 --- 第 42 批（11 条事件） ---
 2520000ms +300  settle-row instanceId=p0-c5 cardId=doubao mine=false correct=false
 2520000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -2401,20 +2117,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 2527209ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
 2527429ms +280  settle-stamp instanceId=p1-c27 correct=false safePassed=false
 2527649ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-2527929ms +0    tutorial cue=quiz-rows-done
 2527929ms +400  settle-counts correctCounts={mine:1,theirs:1}
 2528329ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2529379ms +0    tutorial cue=quiz-score-shown
 2529379ms +350  settle-confirm
 --- 第 44 批（7 条事件） ---
 2640000ms +450  settle-exit
-2640450ms +0    tutorial cue=quiz-closed
 2640450ms +1400 banner text=第 6 轮 · 梗题
 2640450ms +520  deal side=self count=2
 2640450ms +520  deal side=opponent count=2
-2640970ms +0    tutorial cue=deal-done
 2641850ms +1400 banner text=轮到你出牌
-2643250ms +0    tutorial cue=round-banner-done
 --- 第 45 批（1 条事件） ---
 2700000ms +0    lock-acquire token=18 reason=play
 2700000ms +650  play-flip instanceId=p1-c30
@@ -2432,7 +2143,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 2821450ms +0    lock-release token=20
 --- 第 48 批（1 条事件） ---
 2880000ms +1400 banner text=对方出牌中
-2881400ms +0    tutorial cue=round-banner-done
 --- 第 49 批（3 条事件） ---
 2940000ms +550  reveal-enter cardId=memory-shortage handInstanceId=p0-c19 cardKind=skill fromOrigin=true
 2940000ms +450  removal-fx instanceId=p1-c26 cardId=claude-fable-5 by=memory-shortage
@@ -2448,7 +2158,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 3003450ms +0    lock-release token=21
 --- 第 51 批（1 条事件） ---
 3060000ms +550  settle-open round=6 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:3,theirs:3}
-3060000ms +0    tutorial cue=quiz-open
 --- 第 52 批（5 条事件） ---
 3120000ms +300  settle-row instanceId=p0-c13 cardId=gemini mine=false correct=true
 3120000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -2463,20 +2172,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 3124264ms +280  settle-stamp instanceId=p0-c11 correct=true safePassed=false
 3124484ms +280  settle-stamp instanceId=p1-c21 correct=true safePassed=false
 3124704ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
-3124984ms +0    tutorial cue=quiz-rows-done
 3124984ms +400  settle-counts correctCounts={mine:2,theirs:2}
 3125384ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:4,theirs:4} spent={mine:9,theirs:9} verdict=equal-tokens
-3126434ms +0    tutorial cue=quiz-score-shown
 3126434ms +350  settle-confirm
 --- 第 54 批（7 条事件） ---
 3240000ms +450  settle-exit
-3240450ms +0    tutorial cue=quiz-closed
 3240450ms +1400 banner text=第 7 轮 · 梗题
 3240450ms +520  deal side=self count=2
 3240450ms +520  deal side=opponent count=2
-3240970ms +0    tutorial cue=deal-done
 3241850ms +1400 banner text=对方出牌中
-3243250ms +0    tutorial cue=round-banner-done
 --- 第 55 批（1 条事件） ---
 3300000ms +550  reveal-enter cardId=minimax handInstanceId=p0-c8 cardKind=ai fromOrigin=true
 3300550ms +1500 reveal-hold
@@ -2486,13 +2190,11 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 3303450ms +0    lock-release token=22
 --- 第 56 批（1 条事件） ---
 3360000ms +1400 banner text=轮到你出牌
-3361400ms +0    tutorial cue=round-banner-done
 --- 第 57 批（1 条事件） ---
 3420000ms +0    lock-acquire token=23 reason=play
 3420000ms +780  skill-showcase cardId=black-white-reversal targetInstanceId=p0-c8
 3420780ms +420  skill-fly from=showcase cardId=black-white-reversal targetInstanceId=p0-c8
 3421200ms +200  hit-fx instanceId=p0-c8
-3421200ms +0    tutorial cue=skill-hit
 3421200ms +0    lock-release token=23
 --- 第 58 批（1 条事件） ---
 3480000ms +0    lock-acquire token=24 reason=play
@@ -2501,7 +2203,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 3481450ms +0    lock-release token=24
 --- 第 59 批（1 条事件） ---
 3540000ms +550  settle-open round=7 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:4,theirs:4}
-3540000ms +0    tutorial cue=quiz-open
 --- 第 60 批（13 条事件） ---
 3600000ms +300  settle-row instanceId=p0-c13 cardId=gemini mine=false correct=false
 3600000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -2522,14 +2223,11 @@ exports[`golden 回放的演出指令序列 > coverage-vs-balanced · 1 号座�
 3608278ms +280  settle-stamp instanceId=p1-c21 correct=false safePassed=false
 3608498ms +280  settle-stamp instanceId=p1-c33 correct=false safePassed=false
 3608718ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
-3608998ms +0    tutorial cue=quiz-rows-done
 3608998ms +400  settle-counts correctCounts={mine:0,theirs:0}
 3609398ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:4,theirs:5} spent={mine:7,theirs:3} verdict=fewer-tokens
-3610448ms +0    tutorial cue=quiz-score-shown
 3610448ms +350  settle-confirm
 --- 第 62 批（2 条事件） ---
-3720000ms +450  settle-exit
-3720450ms +0    tutorial cue=quiz-closed"
+3720000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座位 1`] = `
@@ -2538,9 +2236,7 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
   3540ms +1400 banner text=第 1 轮 · 生活类
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=对方出牌中
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +550  reveal-enter cardId=grok handInstanceId=p1-c30 cardKind=ai fromOrigin=true
  60550ms +1500 reveal-hold
@@ -2550,7 +2246,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
  63450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=轮到你出牌
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +0    lock-acquire token=2 reason=play
 180000ms +650  play-flip instanceId=p0-c5
@@ -2558,7 +2253,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 181450ms +0    lock-release token=2
 --- 第 4 批（1 条事件） ---
 240000ms +550  settle-open round=1 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:0,theirs:0}
-240000ms +0    tutorial cue=quiz-open
 --- 第 5 批（3 条事件） ---
 300000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=true correct=true
 300000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -2567,20 +2261,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 302812ms +430  settle-typing instanceId=p1-c30 answer=开车 reasoning=需把车开去洗。
 303242ms +280  settle-stamp instanceId=p0-c5 correct=true safePassed=false
 303462ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
-303742ms +0    tutorial cue=quiz-rows-done
 303742ms +400  settle-counts correctCounts={mine:1,theirs:1}
 304142ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:1} spent={mine:4,theirs:3} verdict=fewer-tokens
-305192ms +0    tutorial cue=quiz-score-shown
 305192ms +350  settle-confirm
 --- 第 7 批（7 条事件） ---
 420000ms +450  settle-exit
-420450ms +0    tutorial cue=quiz-closed
 420450ms +1400 banner text=第 2 轮 · 生活类
 420450ms +520  deal side=self count=2
 420450ms +520  deal side=opponent count=2
-420970ms +0    tutorial cue=deal-done
 421850ms +1400 banner text=轮到你出牌
-423250ms +0    tutorial cue=round-banner-done
 --- 第 8 批（1 条事件） ---
 480000ms +0    lock-acquire token=3 reason=play
 480000ms +650  play-flip instanceId=p0-c8
@@ -2588,7 +2277,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 481450ms +0    lock-release token=3
 --- 第 9 批（1 条事件） ---
 540000ms +1400 banner text=对方出牌中
-541400ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +550  reveal-enter cardId=doubao handInstanceId=p1-c24 cardKind=ai fromOrigin=true
 600550ms +1500 reveal-hold
@@ -2605,7 +2293,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 663450ms +0    lock-release token=5
 --- 第 12 批（1 条事件） ---
 720000ms +550  settle-open round=2 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:0,theirs:1}
-720000ms +0    tutorial cue=quiz-open
 --- 第 13 批（9 条事件） ---
 780000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=true correct=true
 780000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -2623,23 +2310,17 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 784892ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
 785112ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
 785332ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
-785612ms +0    tutorial cue=quiz-rows-done
 785612ms +400  settle-counts correctCounts={mine:1,theirs:1}
 786012ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:1} spent={mine:4,theirs:5} verdict=fewer-tokens
-787062ms +0    tutorial cue=quiz-score-shown
 787062ms +350  settle-confirm
 --- 第 15 批（7 条事件） ---
 900000ms +450  settle-exit
-900450ms +0    tutorial cue=quiz-closed
 900450ms +1400 banner text=第 3 轮 · 生活类
 900450ms +520  deal side=self count=2
 900450ms +520  deal side=opponent count=2
-900970ms +0    tutorial cue=deal-done
 901850ms +1400 banner text=对方出牌中
-903250ms +0    tutorial cue=round-banner-done
 --- 第 16 批（1 条事件） ---
 960000ms +1400 banner text=轮到你出牌
-961400ms +0    tutorial cue=round-banner-done
 --- 第 17 批（1 条事件） ---
 1020000ms +0    lock-acquire token=6 reason=play
 1020000ms +650  play-flip instanceId=p0-c3
@@ -2647,7 +2328,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 1021450ms +0    lock-release token=6
 --- 第 18 批（1 条事件） ---
 1080000ms +550  settle-open round=3 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:1,theirs:1}
-1080000ms +0    tutorial cue=quiz-open
 --- 第 19 批（4 条事件） ---
 1140000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=true correct=true
 1140000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -2659,20 +2339,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 1144953ms +280  settle-stamp instanceId=p0-c5 correct=true safePassed=false
 1145173ms +280  settle-stamp instanceId=p0-c3 correct=true safePassed=false
 1145393ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
-1145673ms +0    tutorial cue=quiz-rows-done
 1145673ms +400  settle-counts correctCounts={mine:2,theirs:1}
 1146073ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:1} spent={mine:7,theirs:0} verdict=more-correct
-1147123ms +0    tutorial cue=quiz-score-shown
 1147123ms +350  settle-confirm
 --- 第 21 批（7 条事件） ---
 1260000ms +450  settle-exit
-1260450ms +0    tutorial cue=quiz-closed
 1260450ms +1400 banner text=第 4 轮 · 梗题
 1260450ms +520  deal side=self count=2
 1260450ms +520  deal side=opponent count=2
-1260970ms +0    tutorial cue=deal-done
 1261850ms +1400 banner text=轮到你出牌
-1263250ms +0    tutorial cue=round-banner-done
 --- 第 22 批（1 条事件） ---
 1320000ms +0    lock-acquire token=7 reason=play
 1320000ms +650  play-flip instanceId=p0-c6
@@ -2685,7 +2360,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 1381450ms +0    lock-release token=8
 --- 第 24 批（1 条事件） ---
 1440000ms +1400 banner text=对方出牌中
-1441400ms +0    tutorial cue=round-banner-done
 --- 第 25 批（1 条事件） ---
 1500000ms +550  reveal-enter cardId=qwen handInstanceId=p1-c26 cardKind=ai fromOrigin=true
 1500550ms +1500 reveal-hold
@@ -2709,7 +2383,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 1623450ms +0    lock-release token=11
 --- 第 28 批（1 条事件） ---
 1680000ms +550  settle-open round=4 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:2,theirs:1}
-1680000ms +0    tutorial cue=quiz-open
 --- 第 29 批（12 条事件） ---
 1740000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=true correct=false
 1740000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -2736,20 +2409,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 1749325ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 1749545ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
 1749765ms +280  settle-stamp instanceId=p1-c23 correct=false safePassed=false
-1750045ms +0    tutorial cue=quiz-rows-done
 1750045ms +400  settle-counts correctCounts={mine:2,theirs:3}
 1750445ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:2} spent={mine:8,theirs:8} verdict=more-correct
-1751495ms +0    tutorial cue=quiz-score-shown
 1751495ms +350  settle-confirm
 --- 第 31 批（7 条事件） ---
 1860000ms +450  settle-exit
-1860450ms +0    tutorial cue=quiz-closed
 1860450ms +1400 banner text=第 5 轮 · 梗题
 1860450ms +520  deal side=self count=2
 1860450ms +520  deal side=opponent count=2
-1860970ms +0    tutorial cue=deal-done
 1861850ms +1400 banner text=对方出牌中
-1863250ms +0    tutorial cue=round-banner-done
 --- 第 32 批（1 条事件） ---
 1920000ms +550  reveal-enter cardId=grok handInstanceId=p1-c32 cardKind=ai fromOrigin=true
 1920550ms +1500 reveal-hold
@@ -2766,13 +2434,11 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 1982050ms +320  reveal-fade
 --- 第 34 批（1 条事件） ---
 2040000ms +1400 banner text=轮到你出牌
-2041400ms +0    tutorial cue=round-banner-done
 --- 第 35 批（1 条事件） ---
 2100000ms +0    lock-acquire token=13 reason=play
 2100000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p0-c6
 2100780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p0-c6
 2101200ms +200  hit-fx instanceId=p0-c6
-2101200ms +0    tutorial cue=skill-hit
 2101200ms +0    lock-release token=13
 --- 第 36 批（1 条事件） ---
 2160000ms +0    lock-acquire token=14 reason=play
@@ -2785,7 +2451,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 2221800ms +0    lock-release token=15
 --- 第 38 批（1 条事件） ---
 2280000ms +550  settle-open round=5 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:2,theirs:2}
-2280000ms +0    tutorial cue=quiz-open
 --- 第 39 批（5 条事件） ---
 2340000ms +300  settle-row instanceId=p0-c6 cardId=kimi-k3 mine=true correct=true
 2340000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -2800,20 +2465,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 2346237ms +280  settle-stamp instanceId=p0-c11 correct=true safePassed=false
 2346457ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
 2346677ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
-2346957ms +0    tutorial cue=quiz-rows-done
 2346957ms +400  settle-counts correctCounts={mine:2,theirs:2}
 2347357ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2348407ms +0    tutorial cue=quiz-score-shown
 2348407ms +350  settle-confirm
 --- 第 41 批（7 条事件） ---
 2460000ms +450  settle-exit
-2460450ms +0    tutorial cue=quiz-closed
 2460450ms +1400 banner text=第 6 轮 · 梗题
 2460450ms +520  deal side=self count=2
 2460450ms +520  deal side=opponent count=2
-2460970ms +0    tutorial cue=deal-done
 2461850ms +1400 banner text=轮到你出牌
-2463250ms +0    tutorial cue=round-banner-done
 --- 第 42 批（1 条事件） ---
 2520000ms +0    lock-acquire token=16 reason=play
 2520000ms +650  play-flip instanceId=p0-c7
@@ -2828,11 +2488,9 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 2640000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p0-c6
 2640780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p0-c6
 2641200ms +200  hit-fx instanceId=p0-c6
-2641200ms +0    tutorial cue=skill-hit
 2641200ms +0    lock-release token=18
 --- 第 45 批（1 条事件） ---
 2700000ms +1400 banner text=对方出牌中
-2701400ms +0    tutorial cue=round-banner-done
 --- 第 46 批（1 条事件） ---
 2760000ms +550  reveal-enter cardId=grok handInstanceId=p1-c31 cardKind=ai fromOrigin=true
 2760550ms +1500 reveal-hold
@@ -2856,7 +2514,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 2883450ms +0    lock-release token=21
 --- 第 49 批（1 条事件） ---
 2940000ms +550  settle-open round=6 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:3,theirs:3}
-2940000ms +0    tutorial cue=quiz-open
 --- 第 50 批（17 条事件） ---
 3000000ms +300  settle-row instanceId=p0-c6 cardId=kimi-k3 mine=true correct=false
 3000000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -2883,20 +2540,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 3010590ms +280  settle-stamp instanceId=p1-c31 correct=false safePassed=false
 3010810ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
 3011030ms +280  settle-stamp instanceId=p1-c21 correct=false safePassed=false
-3011310ms +0    tutorial cue=quiz-rows-done
 3011310ms +400  settle-counts correctCounts={mine:0,theirs:0}
 3011710ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:4,theirs:4} spent={mine:9,theirs:9} verdict=equal-tokens
-3012760ms +0    tutorial cue=quiz-score-shown
 3012760ms +350  settle-confirm
 --- 第 52 批（7 条事件） ---
 3120000ms +450  settle-exit
-3120450ms +0    tutorial cue=quiz-closed
 3120450ms +1400 banner text=第 7 轮 · 刻板印象
 3120450ms +520  deal side=self count=2
 3120450ms +520  deal side=opponent count=2
-3120970ms +0    tutorial cue=deal-done
 3121850ms +1400 banner text=对方出牌中
-3123250ms +0    tutorial cue=round-banner-done
 --- 第 53 批（1 条事件） ---
 3180000ms +550  reveal-enter cardId=doubao handInstanceId=p1-c25 cardKind=ai fromOrigin=true
 3180550ms +1500 reveal-hold
@@ -2917,7 +2569,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 3302050ms +320  reveal-fade
 --- 第 56 批（1 条事件） ---
 3360000ms +1400 banner text=轮到你出牌
-3361400ms +0    tutorial cue=round-banner-done
 --- 第 57 批（1 条事件） ---
 3420000ms +0    lock-acquire token=24 reason=play
 3420000ms +650  play-flip instanceId=p0-c9
@@ -2926,10 +2577,8 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 --- 第 58 批（1 条事件） ---
 3480000ms +1400 banner text=精准检索！GPT-4o → ChatGP…(29字)
 3480000ms +200  hit-fx instanceId=p0-c9
-3481400ms +0    tutorial cue=round-banner-done
 --- 第 59 批（1 条事件） ---
 3540000ms +550  settle-open round=7 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:4,theirs:4}
-3540000ms +0    tutorial cue=quiz-open
 --- 第 60 批（5 条事件） ---
 3600000ms +300  settle-row instanceId=p0-c6 cardId=kimi-k3 mine=true correct=true
 3600000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -2944,14 +2593,11 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 0 号座�
 3604314ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
 3604534ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 3604754ms +280  settle-stamp instanceId=p1-c22 correct=true safePassed=false
-3605034ms +0    tutorial cue=quiz-rows-done
 3605034ms +400  settle-counts correctCounts={mine:2,theirs:2}
 3605434ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:5,theirs:4} spent={mine:4,theirs:11} verdict=fewer-tokens
-3606484ms +0    tutorial cue=quiz-score-shown
 3606484ms +350  settle-confirm
 --- 第 62 批（2 条事件） ---
-3720000ms +450  settle-exit
-3720450ms +0    tutorial cue=quiz-closed"
+3720000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座位 1`] = `
@@ -2960,9 +2606,7 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
   3540ms +1400 banner text=第 1 轮 · 生活类
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=轮到你出牌
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +0    lock-acquire token=1 reason=play
  60000ms +650  play-flip instanceId=p1-c30
@@ -2970,7 +2614,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
  61450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=对方出牌中
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +550  reveal-enter cardId=deepseek-v4 handInstanceId=p0-c5 cardKind=ai fromOrigin=true
 180550ms +1500 reveal-hold
@@ -2980,7 +2623,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 183450ms +0    lock-release token=2
 --- 第 4 批（1 条事件） ---
 240000ms +550  settle-open round=1 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:0,theirs:0}
-240000ms +0    tutorial cue=quiz-open
 --- 第 5 批（3 条事件） ---
 300000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=false correct=true
 300000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -2989,20 +2631,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 302812ms +430  settle-typing instanceId=p1-c30 answer=开车 reasoning=需把车开去洗。
 303242ms +280  settle-stamp instanceId=p0-c5 correct=true safePassed=false
 303462ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
-303742ms +0    tutorial cue=quiz-rows-done
 303742ms +400  settle-counts correctCounts={mine:1,theirs:1}
 304142ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:0} spent={mine:3,theirs:4} verdict=fewer-tokens
-305192ms +0    tutorial cue=quiz-score-shown
 305192ms +350  settle-confirm
 --- 第 7 批（7 条事件） ---
 420000ms +450  settle-exit
-420450ms +0    tutorial cue=quiz-closed
 420450ms +1400 banner text=第 2 轮 · 生活类
 420450ms +520  deal side=self count=2
 420450ms +520  deal side=opponent count=2
-420970ms +0    tutorial cue=deal-done
 421850ms +1400 banner text=对方出牌中
-423250ms +0    tutorial cue=round-banner-done
 --- 第 8 批（1 条事件） ---
 480000ms +550  reveal-enter cardId=gpt-4o handInstanceId=p0-c8 cardKind=ai fromOrigin=true
 480550ms +1500 reveal-hold
@@ -3012,7 +2649,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 483450ms +0    lock-release token=3
 --- 第 9 批（1 条事件） ---
 540000ms +1400 banner text=轮到你出牌
-541400ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +0    lock-acquire token=4 reason=play
 600000ms +650  play-flip instanceId=p1-c24
@@ -3025,7 +2661,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 661450ms +0    lock-release token=5
 --- 第 12 批（1 条事件） ---
 720000ms +550  settle-open round=2 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:1,theirs:0}
-720000ms +0    tutorial cue=quiz-open
 --- 第 13 批（9 条事件） ---
 780000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=false correct=true
 780000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -3043,23 +2678,17 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 784892ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
 785112ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
 785332ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
-785612ms +0    tutorial cue=quiz-rows-done
 785612ms +400  settle-counts correctCounts={mine:1,theirs:1}
 786012ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:1,theirs:1} spent={mine:5,theirs:4} verdict=fewer-tokens
-787062ms +0    tutorial cue=quiz-score-shown
 787062ms +350  settle-confirm
 --- 第 15 批（7 条事件） ---
 900000ms +450  settle-exit
-900450ms +0    tutorial cue=quiz-closed
 900450ms +1400 banner text=第 3 轮 · 生活类
 900450ms +520  deal side=self count=2
 900450ms +520  deal side=opponent count=2
-900970ms +0    tutorial cue=deal-done
 901850ms +1400 banner text=轮到你出牌
-903250ms +0    tutorial cue=round-banner-done
 --- 第 16 批（1 条事件） ---
 960000ms +1400 banner text=对方出牌中
-961400ms +0    tutorial cue=round-banner-done
 --- 第 17 批（1 条事件） ---
 1020000ms +550  reveal-enter cardId=claude-fable-5 handInstanceId=p0-c3 cardKind=ai fromOrigin=true
 1020550ms +1500 reveal-hold
@@ -3069,7 +2698,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 1023450ms +0    lock-release token=6
 --- 第 18 批（1 条事件） ---
 1080000ms +550  settle-open round=3 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:1,theirs:1}
-1080000ms +0    tutorial cue=quiz-open
 --- 第 19 批（4 条事件） ---
 1140000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=false correct=true
 1140000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -3081,20 +2709,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 1144953ms +280  settle-stamp instanceId=p0-c5 correct=true safePassed=false
 1145173ms +280  settle-stamp instanceId=p0-c3 correct=true safePassed=false
 1145393ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
-1145673ms +0    tutorial cue=quiz-rows-done
 1145673ms +400  settle-counts correctCounts={mine:1,theirs:2}
 1146073ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:1,theirs:2} spent={mine:0,theirs:7} verdict=more-correct
-1147123ms +0    tutorial cue=quiz-score-shown
 1147123ms +350  settle-confirm
 --- 第 21 批（7 条事件） ---
 1260000ms +450  settle-exit
-1260450ms +0    tutorial cue=quiz-closed
 1260450ms +1400 banner text=第 4 轮 · 梗题
 1260450ms +520  deal side=self count=2
 1260450ms +520  deal side=opponent count=2
-1260970ms +0    tutorial cue=deal-done
 1261850ms +1400 banner text=对方出牌中
-1263250ms +0    tutorial cue=round-banner-done
 --- 第 22 批（1 条事件） ---
 1320000ms +550  reveal-enter cardId=kimi-k3 handInstanceId=p0-c6 cardKind=ai fromOrigin=true
 1320550ms +1500 reveal-hold
@@ -3111,7 +2734,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 1383450ms +0    lock-release token=8
 --- 第 24 批（1 条事件） ---
 1440000ms +1400 banner text=轮到你出牌
-1441400ms +0    tutorial cue=round-banner-done
 --- 第 25 批（1 条事件） ---
 1500000ms +0    lock-acquire token=9 reason=play
 1500000ms +650  play-flip instanceId=p1-c26
@@ -3129,7 +2751,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 1621450ms +0    lock-release token=11
 --- 第 28 批（1 条事件） ---
 1680000ms +550  settle-open round=4 question={id:q-dante,category:meme,text:但丁是意大利人，但丁真是中国人。谁是中国人？,keywords:[谐音梗,断句,人名]} scoresBefore={mine:1,theirs:2}
-1680000ms +0    tutorial cue=quiz-open
 --- 第 29 批（12 条事件） ---
 1740000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=false correct=false
 1740000ms +600  settle-answer answer=丁真 explanation=第二句该断成「但，丁真是中国人」，说的是…(27字)
@@ -3156,20 +2777,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 1749325ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 1749545ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
 1749765ms +280  settle-stamp instanceId=p1-c23 correct=false safePassed=false
-1750045ms +0    tutorial cue=quiz-rows-done
 1750045ms +400  settle-counts correctCounts={mine:3,theirs:2}
 1750445ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:2} spent={mine:8,theirs:8} verdict=more-correct
-1751495ms +0    tutorial cue=quiz-score-shown
 1751495ms +350  settle-confirm
 --- 第 31 批（7 条事件） ---
 1860000ms +450  settle-exit
-1860450ms +0    tutorial cue=quiz-closed
 1860450ms +1400 banner text=第 5 轮 · 梗题
 1860450ms +520  deal side=self count=2
 1860450ms +520  deal side=opponent count=2
-1860970ms +0    tutorial cue=deal-done
 1861850ms +1400 banner text=轮到你出牌
-1863250ms +0    tutorial cue=round-banner-done
 --- 第 32 批（1 条事件） ---
 1920000ms +0    lock-acquire token=12 reason=play
 1920000ms +650  play-flip instanceId=p1-c32
@@ -3184,7 +2800,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 1981800ms +0    lock-release token=13
 --- 第 34 批（1 条事件） ---
 2040000ms +1400 banner text=对方出牌中
-2041400ms +0    tutorial cue=round-banner-done
 --- 第 35 批（1 条事件） ---
 2100000ms +550  reveal-enter cardId=safe-pass handInstanceId=p0-c14 cardKind=skill fromOrigin=true
 2100550ms +1500 reveal-hold
@@ -3203,7 +2818,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 2222050ms +320  reveal-fade
 --- 第 38 批（1 条事件） ---
 2280000ms +550  settle-open round=5 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:2,theirs:2}
-2280000ms +0    tutorial cue=quiz-open
 --- 第 39 批（5 条事件） ---
 2340000ms +300  settle-row instanceId=p0-c6 cardId=kimi-k3 mine=false correct=true
 2340000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -3218,20 +2832,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 2346237ms +280  settle-stamp instanceId=p0-c11 correct=true safePassed=false
 2346457ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
 2346677ms +280  settle-stamp instanceId=p1-c32 correct=true safePassed=false
-2346957ms +0    tutorial cue=quiz-rows-done
 2346957ms +400  settle-counts correctCounts={mine:2,theirs:2}
 2347357ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:9,theirs:9} verdict=equal-tokens
-2348407ms +0    tutorial cue=quiz-score-shown
 2348407ms +350  settle-confirm
 --- 第 41 批（7 条事件） ---
 2460000ms +450  settle-exit
-2460450ms +0    tutorial cue=quiz-closed
 2460450ms +1400 banner text=第 6 轮 · 梗题
 2460450ms +520  deal side=self count=2
 2460450ms +520  deal side=opponent count=2
-2460970ms +0    tutorial cue=deal-done
 2461850ms +1400 banner text=对方出牌中
-2463250ms +0    tutorial cue=round-banner-done
 --- 第 42 批（1 条事件） ---
 2520000ms +550  reveal-enter cardId=kimi-k3 handInstanceId=p0-c7 cardKind=ai fromOrigin=true
 2520550ms +1500 reveal-hold
@@ -3250,7 +2859,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 2642470ms +200  hit-fx instanceId=p0-c6
 --- 第 45 批（1 条事件） ---
 2700000ms +1400 banner text=轮到你出牌
-2701400ms +0    tutorial cue=round-banner-done
 --- 第 46 批（1 条事件） ---
 2760000ms +0    lock-acquire token=16 reason=play
 2760000ms +650  play-flip instanceId=p1-c31
@@ -3268,7 +2876,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 2881450ms +0    lock-release token=18
 --- 第 49 批（1 条事件） ---
 2940000ms +550  settle-open round=6 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:3,theirs:3}
-2940000ms +0    tutorial cue=quiz-open
 --- 第 50 批（17 条事件） ---
 3000000ms +300  settle-row instanceId=p0-c6 cardId=kimi-k3 mine=false correct=false
 3000000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -3295,20 +2902,15 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 3010590ms +280  settle-stamp instanceId=p1-c31 correct=false safePassed=false
 3010810ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
 3011030ms +280  settle-stamp instanceId=p1-c21 correct=false safePassed=false
-3011310ms +0    tutorial cue=quiz-rows-done
 3011310ms +400  settle-counts correctCounts={mine:0,theirs:0}
 3011710ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:4,theirs:4} spent={mine:9,theirs:9} verdict=equal-tokens
-3012760ms +0    tutorial cue=quiz-score-shown
 3012760ms +350  settle-confirm
 --- 第 52 批（7 条事件） ---
 3120000ms +450  settle-exit
-3120450ms +0    tutorial cue=quiz-closed
 3120450ms +1400 banner text=第 7 轮 · 刻板印象
 3120450ms +520  deal side=self count=2
 3120450ms +520  deal side=opponent count=2
-3120970ms +0    tutorial cue=deal-done
 3121850ms +1400 banner text=轮到你出牌
-3123250ms +0    tutorial cue=round-banner-done
 --- 第 53 批（1 条事件） ---
 3180000ms +0    lock-acquire token=19 reason=play
 3180000ms +650  play-flip instanceId=p1-c25
@@ -3325,7 +2927,6 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 3301800ms +0    lock-release token=21
 --- 第 56 批（1 条事件） ---
 3360000ms +1400 banner text=对方出牌中
-3361400ms +0    tutorial cue=round-banner-done
 --- 第 57 批（1 条事件） ---
 3420000ms +550  reveal-enter cardId=gpt-4o handInstanceId=p0-c9 cardKind=ai fromOrigin=true
 3420550ms +1500 reveal-hold
@@ -3336,10 +2937,8 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 --- 第 58 批（1 条事件） ---
 3480000ms +1400 banner text=精准检索！GPT-4o → ChatGP…(29字)
 3480000ms +200  hit-fx instanceId=p0-c9
-3481400ms +0    tutorial cue=round-banner-done
 --- 第 59 批（1 条事件） ---
 3540000ms +550  settle-open round=7 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:4,theirs:4}
-3540000ms +0    tutorial cue=quiz-open
 --- 第 60 批（5 条事件） ---
 3600000ms +300  settle-row instanceId=p0-c6 cardId=kimi-k3 mine=false correct=true
 3600000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -3354,14 +2953,11 @@ exports[`golden 回放的演出指令序列 > coverage-vs-highcost · 1 号座�
 3604314ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
 3604534ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 3604754ms +280  settle-stamp instanceId=p1-c22 correct=true safePassed=false
-3605034ms +0    tutorial cue=quiz-rows-done
 3605034ms +400  settle-counts correctCounts={mine:2,theirs:2}
 3605434ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:4,theirs:5} spent={mine:11,theirs:4} verdict=fewer-tokens
-3606484ms +0    tutorial cue=quiz-score-shown
 3606484ms +350  settle-confirm
 --- 第 62 批（2 条事件） ---
-3720000ms +450  settle-exit
-3720450ms +0    tutorial cue=quiz-closed"
+3720000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座位 1`] = `
@@ -3370,9 +2966,7 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
   3540ms +1400 banner text=第 1 轮 · 梗题
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=对方出牌中
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +550  reveal-enter cardId=claude-fable-5 handInstanceId=p1-c26 cardKind=ai fromOrigin=true
  60550ms +1500 reveal-hold
@@ -3382,7 +2976,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
  63450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=轮到你出牌
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +0    lock-acquire token=2 reason=play
 180000ms +650  play-flip instanceId=p0-c1
@@ -3390,7 +2983,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 181450ms +0    lock-release token=2
 --- 第 4 批（1 条事件） ---
 240000ms +550  settle-open round=1 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:0,theirs:0}
-240000ms +0    tutorial cue=quiz-open
 --- 第 5 批（3 条事件） ---
 300000ms +300  settle-row instanceId=p0-c1 cardId=chatgpt-5-6-sol mine=true correct=true
 300000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -3399,20 +2991,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 302812ms +450  settle-typing instanceId=p1-c26 answer=不是 reasoning=单车指轻车简从。
 303262ms +280  settle-stamp instanceId=p0-c1 correct=true safePassed=false
 303482ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-303762ms +0    tutorial cue=quiz-rows-done
 303762ms +400  settle-counts correctCounts={mine:1,theirs:1}
 304162ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:0} spent={mine:5,theirs:7} verdict=fewer-tokens
-305212ms +0    tutorial cue=quiz-score-shown
 305212ms +350  settle-confirm
 --- 第 7 批（7 条事件） ---
 420000ms +450  settle-exit
-420450ms +0    tutorial cue=quiz-closed
 420450ms +1400 banner text=第 2 轮 · 梗题
 420450ms +520  deal side=self count=2
 420450ms +520  deal side=opponent count=2
-420970ms +0    tutorial cue=deal-done
 421850ms +1400 banner text=轮到你出牌
-423250ms +0    tutorial cue=round-banner-done
 --- 第 8 批（1 条事件） ---
 480000ms +0    lock-acquire token=3 reason=play
 480000ms +650  play-flip instanceId=p0-c6
@@ -3420,7 +3007,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 481450ms +0    lock-release token=3
 --- 第 9 批（1 条事件） ---
 540000ms +1400 banner text=对方出牌中
-541400ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p1-c30 cardKind=ai fromOrigin=true
 600550ms +1500 reveal-hold
@@ -3444,7 +3030,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 723450ms +0    lock-release token=6
 --- 第 13 批（1 条事件） ---
 780000ms +550  settle-open round=2 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:1,theirs:0}
-780000ms +0    tutorial cue=quiz-open
 --- 第 14 批（13 条事件） ---
 840000ms +300  settle-row instanceId=p0-c1 cardId=chatgpt-5-6-sol mine=true correct=false
 840000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -3465,20 +3050,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 847389ms +280  settle-stamp instanceId=p1-c30 correct=false safePassed=false
 847609ms +280  settle-stamp instanceId=p1-c32 correct=false safePassed=false
 847829ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
-848109ms +0    tutorial cue=quiz-rows-done
 848109ms +400  settle-counts correctCounts={mine:0,theirs:0}
 848509ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:0} spent={mine:4,theirs:8} verdict=fewer-tokens
-849559ms +0    tutorial cue=quiz-score-shown
 849559ms +350  settle-confirm
 --- 第 16 批（7 条事件） ---
 960000ms +450  settle-exit
-960450ms +0    tutorial cue=quiz-closed
 960450ms +1400 banner text=第 3 轮 · 刻板印象
 960450ms +520  deal side=self count=2
 960450ms +520  deal side=opponent count=2
-960970ms +0    tutorial cue=deal-done
 961850ms +1400 banner text=对方出牌中
-963250ms +0    tutorial cue=round-banner-done
 --- 第 17 批（1 条事件） ---
 1020000ms +550  reveal-enter cardId=qwen handInstanceId=p1-c31 cardKind=ai fromOrigin=true
 1020550ms +1500 reveal-hold
@@ -3502,7 +3082,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 1143450ms +0    lock-release token=9
 --- 第 20 批（1 条事件） ---
 1200000ms +1400 banner text=轮到你出牌
-1201400ms +0    tutorial cue=round-banner-done
 --- 第 21 批（1 条事件） ---
 1260000ms +0    lock-acquire token=10 reason=play
 1260000ms +1800 skill-showcase cardId=golden-bell-shield targetInstanceId=null
@@ -3514,7 +3093,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 1321450ms +0    lock-release token=11
 --- 第 23 批（1 条事件） ---
 1380000ms +550  settle-open round=3 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:2,theirs:0}
-1380000ms +0    tutorial cue=quiz-open
 --- 第 24 批（5 条事件） ---
 1440000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=true correct=true
 1440000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -3529,26 +3107,20 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 1445472ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 1445692ms +280  settle-stamp instanceId=p1-c24 correct=true safePassed=false
 1445912ms +280  settle-stamp instanceId=p1-c20 correct=true safePassed=false
-1446192ms +0    tutorial cue=quiz-rows-done
 1446192ms +400  settle-counts correctCounts={mine:1,theirs:3}
 1446592ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:1} spent={mine:7,theirs:9} verdict=more-correct
-1447642ms +0    tutorial cue=quiz-score-shown
 1447642ms +350  settle-confirm
 --- 第 26 批（7 条事件） ---
 1560000ms +450  settle-exit
-1560450ms +0    tutorial cue=quiz-closed
 1560450ms +1400 banner text=第 4 轮 · 刻板印象
 1560450ms +520  deal side=self count=2
 1560450ms +520  deal side=opponent count=2
-1560970ms +0    tutorial cue=deal-done
 1561850ms +1400 banner text=轮到你出牌
-1563250ms +0    tutorial cue=round-banner-done
 --- 第 27 批（1 条事件） ---
 1620000ms +0    lock-acquire token=12 reason=play
 1620000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p0-c4
 1620780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p0-c4
 1621200ms +200  hit-fx instanceId=p0-c4
-1621200ms +0    tutorial cue=skill-hit
 1621200ms +0    lock-release token=12
 --- 第 28 批（1 条事件） ---
 1680000ms +0    lock-acquire token=13 reason=play
@@ -3557,7 +3129,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 1681450ms +0    lock-release token=13
 --- 第 29 批（1 条事件） ---
 1740000ms +1400 banner text=对方出牌中
-1741400ms +0    tutorial cue=round-banner-done
 --- 第 30 批（1 条事件） ---
 1800000ms +550  reveal-enter cardId=gemini handInstanceId=p1-c25 cardKind=ai fromOrigin=true
 1800550ms +1500 reveal-hold
@@ -3567,7 +3138,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 1803450ms +0    lock-release token=14
 --- 第 31 批（1 条事件） ---
 1860000ms +550  settle-open round=4 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:2,theirs:1}
-1860000ms +0    tutorial cue=quiz-open
 --- 第 32 批（9 条事件） ---
 1920000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=true correct=true
 1920000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -3588,20 +3158,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 1927484ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
 1927704ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
 1927924ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
-1928204ms +0    tutorial cue=quiz-rows-done
 1928204ms +400  settle-counts correctCounts={mine:2,theirs:2}
 1928604ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:2} spent={mine:7,theirs:3} verdict=fewer-tokens
-1929654ms +0    tutorial cue=quiz-score-shown
 1929654ms +350  settle-confirm
 --- 第 34 批（7 条事件） ---
 2040000ms +450  settle-exit
-2040450ms +0    tutorial cue=quiz-closed
 2040450ms +1400 banner text=第 5 轮 · 生活类
 2040450ms +520  deal side=self count=2
 2040450ms +520  deal side=opponent count=2
-2040970ms +0    tutorial cue=deal-done
 2041850ms +1400 banner text=对方出牌中
-2043250ms +0    tutorial cue=round-banner-done
 --- 第 35 批（1 条事件） ---
 2100000ms +550  reveal-enter cardId=gpt-4o handInstanceId=p1-c22 cardKind=ai fromOrigin=true
 2100550ms +1500 reveal-hold
@@ -3621,18 +3186,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 2222470ms +200  hit-fx instanceId=p0-c11
 --- 第 38 批（1 条事件） ---
 2280000ms +1400 banner text=轮到你出牌
-2281400ms +0    tutorial cue=round-banner-done
 --- 第 39 批（1 条事件） ---
 2340000ms +0    lock-acquire token=16 reason=play
 2340000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p0-c11
 2340780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p0-c11
 2341200ms +200  hit-fx instanceId=p0-c11
-2341200ms +0    tutorial cue=skill-hit
 2341200ms +0    lock-release token=16
 --- 第 40 批（1 条事件） ---
 2400000ms +1400 banner text=化繁为简！GPT-4o → GPT-3.5
 2400000ms +200  hit-fx instanceId=p1-c22
-2401400ms +0    tutorial cue=round-banner-done
 --- 第 41 批（2 条事件） ---
 2460000ms +0    lock-acquire token=17 reason=play
 2460000ms +1800 skill-showcase cardId=model-distillation targetInstanceId=null
@@ -3642,7 +3204,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 2520000ms +780  skill-showcase cardId=jade-purification-vase targetInstanceId=p0-c11
 2520780ms +420  skill-fly from=showcase cardId=jade-purification-vase targetInstanceId=p0-c11
 2521200ms +200  hit-fx instanceId=p0-c11
-2521200ms +0    tutorial cue=skill-hit
 2521200ms +0    lock-release token=18
 --- 第 43 批（1 条事件） ---
 2580000ms +0    lock-acquire token=19 reason=play
@@ -3651,7 +3212,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 2581450ms +0    lock-release token=19
 --- 第 44 批（1 条事件） ---
 2640000ms +550  settle-open round=5 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:2,theirs:2}
-2640000ms +0    tutorial cue=quiz-open
 --- 第 45 批（9 条事件） ---
 2700000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=true correct=true
 2700000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -3672,26 +3232,20 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 2709703ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 2709923ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 2710143ms +280  settle-stamp instanceId=p1-c22 correct=false safePassed=false
-2710423ms +0    tutorial cue=quiz-rows-done
 2710423ms +400  settle-counts correctCounts={mine:2,theirs:2}
 2710823ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:11,theirs:11} verdict=equal-tokens
-2711873ms +0    tutorial cue=quiz-score-shown
 2711873ms +350  settle-confirm
 --- 第 47 批（7 条事件） ---
 2820000ms +450  settle-exit
-2820450ms +0    tutorial cue=quiz-closed
 2820450ms +1400 banner text=第 6 轮 · 生活类
 2820450ms +520  deal side=self count=2
 2820450ms +520  deal side=opponent count=2
-2820970ms +0    tutorial cue=deal-done
 2821850ms +1400 banner text=轮到你出牌
-2823250ms +0    tutorial cue=round-banner-done
 --- 第 48 批（1 条事件） ---
 2880000ms +0    lock-acquire token=20 reason=play
 2880000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p0-c11
 2880780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p0-c11
 2881200ms +200  hit-fx instanceId=p0-c11
-2881200ms +0    tutorial cue=skill-hit
 2881200ms +0    lock-release token=20
 --- 第 49 批（1 条事件） ---
 2940000ms +0    lock-acquire token=21 reason=play
@@ -3700,7 +3254,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 2941450ms +0    lock-release token=21
 --- 第 50 批（1 条事件） ---
 3000000ms +1400 banner text=对方出牌中
-3001400ms +0    tutorial cue=round-banner-done
 --- 第 51 批（1 条事件） ---
 3060000ms +550  reveal-enter cardId=gpt-3-5 handInstanceId=p1-c21 cardKind=ai fromOrigin=true
 3060550ms +1500 reveal-hold
@@ -3717,7 +3270,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 3123450ms +0    lock-release token=23
 --- 第 53 批（1 条事件） ---
 3180000ms +550  settle-open round=6 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:3,theirs:3}
-3180000ms +0    tutorial cue=quiz-open
 --- 第 54 批（9 条事件） ---
 3240000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=true correct=true
 3240000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -3741,14 +3293,11 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 0 号座�
 3247950ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 3248170ms +280  settle-stamp instanceId=p1-c21 correct=true safePassed=false
 3248390ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
-3248670ms +0    tutorial cue=quiz-rows-done
 3248670ms +400  settle-counts correctCounts={mine:2,theirs:4}
 3249070ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:3,theirs:4} spent={mine:7,theirs:6} verdict=more-correct
-3250120ms +0    tutorial cue=quiz-score-shown
 3250120ms +350  settle-confirm
 --- 第 56 批（2 条事件） ---
-3360000ms +450  settle-exit
-3360450ms +0    tutorial cue=quiz-closed"
+3360000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座位 1`] = `
@@ -3757,9 +3306,7 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
   3540ms +1400 banner text=第 1 轮 · 梗题
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=轮到你出牌
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +0    lock-acquire token=1 reason=play
  60000ms +650  play-flip instanceId=p1-c26
@@ -3767,7 +3314,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
  61450ms +0    lock-release token=1
 --- 第 2 批（1 条事件） ---
 120000ms +1400 banner text=对方出牌中
-121400ms +0    tutorial cue=round-banner-done
 --- 第 3 批（1 条事件） ---
 180000ms +550  reveal-enter cardId=chatgpt-5-6-sol handInstanceId=p0-c1 cardKind=ai fromOrigin=true
 180550ms +1500 reveal-hold
@@ -3777,7 +3323,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 183450ms +0    lock-release token=2
 --- 第 4 批（1 条事件） ---
 240000ms +550  settle-open round=1 question={id:q-bicycle,category:meme,text:“单车欲问边”说明了早在唐朝就有了自行车吗？,keywords:[古诗,词义变化,望文生义]} scoresBefore={mine:0,theirs:0}
-240000ms +0    tutorial cue=quiz-open
 --- 第 5 批（3 条事件） ---
 300000ms +300  settle-row instanceId=p0-c1 cardId=chatgpt-5-6-sol mine=false correct=true
 300000ms +600  settle-answer answer=否 explanation=这句诗里的「单车」是一辆车马、轻车简从的…(31字)
@@ -3786,20 +3331,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 302812ms +450  settle-typing instanceId=p1-c26 answer=不是 reasoning=单车指轻车简从。
 303262ms +280  settle-stamp instanceId=p0-c1 correct=true safePassed=false
 303482ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-303762ms +0    tutorial cue=quiz-rows-done
 303762ms +400  settle-counts correctCounts={mine:1,theirs:1}
 304162ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:1} spent={mine:7,theirs:5} verdict=fewer-tokens
-305212ms +0    tutorial cue=quiz-score-shown
 305212ms +350  settle-confirm
 --- 第 7 批（7 条事件） ---
 420000ms +450  settle-exit
-420450ms +0    tutorial cue=quiz-closed
 420450ms +1400 banner text=第 2 轮 · 梗题
 420450ms +520  deal side=self count=2
 420450ms +520  deal side=opponent count=2
-420970ms +0    tutorial cue=deal-done
 421850ms +1400 banner text=对方出牌中
-423250ms +0    tutorial cue=round-banner-done
 --- 第 8 批（1 条事件） ---
 480000ms +550  reveal-enter cardId=kimi-k3 handInstanceId=p0-c6 cardKind=ai fromOrigin=true
 480550ms +1500 reveal-hold
@@ -3809,7 +3349,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 483450ms +0    lock-release token=3
 --- 第 9 批（1 条事件） ---
 540000ms +1400 banner text=轮到你出牌
-541400ms +0    tutorial cue=round-banner-done
 --- 第 10 批（1 条事件） ---
 600000ms +0    lock-acquire token=4 reason=play
 600000ms +650  play-flip instanceId=p1-c30
@@ -3827,7 +3366,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 721450ms +0    lock-release token=6
 --- 第 13 批（1 条事件） ---
 780000ms +550  settle-open round=2 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:0,theirs:1}
-780000ms +0    tutorial cue=quiz-open
 --- 第 14 批（13 条事件） ---
 840000ms +300  settle-row instanceId=p0-c1 cardId=chatgpt-5-6-sol mine=false correct=false
 840000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -3848,20 +3386,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 847389ms +280  settle-stamp instanceId=p1-c30 correct=false safePassed=false
 847609ms +280  settle-stamp instanceId=p1-c32 correct=false safePassed=false
 847829ms +280  settle-stamp instanceId=p1-c28 correct=false safePassed=false
-848109ms +0    tutorial cue=quiz-rows-done
 848109ms +400  settle-counts correctCounts={mine:0,theirs:0}
 848509ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:2} spent={mine:8,theirs:4} verdict=fewer-tokens
-849559ms +0    tutorial cue=quiz-score-shown
 849559ms +350  settle-confirm
 --- 第 16 批（7 条事件） ---
 960000ms +450  settle-exit
-960450ms +0    tutorial cue=quiz-closed
 960450ms +1400 banner text=第 3 轮 · 刻板印象
 960450ms +520  deal side=self count=2
 960450ms +520  deal side=opponent count=2
-960970ms +0    tutorial cue=deal-done
 961850ms +1400 banner text=轮到你出牌
-963250ms +0    tutorial cue=round-banner-done
 --- 第 17 批（1 条事件） ---
 1020000ms +0    lock-acquire token=7 reason=play
 1020000ms +650  play-flip instanceId=p1-c31
@@ -3879,7 +3412,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 1141450ms +0    lock-release token=9
 --- 第 20 批（1 条事件） ---
 1200000ms +1400 banner text=对方出牌中
-1201400ms +0    tutorial cue=round-banner-done
 --- 第 21 批（1 条事件） ---
 1260000ms +550  reveal-enter cardId=golden-bell-shield handInstanceId=p0-c17 cardKind=skill fromOrigin=true
 1260550ms +1500 reveal-hold
@@ -3893,7 +3425,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 1323450ms +0    lock-release token=10
 --- 第 23 批（1 条事件） ---
 1380000ms +550  settle-open round=3 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:0,theirs:2}
-1380000ms +0    tutorial cue=quiz-open
 --- 第 24 批（5 条事件） ---
 1440000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=false correct=true
 1440000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -3908,20 +3439,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 1445472ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 1445692ms +280  settle-stamp instanceId=p1-c24 correct=true safePassed=false
 1445912ms +280  settle-stamp instanceId=p1-c20 correct=true safePassed=false
-1446192ms +0    tutorial cue=quiz-rows-done
 1446192ms +400  settle-counts correctCounts={mine:3,theirs:1}
 1446592ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:2} spent={mine:9,theirs:7} verdict=more-correct
-1447642ms +0    tutorial cue=quiz-score-shown
 1447642ms +350  settle-confirm
 --- 第 26 批（7 条事件） ---
 1560000ms +450  settle-exit
-1560450ms +0    tutorial cue=quiz-closed
 1560450ms +1400 banner text=第 4 轮 · 刻板印象
 1560450ms +520  deal side=self count=2
 1560450ms +520  deal side=opponent count=2
-1560970ms +0    tutorial cue=deal-done
 1561850ms +1400 banner text=对方出牌中
-1563250ms +0    tutorial cue=round-banner-done
 --- 第 27 批（1 条事件） ---
 1620000ms +550  reveal-enter cardId=safe-pass handInstanceId=p0-c14 cardKind=skill fromOrigin=true
 1620550ms +1500 reveal-hold
@@ -3936,7 +3462,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 1683450ms +0    lock-release token=11
 --- 第 29 批（1 条事件） ---
 1740000ms +1400 banner text=轮到你出牌
-1741400ms +0    tutorial cue=round-banner-done
 --- 第 30 批（1 条事件） ---
 1800000ms +0    lock-acquire token=12 reason=play
 1800000ms +650  play-flip instanceId=p1-c25
@@ -3944,7 +3469,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 1801450ms +0    lock-release token=12
 --- 第 31 批（1 条事件） ---
 1860000ms +550  settle-open round=4 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:1,theirs:2}
-1860000ms +0    tutorial cue=quiz-open
 --- 第 32 批（9 条事件） ---
 1920000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=false correct=true
 1920000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -3965,20 +3489,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 1927484ms +280  settle-stamp instanceId=p1-c24 correct=false safePassed=false
 1927704ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
 1927924ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
-1928204ms +0    tutorial cue=quiz-rows-done
 1928204ms +400  settle-counts correctCounts={mine:2,theirs:2}
 1928604ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:2} spent={mine:3,theirs:7} verdict=fewer-tokens
-1929654ms +0    tutorial cue=quiz-score-shown
 1929654ms +350  settle-confirm
 --- 第 34 批（7 条事件） ---
 2040000ms +450  settle-exit
-2040450ms +0    tutorial cue=quiz-closed
 2040450ms +1400 banner text=第 5 轮 · 生活类
 2040450ms +520  deal side=self count=2
 2040450ms +520  deal side=opponent count=2
-2040970ms +0    tutorial cue=deal-done
 2041850ms +1400 banner text=轮到你出牌
-2043250ms +0    tutorial cue=round-banner-done
 --- 第 35 批（1 条事件） ---
 2100000ms +0    lock-acquire token=13 reason=play
 2100000ms +650  play-flip instanceId=p1-c22
@@ -3989,18 +3508,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 2160000ms +780  skill-showcase cardId=fixed-answer targetInstanceId=p0-c4
 2160780ms +420  skill-fly from=showcase cardId=fixed-answer targetInstanceId=p0-c4
 2161200ms +200  hit-fx instanceId=p0-c4
-2161200ms +0    tutorial cue=skill-hit
 2161200ms +0    lock-release token=14
 --- 第 37 批（1 条事件） ---
 2220000ms +0    lock-acquire token=15 reason=play
 2220000ms +780  skill-showcase cardId=black-white-reversal targetInstanceId=p0-c11
 2220780ms +420  skill-fly from=showcase cardId=black-white-reversal targetInstanceId=p0-c11
 2221200ms +200  hit-fx instanceId=p0-c11
-2221200ms +0    tutorial cue=skill-hit
 2221200ms +0    lock-release token=15
 --- 第 38 批（1 条事件） ---
 2280000ms +1400 banner text=对方出牌中
-2281400ms +0    tutorial cue=round-banner-done
 --- 第 39 批（1 条事件） ---
 2340000ms +550  reveal-enter cardId=safe-pass handInstanceId=p0-c13 cardKind=skill fromOrigin=true
 2340550ms +1500 reveal-hold
@@ -4009,7 +3525,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 --- 第 40 批（1 条事件） ---
 2400000ms +1400 banner text=化繁为简！GPT-4o → GPT-3.5
 2400000ms +200  hit-fx instanceId=p1-c22
-2401400ms +0    tutorial cue=round-banner-done
 --- 第 41 批（2 条事件） ---
 2460000ms +550  reveal-enter cardId=model-distillation handInstanceId=p0-c18 cardKind=skill fromOrigin=true
 2460550ms +1500 reveal-hold
@@ -4028,7 +3543,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 2583450ms +0    lock-release token=16
 --- 第 44 批（1 条事件） ---
 2640000ms +550  settle-open round=5 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:2,theirs:2}
-2640000ms +0    tutorial cue=quiz-open
 --- 第 45 批（9 条事件） ---
 2700000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=false correct=true
 2700000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -4049,20 +3563,15 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 2709703ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 2709923ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 2710143ms +280  settle-stamp instanceId=p1-c22 correct=false safePassed=false
-2710423ms +0    tutorial cue=quiz-rows-done
 2710423ms +400  settle-counts correctCounts={mine:2,theirs:2}
 2710823ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:11,theirs:11} verdict=equal-tokens
-2711873ms +0    tutorial cue=quiz-score-shown
 2711873ms +350  settle-confirm
 --- 第 47 批（7 条事件） ---
 2820000ms +450  settle-exit
-2820450ms +0    tutorial cue=quiz-closed
 2820450ms +1400 banner text=第 6 轮 · 生活类
 2820450ms +520  deal side=self count=2
 2820450ms +520  deal side=opponent count=2
-2820970ms +0    tutorial cue=deal-done
 2821850ms +1400 banner text=对方出牌中
-2823250ms +0    tutorial cue=round-banner-done
 --- 第 48 批（1 条事件） ---
 2880000ms +550  reveal-enter cardId=safe-pass handInstanceId=p0-c12 cardKind=skill fromOrigin=true
 2880550ms +1500 reveal-hold
@@ -4077,7 +3586,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 2943450ms +0    lock-release token=17
 --- 第 50 批（1 条事件） ---
 3000000ms +1400 banner text=轮到你出牌
-3001400ms +0    tutorial cue=round-banner-done
 --- 第 51 批（1 条事件） ---
 3060000ms +0    lock-acquire token=18 reason=play
 3060000ms +650  play-flip instanceId=p1-c21
@@ -4090,7 +3598,6 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 3121450ms +0    lock-release token=19
 --- 第 53 批（1 条事件） ---
 3180000ms +550  settle-open round=6 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:3,theirs:3}
-3180000ms +0    tutorial cue=quiz-open
 --- 第 54 批（9 条事件） ---
 3240000ms +300  settle-row instanceId=p0-c4 cardId=deepseek-v4 mine=false correct=true
 3240000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -4114,14 +3621,11 @@ exports[`golden 回放的演出指令序列 > highcost-vs-balanced · 1 号座�
 3247950ms +280  settle-stamp instanceId=p1-c25 correct=true safePassed=false
 3248170ms +280  settle-stamp instanceId=p1-c21 correct=true safePassed=false
 3248390ms +280  settle-stamp instanceId=p1-c33 correct=true safePassed=false
-3248670ms +0    tutorial cue=quiz-rows-done
 3248670ms +400  settle-counts correctCounts={mine:4,theirs:2}
 3249070ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:4,theirs:3} spent={mine:6,theirs:7} verdict=more-correct
-3250120ms +0    tutorial cue=quiz-score-shown
 3250120ms +350  settle-confirm
 --- 第 56 批（2 条事件） ---
-3360000ms +450  settle-exit
-3360450ms +0    tutorial cue=quiz-closed"
+3360000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位 1`] = `
@@ -4130,9 +3634,7 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
   3540ms +1400 banner text=第 1 轮 · 梗题
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=轮到你出牌
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +0    lock-acquire token=1 reason=play
  60000ms +650  play-flip instanceId=p0-c1
@@ -4150,7 +3652,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 181450ms +0    lock-release token=3
 --- 第 4 批（1 条事件） ---
 240000ms +1400 banner text=对方出牌中
-241400ms +0    tutorial cue=round-banner-done
 --- 第 5 批（1 条事件） ---
 300000ms +550  reveal-enter cardId=gpt-4o handInstanceId=p1-c29 cardKind=ai fromOrigin=true
 300550ms +1500 reveal-hold
@@ -4160,7 +3661,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 303450ms +0    lock-release token=4
 --- 第 6 批（1 条事件） ---
 360000ms +550  settle-open round=1 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:0,theirs:0}
-360000ms +0    tutorial cue=quiz-open
 --- 第 7 批（7 条事件） ---
 420000ms +300  settle-row instanceId=p0-c1 cardId=gpt-3-5 mine=true correct=false
 420000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -4172,20 +3672,15 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 423957ms +280  settle-stamp instanceId=p0-c1 correct=false safePassed=false
 424177ms +280  settle-stamp instanceId=p0-c0 correct=false safePassed=false
 424397ms +280  settle-stamp instanceId=p1-c29 correct=false safePassed=false
-424677ms +0    tutorial cue=quiz-rows-done
 424677ms +400  settle-counts correctCounts={mine:0,theirs:0}
 425077ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:0,theirs:1} spent={mine:6,theirs:4} verdict=fewer-tokens
-426127ms +0    tutorial cue=quiz-score-shown
 426127ms +350  settle-confirm
 --- 第 9 批（7 条事件） ---
 540000ms +450  settle-exit
-540450ms +0    tutorial cue=quiz-closed
 540450ms +1400 banner text=第 2 轮 · 刻板印象
 540450ms +520  deal side=self count=2
 540450ms +520  deal side=opponent count=2
-540970ms +0    tutorial cue=deal-done
 541850ms +1400 banner text=对方出牌中
-543250ms +0    tutorial cue=round-banner-done
 --- 第 10 批（2 条事件） ---
 600000ms +550  reveal-enter cardId=model-distillation handInstanceId=p1-c38 cardKind=skill fromOrigin=true
 600550ms +1500 reveal-hold
@@ -4204,7 +3699,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 722470ms +200  hit-fx instanceId=p1-c26
 --- 第 13 批（1 条事件） ---
 780000ms +1400 banner text=轮到你出牌
-781400ms +0    tutorial cue=round-banner-done
 --- 第 14 批（1 条事件） ---
 840000ms +0    lock-acquire token=6 reason=play
 840000ms +650  play-flip instanceId=p0-c5
@@ -4222,7 +3716,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 961450ms +0    lock-release token=8
 --- 第 17 批（1 条事件） ---
 1020000ms +550  settle-open round=2 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:0,theirs:1}
-1020000ms +0    tutorial cue=quiz-open
 --- 第 18 批（5 条事件） ---
 1080000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-r1 mine=true correct=true
 1080000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -4237,23 +3730,17 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 1084411ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
 1084631ms +280  settle-stamp instanceId=p0-c13 correct=true safePassed=false
 1084851ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-1085131ms +0    tutorial cue=quiz-rows-done
 1085131ms +400  settle-counts correctCounts={mine:3,theirs:1}
 1085531ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:1} spent={mine:8,theirs:9} verdict=more-correct
-1086581ms +0    tutorial cue=quiz-score-shown
 1086581ms +350  settle-confirm
 --- 第 20 批（7 条事件） ---
 1200000ms +450  settle-exit
-1200450ms +0    tutorial cue=quiz-closed
 1200450ms +1400 banner text=第 3 轮 · 刻板印象
 1200450ms +520  deal side=self count=2
 1200450ms +520  deal side=opponent count=2
-1200970ms +0    tutorial cue=deal-done
 1201850ms +1400 banner text=轮到你出牌
-1203250ms +0    tutorial cue=round-banner-done
 --- 第 21 批（1 条事件） ---
 1260000ms +1400 banner text=对方出牌中
-1261400ms +0    tutorial cue=round-banner-done
 --- 第 22 批（1 条事件） ---
 1320000ms +550  reveal-enter cardId=claude-fable-5 handInstanceId=p1-c23 cardKind=ai fromOrigin=true
 1320550ms +1500 reveal-hold
@@ -4263,7 +3750,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 1323450ms +0    lock-release token=9
 --- 第 23 批（1 条事件） ---
 1380000ms +550  settle-open round=3 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:1,theirs:1}
-1380000ms +0    tutorial cue=quiz-open
 --- 第 24 批（6 条事件） ---
 1440000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-r1 mine=true correct=true
 1440000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -4281,29 +3767,22 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 1446864ms +280  settle-stamp instanceId=p0-c13 correct=true safePassed=false
 1447084ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 1447304ms +280  settle-stamp instanceId=p1-c23 correct=true safePassed=false
-1447584ms +0    tutorial cue=quiz-rows-done
 1447584ms +400  settle-counts correctCounts={mine:3,theirs:2}
 1447984ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:1} spent={mine:0,theirs:7} verdict=more-correct
-1449034ms +0    tutorial cue=quiz-score-shown
 1449034ms +350  settle-confirm
 --- 第 26 批（7 条事件） ---
 1560000ms +450  settle-exit
-1560450ms +0    tutorial cue=quiz-closed
 1560450ms +1400 banner text=第 4 轮 · 生活类
 1560450ms +520  deal side=self count=2
 1560450ms +520  deal side=opponent count=2
-1560970ms +0    tutorial cue=deal-done
 1561850ms +1400 banner text=对方出牌中
-1563250ms +0    tutorial cue=round-banner-done
 --- 第 27 批（1 条事件） ---
 1620000ms +1400 banner text=轮到你出牌
-1621400ms +0    tutorial cue=round-banner-done
 --- 第 28 批（2 条事件） ---
 1680000ms +0    lock-acquire token=10 reason=play
 1680000ms +1800 skill-showcase cardId=rising-tide targetInstanceId=null
 1680000ms +1400 banner text=鸡犬升天！DeepSeek R1 → D…(30字)
 1680000ms +900  evolve-fx instanceId=p0-c5 fromCardId=deepseek-r1 toCardId=deepseek-v4
-1681400ms +0    tutorial cue=round-banner-done
 1681800ms +0    lock-release token=10
 --- 第 29 批（1 条事件） ---
 1740000ms +0    lock-acquire token=11 reason=play
@@ -4311,7 +3790,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 1741800ms +0    lock-release token=11
 --- 第 30 批（1 条事件） ---
 1800000ms +550  settle-open round=4 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:2,theirs:1}
-1800000ms +0    tutorial cue=quiz-open
 --- 第 31 批（7 条事件） ---
 1860000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=true correct=true
 1860000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -4329,20 +3807,15 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 1866690ms +280  settle-stamp instanceId=p0-c13 correct=true safePassed=false
 1866910ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 1867130ms +280  settle-stamp instanceId=p1-c23 correct=true safePassed=false
-1867410ms +0    tutorial cue=quiz-rows-done
 1867410ms +400  settle-counts correctCounts={mine:2,theirs:2}
 1867810ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:2,theirs:2} spent={mine:5,theirs:0} verdict=fewer-tokens
-1868860ms +0    tutorial cue=quiz-score-shown
 1868860ms +350  settle-confirm
 --- 第 33 批（7 条事件） ---
 1980000ms +450  settle-exit
-1980450ms +0    tutorial cue=quiz-closed
 1980450ms +1400 banner text=第 5 轮 · 生活类
 1980450ms +520  deal side=self count=2
 1980450ms +520  deal side=opponent count=2
-1980970ms +0    tutorial cue=deal-done
 1981850ms +1400 banner text=轮到你出牌
-1983250ms +0    tutorial cue=round-banner-done
 --- 第 34 批（1 条事件） ---
 2040000ms +0    lock-acquire token=12 reason=play
 2040000ms +650  play-flip instanceId=p0-c8
@@ -4360,7 +3833,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 2161450ms +0    lock-release token=14
 --- 第 37 批（1 条事件） ---
 2220000ms +1400 banner text=对方出牌中
-2221400ms +0    tutorial cue=round-banner-done
 --- 第 38 批（1 条事件） ---
 2280000ms +550  reveal-enter cardId=safe-pass handInstanceId=p1-c33 cardKind=skill fromOrigin=true
 2280550ms +1500 reveal-hold
@@ -4375,7 +3847,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 2343450ms +0    lock-release token=15
 --- 第 40 批（1 条事件） ---
 2400000ms +550  settle-open round=5 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:2,theirs:2}
-2400000ms +0    tutorial cue=quiz-open
 --- 第 41 批（13 条事件） ---
 2460000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=true correct=true
 2460000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -4402,20 +3873,15 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 2471815ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 2472035ms +280  settle-stamp instanceId=p1-c23 correct=true safePassed=false
 2472255ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
-2472535ms +0    tutorial cue=quiz-rows-done
 2472535ms +400  settle-counts correctCounts={mine:2,theirs:2}
 2472935ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:8,theirs:8} verdict=equal-tokens
-2473985ms +0    tutorial cue=quiz-score-shown
 2473985ms +350  settle-confirm
 --- 第 43 批（7 条事件） ---
 2580000ms +450  settle-exit
-2580450ms +0    tutorial cue=quiz-closed
 2580450ms +1400 banner text=第 6 轮 · 生活类
 2580450ms +520  deal side=self count=2
 2580450ms +520  deal side=opponent count=2
-2580970ms +0    tutorial cue=deal-done
 2581850ms +1400 banner text=对方出牌中
-2583250ms +0    tutorial cue=round-banner-done
 --- 第 44 批（1 条事件） ---
 2640000ms +550  reveal-enter cardId=kimi-k3 handInstanceId=p1-c27 cardKind=ai fromOrigin=true
 2640550ms +1500 reveal-hold
@@ -4443,7 +3909,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 2823450ms +0    lock-release token=18
 --- 第 48 批（1 条事件） ---
 2880000ms +1400 banner text=轮到你出牌
-2881400ms +0    tutorial cue=round-banner-done
 --- 第 49 批（1 条事件） ---
 2940000ms +0    lock-acquire token=19 reason=play
 2940000ms +650  play-flip instanceId=p0-c6
@@ -4466,7 +3931,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 3121450ms +0    lock-release token=22
 --- 第 53 批（1 条事件） ---
 3180000ms +550  settle-open round=6 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:3,theirs:3}
-3180000ms +0    tutorial cue=quiz-open
 --- 第 54 批（15 条事件） ---
 3240000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=true correct=true
 3240000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -4502,14 +3966,11 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 0 号座位
 3252311ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 3252531ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 3252751ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
-3253031ms +0    tutorial cue=quiz-rows-done
 3253031ms +400  settle-counts correctCounts={mine:3,theirs:5}
 3253431ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:3,theirs:4} spent={mine:11,theirs:14} verdict=more-correct
-3254481ms +0    tutorial cue=quiz-score-shown
 3254481ms +350  settle-confirm
 --- 第 56 批（2 条事件） ---
-3360000ms +450  settle-exit
-3360450ms +0    tutorial cue=quiz-closed"
+3360000ms +450  settle-exit"
 `;
 
 exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位 1`] = `
@@ -4518,9 +3979,7 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
   3540ms +1400 banner text=第 1 轮 · 梗题
   3540ms +880  deal side=self count=5
   3540ms +880  deal side=opponent count=5
-  4420ms +0    tutorial cue=deal-done
   4940ms +1400 banner text=对方出牌中
-  6340ms +0    tutorial cue=round-banner-done
 --- 第 1 批（1 条事件） ---
  60000ms +550  reveal-enter cardId=gpt-3-5 handInstanceId=p0-c1 cardKind=ai fromOrigin=true
  60550ms +1500 reveal-hold
@@ -4542,7 +4001,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 183450ms +0    lock-release token=2
 --- 第 4 批（1 条事件） ---
 240000ms +1400 banner text=轮到你出牌
-241400ms +0    tutorial cue=round-banner-done
 --- 第 5 批（1 条事件） ---
 300000ms +0    lock-acquire token=3 reason=play
 300000ms +650  play-flip instanceId=p1-c29
@@ -4550,7 +4008,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 301450ms +0    lock-release token=3
 --- 第 6 批（1 条事件） ---
 360000ms +550  settle-open round=1 question={id:q-good-bad,category:meme,text:“好了好了现在坏了”和“坏了坏了现在好了…(37字),keywords:[语序,口语感叹,结论反转]} scoresBefore={mine:0,theirs:0}
-360000ms +0    tutorial cue=quiz-open
 --- 第 7 批（7 条事件） ---
 420000ms +300  settle-row instanceId=p0-c1 cardId=gpt-3-5 mine=false correct=false
 420000ms +600  settle-answer answer=都不是 explanation=这里的「好了坏了」都是语气感叹，两句说的…(27字)
@@ -4562,20 +4019,15 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 423957ms +280  settle-stamp instanceId=p0-c1 correct=false safePassed=false
 424177ms +280  settle-stamp instanceId=p0-c0 correct=false safePassed=false
 424397ms +280  settle-stamp instanceId=p1-c29 correct=false safePassed=false
-424677ms +0    tutorial cue=quiz-rows-done
 424677ms +400  settle-counts correctCounts={mine:0,theirs:0}
 425077ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:1,theirs:0} spent={mine:4,theirs:6} verdict=fewer-tokens
-426127ms +0    tutorial cue=quiz-score-shown
 426127ms +350  settle-confirm
 --- 第 9 批（7 条事件） ---
 540000ms +450  settle-exit
-540450ms +0    tutorial cue=quiz-closed
 540450ms +1400 banner text=第 2 轮 · 刻板印象
 540450ms +520  deal side=self count=2
 540450ms +520  deal side=opponent count=2
-540970ms +0    tutorial cue=deal-done
 541850ms +1400 banner text=轮到你出牌
-543250ms +0    tutorial cue=round-banner-done
 --- 第 10 批（2 条事件） ---
 600000ms +0    lock-acquire token=4 reason=play
 600000ms +1800 skill-showcase cardId=model-distillation targetInstanceId=null
@@ -4590,11 +4042,9 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 720000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p1-c26
 720780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p1-c26
 721200ms +200  hit-fx instanceId=p1-c26
-721200ms +0    tutorial cue=skill-hit
 721200ms +0    lock-release token=6
 --- 第 13 批（1 条事件） ---
 780000ms +1400 banner text=对方出牌中
-781400ms +0    tutorial cue=round-banner-done
 --- 第 14 批（1 条事件） ---
 840000ms +550  reveal-enter cardId=deepseek-r1 handInstanceId=p0-c5 cardKind=ai fromOrigin=true
 840550ms +1500 reveal-hold
@@ -4618,7 +4068,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 963450ms +0    lock-release token=9
 --- 第 17 批（1 条事件） ---
 1020000ms +550  settle-open round=2 question={id:q-court,category:bias,text:法院门口有一个白人和一个黑人，谁是犯罪者？,keywords:[肤色,身份判断,刻板印象]} scoresBefore={mine:1,theirs:0}
-1020000ms +0    tutorial cue=quiz-open
 --- 第 18 批（5 条事件） ---
 1080000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-r1 mine=false correct=true
 1080000ms +600  settle-answer answer=无法判断 explanation=站在法院门口的人可能是原告、律师或路人，…(31字)
@@ -4633,23 +4082,17 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 1084411ms +280  settle-stamp instanceId=p0-c9 correct=true safePassed=false
 1084631ms +280  settle-stamp instanceId=p0-c13 correct=true safePassed=false
 1084851ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
-1085131ms +0    tutorial cue=quiz-rows-done
 1085131ms +400  settle-counts correctCounts={mine:1,theirs:3}
 1085531ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:1,theirs:1} spent={mine:9,theirs:8} verdict=more-correct
-1086581ms +0    tutorial cue=quiz-score-shown
 1086581ms +350  settle-confirm
 --- 第 20 批（7 条事件） ---
 1200000ms +450  settle-exit
-1200450ms +0    tutorial cue=quiz-closed
 1200450ms +1400 banner text=第 3 轮 · 刻板印象
 1200450ms +520  deal side=self count=2
 1200450ms +520  deal side=opponent count=2
-1200970ms +0    tutorial cue=deal-done
 1201850ms +1400 banner text=对方出牌中
-1203250ms +0    tutorial cue=round-banner-done
 --- 第 21 批（1 条事件） ---
 1260000ms +1400 banner text=轮到你出牌
-1261400ms +0    tutorial cue=round-banner-done
 --- 第 22 批（1 条事件） ---
 1320000ms +0    lock-acquire token=10 reason=play
 1320000ms +650  play-flip instanceId=p1-c23
@@ -4657,7 +4100,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 1321450ms +0    lock-release token=10
 --- 第 23 批（1 条事件） ---
 1380000ms +550  settle-open round=3 question={id:q-doctor-lawyer,category:bias,text:一个医生走了进来，这位律师是男性还是女性？,keywords:[职业,性别判断,信息不足]} scoresBefore={mine:1,theirs:1}
-1380000ms +0    tutorial cue=quiz-open
 --- 第 24 批（6 条事件） ---
 1440000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-r1 mine=false correct=true
 1440000ms +600  settle-answer answer=无法判断 explanation=题面只提到走进来的是医生，律师的性别一个…(26字)
@@ -4675,37 +4117,29 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 1446864ms +280  settle-stamp instanceId=p0-c13 correct=true safePassed=false
 1447084ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 1447304ms +280  settle-stamp instanceId=p1-c23 correct=true safePassed=false
-1447584ms +0    tutorial cue=quiz-rows-done
 1447584ms +400  settle-counts correctCounts={mine:2,theirs:3}
 1447984ms +1050 settle-score gains={mine:0,theirs:1} totals={mine:1,theirs:2} spent={mine:7,theirs:0} verdict=more-correct
-1449034ms +0    tutorial cue=quiz-score-shown
 1449034ms +350  settle-confirm
 --- 第 26 批（7 条事件） ---
 1560000ms +450  settle-exit
-1560450ms +0    tutorial cue=quiz-closed
 1560450ms +1400 banner text=第 4 轮 · 生活类
 1560450ms +520  deal side=self count=2
 1560450ms +520  deal side=opponent count=2
-1560970ms +0    tutorial cue=deal-done
 1561850ms +1400 banner text=轮到你出牌
-1563250ms +0    tutorial cue=round-banner-done
 --- 第 27 批（1 条事件） ---
 1620000ms +1400 banner text=对方出牌中
-1621400ms +0    tutorial cue=round-banner-done
 --- 第 28 批（2 条事件） ---
 1680000ms +550  reveal-enter cardId=rising-tide handInstanceId=p0-c15 cardKind=skill fromOrigin=true
 1680000ms +900  evolve-fx instanceId=p0-c5 fromCardId=deepseek-r1 toCardId=deepseek-v4
 1680550ms +1500 reveal-hold
 1682050ms +320  reveal-fade
 1682350ms +1400 banner text=鸡犬升天！DeepSeek R1 → D…(30字)
-1683750ms +0    tutorial cue=round-banner-done
 --- 第 29 批（1 条事件） ---
 1740000ms +550  reveal-enter cardId=nuclear-power-station handInstanceId=p0-c17 cardKind=skill fromOrigin=true
 1740550ms +1500 reveal-hold
 1742050ms +320  reveal-fade
 --- 第 30 批（1 条事件） ---
 1800000ms +550  settle-open round=4 question={id:q-carwash,category:life,text:我想去洗车，洗车店离我家50米，我该开车…(27字),keywords:[洗车,五十米,走还是开车]} scoresBefore={mine:1,theirs:2}
-1800000ms +0    tutorial cue=quiz-open
 --- 第 31 批（7 条事件） ---
 1860000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=false correct=true
 1860000ms +600  settle-answer answer=开车 explanation=要洗的是车，人走过去的话车还留在家里。
@@ -4723,20 +4157,15 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 1866690ms +280  settle-stamp instanceId=p0-c13 correct=true safePassed=false
 1866910ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 1867130ms +280  settle-stamp instanceId=p1-c23 correct=true safePassed=false
-1867410ms +0    tutorial cue=quiz-rows-done
 1867410ms +400  settle-counts correctCounts={mine:2,theirs:2}
 1867810ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:2,theirs:2} spent={mine:0,theirs:5} verdict=fewer-tokens
-1868860ms +0    tutorial cue=quiz-score-shown
 1868860ms +350  settle-confirm
 --- 第 33 批（7 条事件） ---
 1980000ms +450  settle-exit
-1980450ms +0    tutorial cue=quiz-closed
 1980450ms +1400 banner text=第 5 轮 · 生活类
 1980450ms +520  deal side=self count=2
 1980450ms +520  deal side=opponent count=2
-1980970ms +0    tutorial cue=deal-done
 1981850ms +1400 banner text=对方出牌中
-1983250ms +0    tutorial cue=round-banner-done
 --- 第 34 批（1 条事件） ---
 2040000ms +550  reveal-enter cardId=kimi-k2-6 handInstanceId=p0-c8 cardKind=ai fromOrigin=true
 2040550ms +1500 reveal-hold
@@ -4760,13 +4189,11 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 2163450ms +0    lock-release token=13
 --- 第 37 批（1 条事件） ---
 2220000ms +1400 banner text=轮到你出牌
-2221400ms +0    tutorial cue=round-banner-done
 --- 第 38 批（1 条事件） ---
 2280000ms +0    lock-acquire token=14 reason=play
 2280000ms +780  skill-showcase cardId=safe-pass targetInstanceId=p1-c26
 2280780ms +420  skill-fly from=showcase cardId=safe-pass targetInstanceId=p1-c26
 2281200ms +200  hit-fx instanceId=p1-c26
-2281200ms +0    tutorial cue=skill-hit
 2281200ms +0    lock-release token=14
 --- 第 39 批（1 条事件） ---
 2340000ms +0    lock-acquire token=15 reason=play
@@ -4775,7 +4202,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 2341450ms +0    lock-release token=15
 --- 第 40 批（1 条事件） ---
 2400000ms +550  settle-open round=5 question={id:q-mirror,category:life,text:我正对着镜子举起一只手，在我的视野中这只…(45字),keywords:[镜像,左右,空间想象]} scoresBefore={mine:2,theirs:2}
-2400000ms +0    tutorial cue=quiz-open
 --- 第 41 批（13 条事件） ---
 2460000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=false correct=true
 2460000ms +600  settle-answer answer=左手 explanation=镜子只前后翻转，你看到的左侧就是你自己身…(25字)
@@ -4802,20 +4228,15 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 2471815ms +280  settle-stamp instanceId=p1-c26 correct=true safePassed=false
 2472035ms +280  settle-stamp instanceId=p1-c23 correct=true safePassed=false
 2472255ms +280  settle-stamp instanceId=p1-c20 correct=false safePassed=false
-2472535ms +0    tutorial cue=quiz-rows-done
 2472535ms +400  settle-counts correctCounts={mine:2,theirs:2}
 2472935ms +1050 settle-score gains={mine:1,theirs:1} totals={mine:3,theirs:3} spent={mine:8,theirs:8} verdict=equal-tokens
-2473985ms +0    tutorial cue=quiz-score-shown
 2473985ms +350  settle-confirm
 --- 第 43 批（7 条事件） ---
 2580000ms +450  settle-exit
-2580450ms +0    tutorial cue=quiz-closed
 2580450ms +1400 banner text=第 6 轮 · 生活类
 2580450ms +520  deal side=self count=2
 2580450ms +520  deal side=opponent count=2
-2580970ms +0    tutorial cue=deal-done
 2581850ms +1400 banner text=轮到你出牌
-2583250ms +0    tutorial cue=round-banner-done
 --- 第 44 批（1 条事件） ---
 2640000ms +0    lock-acquire token=16 reason=play
 2640000ms +650  play-flip instanceId=p1-c27
@@ -4837,7 +4258,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 2821450ms +0    lock-release token=19
 --- 第 48 批（1 条事件） ---
 2880000ms +1400 banner text=对方出牌中
-2881400ms +0    tutorial cue=round-banner-done
 --- 第 49 批（1 条事件） ---
 2940000ms +550  reveal-enter cardId=kimi-k2-6 handInstanceId=p0-c6 cardKind=ai fromOrigin=true
 2940550ms +1500 reveal-hold
@@ -4868,7 +4288,6 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 3123450ms +0    lock-release token=23
 --- 第 53 批（1 条事件） ---
 3180000ms +550  settle-open round=6 question={id:q-bamboo,category:life,text:十米长一厘米粗的竹竿能不能通过三米高二米宽的门？,keywords:[长杆过门,尺寸,常识变通]} scoresBefore={mine:3,theirs:3}
-3180000ms +0    tutorial cue=quiz-open
 --- 第 54 批（15 条事件） ---
 3240000ms +300  settle-row instanceId=p0-c5 cardId=deepseek-v4 mine=false correct=true
 3240000ms +600  settle-answer answer=能 explanation=竹竿细得可以弯，横着扛、斜着送甚至掰弯都过得去。
@@ -4904,12 +4323,9 @@ exports[`golden 回放的演出指令序列 > lowcost-vs-highcost · 1 号座位
 3252311ms +280  settle-stamp instanceId=p1-c27 correct=true safePassed=false
 3252531ms +280  settle-stamp instanceId=p1-c31 correct=true safePassed=false
 3252751ms +280  settle-stamp instanceId=p1-c30 correct=true safePassed=false
-3253031ms +0    tutorial cue=quiz-rows-done
 3253031ms +400  settle-counts correctCounts={mine:5,theirs:3}
 3253431ms +1050 settle-score gains={mine:1,theirs:0} totals={mine:4,theirs:3} spent={mine:14,theirs:11} verdict=more-correct
-3254481ms +0    tutorial cue=quiz-score-shown
 3254481ms +350  settle-confirm
 --- 第 56 批（2 条事件） ---
-3360000ms +450  settle-exit
-3360450ms +0    tutorial cue=quiz-closed"
+3360000ms +450  settle-exit"
 `;

@@ -14,7 +14,7 @@ import {
 import { HEROES } from '@ai-duel/content'
 import type { HeroId } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
-import { type RefObject, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadHeroTextures } from '../match/homeArt'
 import './heroStage.css'
 
@@ -26,17 +26,9 @@ export interface HeroStageProps {
   platform: Platform
   muted: boolean
   onAction(action: HeroAction): void
-  /**
-   * 把「问场景要锚点」那一条透给外面，给新手教程的引导层每帧现量用
-   *（迁移第 32 条，同 DuelStage 的 anchorsRef）。正式那条入口不传。
-   */
-  anchorsRef?: RefObject<HeroAnchors | null>
 }
 
-/** 引导层要的那一条。形状就是场景句柄里的同名方法，原样转出去。 */
-export type HeroAnchors = Pick<HeroScene, 'anchorRect'>
-
-export function HeroStage({ view, platform, muted, onAction, anchorsRef }: HeroStageProps) {
+export function HeroStage({ view, platform, muted, onAction }: HeroStageProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<HeroScene | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -83,7 +75,6 @@ export function HeroStage({ view, platform, muted, onAction, anchorsRef }: HeroS
       scene.onAction((action) => actionRef.current(action))
       scene.setView(viewRef.current)
       sceneRef.current = scene
-      if (anchorsRef !== undefined) anchorsRef.current = scene
     }
 
     boot().catch((cause: unknown) => {
@@ -102,10 +93,9 @@ export function HeroStage({ view, platform, muted, onAction, anchorsRef }: HeroS
       observer.disconnect()
       sceneRef.current?.destroy()
       sceneRef.current = null
-      if (anchorsRef !== undefined) anchorsRef.current = null
       canvas.remove()
     }
-  }, [platform, anchorsRef])
+  }, [platform])
 
   // 状态每变一次就摆一次。场景自己挡了「同一份不重建」（见 canvas 的 HeroScene）。
   useEffect(() => {

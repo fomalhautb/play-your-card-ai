@@ -1,8 +1,8 @@
 /**
- * 剩下那五种：演出锁的上/放、催一催的喊话气泡、指令被拒的红字、教程要等的舞台信号。
+ * 剩下那四种：演出锁的上 / 放、催一催的喊话气泡、指令被拒的红字。
  *
  * 它们的共同点是**不产生动画**（`durationMs` 都是 0，气泡那条除外），
- * 只是把某个状态切一下、或者把一条信号转给场景外面。
+ * 只是把某个状态切一下。
  */
 
 import { tokens } from '@ai-duel/design'
@@ -49,7 +49,7 @@ function popBubble(
   })
 }
 
-type MiscKind = 'lock-acquire' | 'lock-release' | 'urge' | 'error' | 'tutorial'
+type MiscKind = 'lock-acquire' | 'lock-release' | 'urge' | 'error'
 
 export const miscPlayers: CuePlayerGroup<MiscKind> = {
   /**
@@ -82,10 +82,5 @@ export const miscPlayers: CuePlayerGroup<MiscKind> = {
    */
   error(ctx, cue) {
     popBubble(ctx, BUBBLE_ERROR, cue.reason, BUBBLE_HOLD_MS)
-  },
-
-  /** 教程要等的舞台信号，原样转给外面。教程状态机本身还没迁（第 32 条）。 */
-  tutorial(ctx, cue) {
-    ctx.tutorial(cue.cue)
   },
 }

@@ -80,8 +80,6 @@ export function playMySkill(
     })
     context.schedule(SKILL_FLIGHT_MS, () => {
       context.emit({ kind: 'hit-fx', durationMs: HIT_FX_MS, instanceId: targetInstanceId })
-      // 教程的「技能牌使用后立即生效」要等这一下：命中特效之前说，玩家还没看见任何变化。
-      context.emit({ kind: 'tutorial', durationMs: 0, cue: 'skill-hit' })
       finishSkillShow(context, token)
     })
   })

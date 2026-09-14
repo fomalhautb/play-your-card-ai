@@ -23,9 +23,6 @@
  * 现在多了首页和选英雄页要的那批（图片底板按钮、文字钮、星芒花饰、夜色圆章、人物说明栏）。
  * 迁移第 29、30 条的三个场景：首页 scenes/home（含人物的 alpha 命中）、
  * 选英雄页 scenes/hero、开包 scenes/pack。
- * 迁移第 32 条给三个场景各开了一个**给新手教程用**的口子：问一个语义锚点现在占屏幕哪一块
- *（`anchorRect`，教程只说得出名字，换算成哪一块是场景自己的事，见 scenes/anchors.ts），
- * 外加对局的逐张手牌锁和构筑页的放行闸门。正式玩法从头到尾不碰它们。
  *
  * 目录：
  *   components/    Pixi 组件（卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
@@ -200,7 +197,7 @@ export {
 } from './components/TextButton'
 export { TokenRail, type TokenRailDeps } from './components/TokenRail'
 export { TopBar, type TopBarDeps, type TopBarOptions } from './components/TopBar'
-export type { Cue, CueSides, CueSpec, LockReason, MatchStageCue } from './director/cues'
+export type { Cue, CueSides, CueSpec, LockReason } from './director/cues'
 export {
   createDirector,
   type Director,
@@ -274,21 +271,17 @@ export { Animator } from './runtime/animator'
 export { FrameLoop, type FrameLoopCounters, type FrameLoopOptions } from './runtime/frameLoop'
 export { Rng } from './runtime/rng'
 export { TextTextureCache } from './runtime/textCache'
-export type { AnchorRect } from './scenes/anchors'
 export { createDeckScene } from './scenes/deck/DeckScene'
 export { pickDeckLayout, pickDeckTier } from './scenes/deck/layout/pickLayout'
 export type { DeckLayout, DeckLayoutTier } from './scenes/deck/layout/types'
 export { DEFAULT_DECK_RULES } from './scenes/deck/logic/types'
 export type {
   CreateDeckScene,
-  DeckAnchor,
-  DeckAnchorName,
   DeckManageAction,
   DeckRules,
   DeckScene,
   DeckSceneCounters,
   DeckSceneOptions,
-  DeckTutorialGate,
   DeckView,
   PoolCard,
   PoolKind,
@@ -299,7 +292,6 @@ export type { DuelLayout, LayoutTier } from './scenes/duel/layout/types'
 export type {
   CardTextures,
   CreateDuelScene,
-  DuelAnchorName,
   DuelCommand,
   DuelScene,
   DuelSceneCounters,
@@ -308,7 +300,6 @@ export type {
 export { createHeroScene } from './scenes/hero/HeroScene'
 export type {
   HeroAction,
-  HeroAnchor,
   HeroEntry,
   HeroScene,
   HeroSceneOptions,

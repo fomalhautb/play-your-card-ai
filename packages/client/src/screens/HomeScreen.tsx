@@ -11,10 +11,6 @@
  * 首页一亮出来，就在后台把剩下的图按 `PRELOAD_GROUPS` 排队下完（`useBackgroundPreload`）：
  * 玩家看首页、建房、等对手的那几十秒里，房间页、英雄页、对局那几 MB 就悄悄下好了，
  * 一路点过去看不到任何加载页。闸门没放行之前不能开这一趟——两边会抢同样的并发额度。
- *
- * ## 「开始游戏」的分流在点下去那一刻现读存档
- *
- * 不在挂载时读一次：教程和首页之间来回跳时，提前读的那份会是过期的（旧版踩过）。
  */
 
 import type { HomeAction } from '@ai-duel/canvas'
@@ -30,7 +26,6 @@ import type { LocalDriver } from '../match/localDriver'
 import { createTestMatch } from '../match/localMatch'
 import { HOME_IMAGES } from '../preload/manifests'
 import { useAssets, useBackgroundPreload } from '../preload/useAssets'
-import { loadSave } from '../save/saveStore'
 import { HomeStage } from './HomeStage'
 import { LoadingScreen } from './LoadingScreen'
 import './homeScreen.css'
@@ -76,8 +71,8 @@ export function HomeScreen() {
   const act = (action: HomeAction): void => {
     switch (action.kind) {
       case 'start':
-        // 新号先走一遍新手教程，走完（或中途跳过）之后每次都直接进联机。
-        navigate(loadSave(platform).tutorialDone ? '/room' : '/tutorial')
+        // 主入口和菜单里那条「联机」去的是同一页：首页不分流。
+        navigate('/room')
         break
       case 'menu':
         actMenu(action.item)

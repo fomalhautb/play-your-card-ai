@@ -42,8 +42,6 @@ export interface DirectorLocks {
   dealing: boolean
   /** 出牌和「结束出牌」的统一口径。它同时喂给手牌的 disabled。 */
   actionsLocked: boolean
-  /** 「结束出牌」比手牌多一道教程的闸，所以单列一条。 */
-  endPlayLocked: boolean
   /** 手牌彻底冻住（连 hover 都不接）。比 actionsLocked 窄一截，见旧版 handFrozen 的注释。 */
   handFrozen: boolean
   /** 轮到对方出牌。回合牌匾和手牌灰墨态只认它，不认那些瞬态锁。 */
@@ -54,22 +52,6 @@ export interface DirectorLocks {
   handLockReason: HandLockReason | null
   /** 结算层的确认按钮点不点得动（按钮淡入落地之后、玩家点过之前）。 */
   settleReady: boolean
-  /**
-   * 有一层**全屏过场**立着（抛硬币、答题揭晓与结算、技能抵消、强制展示 / 放大查看）。
-   *
-   * 加它只为一件事：新手教程的引导层要给过场让位。旧版靠 z-index 就办到了——
-   * 过场和引导层都是 DOM，过场在 1100、引导在 1000；新版过场画在**画布里**，
-   * 而引导层是压在画布上的 DOM，再也盖不住它，只能由编排层说一声
-   *（见 client 的 screens/TutorialDuelPhase.tsx）。
-   *
-   * 这条规矩不是排版讲究：教程的每一句提示都要玩家点一下才走，而那一下点击是靠
-   * 一层铺满全屏的捕获层接的。提示不让位的话，捕获层会把「点结算层上那颗确认」
-   * 也一起接走，玩家再也confirm不了这一轮。
-   *
-   * 它和 `showcasing` 的区别：那一条说的是「现在什么都不该点得动」，范围只有展示层；
-   * 这一条说的是「屏幕上盖着一层过场」，还含抛硬币、抵消和结算。
-   */
-  cutscene: boolean
 }
 
 /** 玩家在界面上做的事。它们不产生指令，指令由调用方自己发；这里只管演出和锁。 */
@@ -98,8 +80,6 @@ export type UserAction =
    * 本端点的和对面发来的走同一条路（驱动自己也会回调回来），两台机器上弹的是同一句。
    */
   | { kind: 'urge'; lineId: string }
-  /** 教程改了「结束出牌」这一步许不许点。教程状态机本身还没迁（迁移第 32 条）。 */
-  | { kind: 'tutorial-gate'; endPlayBlocked: boolean }
 
 export interface Director {
   /** 喂一批事件和它之后的视图，也就是驱动一次 execute 的产出。 */
@@ -172,9 +152,6 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
         case 'urge':
           context.emit({ kind: 'urge', durationMs: URGE_BUBBLE_MS, lineId: action.lineId })
           return true
-        case 'tutorial-gate':
-          context.tutorialEndPlayBlocked = action.endPlayBlocked
-          return true
       }
     },
 
@@ -212,7 +189,6 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
         showcasing,
         dealing,
         actionsLocked,
-        endPlayLocked: actionsLocked || context.tutorialEndPlayBlocked,
         // 刻意比 actionsLocked 窄：不是我的回合、在等回包这些「只是出不了牌」的时刻，
         // 玩家仍然应该能把牌抬起来看清楚。
         handFrozen: context.landing || showcasing || context.targeting,
@@ -228,7 +204,6 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
               ? 'deal'
               : null,
         settleReady: context.settle?.ready ?? false,
-        cutscene: showcasing || context.coinUp || context.quizUp || context.cancelUp,
       }
     },
 

@@ -121,13 +121,11 @@ export function openLocks(overrides: Partial<DirectorLocks> = {}): DirectorLocks
     showcasing: false,
     dealing: false,
     actionsLocked: false,
-    endPlayLocked: false,
     handFrozen: false,
     waitingForFoe: false,
     quizWait: false,
     handLockReason: null,
     settleReady: false,
-    cutscene: false,
     ...overrides,
   }
 }

@@ -81,7 +81,6 @@ export function openSettle(
     question: info.question,
     scoresBefore: info.scoresBefore,
   })
-  context.emit({ kind: 'tutorial', durationMs: 0, cue: 'quiz-open' })
 }
 
 /**
@@ -190,10 +189,6 @@ export function startSettleMain(context: DirectorContext, score: SettleScore): v
     })
   })
   at = stampStart + Math.max(0, rows.length - 1) * SETTLE_STAMP_STAGGER_MS + SETTLE_STAMP_MS
-  // 逐张揭晓到此为止。教程等的就是这一拍——再早说话会压在还在打字的卡上。
-  later(context, at, () => {
-    context.emit({ kind: 'tutorial', durationMs: 0, cue: 'quiz-rows-done' })
-  })
 
   // ④ 两侧标头的「正确 x / N」淡入，「本轮领先」徽章弹一下。
   later(context, at, () => {
@@ -218,9 +213,6 @@ export function startSettleMain(context: DirectorContext, score: SettleScore): v
     })
   })
   at += SETTLE_SCORE_MS
-  later(context, at, () => {
-    context.emit({ kind: 'tutorial', durationMs: 0, cue: 'quiz-score-shown' })
-  })
 
   // ⑥ 按钮淡入，落地那一刻才解锁。
   later(context, at, () => {
@@ -257,8 +249,6 @@ export function exitSettle(context: DirectorContext): void {
   context.schedule(SETTLE_EXIT_MS, () => {
     context.quizUp = false
     context.settle = null
-    // 结算层退场了，教程的提示这才有地方站（它比这一层低一档）。
-    context.emit({ kind: 'tutorial', durationMs: 0, cue: 'quiz-closed' })
     // 结算层立着的这段时间里憋下的横幅（下一轮的宣告），到这里才放出来。
     pumpBanner(context)
     // 屏幕空出来了，这一轮的补牌这才从各自的卡堆飞出去。

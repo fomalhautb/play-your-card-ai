@@ -5,9 +5,6 @@
  *
  * - **房间页只读**（`room`）。房间码画在画布上，用例读不到它——DOM 里根本没有那几个字。
  *   三颗钮仍然是真的用指针点的，点了之后大厅通不通正是这条用例要守的东西。
- * - **新手教程只读**（`tutorial`）。教程那条用例（e2e/tutorial.spec.ts）要知道「现在停在哪一步」
- *   才判得出该做什么，而步骤 id 一个字都不在 DOM 里；要圈的那几块也只有场景答得上来
- *   （画布上没有元素可查）。所以这一格给出「哪一步 + 那几块矩形」，**点还是真的用指针点**。
  * - **对局页还能发指令**（`match`）。两个浏览器打完整局要走八轮，每轮双方各出几张牌、
  *   各确认一次结算，全靠合成指针拖牌的话一条用例要拖上百次，每次都得先算出那张牌
  *   此刻在屏幕哪儿。**拖牌本身已经由单机那条用例守着了**（e2e/localMatch.spec.ts
@@ -41,37 +38,6 @@ export interface RoomDebug {
   view(): RoomView
 }
 
-/** 一块地方，画布的 CSS 像素坐标。用例照它算「点哪儿」。 */
-export interface DebugRect {
-  x: number
-  y: number
-  w: number
-  h: number
-}
-
-/** 新手教程此刻的样子。三段（组牌 / 选英雄 / 对战）共用同一个形状。 */
-export interface TutorialProbe {
-  /** 走到哪一段了：`deck` / `hero` / `duel`。 */
-  phase: string
-  /** 这一段内部的步骤 id（各段各有各的 id 空间）。 */
-  step: string
-  /** 提示出场了没有。没出场时点什么都不算数（见 tutorial/machine.ts）。 */
-  ready: boolean
-  /** 这一步要圈的那几块。用例点它们的正中。 */
-  targets(): DebugRect[]
-  /**
-   * 对战那一段的语义锚点（`DuelAnchorName`）。用例要按它找「结束出牌」那颗钮——
-   * 它画在画布上，DOM 里没有这颗按钮。别的两段一律返回 null。
-   */
-  anchor(name: string): DebugRect | null
-}
-
-export interface TutorialDebug {
-  view(): { phase: string; step: string; ready: boolean }
-  targets(): DebugRect[]
-  anchor(name: string): DebugRect | null
-}
-
 /**
  * 两页各占一格。分成两格而不是一个大对象：两页的生命周期不一样，
  * 用例也要靠「这一格在不在」判断自己现在停在哪一页。
@@ -79,7 +45,6 @@ export interface TutorialDebug {
 export interface AiDuelDebug {
   match?: MatchDebug
   room?: RoomDebug
-  tutorial?: TutorialDebug
 }
 
 declare global {
@@ -111,19 +76,4 @@ export function installMatchDebug(driver: MatchDriver): () => void {
 /** 房间页那一格。传的是取值器而不是当时那份状态——这一页每变一次都会换一个新对象。 */
 export function installRoomDebug(read: () => RoomView): () => void {
   return install('room', { view: read })
-}
-
-/**
- * 新手教程那一格。同样传取值器：教程每推一步就换一份，而这一格只挂一次。
- * 三段各自挂各自的，走到哪一段这里就是哪一段（`phase` 分得出来）。
- */
-export function installTutorialDebug(read: () => TutorialProbe): () => void {
-  return install('tutorial', {
-    view: () => {
-      const probe = read()
-      return { phase: probe.phase, step: probe.step, ready: probe.ready }
-    },
-    targets: () => read().targets(),
-    anchor: (name) => read().anchor(name),
-  })
 }

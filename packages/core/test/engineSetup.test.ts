@@ -1,7 +1,7 @@
 /**
  * 开局：`createGame` 的单元测试（对应 src/engineSetup.ts）。
  *
- * 抛硬币定先手、各发起始手牌、洗牌和洗题序，外加教程要用的两个覆盖项
+ * 抛硬币定先手、各发起始手牌、洗牌和洗题序，外加排剧本要用的两个覆盖项
  *（指定先手、noShuffle）。
  *
  * 开局那串事件末尾的 ROUND_STARTED / PLAY_TURN_STARTED 是 engineRound.ts 的 announceRound 发的，
@@ -79,7 +79,7 @@ describe('开局', () => {
   })
 })
 
-describe('开局的两个覆盖项（教程要用）', () => {
+describe('开局的两个覆盖项（排剧本要用）', () => {
   it('指定先手就不掷硬币，GAME_STARTED 照常带 firstPlayer', () => {
     for (const seat of [0, 1] as const) {
       const { state, events } = newGame({ firstPlayer: seat })
@@ -92,7 +92,7 @@ describe('开局的两个覆盖项（教程要用）', () => {
   it('指定先手不消耗随机数：换个先手不会连带把牌堆和题序也洗成另一副', () => {
     // 抛硬币是整个跳过的（不是掷完丢掉），所以这一掷不再推进 rng：
     // 同一个种子下改先手，后面洗出来的牌堆和题序一字不差。
-    // 教程排剧本时才能"先定牌序，再单独安排谁先手"，两件事互不牵连。
+    // 排剧本时才能"先定牌序，再单独安排谁先手"，两件事互不牵连。
     const zero = newGame({ firstPlayer: 0 }).state
     const one = newGame({ firstPlayer: 1 }).state
     expect([zero.firstPlayer, one.firstPlayer]).toEqual([0, 1])

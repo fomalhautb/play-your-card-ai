@@ -66,7 +66,6 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
   const commands: DuelCommand[] = []
   scene.onCommand((command) => commands.push(command))
   scene.onUserAction(() => undefined)
-  scene.onTutorialCue(() => undefined)
 
   /** 开一局。牌序、题序、先手全部定死，同一段剧本跑两遍才会一模一样。 */
   function startGame(): { state: GameState; events: GameEvent[] } {

@@ -160,10 +160,8 @@ describe('结算层时间线', () => {
       'settle-typing',
       'settle-stamp',
       'settle-stamp',
-      'tutorial',
       'settle-counts',
       'settle-score',
-      'tutorial',
       'settle-confirm',
     ])
     expect(cuesOf(cues, 'settle-answer')[0]?.answer).toBe('标准答案')

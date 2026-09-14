@@ -139,7 +139,6 @@ const SAMPLE_CUES: Record<Cue['kind'], Cue> = {
   'lock-release': { kind: 'lock-release', at: 0, durationMs: 0, token: 1 },
   urge: { kind: 'urge', at: 0, durationMs: 3200, lineId: '快点啊' },
   error: { kind: 'error', at: 0, durationMs: 0, reason: 'Token 不够' },
-  tutorial: { kind: 'tutorial', at: 0, durationMs: 0, cue: 'deal-done' },
   'clear-overlays': { kind: 'clear-overlays', at: 0, durationMs: 0 },
 }
 

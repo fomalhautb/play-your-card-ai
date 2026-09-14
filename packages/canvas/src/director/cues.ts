@@ -7,7 +7,7 @@
  * 编排层自己知道每段多长，播完之后该发生什么由它在虚拟时钟上排好期。
  *
  * `durationMs` 为 0 表示「瞬时切换」：它不占时间，只是通知渲染器换一个状态
- *（上锁 / 解锁、教程信号、拒绝提示）。
+ *（上锁 / 解锁、拒绝提示）。
  *
  * 一种演出一种 kind，不复用。加一种演出就在这里加一条，别往现有的载荷里塞开关——
  * 快照测试是一行一条 cue 读的，开关字段会让「这一下到底演了什么」看不出来。
@@ -21,29 +21,6 @@ import type {
   PublicQuestion,
   RoundVerdict,
 } from '@ai-duel/core'
-
-/**
- * 舞台演出信号：对局界面里那几段「演完了」的时刻，教程的每一句提示都挂在其中一个上。
- *
- * 原样抄自黑客松版的 `src/ui/matchStageTutorial.ts` 的 `MatchStageCue`，
- * 教程状态机本身还没迁（迁移第 32 条），这里只负责把这七个信号按原来的时机发出来。
- * 加新信号之前先问一句「哪一步在等它」，没有答案就别加。
- */
-export type MatchStageCue =
-  /** 发牌动画全部落地（开局那 5 张，或者每轮结算后补的 2 张）。 */
-  | 'deal-done'
-  /** 中央横幅队列播空（「第 N 轮」「轮到你出牌」这一串）。 */
-  | 'round-banner-done'
-  /** 答题揭晓层立起来了，题面已经在屏幕上。 */
-  | 'quiz-open'
-  /** 揭晓层里的答题结果逐条亮完。 */
-  | 'quiz-rows-done'
-  /** 揭晓层里的本轮比分亮出来了。 */
-  | 'quiz-score-shown'
-  /** 揭晓层整层退场完毕，战场重新露出来。 */
-  | 'quiz-closed'
-  /** 我方技能牌飞到目标格、命中特效播完。 */
-  | 'skill-hit'
 
 /** 演出锁是被哪条链路拿走的。只用来读日志和快照，编排层自己按编号认锁。 */
 export type LockReason =
@@ -221,8 +198,6 @@ export type CueSpec =
    * 所以这里 `durationMs` 记 0：立刻上，由后续覆盖。
    */
   | { kind: 'error'; durationMs: number; reason: string }
-  /** 教程要等的舞台信号，见 MatchStageCue。 */
-  | { kind: 'tutorial'; durationMs: number; cue: MatchStageCue }
   /**
    * 一次性清场：把所有还立着的过场层（抛硬币、结算、抵消、展示）当场收掉。
    * 只有对局中断（对手断线）会发——那时结算层再也等不到对方确认，

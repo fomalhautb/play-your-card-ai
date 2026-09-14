@@ -8,22 +8,14 @@
  *
  * 场景既不导航也不写存档，甚至不自己记「现在选中谁」——那一份状态由装配层持有，
  * 通过 `setView` 摆进来。旧版 `HeroScreen` 也是受控的（选完之后去哪、存不存全由调用方决定），
- * 因为同一份界面有三条入口：独立页、匹配房里的一步、新手教程的最后一步。
- * 场景自己记状态的话，这三条入口就得各自去猜它现在记着什么。
+ * 因为同一份界面有两条入口：独立页、匹配房里的一步。
+ * 场景自己记状态的话，这两条入口就得各自去猜它现在记着什么。
  *
  * 唯一由场景自己管的是**悬停**：那是纯粹的画面反馈，出了这一页没有任何意义。
  */
 
 import type { Platform } from '@ai-duel/platform'
 import type { Texture } from 'pixi.js'
-import type { AnchorRect } from '../anchors'
-
-/** 这一页上新手教程要圈的两处（迁移第 32 条）。 */
-export type HeroAnchor =
-  /** 某一位的那张人物卡。 */
-  | { kind: 'heroCard'; hero: string }
-  /** 技能详情底下那颗「确认英雄」。详情没开着、或者这条入口是纯查看时答不上来。 */
-  | { kind: 'heroConfirm' }
 
 /** 一位英雄。数据来自 `content` 的 HEROES，由装配层查好连原画一起传进来。 */
 export interface HeroEntry {
@@ -104,13 +96,6 @@ export interface HeroScene {
   onAction(callback: (action: HeroAction) => void): void
   /** 静音钮换一枚剪影。 */
   setMuted(muted: boolean): void
-  /**
-   * 某个高亮目标现在占哪一块（画布的 CSS 像素坐标）。答不上来返回 null。
-   *
-   * 这一页没有「教学闸门」那种东西：场景本来就是受控的（选谁、详情开在谁身上都由装配层给），
-   * 挡住其余六位只要装配层不把那条 `open` 摆回来就行（见 client 的 TutorialScreen）。
-   */
-  anchorRect(target: HeroAnchor): AnchorRect | null
   /**
    * 把指针停在第 index 张卡上（null 是不停）。只给目录页用——那边没有真指针。
    */

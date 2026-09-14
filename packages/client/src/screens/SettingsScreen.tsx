@@ -21,7 +21,7 @@
  *
  * ## 重置存档要二次确认
  *
- * 它删的是收藏、胜场、英雄和教程标记，删了回不来，所以走 `Dialog`。
+ * 它删的是收藏、胜场和选过的英雄，删了回不来，所以走 `Dialog`。
  * 牌组不在这一位存档里（那是另一位，见 save/deckStore.ts），所以这颗钮**不动牌组**——
  * 说明里写清楚了，免得有人指望它把自己编坏的牌组也一起清掉。
  */
@@ -105,7 +105,7 @@ export function SettingsScreen() {
       <div className="settings__danger">
         <p className="settings__danger-title">重置存档</p>
         <p className="settings__danger-text">
-          清掉收藏的卡牌、胜场、选过的英雄和教程记录，回到新号的样子。
+          清掉收藏的卡牌、胜场和选过的英雄，回到新号的样子。
           <strong>不动牌组</strong>——那是另一份存档，要清的话去牌组页删。
         </p>
         <Button onClick={() => setConfirming(true)}>重置存档</Button>
