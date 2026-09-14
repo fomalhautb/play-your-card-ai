@@ -137,6 +137,8 @@ export function mobileLayout(width: number, height: number): DuelLayout {
     board: { ...boardRect, scale: boardScale },
     // 落点提示、Token 细条贴边、两块吊匾都是竖排才摆得下的东西，这一档一律没有。
     dropCue: null,
+    // 手机档手牌区更高（HAND_ZONE 那一档），取消区跟着它走。
+    returnZone: { x: 0, y: height - handZone, width, height: handZone },
     tokenRail: null,
     nextPlaque: null,
     turnPlaque: null,
@@ -151,6 +153,7 @@ export function mobileLayout(width: number, height: number): DuelLayout {
     endPlay: endPlayRect(width, height, handZone),
     // 触屏档放大得更多：1.7 倍在手机上只有约 126 个屏幕像素宽，和「点开看清楚」差得远。
     revealScale: tokens.size.card.revealScaleTouch,
+    revealScaleHero: tokens.size.card.revealScaleHeroTouch,
     banner: { x: width / 2, y: height * 0.24 },
     bubble: { x: width / 2, y: height - handZone - 20 },
   }

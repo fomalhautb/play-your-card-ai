@@ -138,6 +138,8 @@ export const handPlayers: CuePlayerGroup<'deal' | 'play-flip' | 'skill-showcase'
   'skill-showcase'(ctx, cue) {
     dropShowcase(ctx)
     const claimed = claimByCard(ctx, cue.cardId)
+    // 展示位那张浮在遮罩上，投影跟着它（见 CardSprite.setLifted）。
+    claimed.card.setLifted(true)
     ctx.showcased = claimed.card
     ctx.parts.reveal.enter(claimed.card, claimed.from)
     if (cue.targetInstanceId !== null) return

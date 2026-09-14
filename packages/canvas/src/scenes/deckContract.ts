@@ -24,7 +24,7 @@ import type { CardId, Catalog } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
 import type { EffectTier } from '../fx/effectTier'
 import type { DeckRules, PoolCard } from './deck/logic/types'
-import type { CardTextures } from './duelContract'
+import type { CardFaceStyle, CardTextures } from './duelContract'
 
 export type { DeckRules, PoolCard, PoolKind } from './deck/logic/types'
 
@@ -53,6 +53,8 @@ export interface DeckSceneOptions {
   tier: EffectTier
   /** 卡面。构筑页要**整个卡池**的贴图，不像对局只要当前两副牌那些。 */
   textures: CardTextures
+  /** 卡面展示配置，键是卡牌 id（含义同 `DuelSceneOptions.cardFaces`）。 */
+  cardFaces?: Record<string, CardFaceStyle>
   /** 查卡名和费用用。 */
   catalog: Catalog
   /** 卡池里摆哪些卡，顺序即摆放顺序。由调用方算好（见 content 的 deckPool.ts）。 */

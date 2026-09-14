@@ -142,12 +142,16 @@ class PackSceneImpl {
       text: this.deps.text,
       // 这一页只有一张卡、也没有指针跟随，反光建了也永远不会亮。
       glare: false,
+      // 就一张卡，投影照画：开包那一下卡是"浮"在页面上的，没有影子会显得贴在底板上。
+      shadow: true,
     })
     card.eventMode = 'static'
     card.cursor = 'pointer'
     card.on('pointertap', () => {
       if (this.view?.phase === 'closed') this.onAction?.({ kind: 'flip' })
     })
+    // 开包那一下卡是浮在页面中央的，投影开着（见 CardSprite.setLifted）。
+    card.setLifted(true)
     this.card = card
     this.world.addChild(card)
     this.place()

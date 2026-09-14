@@ -13,6 +13,7 @@
  */
 
 export * from './card'
+export * from './cardFace'
 export * from './hero'
 export * from './interferencePrompts'
 export * from './pregenAnswers'

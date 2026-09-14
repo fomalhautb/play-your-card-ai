@@ -53,7 +53,11 @@ function showcase(ctx: StoryStage, tier: EffectTier) {
     baked,
     text,
     glare: TIER_CONFIG[tier].glare,
+    shadow: TIER_CONFIG[tier].cardShadow,
   })
+  // 这几条摆的就是一张"浮起来"的卡（放大在中央单看），所以把投影开着——
+  // 真界面里只有抬起、拖着、摆在展示层中央的那张才画它（见 CardSprite.setLifted）。
+  card.setLifted(true)
   // 卡的原点在底边中点（见 CardSprite 的坐标约定），所以要往下挪半张卡才是居中。
   card.position.set(ctx.width / 2, ctx.height / 2 + (CARD_HEIGHT * SHOWCASE_SCALE) / 2)
   card.scale.set(SHOWCASE_SCALE)

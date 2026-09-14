@@ -99,6 +99,7 @@ class HomeSceneImpl {
       text: new TextTextureCache(renderer),
       animator: new Animator(() => this.frameLoop.wake()),
       glare: tier.glare,
+      shadow: tier.cardShadow,
       tilt: tier.cardTilt,
     }
 

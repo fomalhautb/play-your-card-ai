@@ -109,3 +109,47 @@ describe('HandFan：拖起再放回后的层级', () => {
     expect(order(fan)).toEqual(['c0', 'c1', 'c2', 'c3', 'c4'])
   })
 })
+
+/**
+ * 灰墨态的下沉必须是**幂等**的：状态没变就一条补间都别建。
+ *
+ * 这条对应踩过的第二个坑：早先是按 `pivot.y` 现在的值判「变了没有」，
+ * 而调用方每收到一次锁就调一次、联机那条路每帧都会重发一次锁——
+ * 补间还没跑完 `pivot.y` 就还不等于目标，于是每帧新建一条把上一条顶掉，
+ * 补间永远跑不完。表现是跑批里剧本推满三千帧还不空闲（3.6 那条从此不成立）。
+ */
+describe('HandFan：灰墨态下沉', () => {
+  function countingFan(): { fan: HandFan; tweens: object[] } {
+    const tweens: object[] = []
+    const animator = {
+      tween: (target: object) => {
+        tweens.push(target)
+      },
+    } as unknown as Animator
+    return {
+      fan: new HandFan({ animator, geometry: PLAYER_FAN, areaWidth: WIDE }),
+      tweens,
+    }
+  }
+
+  it('连着设同一档只建一条补间', () => {
+    const { fan, tweens } = countingFan()
+    fan.setSunk(true)
+    fan.setSunk(true)
+    fan.setSunk(true)
+    expect(tweens).toHaveLength(1)
+  })
+
+  it('一开始就是不沉的，所以设 false 什么都不做', () => {
+    const { fan, tweens } = countingFan()
+    fan.setSunk(false)
+    expect(tweens).toHaveLength(0)
+  })
+
+  it('换一档才再建一条', () => {
+    const { fan, tweens } = countingFan()
+    fan.setSunk(true)
+    fan.setSunk(false)
+    expect(tweens).toHaveLength(2)
+  })
+})

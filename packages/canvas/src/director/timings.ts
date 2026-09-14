@@ -105,6 +105,15 @@ export const SKILL_FLIGHT_MS = sec(0.42)
 
 /** 我方 AI 牌从手牌飞到战场格的 Flip 时长（MatchStage.tsx:2288）。 */
 export const PLAY_FLIP_MS = sec(0.65)
+
+/**
+ * 手上那张牌点问号章翻到背面、以及翻回正面各多久（黑客松 `HandFan.tsx:919,1093-1117`）。
+ *
+ * 两头不一样长是刻意的：翻过去是"我要看点东西"，慢一点让人跟得上；
+ * 翻回来是"看完了"，快一点才不拖沓。
+ */
+export const HAND_FLIP_MS = sec(0.4)
+export const HAND_UNFLIP_MS = sec(0.3)
 /** 落地特效（震屏 + 烟尘 + 追光）从落地起还要演多久（`SUMMON_FX_TAIL`）。演出锁挂到这段演完。 */
 export const SUMMON_FX_MS = sec(0.8)
 /** 对手 AI 牌展示受理不了时的简易进场（MatchStage.tsx:2325）。 */

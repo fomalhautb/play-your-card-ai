@@ -20,8 +20,14 @@ const MODELS_ATLAS = '/atlas/models-0.webp.json'
 const SKILLS_ATLAS = '/atlas/skills-0.webp.json'
 const BACKS_ATLAS = '/atlas/backs.webp.json'
 
-/** 牌背用哪一张。两张牌背都在图集里，这一版取带花饰的那张。 */
+/** AI 牌的卡背用哪一张。两张牌背都在同一组图集里，这一版取带花饰的那张。 */
 const BACK_FRAME = 'card-back-v4-relaxed-ornament'
+/**
+ * 技能牌翻过去看到的那张星象底图。
+ *
+ * 和 `BACK_FRAME` 同一页图集，所以多取一帧不多一次请求、也不多一张纹理。
+ */
+const SKILL_BACK_FRAME = 'card-back-v1'
 
 /** 英雄原画的地址。和 preload/manifests.ts 的 `HERO_IMAGES` 是同一条「id 即文件名」的约定。 */
 function heroArtOf(heroId: HeroId): string {
@@ -64,7 +70,10 @@ export async function loadCardTextures(options: CardTexturesOptions = {}): Promi
   if (back === undefined) {
     throw new Error(`图集 ${BACKS_ATLAS} 里没有 ${BACK_FRAME} 这一帧，先跑 pnpm assets:build`)
   }
-  if (options.heroes !== true) return { faces, back }
+  // 星象底图少一张不算错：场景收到 undefined 就让技能牌退回用 AI 牌那张卡背。
+  const skillBack = backs.textures[SKILL_BACK_FRAME]
+  const commonBacks = { back, ...(skillBack === undefined ? {} : { skillBack }) }
+  if (options.heroes !== true) return { faces, ...commonBacks }
 
   /*
    * 英雄原画少一张不算错：用 `allSettled` 而不是 `all`。
@@ -78,5 +87,5 @@ export async function loadCardTextures(options: CardTexturesOptions = {}): Promi
     const result = loaded[index]
     if (result?.status === 'fulfilled') heroes[id] = result.value
   })
-  return { faces, back, heroes }
+  return { faces, ...commonBacks, heroes }
 }

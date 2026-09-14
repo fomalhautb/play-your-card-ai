@@ -29,7 +29,7 @@ import { createSceneClock } from './clock'
 import type { DuelContext } from './context'
 import { playCue } from './cuePlayers/index'
 import { createDuelDeps, type DuelDeps, destroyDeps, restoreDeps } from './deps'
-import { deckPoseOf, tilePointOf } from './geometry'
+import { deckPoseOf, heroPointOf, tilePointOf } from './geometry'
 import { makeHeroArt } from './heroArt'
 import { createDuelInput, type DuelInput } from './input'
 import { pickLayout } from './layout/pickLayout'
@@ -130,7 +130,7 @@ class DuelSceneImpl {
       reducedMotion: options.reducedMotion === true,
       wake: () => this.frameLoop.wake(),
     })
-    this.visuals = createCardVisuals(options.catalog, options.textures)
+    this.visuals = createCardVisuals(options.catalog, options.textures, options.cardFaces)
     if (this.backdrop !== null) this.root.addChild(this.backdrop)
     this.root.addChild(this.stage, this.letterbox)
     this.parts = this.buildParts()
@@ -187,9 +187,10 @@ class DuelSceneImpl {
       locks: new Set(),
       showcased: null,
       inspectingTile: null,
-      makeCard: (cardId, instanceId) => this.makeCard(cardId, instanceId),
+      makeCard: (cardId, instanceId, hiddenBack) => this.makeCard(cardId, instanceId, hiddenBack),
       makeHero: (heroId) => makeHeroArt(this.options.textures.heroes?.[heroId]),
       tilePoint: (instanceId) => tilePointOf(this.layout, this.parts.board, instanceId),
+      heroPoint: () => heroPointOf(this.layout, this.parts.panels.mine),
       cardIdOf: (instanceId) => this.cardIdOf(instanceId),
       after: (delayMs, run) => this.clock.after(delayMs, run),
       deckPose: () => deckPoseOf(this.layout),
@@ -203,8 +204,12 @@ class DuelSceneImpl {
     }
   }
 
-  private makeCard(cardId: CardId, instanceId: string): CardSprite {
-    return new CardSprite(this.visuals.visualOf(cardId, instanceId), this.deps.cardDeps)
+  private makeCard(cardId: CardId, instanceId: string, hiddenBack = false): CardSprite {
+    const visual = this.visuals.visualOf(cardId, instanceId)
+    return new CardSprite(
+      hiddenBack ? { ...visual, back: this.deps.baked.foeBack } : visual,
+      this.deps.cardDeps,
+    )
   }
 
   /** 场上（或手上）那个实例现在是哪张牌。 */

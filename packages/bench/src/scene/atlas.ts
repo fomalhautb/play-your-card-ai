@@ -9,8 +9,10 @@ export interface AtlasOptions {
   faces: string
   /** 牌背图集的清单。牌背和卡面是分开打的两组，见 assets/atlas.config.mjs。 */
   backs: string
-  /** 牌背在图集里的帧名。 */
+  /** AI 牌卡背在图集里的帧名。 */
   backFrame: string
+  /** 技能牌翻过去那张星象底图的帧名。和牌背同一页图集，多取一帧不多一次请求。 */
+  skillBackFrame: string
 }
 
 /**
@@ -23,4 +25,5 @@ export const DEFAULT_ATLAS: AtlasOptions = {
   faces: '/atlas/models-0.webp.json',
   backs: '/atlas/backs.webp.json',
   backFrame: 'card-back-v4-relaxed-ornament',
+  skillBackFrame: 'card-back-v1',
 }

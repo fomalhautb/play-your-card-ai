@@ -56,10 +56,16 @@ export const DEAL_STAGGER = 0.12
 
 /**
  * 放大后的卡跟着指针倾斜的最大角度（度），指针压在卡边缘时到这个数、压在正中时是 0。
- * 只给放大的那张牌用。来源：旧客户端 ui/cardTilt.ts 的 DEFAULT_MAX_TILT。
- * 配的是真透视（见 components/cardProjection.ts），6° 在 150 宽的卡上刚好看得出近大远小。
+ *
+ * 只给放大的那张牌用：扇形里没放大的小卡本身就是斜的（最多 SPREAD_DEG / 2），
+ * 再叠一层三维倾斜看着就是一团乱。
+ *
+ * 一度写成 6——那是黑客松 `ui/cardTilt.ts` 里的**默认值**，而三处调用方（手牌、首页展示卡、
+ * 选英雄页）传进去的都是 10，默认值一次都没生效过。正式版简化第 4 步之三改回 10。
+ * 配的是真透视（见 components/cardProjection.ts），10° 在 150 宽的卡上一眼看得出近大远小，
+ * 再大卡面就开始明显变形。
  */
-export const HOVER_TILT_DEG = 6
+export const HOVER_TILT_DEG = 10
 
 /** 一张牌在扇形里该摆成什么样。scale 是相对卡面基准尺寸（150×225）的倍数。 */
 export interface SlotPose {

@@ -26,15 +26,19 @@
  * 正式版简化第 4 步之一：首页、房间页、开包页剥成了**素方块**。这三页上的按钮、面板、
  * 一行状态字全走 components/Box.ts 这一个原语（1px 描边矩形加一行字），
  * 只服务它们的装饰件（图片底板按钮、夜色圆章）连同底图素材一起删了。
- * 对局、组牌、选英雄那三页还是老样子，等简化第 4 步余下三个 PR。
+ * 之二把对局页的版式和界面件也换成了素方块。
+ *
+ * **卡牌是这一轮唯一没被剥的东西**（简化第 4 步之三）：卡面按黑客松版还原了边框羽化、
+ * 八角雕花铭牌、三圈费用章、卡下投影和三种牌背，和卡牌有关的交互（灰墨态、点锁牌弹小字、
+ * 施放抬起、落点和取消区提示、跟指针倾斜、翻面看背面）也一并补回来了。
  *
  * 目录：
  *   components/    Pixi 组件（素方块、卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
- *                  对局那批复合件，以及卡面倾斜、卡面的透视投影和网格几何）
+ *                  对局那批复合件，以及卡面分几层、卡面倾斜、卡面的透视投影和网格几何）
  *   director/      对局演出编排（事件批 → 演出指令，纯 TS，不碰 Pixi / GSAP / DOM）
  *   fx/            特效和预烤纹理（命中特效、卡面反光、卡牌那批纹理、界面零件那批纹理、
- *                  各零件的模具画法、效果分档）
- *   interaction/   交互（拖拽判定的纯函数、手牌的指针状态机）
+ *                  各零件的模具画法、调色、效果分档）
+ *   interaction/   交互（拖拽判定的纯函数、手牌的指针状态机、手牌的 hover 和倾斜跟随）
  *   layout/        布局数学（扇形几何、hover 让位）
  *   runtime/       运行期底座（帧循环、补间记账、文字纹理缓存、随机数）
  *   scenes/        场景装配（对局渲染器 scenes/duel，含两档版式、cue 播放器、输入；
@@ -48,9 +52,6 @@
  */
 
 export {
-  BADGE_COST,
-  BADGE_HELP,
-  BADGE_NAMEPLATE,
   BADGE_SOON,
   BADGE_TILE_MARK,
   Badge,
@@ -270,10 +271,12 @@ export type {
   PoolCard,
   PoolKind,
 } from './scenes/deckContract'
+export { createCardVisuals } from './scenes/duel/cardVisuals'
 export { createDuelScene } from './scenes/duel/DuelScene'
 export { pickLayout, pickTier, TOUCH_BREAKPOINT } from './scenes/duel/layout/pickLayout'
 export type { DuelLayout, LayoutTier } from './scenes/duel/layout/types'
 export type {
+  CardFaceStyle,
   CardTextures,
   CreateDuelScene,
   DuelCommand,

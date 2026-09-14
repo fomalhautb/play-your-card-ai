@@ -35,7 +35,15 @@ export interface DuelDeps {
   reducedMotion: boolean
   /** 牌背。`FoeHand` 只要这一张，别的组件用不到。 */
   back: Texture
-  /** 建卡要的那三样。预热和对局共用同一份，两条路建出来的卡才是一样的。 */
+  /**
+   * 卡跟不跟指针倾斜（手牌抬起来那张、战场小卡）。
+   *
+   * 和 `cardDeps.glare` 是同一个物理模型的两半，判据也一样：效果档位开着、而且玩家没要求
+   * 「减少动效」。摆出来是因为要它的有两处（`interaction/handPointer` 和 `scenes/duel/tileHover`），
+   * 各算一遍迟早走岔。
+   */
+  cardTilt: boolean
+  /** 建卡要的那几样。预热和对局共用同一份，两条路建出来的卡才是一样的。 */
   cardDeps: CardSpriteDeps
 }
 
@@ -52,6 +60,13 @@ export interface DuelDepsOptions {
    * 而它是**整张卡那么大的一层**——一屏二三十张卡，白画一遍就是零点几倍的过度绘制（3.2）。
    */
   glare?: boolean
+  /**
+   * 建出来的卡下面要不要垫一团投影。不给就按效果档位定（`TIER_CONFIG[tier].cardShadow`）。
+   *
+   * 和 `glare` 同一个道理：构筑页一屏二三十张卡，每张多铺一层比卡还大的半透明贴图，
+   * 过度绘制（3.2）当场翻倍，而那一页的卡是平铺在格子里的，本来也没有"浮起来"的语义。
+   */
+  cardShadow?: boolean
   /** 见 `DuelDeps.reducedMotion`。不给就是没开。 */
   reducedMotion?: boolean
   /** 补间一建就要叫醒帧循环，否则没人推它（3.6）。 */
@@ -80,12 +95,15 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
     rng: new Rng(options.seed),
     tier: options.tier,
     reducedMotion,
+    cardTilt: !reducedMotion && TIER_CONFIG[options.tier].cardTilt,
     back: options.back,
     cardDeps: {
       baked,
       text,
       // 减少动效时反光层整个不建：它跟着倾斜一起动，而倾斜正是这一档要关掉的东西。
       glare: !reducedMotion && (options.glare ?? TIER_CONFIG[options.tier].glare),
+      // 投影是静态的，和"减少动效"无关，所以它只看档位和调用方。
+      shadow: options.cardShadow ?? TIER_CONFIG[options.tier].cardShadow,
     },
   }
 }

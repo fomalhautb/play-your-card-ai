@@ -32,11 +32,35 @@ import type { Cue } from '../director/cues'
 import type { DirectorLocks, UserAction } from '../director/director'
 import type { EffectTier } from '../fx/effectTier'
 
+/**
+ * 卡面上那点**展示配置**：费用圆章摆在哪、盘底什么色、插画主色是什么。
+ *
+ * 它是内容数据，唯一出处在 `@ai-duel/content` 的 `CARD_FACES`（形状和这里逐字段对应）。
+ * canvas 不许依赖 content（依赖方向见《正式版架构》7.2），所以类型在这儿另写一份，
+ * 由装配层把那张表原样传进来。字段都可选：查不到配置的牌走兜底，不会画不出来。
+ */
+export interface CardFaceStyle {
+  /** 插画主色（'#rrggbb'）。具名 AI 牌用它调费用章盘底和铭牌字色。 */
+  accent?: string
+  /** 费用章盘底色（'#rrggbb'）。技能牌从原画那枚章上采的色，盖上去才接得住原画的金环。 */
+  costFill?: string
+  /** 费用章圆心，x 按卡宽、y 按卡高的百分比。不给就用兜底位置。 */
+  costBadge?: { x: number; y: number }
+}
+
 /** 纹理由调用方加载好传进来：canvas 不管资源从哪来。 */
 export interface CardTextures {
   /** 卡面，键是贴图名。贴图名就是卡牌 id（见 scenes/duel/cardVisuals.ts）。 */
   faces: Record<string, Texture>
+  /** AI 牌的美术卡背，也是缺原画时顶上去的那张。 */
   back: Texture
+  /**
+   * 技能牌的背面：星象边框那张底图，卡名和说明压在中间留白里。
+   *
+   * 和 `back` 分开，是因为手牌里**只有技能牌翻得过去**（问号章只长在它们身上），
+   * 而两种牌翻过去看到的本来就不是同一张图。不给就退回 `back`，少一张贴图不该让牌翻不了面。
+   */
+  skillBack?: Texture
   /**
    * 英雄原画，键是英雄 id。不给（或缺某一位）就是侧栏那个英雄位空着。
    *
@@ -73,6 +97,11 @@ export interface DuelSceneOptions {
   /** 这一端坐哪个座位。视图里的「我方 / 对方」按它分。 */
   seat: PlayerId
   textures: CardTextures
+  /**
+   * 卡面展示配置，键是卡牌 id（`@ai-duel/content` 的 `CARD_FACES`）。
+   * 不给就整副牌走兜底：费用章摆在默认位置、盘底按卡种取色。
+   */
+  cardFaces?: Record<string, CardFaceStyle>
   /** 本局卡池。卡名、费用、是 AI 还是技能都从它查。 */
   catalog: Catalog
   /**

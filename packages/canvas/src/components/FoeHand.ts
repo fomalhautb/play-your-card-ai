@@ -27,7 +27,12 @@ const ENTER_OFFSET = 140
 
 export interface FoeHandDeps {
   animator: Animator
-  /** 牌背纹理。canvas 不管资源从哪来，由调用方给。 */
+  /**
+   * 隐藏牌背的纹理。
+   *
+   * 给的该是**对手专用**的那张（烤出来的纸白底 + 藏青纹章，见 fx/cardShapes.ts），
+   * 不是自己人那张美术卡背——AI 牌和技能牌的卡背长得不一样，用自己人那套等于泄露牌种。
+   */
   back: Texture
 }
 

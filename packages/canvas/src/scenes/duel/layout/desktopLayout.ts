@@ -124,6 +124,8 @@ export function desktopLayout(viewWidth: number, viewHeight: number): DuelLayout
       width: DROP_CUE.width,
       height: DROP_CUE.height,
     },
+    // 取消区就是手牌区那一条，贴着舞台底边（黑客松 `.battle__return-zone` 的 `inset: auto 0 0`）。
+    returnZone: { x: 0, y: height - HAND_ZONE, width, height: HAND_ZONE },
     tokenRail: {
       x: width - tokens.size.rail.width,
       y: (height - tokens.size.rail.height) / 2,
@@ -154,6 +156,7 @@ export function desktopLayout(viewWidth: number, viewHeight: number): DuelLayout
     deck: deckPose(panels.mine),
     endPlay,
     revealScale: tokens.size.card.revealScale,
+    revealScaleHero: tokens.size.card.revealScaleHero,
     banner: { x: fanCenterX, y: height / 2 },
     bubble: { x: fanCenterX, y: height - HAND_ZONE - BUBBLE_GAP },
   }

@@ -7,7 +7,9 @@
 
 import { tokens } from '@ai-duel/design'
 import type { BoardGrid } from '../../components/BoardGrid'
+import type { PlayerPanel } from '../../components/PlayerPanel'
 import type { RevealPoint } from '../../components/RevealOverlay'
+import { CARD_WIDTH } from '../../layout/fanMath'
 import type { DuelLayout } from './layout/types'
 import { boardToWorld, toFanLocal } from './layout/types'
 
@@ -28,6 +30,23 @@ export function tilePointOf(
     scale: tokens.size.card.tileScale * scale,
     width: local.width * scale,
     height: local.height * scale,
+  }
+}
+
+/**
+ * 侧栏那张英雄牌在**视口坐标**里的中心和缩放。放大查看拿它当起飞点和落点。
+ *
+ * 面板自己只知道「英雄牌在我这块板子里占哪一格」，而展示层认的是视口坐标，
+ * 所以这一步要把面板的位置加回去。桌面档舞台整块缩过一次，那一层由展示层自己所在的
+ * 容器吃掉，这里不重复算。
+ */
+export function heroPointOf(layout: DuelLayout, panel: PlayerPanel): RevealPoint {
+  const rect = layout.panels.mine
+  const center = panel.heroCenter()
+  return {
+    x: rect.x + center.x,
+    y: rect.y + center.y,
+    scale: panel.heroWidth / CARD_WIDTH,
   }
 }
 

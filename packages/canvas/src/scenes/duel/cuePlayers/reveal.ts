@@ -8,7 +8,10 @@
  * 不用组件的补间回调：那样「现在演到哪儿」会散回一堆回调里，正是编排层要消灭的东西。
  */
 
-import { REVEAL_FADE_OUT_MS, REVEAL_OUT_MS } from '../../../director/timings'
+import type { HeroId } from '@ai-duel/core'
+import type { CardSprite } from '../../../components/CardSprite'
+import { REVEAL_FADE_OUT_MS, REVEAL_IN_MS, REVEAL_OUT_MS } from '../../../director/timings'
+import type { DuelContext } from '../context'
 import { FOE_FAN_SCALE } from '../layout/types'
 import { dropShowcase } from './showcase'
 import type { CuePlayerGroup } from './types'
@@ -35,7 +38,10 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
    */
   'reveal-enter'(ctx, cue) {
     dropShowcase(ctx)
-    const card = ctx.makeCard(cue.cardId, `reveal:${cue.handInstanceId}`)
+    // 从对手手里飞出来的那张要先长成牌背，所以背面换成他那排用的隐藏牌背。
+    const card = ctx.makeCard(cue.cardId, `reveal:${cue.handInstanceId}`, cue.fromOrigin)
+    // 展示位那张浮在遮罩上，投影跟着它（见 CardSprite.setLifted）。
+    card.setLifted(true)
     ctx.showcased = card
     const { foeHand } = ctx.parts
     let from = null
@@ -50,6 +56,7 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
       }
     }
     ctx.parts.reveal.enter(card, from)
+    if (from !== null) flipToFront(ctx, card)
   },
 
   'reveal-hold'(ctx) {
@@ -95,7 +102,10 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
    * 侧栏的英雄位是空的，`source` 为 'hero' 时这里什么都不做。
    */
   'inspect-enter'(ctx, cue) {
-    if (cue.source !== 'tile') return
+    if (cue.source === 'hero') {
+      enterHero(ctx, cue.flipId as HeroId)
+      return
+    }
     const point = ctx.tilePoint(cue.flipId)
     const tile = ctx.parts.board.tile(cue.flipId)
     // 卡面身份从视图里查，不从格子上那张卡问：`CardSprite` 上只有实例 id
@@ -104,6 +114,7 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
     if (point === null || tile === null || cardId === null) return
     dropShowcase(ctx)
     const card = ctx.makeCard(cardId, `inspect:${cue.flipId}`)
+    card.setLifted(true)
     ctx.showcased = card
     ctx.inspectingTile = cue.flipId
     tile.setHeld(true)
@@ -118,6 +129,10 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
    * 这时立刻把格子露出来，不排后续。
    */
   'inspect-exit'(ctx, cue) {
+    if (cue.source === 'hero') {
+      exitHero(ctx, cue.durationMs)
+      return
+    }
     const instanceId = ctx.inspectingTile
     ctx.inspectingTile = null
     const restore = () => {
@@ -133,4 +148,53 @@ export const revealPlayers: CuePlayerGroup<RevealKind> = {
     ctx.parts.reveal.landTo(point)
     ctx.after(REVEAL_OUT_MS, restore)
   },
+}
+
+/**
+ * 飞行途中把牌从背面翻正（黑客松 `MatchStage.tsx:2451-2487` 的 `flipTo 360`）。
+ *
+ * 从 180 转到 360 而不是转到 0：转到 0 是**倒着**转回去，看着像牌被收回了一半又吐出来。
+ * 时长和飞行同一档，两件事从头到尾同步，牌落到中央那一刻正好正面朝上。
+ */
+function flipToFront(ctx: DuelContext, card: CardSprite): void {
+  card.flipState.angle = 180
+  card.setFlipAngle(180)
+  ctx.deps.animator.tween(card.flipState, {
+    angle: 360,
+    duration: REVEAL_IN_MS / 1000,
+    ease: 'power3.inOut',
+    onUpdate: () => card.setFlipAngle(card.flipState.angle),
+  })
+}
+
+/**
+ * 点开侧栏那张英雄牌：原位让出来，另建一张原画飞到中央。
+ *
+ * 摆的不是 `CardSprite` 而是一张原画精灵——英雄原画本来就是画好的整张卡面，
+ * 名字都印在图里，再套一层铭牌和费用圆章是错的（英雄没有费用）。
+ * 放大倍数走英雄那一档（见版式的 `revealScaleHero`）。
+ */
+function enterHero(ctx: DuelContext, heroId: HeroId): void {
+  const art = ctx.makeHero(heroId)
+  if (art === null) return
+  dropShowcase(ctx)
+  ctx.showcased = art
+  ctx.parts.panels.mine.setHeroHeld(true)
+  ctx.parts.reveal.enter(art, ctx.heroPoint(), ctx.layout.revealScaleHero)
+  ctx.parts.reveal.showCaption(INSPECT_CAPTION)
+}
+
+/** 关掉英雄牌的放大查看：飞回侧栏那一格，`durationMs` 为 0 是「不播飞回、直接归位」。 */
+function exitHero(ctx: DuelContext, durationMs: number): void {
+  const restore = () => {
+    ctx.parts.panels.mine.setHeroHeld(false)
+    dropShowcase(ctx)
+  }
+  if (durationMs === 0) {
+    ctx.parts.reveal.abort()
+    restore()
+    return
+  }
+  ctx.parts.reveal.landTo(ctx.heroPoint())
+  ctx.after(REVEAL_OUT_MS, restore)
 }

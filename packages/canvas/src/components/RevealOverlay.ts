@@ -102,6 +102,13 @@ export class RevealOverlay extends Container {
    */
   private readonly clip: Graphics | null
   private readonly zoom: number
+  /**
+   * 这一趟放到多大。默认就是 `zoom`，`enter` 可以按这一张单独给。
+   *
+   * 侧栏那张英雄牌要单独给：它在面板里本来就有两百多宽，按普通卡那档 1.7 飞到中央
+   * 反而比原位还小（黑客松同理，见 `--reveal-scale` 在 `.reveal-clip--hero` 上的覆盖）。
+   */
+  private activeZoom: number
   private readonly anchorX: number
   private readonly anchorY: number
   private readonly topClip: number
@@ -113,6 +120,7 @@ export class RevealOverlay extends Container {
     super()
     this.deps = deps
     this.zoom = options.scale ?? tokens.size.card.revealScale
+    this.activeZoom = this.zoom
     this.anchorX = options.anchorX ?? 0.5
     this.anchorY = options.anchorY ?? 0.5
     this.topClip = options.topClip ?? 0
@@ -151,7 +159,7 @@ export class RevealOverlay extends Container {
     return {
       x: this.boxWidth * this.anchorX,
       y: this.boxHeight * this.anchorY,
-      scale: this.zoom,
+      scale: this.activeZoom,
     }
   }
 
@@ -161,8 +169,11 @@ export class RevealOverlay extends Container {
    * `from` 给 null 是**降级路径**——找不到起飞的那张牌（对手的技能牌在本端没有对应节点），
    * 改成在中央原地淡入，时长换成短一档的 `REVEAL_POP_IN_MS`。
    * 返回这一段的时长（毫秒），和 `reveal-enter` / `inspect-enter` cue 的 `durationMs` 一致。
+   *
+   * @param zoom 这一趟放到多大，不给就用建层时定的那一档（见 `activeZoom`）。
    */
-  enter(card: Container, from: RevealPoint | null): number {
+  enter(card: Container, from: RevealPoint | null, zoom?: number): number {
+    this.activeZoom = zoom ?? this.zoom
     this.card = card
     this.slot.removeChildren()
     this.slot.addChild(card)
@@ -177,7 +188,7 @@ export class RevealOverlay extends Container {
      * 挂卡那一层要摆在正中往下半张卡的地方。半张卡的高按基准尺寸算，不问卡的包围盒——
      * 包围盒在倾斜和翻面期间每帧都在变，拿它算落点会让卡在飞的过程中飘。
      */
-    const targetY = target.y + (CARD_HEIGHT * this.zoom) / 2
+    const targetY = target.y + (CARD_HEIGHT * this.activeZoom) / 2
 
     animator.fromTo(
       this,
@@ -186,7 +197,7 @@ export class RevealOverlay extends Container {
     )
     if (from === null) {
       this.slot.position.set(target.x, targetY)
-      this.slot.scale.set(this.zoom)
+      this.slot.scale.set(this.activeZoom)
       animator.fromTo(this.slot, { alpha: 0 }, { alpha: 1, duration, ease: 'power2.out' })
       return REVEAL_POP_IN_MS
     }
@@ -201,8 +212,8 @@ export class RevealOverlay extends Container {
       overwrite: 'auto',
     })
     animator.tween(this.slot.scale, {
-      x: this.zoom,
-      y: this.zoom,
+      x: this.activeZoom,
+      y: this.activeZoom,
       duration,
       ease: 'power3.inOut',
       overwrite: 'auto',

@@ -22,10 +22,38 @@ export interface TierConfig {
   cardTilt: boolean
   /** 卡面那一小块反光。跟着倾斜一起开关，两者是同一个物理模型的两半。 */
   glare: boolean
+  /**
+   * 卡下那团软阴影（黑客松 `.card-face` 的 `box-shadow: 0 10px 24px`）。
+   *
+   * 低档关掉的理由是填充率（3.2）而不是绘制次数：阴影是一整张比卡还大的半透明贴图，
+   * 一屏十几张牌就等于多铺十几层，而低档那批机器最先耗尽的正是填充率。
+   */
+  cardShadow: boolean
 }
 
 export const TIER_CONFIG: Record<EffectTier, TierConfig> = {
-  low: { smokeCount: 3, edgeLight: false, screenShake: true, cardTilt: false, glare: false },
-  mid: { smokeCount: 5, edgeLight: true, screenShake: true, cardTilt: true, glare: true },
-  high: { smokeCount: 9, edgeLight: true, screenShake: true, cardTilt: true, glare: true },
+  low: {
+    smokeCount: 3,
+    edgeLight: false,
+    screenShake: true,
+    cardTilt: false,
+    glare: false,
+    cardShadow: false,
+  },
+  mid: {
+    smokeCount: 5,
+    edgeLight: true,
+    screenShake: true,
+    cardTilt: true,
+    glare: true,
+    cardShadow: true,
+  },
+  high: {
+    smokeCount: 9,
+    edgeLight: true,
+    screenShake: true,
+    cardTilt: true,
+    glare: true,
+    cardShadow: true,
+  },
 }

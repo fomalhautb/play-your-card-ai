@@ -30,8 +30,8 @@ const HOVER_SCALE = 1.06
 /** 上浮和落回同一个时长，来回扫动时不会一边快一边慢。抄旧版的 `CARD_HOVER_DUR`。 */
 const HOVER_DUR = 0.28
 /*
- * 倾斜的最大角不在这里定：`CardTilt` 全场共用手牌那一档（`HOVER_TILT_DEG = 10`），
- * 而旧版首页展示卡的 `CARD_TILT_DEG` 正好也是 10，两边本来就是同一个数。
+ * 倾斜的最大角不在这里定：`CardTilt` 全场共用手牌那一档（`HOVER_TILT_DEG`），
+ * 而黑客松首页展示卡的 `CARD_TILT_DEG` 和手牌那一档本来就是同一个数（10）。
  */
 
 export interface HomeCardsDeps extends CardSpriteDeps {

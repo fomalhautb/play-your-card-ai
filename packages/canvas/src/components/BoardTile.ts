@@ -52,6 +52,11 @@ export class BoardTile extends Container {
   /** 这个格子占多大。整排按它排位，落点动画也按它算尺寸。 */
   readonly boxWidth = tokens.size.card.tileWidth
   readonly boxHeight = tokens.size.card.tileHeight
+  /**
+   * 卡缩到战场尺寸的倍数。hover 要在它之上再乘一档（见 scenes/duel/tileHover.ts），
+   * 落回时也得知道该回到哪儿，所以摆出来而不是让调用方自己再算一遍。
+   */
+  readonly cardScale = tokens.size.card.tileWidth / CARD_WIDTH
 
   private readonly deps: BoardTileDeps
   /** 卡和角标都挂在这一层。放大查看借走卡时整层藏起来，格子仍占位（见 setHeld）。 */
@@ -146,15 +151,14 @@ export class BoardTile extends Container {
 
   /** 卡进来时把它缩到战场尺寸并对准格子中心。卡的原点在底边中点，所以要往下挪半格。 */
   private adopt(card: CardSprite): void {
-    const scale = this.boxWidth / CARD_WIDTH
-    card.scale.set(scale)
+    card.scale.set(this.cardScale)
     card.position.set(0, this.boxHeight / 2)
     this.body.addChildAt(card, 0)
   }
 
   /** 那圈描边：贴着卡轮廓往外扩一圈的素方块。 */
   private buildRing(deps: BoardTileDeps): Box {
-    const scale = this.boxWidth / CARD_WIDTH
+    const scale = this.cardScale
     const width = this.boxWidth + RING_SPREAD * 2
     const height = CARD_HEIGHT * scale + RING_SPREAD * 2
     const ring = new Box({ width, height }, deps)

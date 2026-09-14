@@ -125,9 +125,11 @@ class DeckSceneImpl {
       platform: options.platform,
       // 这一页的卡不跟指针倾斜，反光层建了也永远不亮，理由见 deps.ts 的 `glare`。
       glare: false,
+      // 一屏二三十张卡平铺在格子里，每张再垫一层比卡还大的半透明投影就是白烧填充率。
+      cardShadow: false,
       wake: () => this.frameLoop.wake(),
     })
-    this.visuals = createCardVisuals(options.catalog, options.textures)
+    this.visuals = createCardVisuals(options.catalog, options.textures, options.cardFaces)
     this.cards = createCardPool(this.deps, this.visuals)
     this.parts = this.buildParts()
     this.ctx = this.makeContext(options)

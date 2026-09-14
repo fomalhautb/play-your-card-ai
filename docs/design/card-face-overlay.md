@@ -22,3 +22,27 @@
 - `/deck` 及 `/room` 内嵌组卡页：使用真实卡池，AI 牌点击后翻背查看技能。
 
 对手手牌和牌堆仍使用不带牌面信息的隐藏卡背，不能复用技能详情背面，否则会泄露卡牌身份。
+
+## 正式版（Pixi）落地
+
+正式版简化第 4 步之三把这一套搬进了画布，一层一层对应如下（黑客松那边的 DOM / SVG 已经不跑了，
+上面几节留着是当设计依据看的）：
+
+| 黑客松版 | 正式版 |
+|---|---|
+| `.card-face` 的 1px 米白边 + `::after` 双层羽化 | `fx/cardShapes.ts` 的 `drawCardChrome`，烤成一张共享纹理 |
+| `.card-face` 的 `box-shadow: 0 10px 24px` | `drawCardShadow`，垫在卡下的一层网格（低效果档不画，见 `fx/effectTier.ts`） |
+| `CardFaceOverlay.tsx` 的八角雕花匾 SVG | `fx/cardPlaque.ts`，同一批路径喂给 Pixi 的 `GraphicsPath` |
+| `CardCostBadge.tsx` 的三圈金属环 + 上下弧 + `TOKEN` | `fx/badgeShapes.ts` 的 `drawCostDisc` / `drawCostRings` |
+| `.card-face__body` 的渐变信息层 | `drawCardBody`，只在图集缺帧时出现（42 张正式卡各有一张原画） |
+| `.card-back-hidden` 的对手牌背 | `drawFoeBack`，全场共享一张 |
+| `aiModelFace.ts` / `skillCardFace.ts` 的主色和圆心 | `@ai-duel/content` 的 `CARD_FACES` |
+
+两处和黑客松不一样，都是被性能纪律逼的：
+
+- **雕花匾上的颜色不逐张变。** 那边最外圈的阴影描边调了插画主色（`--card-ink`），
+  正式版整块匾是一张共享纹理，颜色统一走纸面墨色；逐张变就等于屏幕上每张牌各占一张纹理。
+  逐张上色的只剩匾上那两行字和费用章的盘底，走 tint。
+- **手绘抖动滤镜不做。** 纪律 3.1 不许挂 Filter。
+
+哪几处画到卡角都必须用同一个圆角令牌，清单在 canvas 的 `layout/fanMath.ts` 的 `CARD_RADIUS` 上。

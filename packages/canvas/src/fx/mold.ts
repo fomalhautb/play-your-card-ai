@@ -14,9 +14,17 @@ export interface Mold {
   /** 烤成纹理时的取景框，原点固定在 (0, 0)。 */
   width: number
   height: number
+  /**
+   * 按渲染倍率的几倍烤，不填就是一倍。
+   *
+   * 给「取景框比画出来的细节大得多」的模具留的：卡面那张 150×225 的边框纹理上还印着一块
+   * 只有 120 宽的雕花匾，而那块匾放大查看时会被拉到四百个设备像素——按一倍烤就糊了。
+   * 别随手调高：纹理内存按平方涨，而 6.9 的常驻纹理内存是有预算的。
+   */
+  resolution?: number
 }
 
 /** 画一个模具。draw 里画到画布外面的部分会被取景框裁掉，这是预期行为。 */
-export function mold(width: number, height: number, graphics: Graphics): Mold {
-  return { graphics, width, height }
+export function mold(width: number, height: number, graphics: Graphics, resolution?: number): Mold {
+  return { graphics, width, height, ...(resolution === undefined ? {} : { resolution }) }
 }

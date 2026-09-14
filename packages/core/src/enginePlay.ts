@@ -20,13 +20,18 @@ import type { AiInstance, CardInstance, GameState, PlayerId, PlayerState } from 
  * 减免是各记各的：只有打出核电站的那一方后续的牌便宜，对手照卡面原价付，
  * 所以这里必须传具体是谁在打，不能只看整局的状态。
  *
- * 客户端的"打不起就变灰"和引擎的扣费校验必须用同一个数，所以这个函数导出给 client 用——
+ * 客户端的"打不起就变灰"和引擎的扣费校验必须用同一个数，所以这个函数导出给界面用——
  * 两边各算一遍的话，玩家会遇到"看着能打，点下去说 Token 不够"。
+ * 入参只收 `costReduction` 那一项，是为了**视图也能直接传进来**：界面手里只有 `PlayerView`
+ * （`PlayerSideView` 带着同名字段），限死成 `PlayerState` 的话它就只能自己抄一遍这条式子。
  *
  * 金钟罩管不着这里：罩子挡的是落在场上单位身上的效果，而减费改的是"这张牌打出去要花多少"
  * （完整口径见 state.ts 的 `PlayerState.shielded`）。
  */
-export function effectivePlayCost(player: PlayerState, card: HandCard): number {
+export function effectivePlayCost(
+  player: Pick<PlayerState, 'costReduction'>,
+  card: HandCard,
+): number {
   return Math.max(1, card.tokenCost - player.costReduction)
 }
 

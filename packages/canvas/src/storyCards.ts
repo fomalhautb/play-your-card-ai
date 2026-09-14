@@ -76,6 +76,8 @@ export function storyCard(ctx: StoryStage, deps: StoryDeps, index: number): Card
     text: deps.text,
     // 目录页不开卡面反光：它跟着指针走，而截图里没有指针，建了也只是白占一份着色器。
     glare: false,
+    // 投影是静态的，卡面长什么样的一部分，目录页照拍。
+    shadow: true,
   })
 }
 
@@ -110,6 +112,15 @@ const MAX_COST = 8
  * 按贴图名稳定地挑一个，至少能让相邻的几张牌颜色分得开。
  */
 const ACCENT_PALETTE = [0x46584b, 0x87502d, 0x304e70, 0x655580, 0x37646b, 0x95465f, 0x3d4a64]
+
+/**
+ * 雕花铭牌上那行技能名的备选。
+ *
+ * 目录页要拍的是「匾上两行字排得开吗」，所以这几条特意长短不一（四字到七字）：
+ * 全用四个字的话，`textLength` 那条压窄的分支永远拍不到。
+ * 真对局的技能名来自卡池（core 的 `AiCard.skillName`）。
+ */
+const SKILL_PALETTE = ['开天辟地', '多模感知', '统筹推演', '长思短答', '深度检索推演']
 
 /**
  * 把贴图名摊成一个 32 位整数。
@@ -153,6 +164,7 @@ export function cardVisualOf(
 ): CardVisual {
   const hash = hashOf(key)
   const accent = ACCENT_PALETTE[hash % ACCENT_PALETTE.length] ?? ACCENT_PALETTE[0] ?? 0x304e70
+  const skillName = SKILL_PALETTE[(hash >>> 16) % SKILL_PALETTE.length] ?? SKILL_PALETTE[0] ?? ''
   return {
     instanceId: `${key}#${instance}`,
     name: displayNameOf(key),
@@ -160,5 +172,7 @@ export function cardVisualOf(
     face,
     back,
     accent,
+    // 目录页的样例卡一律按「具名 AI 牌」那一档拍：三档里只有它把匾、费用章、两行字都画全了。
+    skillName,
   }
 }

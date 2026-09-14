@@ -39,7 +39,7 @@ import {
   type EffectTier,
   Rng,
 } from '@ai-duel/canvas'
-import { createCatalog } from '@ai-duel/content'
+import { CARD_FACES, createCatalog } from '@ai-duel/content'
 import type { PlayerId, PlayerView } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
 import { type RefObject, useEffect, useRef, useState } from 'react'
@@ -156,6 +156,7 @@ export function DuelStage({
         tier,
         seat,
         textures,
+        cardFaces: CARD_FACES,
         catalog: createCatalog(),
         platform,
         coarsePointer: platform.safeArea.isCoarsePointer(),

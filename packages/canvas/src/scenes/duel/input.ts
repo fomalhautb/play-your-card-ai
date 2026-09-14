@@ -18,12 +18,15 @@
 import type { HandCard, InstanceId, PlayerView } from '@ai-duel/core'
 import type { BoardTile } from '../../components/BoardTile'
 import type { CardSprite } from '../../components/CardSprite'
+import { CardTilt } from '../../components/cardTilt'
 import { CASTING_DIM } from '../../components/TargetingLayer'
 import type { DirectorLocks } from '../../director/director'
+import { HAND_FLIP_MS, HAND_UNFLIP_MS } from '../../director/timings'
 import { HandPointer } from '../../interaction/handPointer'
 import type { DuelContext } from './context'
+import { setDropCueState } from './dropCue'
+import { createHandMood } from './handMood'
 import { fanToWorld, toFanLocal } from './layout/types'
-import { setDropState } from './parts'
 import {
   boardTargetsOf,
   handTargetsOf,
@@ -31,6 +34,7 @@ import {
   heroSkillTargetsOf,
   targetScopeOf,
 } from './skillTargets'
+import { createTileHover } from './tileHover'
 
 /** 正在给谁选目标：一张手牌，还是英雄的主动技能。 */
 type Targeting =
@@ -74,6 +78,21 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
   const canAct = (): boolean =>
     !performanceLocked && (locks === null || !locks.actionsLocked || targeting !== null)
 
+  const mood = createHandMood(ctx)
+  const tileHover = createTileHover(ctx, () => !performanceLocked && locks?.showcasing !== true)
+  /**
+   * 每张手牌各一份倾斜跟随。按卡存而不是「只留一份共用的」：卡在对局里是随发随建随销的，
+   * 共用那一份会在换牌那一刻还指着上一张。卡销毁时这里跟着摘（见 bindCard）。
+   */
+  const tilts = new Map<CardSprite, CardTilt>()
+  const tiltFor = (card: CardSprite): CardTilt => {
+    const kept = tilts.get(card)
+    if (kept !== undefined) return kept
+    const made = new CardTilt(card, ctx.deps.cardTilt)
+    tilts.set(card, made)
+    return made
+  }
+
   const pointer = new HandPointer({
     stage: ctx.stage,
     fan: ctx.parts.fan,
@@ -82,14 +101,33 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     dropZone: () => ctx.layout.dropZone,
     toFanLocal: (x, y) => toFanLocal(ctx.layout, x, y),
     fanToWorld: (x, y, scale) => fanToWorld(ctx.layout, x, y, scale),
-    // 卡面倾斜跟着效果档位走，低档整个不开（见 fx/effectTier.ts）。这一版先不接，
-    // 接上要给每张卡各存一个 CardTilt，而卡在对局里是随发随建随销的。
-    tiltFor: () => undefined,
+    // 卡面倾斜跟着效果档位走，低档整个不开（见 fx/effectTier.ts）。
+    tiltFor,
+    // 抬起来的那张恢复本色、落回去的那张跟着整排压暗，所以换一张就要重算一次灰墨态。
+    onHover: () => mood.refresh(locks),
     onPlay: (card) => onPlay(card),
-    onDropState: (state) => setDropState(ctx.parts, state),
+    onFlip: (card) => flipCard(card),
+    onDropState: (state) => setDropCueState(ctx.parts.drop, state),
     enabled: () => canAct(),
     wake: () => ctx.wake(),
   })
+
+  /**
+   * 点了问号章：翻到背面看技能详情，再点一下翻回来。
+   *
+   * 翻面纯粹是「看一眼」，不发任何指令、也不吃演出锁——手牌冻着的时候照样翻得动
+   *（黑客松同理）。两头时长不一样，理由见 timings.ts。
+   */
+  const flipCard = (card: CardSprite): void => {
+    const toBack = !card.isFacingBack()
+    ctx.deps.animator.tween(card.flipState, {
+      angle: toBack ? 180 : 0,
+      duration: (toBack ? HAND_FLIP_MS : HAND_UNFLIP_MS) / 1000,
+      ease: 'power2.inOut',
+      overwrite: 'auto',
+      onUpdate: () => card.setFlipAngle(card.flipState.angle),
+    })
+  }
 
   /** 拿一张手牌的定义。查不到（目录和牌组对不上）就当它不能打。 */
   const cardOf = (view: PlayerView, instanceId: InstanceId): HandCard | null => {
@@ -118,8 +156,9 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     targeting = null
     ctx.parts.targeting.end()
     ctx.parts.board.clearTargets()
-    // 施放态下没被选中的牌是压暗的，收场时统一还原。
+    // 施放态下没被选中的牌是压暗的，收场时统一还原；抬起来的那张也落回扇形。
     for (const card of ctx.parts.fan.all()) card.alpha = 1
+    ctx.parts.fan.setCasting(null)
     ctx.wake()
   }
 
@@ -129,7 +168,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
    * 一个合法目标都没有时不进这一步——玩家会点着满屏的暗色不知道该点哪儿，
    * 而这张牌本来也打不出去（引擎会拒）。
    */
-  const beginTargeting = (instanceId: InstanceId, card: HandCard, view: PlayerView): boolean => {
+  const beginTargeting = (sprite: CardSprite, card: HandCard, view: PlayerView): boolean => {
+    const instanceId = sprite.instanceId
     const scope = targetScopeOf(card)
     if (scope === 'none') return false
     const legal = scope === 'board' ? boardTargetsOf(view, card) : handTargetsOf(view, card)
@@ -138,11 +178,22 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     targeting = next
     ctx.userAction({ kind: 'targeting-begin' })
     ctx.parts.targeting.begin(card.name)
-    if (scope === 'board') ctx.parts.board.highlightTargets(legal)
-    else {
+    /*
+     * 施放的那张回扇形里抬起来（黑客松的 `CASTING_LIFT`）。
+     *
+     * 这一步不能省：它是被拖出去松手才进到这一档的，此刻还挂在拖拽层上、停在松手的地方。
+     * 不收回去的话，选目标期间它就浮在战场中间挡着要点的那几格，取消之后也回不来。
+     */
+    pointer.returnToFan(sprite)
+    ctx.parts.fan.setCasting(instanceId)
+    if (scope === 'board') {
+      ctx.parts.board.highlightTargets(legal)
+      // 战场那一档：候选在场上，整排手牌压暗，只留正在施放的那张亮着。
+      for (const one of ctx.parts.fan.all()) one.alpha = one === sprite ? 1 : CASTING_DIM
+    } else {
       // 打向手牌的那一档：候选是自己手里的牌，压暗其余的，被压暗的那些点了没反应。
       for (const one of ctx.parts.fan.all()) {
-        one.alpha = next.legal.has(one.instanceId) ? 1 : CASTING_DIM
+        one.alpha = one === sprite || next.legal.has(one.instanceId) ? 1 : CASTING_DIM
       }
     }
     ctx.wake()
@@ -187,9 +238,18 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
       return
     }
     if (targeting !== null) return
+    /*
+     * 这一下打不出去（Token 不够）：弹一句小字说明为什么，不发指令，牌送回扇形。
+     * 送回不能省——走到这儿的多半是"拖到战场松手"，那张牌此刻还挂在拖拽层上。
+     * 整排锁着的那几档压根拖不动（`enabled` 已经挡在前面），那几句提示只从"点一下"弹出来。
+     */
+    if (mood.popTip(card)) {
+      pointer.returnToFan(card)
+      return
+    }
     const definition = cardOf(view, instanceId)
     if (definition === null) return
-    if (beginTargeting(instanceId, definition, view)) return
+    if (beginTargeting(card, definition, view)) return
     play(instanceId)
   }
 
@@ -240,20 +300,46 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     endTargeting()
     ctx.userAction({ kind: 'targeting-cancel' })
   }
+  /*
+   * 战场小卡的倾斜要知道指针在哪儿。手牌那条路由 `HandPointer` 自己听，
+   * 格子这条只能另挂一条——两边听的是同一个舞台，各管各的那一块。
+   */
+  const onStageMove = (event: { global: { x: number; y: number } }): void => {
+    const at = ctx.stage.toLocal(event.global)
+    tileHover.move(at.x, at.y)
+  }
+  /*
+   * 点侧栏那张英雄牌放大查看。只挂我方那一侧：对手那张点开也只能看到同样一张原画，
+   * 多开一块热区只会把「点空白处取消选目标」吃掉一块。演出锁着时不受理。
+   */
+  ctx.parts.panels.mine.onHeroTap(() => {
+    const hero = ctx.view?.self.hero
+    if (hero === undefined || hero === null || targeting !== null || !canAct()) return
+    ctx.userAction({ kind: 'inspect-open', source: 'hero', flipId: hero })
+  })
   ctx.stage.on('pointerdown', onStageDown)
   ctx.stage.on('pointertap', onStageTap)
+  ctx.stage.on('globalpointermove', onStageMove)
   // 点展示遮罩关掉放大查看。强制展示期间编排层不受理这一下，所以这里无脑发就行。
   ctx.parts.reveal.on('pointertap', () => ctx.userAction({ kind: 'inspect-close' }))
 
   return {
     bindCard(card) {
       pointer.bind(card)
+      /*
+       * 卡被销毁时把它那份倾斜跟随一起摘掉。
+       *
+       * 不摘的话这张表会跟着一局里发过的每一张牌一直长，而每份跟随都握着卡的引用
+       *（`CardTilt` 逐帧往卡上写角度），卡就回收不掉。
+       */
+      card.once('destroyed', () => tilts.delete(card))
     },
 
     bindTile(tile) {
       tile.eventMode = 'static'
       tile.cursor = 'pointer'
       tile.on('pointertap', () => onTile(tile.instanceId))
+      tileHover.bind(tile)
     },
 
     refresh(next, locked) {
@@ -280,20 +366,34 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
       ctx.parts.panels.mine.setHeroSkillDisabled(next.actionsLocked || locked || noTargets)
       // 进答题、对局中断这些时候选目标要收掉：战场马上就被别的层盖住了。
       if (targeting !== null && next.quizWait) endTargeting()
+      // 灰墨态、逐张压暗和光标都跟着这一档锁走（见 handMood.ts）。
+      mood.refresh(next)
+      // 展示层立起来的那一拍格子全被盖住，正停着的那张要收手，不然它会一直斜着。
+      if (next.showcasing) tileHover.release()
     },
 
     beginHeroSkill,
-    advance: (deltaMs) => pointer.advance(deltaMs),
+    advance(deltaMs) {
+      let busy = pointer.advance(deltaMs)
+      for (const tilt of tilts.values()) if (tilt.advance(deltaMs)) busy = true
+      if (tileHover.advance(deltaMs)) busy = true
+      return busy
+    },
     pressAt: (card, x, y, pointerType) => pointer.pressAt(card, x, y, pointerType),
     moveTo: (x, y) => pointer.moveTo(x, y),
     releaseAt: (x, y) => pointer.releaseAt(x, y),
     cancelTargeting: endTargeting,
     destroy() {
       pointer.destroy()
-      // 舞台上只摘自己挂的这两条：指针状态机也在同一个舞台上听事件，
+      mood.destroy()
+      tileHover.destroy()
+      ctx.parts.panels.mine.onHeroTap(null)
+      tilts.clear()
+      // 舞台上只摘自己挂的这三条：指针状态机也在同一个舞台上听事件，
       // removeAllListeners() 会把它那几条一起摘掉。
       ctx.stage.off('pointerdown', onStageDown)
       ctx.stage.off('pointertap', onStageTap)
+      ctx.stage.off('globalpointermove', onStageMove)
       ctx.parts.reveal.removeAllListeners()
     },
   }

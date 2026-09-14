@@ -37,6 +37,7 @@ import { TurnPlaque } from '../../components/TurnPlaque'
 import { HitFx } from '../../fx/HitFx'
 import { PLAYER_FAN } from '../../layout/fanMath'
 import type { DuelDeps } from './deps'
+import { createDropCues, type DropCues, placeDropCues } from './dropCue'
 import type { DuelLayout, Rect } from './layout/types'
 
 /**
@@ -46,12 +47,6 @@ import type { DuelLayout, Rect } from './layout/types'
  * 手机档那一行只有 96 高，卡贴着框边会和名字那一格糊在一起。
  */
 const MOBILE_CARD_INSET = 22
-
-/** 落点提示进到「松手就打出去」那一档时，战场外框里再套的那一圈往里让多少。 */
-const HOT_RING_INSET = 2
-
-/** 拖拽时落点提示印什么。抄黑客松版 `.battle__drop-cue--board` 的那两段字。 */
-const DROP_CUE_TEXT = '松手 放到场上'
 
 interface DuelLayers {
   world: Container
@@ -78,11 +73,8 @@ export interface DuelParts {
   nextPlaque: Box | null
   /** 「对方回合」吊匾。手机档没有。 */
   turnPlaque: TurnPlaque | null
-  /** 战场那一圈外框，以及「松手就打出去」时套在它里面的第二圈。 */
-  boardFrame: Box
-  hotRing: Box
-  /** 拖拽时战场顶部那条落点提示。手机档没有。 */
-  dropCue: Box | null
+  /** 拖着牌时才亮的那几块提示：战场外框、加粗圈、两句话、取消区（见 dropCue.ts）。 */
+  drop: DropCues
   board: BoardGrid
   foeHand: FoeHand
   fan: HandFan
@@ -177,35 +169,7 @@ export function createParts(options: PartsOptions): DuelParts {
       ? null
       : new TurnPlaque({ width: layout.turnPlaque.width, height: layout.turnPlaque.height }, deps)
 
-  /*
-   * 战场外框平时**不画**。
-   *
-   * 黑客松版那条边是 `border: 1px dashed transparent`——只有拖着牌的时候才亮起来
-   *（`data-drop-ready` / `data-drop-hot`）。这里照它来，顺带躲开一笔不小的账：
-   * 过度绘制那条指标把每个 Graphics 按**包围盒**算成一整块实心（见 bench 的
-   * src/page/overdraw.ts），一个 1310×535 的空心框会被记成盖住战场那一整块，
-   * 常亮的话桌面档直接顶破 3.2 那条上限。
-   */
-  const boardFrame = frameBox(layout.boardFrame, deps)
-  boardFrame.visible = false
-  const hotRing = frameBox(layout.boardFrame, deps)
-  hotRing.visible = false
-  const dropCue =
-    layout.dropCue === null
-      ? null
-      : new Box(
-          {
-            width: layout.dropCue.width,
-            height: layout.dropCue.height,
-            label: DROP_CUE_TEXT,
-            size: 'small',
-          },
-          deps,
-        )
-  if (dropCue !== null) {
-    dropCue.eventMode = 'none'
-    dropCue.visible = false
-  }
+  const drop = createDropCues(layout, deps)
 
   const board = new BoardGrid(
     {
@@ -214,7 +178,15 @@ export function createParts(options: PartsOptions): DuelParts {
     },
     deps,
   )
-  const foeHand = new FoeHand({ areaWidth: layout.foeHand.areaWidth }, { ...deps, back: deps.back })
+  /*
+   * 对手那排用的是**烤出来的隐藏牌背**（纸白底 + 内圈细边 + 藏青纹章），不是自己人那张美术卡背：
+   * 把对方的牌背画成和我方一样，等于告诉玩家「那是张 AI 牌还是技能牌」。
+   * 强制展示那张卡起飞时用的也是同一张（见 cuePlayers/reveal.ts），两处必须一致才不跳变。
+   */
+  const foeHand = new FoeHand(
+    { areaWidth: layout.foeHand.areaWidth },
+    { ...deps, back: deps.baked.foeBack },
+  )
   const fan = new HandFan({
     animator: deps.animator,
     geometry: PLAYER_FAN,
@@ -256,8 +228,12 @@ export function createParts(options: PartsOptions): DuelParts {
   })
 
   // 战场外框垫在格子底下，落点提示和「加粗」那一圈压在格子上面（它们要盖住的正是格子那一带）。
-  layers.board.addChild(boardFrame, board, hotRing)
-  if (dropCue !== null) layers.board.addChild(dropCue)
+  // 外框垫在格子底下，加粗圈和提示压在格子上面（它们要盖住的正是格子那一带）。
+  layers.board.addChild(drop.boardFrame, board, drop.hotRing)
+  if (drop.boardCue !== null) layers.board.addChild(drop.boardCue)
+  // 取消区排在手牌**之前**：它只是底下那条框，不该盖住牌。
+  layers.hand.addChildAt(drop.returnZone, 0)
+  layers.hand.addChildAt(drop.returnCue, 1)
   layers.foeHand.addChild(foeHand)
   layers.chrome.addChild(topBar, endPlay, panels.theirs, panels.mine)
   if (sideBar !== null) layers.chrome.addChildAt(sideBar, 0)
@@ -275,9 +251,7 @@ export function createParts(options: PartsOptions): DuelParts {
     tokenRail,
     nextPlaque,
     turnPlaque,
-    boardFrame,
-    hotRing,
-    dropCue,
+    drop,
     board,
     foeHand,
     fan,
@@ -319,16 +293,7 @@ export function applyPartsLayout(parts: DuelParts, layout: DuelLayout): void {
     parts.turnPlaque.position.set(layout.turnPlaque.x, layout.turnPlaque.y)
   }
 
-  place(parts.boardFrame, layout.boardFrame)
-  parts.hotRing.setSize(
-    layout.boardFrame.width - HOT_RING_INSET * 2,
-    layout.boardFrame.height - HOT_RING_INSET * 2,
-  )
-  parts.hotRing.position.set(
-    layout.boardFrame.x + HOT_RING_INSET,
-    layout.boardFrame.y + HOT_RING_INSET,
-  )
-  place(parts.dropCue, layout.dropCue)
+  placeDropCues(parts.drop, layout)
 
   parts.board.resize(
     layout.board.width / layout.board.scale,
@@ -360,15 +325,4 @@ function place(box: Box | null, rect: Rect | null): void {
   if (box === null || rect === null) return
   box.setSize(rect.width, rect.height)
   box.position.set(rect.x, rect.y)
-}
-
-/**
- * 拖拽期间落点提示的三档：没在拖（外框整个不画）、拖着（外框和提示亮出来）、
- * 指针已经进到落区里（外框里再套一圈，两条平行线看着就是加粗）。
- * 抄黑客松版 `.battle__board` 的 `data-drop-ready` / `data-drop-hot`。
- */
-export function setDropState(parts: DuelParts, state: 'off' | 'ready' | 'hot'): void {
-  parts.boardFrame.visible = state !== 'off'
-  if (parts.dropCue !== null) parts.dropCue.visible = state !== 'off'
-  parts.hotRing.visible = state === 'hot'
 }

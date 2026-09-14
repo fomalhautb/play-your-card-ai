@@ -47,6 +47,26 @@ function makeCatalog(): Catalog {
 
 export const STORY_CATALOG: Catalog = makeCatalog()
 
+/**
+ * 目录页这六张牌的卡面展示配置（费用圆章的圆心和插画主色）。
+ *
+ * 真对局读的是 `@ai-duel/content` 的 `CARD_FACES`，canvas 不许依赖 content，
+ * 所以这里按这六张原画各配一份。不配的话整页的费用章都是兜底的卡种色（一片亮蓝），
+ * 而这一条条目要拍的正是「卡面在真界面里长什么样」。
+ * 圆心的数就是那六张原画的真值，从 content 的 `CARD_FACES` 抄过来。
+ */
+export const STORY_CARD_FACES: Record<
+  string,
+  { accent: string; costBadge: { x: number; y: number } }
+> = {
+  'gpt-4o': { accent: '#46584b', costBadge: { x: 10.7, y: 7.1 } },
+  'claude-5-sonnet': { accent: '#87502d', costBadge: { x: 11.5, y: 7.1 } },
+  'deepseek-r1': { accent: '#304e70', costBadge: { x: 10.7, y: 7.1 } },
+  doubao: { accent: '#505b77', costBadge: { x: 10.7, y: 7.1 } },
+  qwen: { accent: '#37646b', costBadge: { x: 11.0, y: 7.1 } },
+  gemini: { accent: '#655580', costBadge: { x: 10.9, y: 8.1 } },
+}
+
 const STORY_QUESTION: Question = {
   id: 'story-q1',
   category: 'meme',

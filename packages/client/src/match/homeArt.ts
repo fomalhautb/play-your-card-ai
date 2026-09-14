@@ -10,24 +10,25 @@
  * `Assets.load` 只是把它们解码并上传成纹理。
  */
 
-import type { CardVisual } from '@ai-duel/canvas'
-import { CARDS, HEROES } from '@ai-duel/content'
-import type { CardId, HeroId } from '@ai-duel/core'
-import { tokens } from '@ai-duel/design'
+import { type CardVisual, createCardVisuals } from '@ai-duel/canvas'
+import { CARD_FACES, createCatalog, HEROES } from '@ai-duel/content'
+import type { HeroId } from '@ai-duel/core'
 import { Assets, type Texture } from 'pixi.js'
 import { HOME_SHOWCASE } from '../screens/homeCast'
 import { loadCardTextures } from './cardAtlas'
 
-/** 三类牌的标识色，和对局那边同一份（canvas 的 scenes/duel/cardVisuals.ts）。 */
-const ACCENT = {
-  ai: Number.parseInt(tokens.color.accent.ai.slice(1), 16),
-  skill: Number.parseInt(tokens.color.accent.skill.slice(1), 16),
-}
-
-/** 首页橱窗里那四张展示卡的展示数据。卡面在卡面图集里。 */
+/**
+ * 首页橱窗里那四张展示卡的展示数据。卡面在卡面图集里。
+ *
+ * 走对局那边同一份 `createCardVisuals`，不在这儿另推一套：卡面分几档、费用章摆哪儿、
+ * 盘底什么色是一整套规则（见 canvas 的 scenes/duel/cardVisuals.ts），
+ * 抄第二份的结果一定是首页的卡和对局里同一张牌长得不一样。
+ */
 export async function loadHomeCards(): Promise<CardVisual[]> {
   const atlas = await loadCardTextures()
-  return HOME_SHOWCASE.map((id, index) => visualOf(id, index, atlas.faces, atlas.back))
+  const visuals = createCardVisuals(createCatalog(), atlas, CARD_FACES)
+  // 同一张牌在这一页只出现一次，但仍带一个序号，和对局那边的实例 id 一个路数。
+  return HOME_SHOWCASE.map((id, index) => visuals.visualOf(id, `${id}#${index}`))
 }
 
 /** 选英雄页要的：背景一张、七位英雄各一张原画。 */
@@ -46,23 +47,4 @@ export async function loadHeroTextures(): Promise<{
     if (art !== undefined) heroes[id] = art
   })
   return { background, heroes }
-}
-
-/** 一张展示卡的展示数据。和对局那边的 `cardVisuals.ts` 是同一条「id 即贴图名」的约定。 */
-function visualOf(
-  id: CardId,
-  index: number,
-  faces: Record<string, Texture>,
-  back: Texture,
-): CardVisual {
-  const card = CARDS[id]
-  return {
-    // 同一张牌在这一页只出现一次，但仍带一个序号，和对局那边的实例 id 一个路数。
-    instanceId: `${id}#${index}`,
-    name: card?.name ?? id,
-    cost: card?.tokenCost ?? 0,
-    face: faces[id] ?? back,
-    back,
-    accent: card?.kind === 'skill' ? ACCENT.skill : ACCENT.ai,
-  }
 }

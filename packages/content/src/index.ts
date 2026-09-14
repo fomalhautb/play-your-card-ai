@@ -17,6 +17,7 @@
  */
 
 export * from './aiModels'
+export * from './cardFaces'
 export * from './cards'
 export * from './catalog'
 export * from './collection'

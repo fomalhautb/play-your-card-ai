@@ -35,7 +35,7 @@ import {
   viewFor,
 } from '@ai-duel/core'
 import type { BenchScene, BenchSceneOptions, DuelCommand } from './contract'
-import { BENCH_CATALOG, BENCH_DECK, BENCH_QUESTIONS } from './duelScript'
+import { BENCH_CARD_FACES, BENCH_CATALOG, BENCH_DECK, BENCH_QUESTIONS } from './duelScript'
 
 /** 剧本从 0 号座位看这一局。 */
 const SEAT: PlayerId = 0
@@ -52,6 +52,7 @@ export async function createDuelSession(options: BenchSceneOptions): Promise<Ben
     tier: options.tier,
     seat: SEAT,
     textures: options.textures,
+    cardFaces: BENCH_CARD_FACES,
     catalog: BENCH_CATALOG,
     seed: options.seed,
     manualClock: options.manualClock,

@@ -152,8 +152,11 @@ export async function loadAtlasTextures(
     if (!texture) throw new Error(`图集 ${opts.faces} 里没有帧 ${key}`)
     faces[key] = texture
   }
-  const back = framesOf(backs.pages)[opts.backFrame]
+  const backFrames = framesOf(backs.pages)
+  const back = backFrames[opts.backFrame]
   if (!back) throw new Error(`图集 ${opts.backs} 里没有牌背帧 ${opts.backFrame}`)
+  const skillBack = backFrames[opts.skillBackFrame]
+  if (!skillBack) throw new Error(`图集 ${opts.backs} 里没有技能牌背帧 ${opts.skillBackFrame}`)
   const urls = [...face.urls, ...backs.urls]
-  return { textures: { faces, back }, dispose: () => Assets.unload(urls) }
+  return { textures: { faces, back, skillBack }, dispose: () => Assets.unload(urls) }
 }

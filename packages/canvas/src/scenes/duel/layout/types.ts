@@ -62,6 +62,13 @@ export interface DuelLayout {
   board: Rect & { scale: number }
   /** 拖着牌时战场顶部那条落点提示。手机档没有（那 52px 的让位是桌面档才有的）。 */
   dropCue: Rect | null
+  /**
+   * 手牌区那一整条「取消区」：拖着牌时亮出来，松在这儿就是把牌收回手上。
+   *
+   * 它和落点区首尾相接，只是**视觉热区**——真正的判定仍然是「指针在不在 `dropZone` 里」
+   *（见 interaction/dragRules.ts），松在战场外一律取消。抄黑客松的 `.battle__return-zone`。
+   */
+  returnZone: Rect
   /** Token 细条贴舞台右缘。手机档为 null——那一档细条仍挂在我方面板里面。 */
   tokenRail: Rect | null
   /** 「下一题」匾，吊在战场右上角。手机档折叠掉了。 */
@@ -83,6 +90,13 @@ export interface DuelLayout {
   endPlay: Rect
   /** 放大查看时卡在屏幕中央放到多大。触屏档更大，见 `size.card.revealScaleTouch`。 */
   revealScale: number
+  /**
+   * 侧栏那张英雄牌放大到多大，比普通卡高一档。
+   *
+   * 它在面板里本来就有两百多宽，按普通卡那档飞到中央反而比原位还小
+   *（黑客松同理，`--reveal-scale` 在 `.reveal-clip--hero` 上被覆盖过）。
+   */
+  revealScaleHero: number
   /** 中央横幅那行大字的中心。 */
   banner: { x: number; y: number }
   /** 提示气泡（指令被拒的红字）的中心。 */

@@ -15,7 +15,7 @@
 import { createDeckScene, type DeckScene, type PoolCard } from '@ai-duel/canvas'
 import { DECK } from '../node/profiles'
 import type { BenchDeckActions, BenchScene, BenchSceneOptions } from './contract'
-import { BENCH_CATALOG } from './duelScript'
+import { BENCH_CARD_FACES, BENCH_CATALOG } from './duelScript'
 
 /** 热身那一遍每帧按多少倍步长推。同 duelSession。 */
 const WARMUP_SPEED = 15
@@ -75,6 +75,7 @@ export async function createDeckSession(options: BenchSceneOptions): Promise<Ben
     resolution: options.resolution,
     tier: options.tier,
     textures: options.textures,
+    cardFaces: BENCH_CARD_FACES,
     catalog: BENCH_CATALOG,
     pool: BENCH_POOL,
     factions: BENCH_FACTIONS,

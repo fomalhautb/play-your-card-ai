@@ -24,6 +24,15 @@ import {
 } from '../layout/handLayout'
 import type { Animator } from '../runtime/animator'
 import type { CardSprite } from './CardSprite'
+import { CASTING_LIFT } from './TargetingLayer'
+
+/**
+ * 灰墨态下整排往下沉多少。
+ *
+ * 抄黑客松 `.hand-fan[data-locked]` 的 `translateY(12px)`：出不了牌的时候整排往下缩一点，
+ * 和压暗一起说明「这排现在不归你动」。
+ */
+const HAND_SINK = 12
 
 /** hover 引起的补间要更快，重排则用统一的慢一点的节奏。 */
 export type LayoutMode = 'hover' | 'reflow'
@@ -47,6 +56,10 @@ export class HandFan extends Container {
   /** 摘出去不参与排布的牌（正在拖、已经打出等结果）。 */
   private readonly detached = new Set<string>()
   private hoverIndex = -1
+  /** 正在等玩家选目标的那张牌，它要从扇形里抬起来。没有就是 null。 */
+  private castingId: string | null = null
+  /** 整排现在沉着没有（灰墨态）。记的是意图，理由见 setSunk。 */
+  private sunk = false
 
   constructor(options: HandFanOptions) {
     super()
@@ -186,6 +199,59 @@ export class HandFan extends Container {
     return this.hoverIndex
   }
 
+  /**
+   * 现在抬起来的那张牌，没有就是 null。
+   *
+   * 有了 `hovered` 还要这一个，是因为按下标去 `laid()` 里取会**新建一个数组**，
+   * 而问这件事的地方（scenes/duel/handMood.ts）在联机那条路上每帧都会被调一次——
+   * 「稳态每帧堆分配」（3.10）不该被一次查询占掉。这里直接数过去，一个对象都不建。
+   */
+  hoveredCard(): CardSprite | null {
+    if (this.hoverIndex < 0) return null
+    let seen = 0
+    for (const card of this.cards) {
+      if (this.detached.has(card.instanceId)) continue
+      if (seen === this.hoverIndex) return card
+      seen += 1
+    }
+    return null
+  }
+
+  /**
+   * 整排沉下去（灰墨态）或者回到原位。
+   *
+   * 沉的是**整层**而不是逐张改 y：逐张改要和 hover、让位、施放抬起三套姿态抢同一个属性，
+   * 而它们各自都有自己的补间。写 `pivot` 不碰任何一张牌的姿态——版式那边写的是
+   * `position` 和 `scale`（见 scenes/duel/parts.ts），两边不重叠。
+   *
+   * 「变了没有」看的是**记下来的意图**，不是 `pivot` 现在的值。
+   * 按当前值判的话这个方法就永远不是幂等的：调用方（`scenes/duel/handMood.ts`）
+   * 每收到一次锁就调一次，而联机那条路每帧都会重发一次锁——补间还没跑完，
+   * `pivot.y` 就还不等于目标，于是每帧都新建一条把上一条顶掉，补间永远跑不完，
+   * 「没有动画时停掉帧循环」（3.6）那条从此再也不成立。跑批里表现为剧本推满三千帧还不空闲。
+   */
+  setSunk(sunk: boolean): void {
+    if (this.sunk === sunk) return
+    this.sunk = sunk
+    this.animator.tween(this.pivot, {
+      y: sunk ? -HAND_SINK : 0,
+      duration: HOVER_DUR,
+      ease: LAYOUT_EASE,
+      overwrite: 'auto',
+    })
+  }
+
+  /**
+   * 哪张牌正在等玩家选目标：它从扇形里抬起 `CASTING_LIFT`，其余的位置不动。
+   *
+   * 只抬不放大——放大就又把战场挡住了，而选目标时战场正是要看的地方（同黑客松）。
+   */
+  setCasting(instanceId: string | null): void {
+    if (this.castingId === instanceId) return
+    this.castingId = instanceId
+    this.layout('hover')
+  }
+
   /** 第 index 张牌（参与排布的下标）此刻该摆成什么样。 */
   poseAt(index: number): SlotPose {
     const poses = handPoses(this.laid().length, this.areaWidth, this.geometry, this.hoverIndex)
@@ -209,10 +275,12 @@ export class HandFan extends Container {
       const pose = poses[index]
       if (pose === undefined) return
       const hovered = index === this.hoverIndex
+      // 正在施放的那张从它的基准位再抬一截；它这时不会同时被 hover（整排都不接指针）。
+      const lift = card.instanceId === this.castingId ? CASTING_LIFT : 0
       const delay = delays?.get(card.instanceId) ?? 0
       this.animator.tween(card, {
         x: pose.x,
-        y: pose.y,
+        y: pose.y - lift,
         rotation: (pose.rotation * Math.PI) / 180,
         alpha: 1,
         duration,
