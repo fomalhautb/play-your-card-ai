@@ -18,14 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { MUSIC_TRACKS } from '../src/audio/music'
 import { SOUNDS } from '../src/audio/sounds'
-import {
-  BATTLE_IMAGES,
-  HERO_IMAGES,
-  HOME_IMAGES,
-  INFO_IMAGES,
-  PRELOAD_GROUPS,
-  ROOM_IMAGES,
-} from '../src/preload/manifests'
+import { BATTLE_IMAGES, HERO_IMAGES, INFO_IMAGES, PRELOAD_GROUPS } from '../src/preload/manifests'
 
 const ASSETS_DIR = fileURLToPath(new URL('../../../assets/source', import.meta.url))
 
@@ -34,8 +27,9 @@ const ASSETS_DIR = fileURLToPath(new URL('../../../assets/source', import.meta.u
  *
  * `cards/` 不在里面：卡面打成了图集，由场景自己装卸，不走这套清单。
  * 站点图标和 manifest 也不在：那些由浏览器按 `<link>` 自己取，进清单只会白等。
+ * `home/` 和 `room/` 整个没了：正式版简化第 4 步把这两页剥成素方块，那两批图一起删了。
  */
-const IMAGE_DIRS = ['battle', 'home', 'hero', 'info', 'room']
+const IMAGE_DIRS = ['battle', 'hero', 'info']
 
 /** 音频落在壳 public 的 `audio/music/` 下，源目录却叫 `music/`（见 assets/README.md 的复制表）。 */
 const AUDIO_URL_PREFIX = '/audio/music/'
@@ -52,7 +46,7 @@ function listSourceFiles(dirs: readonly string[]): string[] {
 
 describe('图片清单', () => {
   const files = listSourceFiles(IMAGE_DIRS)
-  const listed = new Set([BATTLE_IMAGES, HERO_IMAGES, HOME_IMAGES, INFO_IMAGES, ROOM_IMAGES].flat())
+  const listed = new Set([BATTLE_IMAGES, HERO_IMAGES, INFO_IMAGES].flat())
 
   it('这几个目录下的每一张图都登记在某份清单里', () => {
     // 逐个报缺失的文件名，而不是只说数字对不上——加图忘了登记的人要的是「哪一张」。

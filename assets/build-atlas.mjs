@@ -68,10 +68,8 @@ const TARGETS = [
  */
 const COPIES = [
   { from: 'battle', to: 'battle' },
-  { from: 'home', to: 'home' },
   { from: 'hero', to: 'hero' },
   { from: 'info', to: 'info' },
-  { from: 'room', to: 'room' },
   { from: 'music', to: 'audio/music' },
 ]
 

@@ -43,7 +43,6 @@ export function PackStage({ view, platform, onAction }: PackStageProps) {
         width: rect.width,
         height: rect.height,
         resolution: Math.min(metrics.pixelRatio, MAX_RESOLUTION),
-        platform,
         coarsePointer: platform.safeArea.isCoarsePointer(),
       })
       if (disposed) {

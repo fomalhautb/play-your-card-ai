@@ -1,11 +1,12 @@
 /**
- * 首页橱窗里摆哪四张卡，以及那幅画各层的地址。
+ * 首页橱窗里摆哪四张卡。
  *
- * 这份对照表放在装配层，因为它把**素材**和**内容**接在一起，而 canvas 两样都不认识：
- * 它不许 import `content`（依赖方向见架构 7.2 第 1 条），也不管资源从哪来（第 2 节第 5 条）。
+ * 这份名单放在装配层，因为它挑的是**内容**里的卡，而 canvas 不许 import `content`
+ *（依赖方向见架构 7.2 第 1 条）。
  *
- * 这里原先还有一张「七张人物抠图 ↔ 英雄 id」的表（`HOME_CAST`），
- * 随正式版简化第 2 步删掉首页人物层一起去掉了。
+ * 这里原先还有两样东西：一张「七张人物抠图 ↔ 英雄 id」的表（`HOME_CAST`，随简化第 2 步
+ * 删掉首页人物层一起去掉），以及那幅画各层的地址（`HOME_OCCLUDERS` / `homeArtUrl`，
+ * 随简化第 4 步把首页剥成素方块一起去掉）。
  */
 
 import type { CardId } from '@ai-duel/core'
@@ -22,11 +23,3 @@ export const HOME_SHOWCASE: readonly CardId[] = [
   'deepseek-v4',
   'doubao',
 ]
-
-/** 压在展示卡之上的两层：桌面弧和前景道具。顺序就是层叠顺序。 */
-export const HOME_OCCLUDERS = ['home-table', 'home-props'] as const
-
-/** 首页那幅画各层的地址。和 `preload/manifests.ts` 的 `HOME_IMAGES` 是同一批图。 */
-export function homeArtUrl(file: string): string {
-  return `/home/${file}.webp`
-}

@@ -1,8 +1,10 @@
 /**
- * 首页两档版式的几何断言（`scenes/home/homeLayout.ts`）。
+ * 首页版式的几何断言（`scenes/home/homeLayout.ts`）。
  *
- * 守的是「两档是并列的两套摆法，不是缩放」这条（需求第 3 条）：桌面档菜单横排、
- * 手机档竖排。顺带守几条一眼看不出、坏了却很难查的：东西不许跑出视口、菜单项不许互相压住。
+ * 正式版简化第 4 步之后两档共用同一套摆法（上面一排展示卡、下面一列素方块），
+ * `pickTier` 只剩「展示卡放多大」这一件事，所以这里守的也换了一批：
+ * 整列不许互相压住、不许跑出视口，四张卡还是一道弧口朝上的扇面，
+ * 手机档的卡比桌面档小。
  *
  * 版式只输出数，所以这些断言不用起浏览器（和对局那两档的测试同一个理由）。
  */
@@ -14,8 +16,8 @@ import { type HomeRect, pickHomeLayout } from '../src/scenes/home/homeLayout'
 const DESKTOP = { width: 1280, height: 900 }
 const MOBILE = { width: 390, height: 844 }
 
-/** 开发构建下的六项菜单。 */
-const LABELS = ['牌组', '英雄', '联机', '测试对局', '关于', '设置']
+/** 开发构建下的七项菜单（生产构建没有「测试对局」）。 */
+const LABELS = ['牌组', '英雄', '联机', '测试对局', '账号', '关于', '设置']
 
 function inside(rect: HomeRect, width: number, height: number): boolean {
   return (
@@ -23,59 +25,40 @@ function inside(rect: HomeRect, width: number, height: number): boolean {
   )
 }
 
+/** 「开始游戏」加菜单那几项，从上到下的整列。 */
+function column(layout: ReturnType<typeof pickHomeLayout>): HomeRect[] {
+  return [layout.start, ...layout.menu]
+}
+
 describe('首页版式', () => {
-  it('桌面档：那幅画按 contain 塞进视口并居中', () => {
-    const layout = pickHomeLayout(DESKTOP.width, DESKTOP.height, LABELS)
-    expect(layout.tier).toBe('desktop')
-    // 1280 / 1672 比 900 / 941 小，所以是宽度顶到边、上下留白。
-    expect(layout.stage.width).toBeCloseTo(1280, 5)
-    expect(layout.stage.x).toBeCloseTo(0, 5)
-    expect(layout.stage.y).toBeGreaterThan(0)
-    expect(layout.stage.height / layout.stage.width).toBeCloseTo(941 / 1672, 5)
-  })
+  for (const [name, size] of [
+    ['桌面档', DESKTOP],
+    ['手机档', MOBILE],
+  ] as const) {
+    it(`${name}：整列一项接一项，谁也不压住谁，而且都在屏幕里`, () => {
+      const layout = pickHomeLayout(size.width, size.height, LABELS)
+      expect(layout.menu).toHaveLength(LABELS.length)
+      const rows = column(layout)
+      for (let i = 1; i < rows.length; i += 1) {
+        const previous = rows[i - 1]!
+        expect(rows[i]!.y).toBeGreaterThanOrEqual(previous.y + previous.height)
+      }
+      for (const rect of rows) {
+        expect(inside(rect, size.width, size.height)).toBe(true)
+        // 定宽，所以整列左右对齐——这正是素方块和从前「按字数量宽」的区别。
+        expect(rect.width).toBe(layout.start.width)
+        expect(rect.x).toBeCloseTo((size.width - rect.width) / 2, 5)
+      }
+    })
+  }
 
-  it('桌面档：菜单横着排成一行，项与项不重叠，还有分隔星', () => {
-    const layout = pickHomeLayout(DESKTOP.width, DESKTOP.height, LABELS)
-    expect(layout.menu).toHaveLength(LABELS.length)
-    const ys = new Set(layout.menu.map((item) => item.y))
-    expect(ys.size).toBe(1)
-    for (let i = 1; i < layout.menu.length; i += 1) {
-      const previous = layout.menu[i - 1]!
-      expect(layout.menu[i]!.x).toBeGreaterThanOrEqual(previous.x + previous.width)
-    }
-    expect(layout.menuDotSize).toBeGreaterThan(0)
-  })
-
-  it('手机档：菜单竖着摞，不摆分隔星', () => {
-    const layout = pickHomeLayout(MOBILE.width, MOBILE.height, LABELS)
-    expect(layout.tier).toBe('mobile')
-    const xs = new Set(layout.menu.map((item) => item.x))
-    // 每项宽度不同，所以居中之后 x 各不相同；要断言的是它们**纵向**一项接一项。
-    expect(xs.size).toBeGreaterThan(1)
-    for (let i = 1; i < layout.menu.length; i += 1) {
-      const previous = layout.menu[i - 1]!
-      expect(layout.menu[i]!.y).toBeGreaterThanOrEqual(previous.y + previous.height)
-    }
-    expect(layout.menuDotSize).toBe(0)
-  })
-
-  it('手机档：画缩在屏幕上半部，主入口和整排菜单都在它下面、也都在屏幕里', () => {
-    const layout = pickHomeLayout(MOBILE.width, MOBILE.height, LABELS)
-    const stageBottom = layout.stage.y + layout.stage.height
-    expect(stageBottom).toBeLessThan(MOBILE.height / 2)
-    expect(layout.start.y).toBeGreaterThan(stageBottom)
-    expect(inside(layout.start, MOBILE.width, MOBILE.height)).toBe(true)
-    const last = layout.menu[layout.menu.length - 1]!
-    expect(inside(last, MOBILE.width, MOBILE.height)).toBe(true)
-  })
-
-  it('两档摆的都是四张展示卡，位置跟着画走', () => {
+  it('两档都摆四张展示卡，是一道弧口朝上的扇面', () => {
     for (const size of [DESKTOP, MOBILE]) {
       const layout = pickHomeLayout(size.width, size.height, LABELS)
       expect(layout.cards).toHaveLength(4)
       for (const card of layout.cards) {
-        expect(card.x).toBeGreaterThan(layout.stage.x)
-        expect(card.x).toBeLessThan(layout.stage.x + layout.stage.width)
+        expect(card.x).toBeGreaterThan(0)
+        expect(card.x).toBeLessThan(size.width)
         expect(card.scale).toBeGreaterThan(0)
       }
     }
@@ -85,17 +68,30 @@ describe('首页版式', () => {
     expect(layout.cards[0]!.y).toBeGreaterThan(layout.cards[1]!.y)
   })
 
-  it('菜单少一项（生产构建没有「测试对局」）时整排照样居中', () => {
+  it('展示卡摆在整列上方，不和「开始游戏」压在一起', () => {
+    for (const size of [DESKTOP, MOBILE]) {
+      const layout = pickHomeLayout(size.width, size.height, LABELS)
+      for (const card of layout.cards) {
+        expect(card.y).toBeLessThanOrEqual(layout.start.y)
+      }
+    }
+  })
+
+  it('菜单少一项（生产构建没有「测试对局」）时整列照样摆得下', () => {
     const short = LABELS.filter((label) => label !== '测试对局')
     const layout = pickHomeLayout(DESKTOP.width, DESKTOP.height, short)
     expect(layout.menu).toHaveLength(short.length)
-    const left = layout.menu[0]!.x
-    const right = layout.menu[layout.menu.length - 1]!
-    const center = (left + right.x + right.width) / 2
-    expect(center).toBeCloseTo(layout.stage.x + layout.stage.width / 2, 5)
+    const last = layout.menu[layout.menu.length - 1]!
+    expect(inside(last, DESKTOP.width, DESKTOP.height)).toBe(true)
   })
 
   it('指针粗就走手机档，和视口多大无关（大屏平板也是手指在点）', () => {
     expect(pickHomeLayout(1280, 900, LABELS, true).tier).toBe('mobile')
+  })
+
+  it('手机档的展示卡比桌面档小——这是 tier 现在唯一还管的事', () => {
+    const desktop = pickHomeLayout(DESKTOP.width, DESKTOP.height, LABELS)
+    const mobile = pickHomeLayout(DESKTOP.width, DESKTOP.height, LABELS, true)
+    expect(mobile.cards[0]!.scale).toBeLessThan(desktop.cards[0]!.scale)
   })
 })

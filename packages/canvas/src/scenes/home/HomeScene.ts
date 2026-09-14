@@ -1,28 +1,36 @@
 /**
- * 首页渲染器（迁移第 30 条「主页人物上 Pixi」）。
+ * 首页渲染器（迁移第 30 条「主页人物上 Pixi」，正式版简化第 4 步剥成素方块）。
  *
- * 层叠自下而上：夜空底 → 四张展示卡 → 桌面弧 → 前景道具 → 文字类 UI（标题、开始匾额、菜单）。
- * 顺序对应的是现实关系：卡摆在桌上被桌沿挡住下半截，地球仪、望远镜这些道具又摆在桌沿上。
+ * 现在只剩两层：上面一排展示卡（还带 hover 抬起和跟指针倾斜，那是卡牌动画，留着），
+ * 下面一列素方块（「开始游戏」加菜单）。
  *
- * 这个文件只做四件事：建渲染器、推帧循环、摆版式、把各层发出的操作转给调用方。
- * 各层自己长什么样在旁边三个文件里（版式、展示卡、UI）。
+ * 从前这一页是一幅 1672×941 的画：夜空底 → 展示卡 → 桌面弧 → 前景道具 → 标题和匾额。
+ * 视觉后面整套重做，那四层底图、花饰、匾额按钮、文字钮一起删了，
+ * 连带着「等图」这道闸门也不需要了（见 client 的 HomeScreen.tsx）。
  *
- * 原先这一页还有七张人物抠图和一层逐像素的 alpha 命中（hover 某个人浮出介绍卡），
- * 正式版简化第 2 步整条删掉了：视觉后面要整套重做，而那一层和抠图素材绑得最死。
+ * 这个文件做四件事：建渲染器、推帧循环、摆版式、把方块发出的操作转给调用方。
+ * 菜单那一列直接建在这里而不是另起一层——它现在就是一个 for 循环加几个 Box。
  */
 
-import { createFakePlatform } from '@ai-duel/platform'
-import { autoDetectRenderer, Container, type Renderer, Sprite } from 'pixi.js'
+import { autoDetectRenderer, Container, Graphics, type Renderer } from 'pixi.js'
+import { Box, CANVAS_BACKGROUND } from '../../components/Box'
 import { bakeTextures } from '../../fx/bakedTextures'
 import { TIER_CONFIG } from '../../fx/effectTier'
-import { bakeUiTextures } from '../../fx/uiTextures'
 import { Animator } from '../../runtime/animator'
 import { FrameLoop } from '../../runtime/frameLoop'
 import { TextTextureCache } from '../../runtime/textCache'
 import { HomeCards, type HomeCardsDeps } from './homeCards'
-import { type HomeAction, type HomeScene, type HomeSceneOptions, homeMenu } from './homeContract'
+import {
+  type HomeAction,
+  type HomeMenuItem,
+  type HomeScene,
+  type HomeSceneOptions,
+  homeMenu,
+} from './homeContract'
 import { type HomeLayout, pickHomeLayout } from './homeLayout'
-import { HomeUi, type HomeUiDeps } from './homeUi'
+
+/** 主入口那一块印的字。 */
+const START_LABEL = '开始游戏'
 
 export async function createHomeScene(options: HomeSceneOptions): Promise<HomeScene> {
   const renderer = await autoDetectRenderer({
@@ -35,7 +43,7 @@ export async function createHomeScene(options: HomeSceneOptions): Promise<HomeSc
     antialias: true,
     autoDensity: true,
     // 底色不透明：这一页整幅铺满，透明只会让网页壳的底色从画的边缘漏出来。
-    background: '#0b0d15',
+    background: CANVAS_BACKGROUND,
   })
   return new HomeSceneImpl(renderer, options, true).handle()
 }
@@ -56,18 +64,21 @@ class HomeSceneImpl {
   private readonly renderer: Renderer
   private readonly stage = new Container()
   private readonly frameLoop: FrameLoop
-  private readonly deps: HomeCardsDeps & HomeUiDeps
-  private readonly background = new Sprite()
-  /** 压在展示卡之上的两层：桌面弧在下、前景道具在上。 */
-  private readonly table = new Sprite()
-  private readonly props = new Sprite()
+  private readonly deps: HomeCardsDeps & { text: TextTextureCache }
+  /**
+   * 垫在最底下那块浅灰。渲染器的底色只在自己建渲染器那一档管用，
+   * 挂在目录页的渲染器上时靠这一块（见 Box.ts 的 CANVAS_BACKGROUND）。
+   */
+  private readonly backdrop = new Graphics()
   private readonly cards: HomeCards
-  private readonly ui: HomeUi
+  /** 「开始游戏」和菜单那一列。换版式时整层重建。 */
+  private readonly ui = new Container()
   private readonly ownsRenderer: boolean
   private readonly coarsePointer: boolean
-  private readonly menuLabels: string[]
+  private readonly menu: HomeMenuItem[]
   private viewport: { width: number; height: number }
   private layout: HomeLayout
+  private onAction: ((action: HomeAction) => void) | null = null
   /** 上一帧展示卡的倾斜收敛了没有。帧循环每帧都要问一次「忙不忙」，缓存下来省得重算。 */
   private tiltBusy = false
   private destroyed = false
@@ -85,47 +96,72 @@ class HomeSceneImpl {
     const tier = TIER_CONFIG[options.tier ?? 'mid']
     this.deps = {
       baked: bakeTextures(renderer),
-      ui: bakeUiTextures(renderer),
       text: new TextTextureCache(renderer),
       animator: new Animator(() => this.frameLoop.wake()),
       glare: tier.glare,
       tilt: tier.cardTilt,
-      platform: options.platform ?? createFakePlatform(),
-      // 按钮按下那一声。资源不归 canvas 管，装配层现在也没往下透（音效是第 33 条的事）。
-      clickSound: null,
     }
 
-    const menu = homeMenu(options.dev === true)
-    this.menuLabels = menu.map((item) => item.label)
-    this.background.texture = options.textures.background
-    this.table.texture = options.textures.table
-    this.props.texture = options.textures.props
+    this.menu = homeMenu(options.dev === true)
     this.cards = new HomeCards(options.cards, this.deps)
-    this.ui = new HomeUi({ plaque: options.textures.plaque }, menu, this.deps)
-    this.stage.addChild(this.background, this.cards, this.table, this.props, this.ui)
+    this.stage.addChild(this.backdrop, this.cards, this.ui)
 
     this.layout = this.pick()
     this.applyLayout()
+    this.paint()
+  }
+
+  /**
+   * 摆完新东西之后**立刻**画一帧，不等下一次 rAF。理由同 RoomScene 的 `paint`：
+   * Pixi 的命中判定读 `worldTransform`，那份变换只在渲染时才算，不画这一帧按钮点不中。
+   *
+   * 这一页尤其绕不开它：正式版简化第 4 步之前主入口那颗匾额挂着一条永不结束的浮动补间，
+   * 帧循环因此一直醒着、每帧都在画；换成素方块之后整页静止，
+   * **没有任何东西会叫醒帧循环**——不自己画这一帧，画布会一直是空的（端到端在这里红过）。
+   */
+  private paint(): void {
+    this.frameLoop.wake()
+    if (this.ownsRenderer) this.renderer.render(this.stage)
   }
 
   private pick(): HomeLayout {
     return pickHomeLayout(
       this.viewport.width,
       this.viewport.height,
-      this.menuLabels,
+      this.menu.map((item) => item.label),
       this.coarsePointer,
     )
   }
 
+  /**
+   * 按当前这一档版式摆好整页。
+   *
+   * 方块整层重建而不是逐个 `setSize`：这一页一辈子只在窗口尺寸变化时重排几次，
+   * 不在动画期间（3.10 管的是稳态每帧）。方块上没有补间，所以直接销毁就行，
+   * 不用走 `killAndDestroy`。
+   */
   private applyLayout(): void {
-    const { stage } = this.layout
-    // 三层都是和画等比的整幅图，照画那一块铺满就落在各自该在的位置上。
-    for (const sprite of [this.background, this.table, this.props]) {
-      sprite.position.set(stage.x, stage.y)
-      sprite.setSize(stage.width, stage.height)
-    }
+    const { width, height } = this.viewport
+    this.backdrop.clear().rect(0, 0, width, height).fill({ color: CANVAS_BACKGROUND })
     this.cards.place(this.layout.cards)
-    this.ui.place(this.layout)
+    for (const child of this.ui.removeChildren()) child.destroy({ children: true })
+    this.ui.addChild(this.box(this.layout.start, START_LABEL, { kind: 'start' }))
+    this.menu.forEach((item, index) => {
+      const rect = this.layout.menu[index]
+      if (rect === undefined) return
+      this.ui.addChild(this.box(rect, item.label, { kind: 'menu', item: item.id }))
+    })
+  }
+
+  private box(
+    rect: { x: number; y: number; width: number; height: number },
+    label: string,
+    action: HomeAction,
+  ): Box {
+    const box = new Box({ width: rect.width, height: rect.height, label, size: 'body' }, this.deps)
+    box.position.set(rect.x, rect.y)
+    box.onPress(() => this.onAction?.(action))
+    return box
   }
 
   private advance(deltaMs: number): boolean {
@@ -139,14 +175,15 @@ class HomeSceneImpl {
     this.renderer.render(this.stage)
   }
 
-  /** 首页几乎永远不空闲：主入口那颗匾额常驻浮动（契约里写明了这一点）。 */
   private idle(): boolean {
     return !this.deps.animator.isBusy() && !this.tiltBusy
   }
 
   handle(): HomeScene {
     return {
-      onAction: (callback: (action: HomeAction) => void) => this.ui.setOnAction(callback),
+      onAction: (callback: (action: HomeAction) => void) => {
+        this.onAction = callback
+      },
       step: (deltaMs) => this.frameLoop.step(deltaMs),
       isIdle: () => this.idle(),
       resize: (width, height) => this.resize(width, height),
@@ -164,7 +201,7 @@ class HomeSceneImpl {
     this.renderer.resize(width, height)
     this.layout = this.pick()
     this.applyLayout()
-    this.frameLoop.wake()
+    this.paint()
   }
 
   /** 拆场景。调第二次直接返回（同 DuelScene / RoomScene 的理由）。 */
@@ -174,7 +211,6 @@ class HomeSceneImpl {
     // 顺序要紧：先掐补间，再还 GSAP 的时钟（同 DuelScene 的 destroy）。
     this.deps.animator.destroy()
     this.frameLoop.destroy()
-    this.deps.ui.destroy()
     this.deps.baked.destroy()
     this.deps.text.destroy()
     // 外面给的纹理不归这里收（那是调用方的资源）。

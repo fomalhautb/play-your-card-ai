@@ -10,16 +10,12 @@
  * 新卡是「落进」收藏的。
  */
 
-import { tokens } from '@ai-duel/design'
-import { createFakePlatform } from '@ai-duel/platform'
-import { autoDetectRenderer, Container, type Renderer } from 'pixi.js'
+import { autoDetectRenderer, Container, Graphics, type Renderer } from 'pixi.js'
+import { Box, type BoxDeps, CANVAS_BACKGROUND } from '../../components/Box'
 import { CardSprite } from '../../components/CardSprite'
-import { Label } from '../../components/Label'
-import { PLAQUE_NAVY, PlaqueButton, type PlaqueButtonDeps } from '../../components/PlaqueButton'
 import { PLAY_FLIP_MS } from '../../director/timings'
 import { bakeTextures } from '../../fx/bakedTextures'
 import { HitFx } from '../../fx/HitFx'
-import { bakeUiTextures } from '../../fx/uiTextures'
 import { CARD_HEIGHT, CARD_WIDTH } from '../../layout/fanMath'
 import { Animator } from '../../runtime/animator'
 import { killAndDestroy } from '../../runtime/dispose'
@@ -29,12 +25,11 @@ import { TextTextureCache } from '../../runtime/textCache'
 import { pickTier } from '../duel/layout/pickLayout'
 import type { PackAction, PackScene, PackSceneOptions, PackView } from './packContract'
 
-/** 卡在视口里占多高（两档各一个比例）。窄屏上要留出下面那行字和按钮的位置。 */
+/** 卡在视口里占多高（两档各一个比例）。窄屏上要留出下面那几块方块的位置。 */
 const CARD_HEIGHT_RATIO = { desktop: 0.52, mobile: 0.42 }
-/** 卡底到那行卡名、卡名到「已加入收藏」、再到按钮，各留多少（占视口高）。 */
-const GAP = { name: 0.06, note: 0.045, button: 0.06 }
-/** 「点一下翻开」那句提示的字号（占视口高）。 */
-const HINT_SIZE = 0.026
+
+/** 卡底下那一摞方块：宽占视口宽几成、最窄最宽多少、行高、行距、离卡底多远。 */
+const COLUMN = { widthRatio: 0.6, minWidth: 160, maxWidth: 320, height: 44, gap: 12, top: 24 }
 
 export async function createPackScene(options: PackSceneOptions): Promise<PackScene> {
   const renderer = await autoDetectRenderer({
@@ -46,7 +41,7 @@ export async function createPackScene(options: PackSceneOptions): Promise<PackSc
     preference: ['webgl'],
     antialias: true,
     autoDensity: true,
-    background: tokens.color.page.background,
+    background: CANVAS_BACKGROUND,
   })
   return new PackSceneImpl(renderer, options, true).handle()
 }
@@ -69,7 +64,9 @@ class PackSceneImpl {
   private readonly fxLayer = new Container()
   private readonly chrome = new Container()
   private readonly frameLoop: FrameLoop
-  private readonly deps: PlaqueButtonDeps & { baked: ReturnType<typeof bakeTextures> }
+  private readonly deps: BoxDeps & { baked: ReturnType<typeof bakeTextures>; animator: Animator }
+  /** 垫在最底下那块浅灰，理由同 RoomScene 的 backdrop（见 Box.ts 的 CANVAS_BACKGROUND）。 */
+  private readonly backdrop = new Graphics()
   private readonly hitFx: HitFx
   private readonly options: PackSceneOptions
   private readonly ownsRenderer: boolean
@@ -92,12 +89,8 @@ class PackSceneImpl {
     const baked = bakeTextures(renderer)
     this.deps = {
       baked,
-      ui: bakeUiTextures(renderer),
       text: new TextTextureCache(renderer),
       animator: new Animator(() => this.frameLoop.wake()),
-      platform: options.platform ?? createFakePlatform(),
-      // 按钮按下那一声。资源不归 canvas 管（音效是第 33 条的事）。
-      clickSound: null,
     }
     this.hitFx = new HitFx({
       layer: this.fxLayer,
@@ -108,7 +101,15 @@ class PackSceneImpl {
       rng: new Rng(options.seed ?? 1),
       tier: options.tier ?? 'mid',
     })
-    this.stage.addChild(this.world, this.fxLayer, this.chrome)
+    this.stage.addChild(this.backdrop, this.world, this.fxLayer, this.chrome)
+    this.paintBackdrop()
+  }
+
+  private paintBackdrop(): void {
+    this.backdrop
+      .clear()
+      .rect(0, 0, this.viewport.width, this.viewport.height)
+      .fill({ color: CANVAS_BACKGROUND })
   }
 
   private get tier(): 'desktop' | 'mobile' {
@@ -207,63 +208,39 @@ class PackSceneImpl {
     card.position.set(this.viewport.width / 2, top + cardHeight)
   }
 
-  /** 卡底下那几行字和按钮。每换一步整层重建（这一页一辈子只重建两三次）。 */
+  /**
+   * 卡底下那一摞方块。每换一步整层重建（这一页一辈子只重建两三次）。
+   *
+   * 还没翻开时只有一句「点一下翻开」；翻开之后是卡名、「已加入收藏」和「继续」三块。
+   */
   private buildChrome(): void {
     for (const child of this.chrome.removeChildren()) killAndDestroy(this.deps.animator, child)
     const view = this.view
     const card = this.card
     if (view === null || card === null) return
     const { height, width } = this.viewport
-    let y = card.y + height * GAP.name
+    const boxWidth = Math.min(
+      COLUMN.maxWidth,
+      Math.max(COLUMN.minWidth, Math.min(width - 32, width * COLUMN.widthRatio)),
+    )
+    const x = (width - boxWidth) / 2
+    let y = Math.min(card.y + COLUMN.top, height - COLUMN.height)
 
-    if (view.phase === 'closed') {
-      const hint = new Label(
-        '点一下翻开',
-        { fontSize: height * HINT_SIZE, letterSpacing: height * HINT_SIZE * 0.2 },
-        this.deps,
-        tokens.color.home.ink,
-      )
-      hint.position.set(width / 2, y)
-      this.chrome.addChild(hint)
-      return
+    const add = (label: string, press?: () => void): void => {
+      const box = new Box({ width: boxWidth, height: COLUMN.height, label }, this.deps)
+      box.position.set(x, y)
+      if (press !== undefined) box.onPress(press)
+      this.chrome.addChild(box)
+      y += COLUMN.height + COLUMN.gap
     }
 
-    const name = new Label(
-      view.card.name,
-      {
-        fontSize: height * 0.045,
-        weight: '600',
-        letterSpacing: height * 0.045 * 0.16,
-        maxWidth: width * 0.8,
-      },
-      this.deps,
-      tokens.color.home.inkLit,
-    )
-    name.position.set(width / 2, y)
-    this.chrome.addChild(name)
-    y += height * GAP.note
-
-    const note = new Label(
-      '已加入收藏',
-      { fontSize: height * HINT_SIZE, letterSpacing: height * HINT_SIZE * 0.24 },
-      this.deps,
-      tokens.color.home.ink,
-    )
-    note.position.set(width / 2, y)
-    this.chrome.addChild(note)
-    y += height * GAP.button
-
-    const button = new PlaqueButton(
-      {
-        variant: PLAQUE_NAVY,
-        caption: '继续',
-        size: 'endTurn',
-        onActivate: () => this.onAction?.({ kind: 'continue' }),
-      },
-      this.deps,
-    )
-    button.position.set((width - button.boxWidth) / 2, y)
-    this.chrome.addChild(button)
+    if (view.phase === 'closed') {
+      add('点一下翻开')
+      return
+    }
+    add(view.card.name)
+    add('已加入收藏')
+    add('继续', () => this.onAction?.({ kind: 'continue' }))
   }
 
   private render(): void {
@@ -304,6 +281,7 @@ class PackSceneImpl {
     if (width === this.viewport.width && height === this.viewport.height) return
     this.viewport = { width, height }
     this.renderer.resize(width, height)
+    this.paintBackdrop()
     this.place()
     this.buildChrome()
     this.paint()
@@ -316,7 +294,6 @@ class PackSceneImpl {
     // 顺序要紧：先掐补间，再还 GSAP 的时钟（同 DuelScene 的 destroy）。
     this.deps.animator.destroy()
     this.frameLoop.destroy()
-    this.deps.ui.destroy()
     this.deps.baked.destroy()
     this.deps.text.destroy()
     this.stage.destroy({ children: true, texture: false, textureSource: false })

@@ -3,8 +3,8 @@
  *
  * 单独成文件的理由和 duelContract.ts 一样——它是**跨包的约定**：
  * 装配层（`packages/client/src/screens/RoomScreen.tsx`）按这组类型调用，
- * 组件目录页的条目也按它摆。放在实现文件里的话，每次动实现都要在一堆内部细节里
- * 把这几个 interface 翻出来确认没动到约定。
+ * 组件目录页的条目也按它摆，端到端用例还要靠 `roomButtons()` 加 `pickRoomLayout()`
+ * 算出三颗入口钮在屏幕的哪儿。
  *
  * ## 场景是哑的
  *
@@ -13,12 +13,9 @@
  * 那些是协议和网络的事，混进来就会变成第二个「什么都知道」的巨型组件（旧版的 RoomScreen
  * 就是这么长到 737 行的）。
  *
- * 这一版是**最小可用**：三颗钮、一块码、一行状态、一颗准备。匹配房那张 1199×325 的
- * 图片底板和「复制房间码」那颗（需求单的面板 L、按钮 G）是美术资源，
- * 等第 33 条把素材搬进来再补。
+ * 正式版简化第 4 步之后这一页整个是素方块（见 components/Box.ts）：一块面板、几行字、
+ * 几颗钮，没有底图也没有配色。视觉后面整套重做。
  */
-
-import type { Platform } from '@ai-duel/platform'
 
 /** 这一页现在在干什么。它只决定摆哪一组按钮，不决定文案。 */
 export type RoomPhase =
@@ -64,6 +61,29 @@ export type RoomAction =
   /** 离开房间，回上一页。 */
   | { kind: 'leave' }
 
+/** 一颗钮的身份。和它按下去发出的那条操作是同一个名字，不另起一套。 */
+export type RoomButtonId = RoomAction['kind']
+
+/**
+ * 这一份状态该摆哪几颗钮，从左到右（或从上到下）。
+ *
+ * 是这一页按钮顺序的**唯一**定义，理由和首页 `homeMenu()` 一样：
+ * 端到端用例要按坐标点这几颗钮，顺序要是写在面板实现里，用例就得再抄一份。
+ *
+ * 三种 phase 的按钮组互不重叠，所以写成一个 switch 而不是一串 if——
+ * 漏掉一种时类型检查会当场报出来。
+ */
+export function roomButtons(phase: RoomPhase, ready: RoomReady): RoomButtonId[] {
+  switch (phase) {
+    case 'idle':
+      return ['match', 'create', 'join']
+    case 'busy':
+      return ['cancel']
+    case 'room':
+      return ready === 'hidden' ? ['leave'] : ['ready', 'leave']
+  }
+}
+
 export interface RoomSceneOptions {
   canvas: HTMLCanvasElement
   /** CSS 像素。 */
@@ -71,11 +91,6 @@ export interface RoomSceneOptions {
   height: number
   /** 渲染倍率，调用方负责封顶（纪律 3.3）。 */
   resolution: number
-  /**
-   * 触感和音效。只要这两样——房间页不碰网络、存储、全屏。
-   * 不给就静音、不震动（目录页就是这么跑的）。
-   */
-  platform?: Pick<Platform, 'audio' | 'haptics'>
   /** true 时不注册任何真实时间源，只靠 step() 推进。目录页拍图那一档用它。 */
   manualClock?: boolean
 }
@@ -89,7 +104,7 @@ export interface RoomScene {
   step(deltaMs: number): void
   /** 没有动画在跑；此时帧循环必须停（3.6）。 */
   isIdle(): boolean
-  /** 视口变了，整块重新居中。 */
+  /** 视口变了，整块重新摆。 */
   resize(width: number, height: number): void
   /** 拆场景。重复调用是安全的。 */
   destroy(): void

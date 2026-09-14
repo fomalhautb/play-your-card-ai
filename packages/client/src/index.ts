@@ -67,14 +67,7 @@ export { createServerDriver, isServerDriver } from './match/serverDriver'
 export { lobbyUrl, roomUrl } from './net/endpoints'
 export type { LobbyClient, LobbyClientOptions } from './net/lobbyClient'
 export { createLobbyClient, LobbyError } from './net/lobbyClient'
-export {
-  BATTLE_IMAGES,
-  HERO_IMAGES,
-  HOME_IMAGES,
-  INFO_IMAGES,
-  PRELOAD_GROUPS,
-  ROOM_IMAGES,
-} from './preload/manifests'
+export { BATTLE_IMAGES, HERO_IMAGES, INFO_IMAGES, PRELOAD_GROUPS } from './preload/manifests'
 export type { PreloadState } from './preload/preload'
 export { PRELOAD_STALL_MS, preloadAll, preloadInBackground, preloadState } from './preload/preload'
 export { useAssets, useBackgroundPreload } from './preload/useAssets'

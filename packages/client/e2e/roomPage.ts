@@ -2,18 +2,27 @@
  * 联机端到端要用的房间页动作：点那三颗钮、读房间码、点准备。
  *
  * 三颗钮**真的用指针点**（房间页整页画在画布上，DOM 里没有按钮），
- * 所以这里要算出它们在屏幕上的位置。算法和 canvas 的 scenes/room/roomPanel.ts 一一对应，
- * 那边改了版式这里要跟着改——这是画布界面做端到端绕不开的代价，
- * 单机那条用例算手牌位置时也是同一个办法（见 localMatch.spec.ts 的 FAN）。
+ * 所以这里要算出它们在屏幕上的位置。落点由 canvas 导出的两个纯函数算：
+ * `roomButtons()` 说这一份状态摆哪几颗、什么顺序，`pickRoomLayout()` 说第 n 颗在哪儿。
+ * 从前这里是**抄了一份**面板几何常量，场景那边一改版式这边就点空；
+ * 现在两头调的是同一个函数（和首页 homePage.ts 同一个做法）。
  *
  * 房间码反过来只能从调试口子读：那几个字是烤成纹理画上去的，页面上取不到文本。
  */
 
+import {
+  pickRoomLayout,
+  type RoomButtonId,
+  type RoomPhase,
+  type RoomReady,
+  roomButtons,
+} from '@ai-duel/canvas'
 import { expect, type Page } from '@playwright/test'
 // 这一句同时把 src/dev/debugHook 里那份 `declare global`（window.__aiDuel）带进来。
 import type { RoomDebug } from '../src/dev/debugHook'
 import { readDebug } from './debugBridge'
 import { clickHomeMenu, openHome, waitForScene } from './homePage'
+import { VIEWPORT } from './players'
 
 /** 房间页此刻的状态。从调试口子的签名反推，那边改了这里跟着变。 */
 type RoomSnapshot = ReturnType<RoomDebug['view']>
@@ -29,40 +38,31 @@ async function untilRoom(page: Page, pattern: RegExp, timeout = 30_000): Promise
   await expect.poll(async () => JSON.stringify(await roomView(page)), { timeout }).toMatch(pattern)
 }
 
-/**
- * 按 1280×900 的视口算出来的面板几何（公式见 canvas 的 scenes/room/roomPanel.ts）：
- *
- *   面板 `min(560, 1280-64) × min(400, 900-64)` = 560×400，在视口正中 →
- *   左上角 (360, 250)；
- *   按钮是「结束出牌」那一档 184×60，离面板底边 30，竖排时上下间距 14。
- */
-const PANEL = { x: 360, y: 250, width: 560, height: 400 }
-const BUTTON = { width: 184, height: 60, gapY: 14, gapX: 20, bottom: 30 }
-
-/** 竖排那一档（三颗）里第 index 颗的中心。index 0 是最上面那颗。 */
-function columnSpot(index: number, count: number): { x: number; y: number } {
-  const bottom = PANEL.height - BUTTON.bottom
-  const top = bottom - count * BUTTON.height - (count - 1) * BUTTON.gapY
-  return {
-    x: PANEL.x + PANEL.width / 2,
-    y: PANEL.y + top + index * (BUTTON.height + BUTTON.gapY) + BUTTON.height / 2,
-  }
+/** 某一份状态下某一颗钮的中心（视口坐标）。 */
+function buttonSpot(
+  phase: RoomPhase,
+  ready: RoomReady,
+  id: RoomButtonId,
+): { x: number; y: number } {
+  const ids = roomButtons(phase, ready)
+  const index = ids.indexOf(id)
+  const layout = pickRoomLayout(VIEWPORT.width, VIEWPORT.height, ids.length)
+  const rect = layout.buttons[index]
+  if (rect === undefined) throw new Error(`房间页 ${phase} 这一档没有 ${id} 这颗钮`)
+  return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }
 }
 
-/** 并排那一档（两颗）里第 index 颗的中心。index 0 是左边那颗。 */
-function rowSpot(index: number, count: number): { x: number; y: number } {
-  const total = count * BUTTON.width + (count - 1) * BUTTON.gapX
-  const left = (PANEL.width - total) / 2
-  return {
-    x: PANEL.x + left + index * (BUTTON.width + BUTTON.gapX) + BUTTON.width / 2,
-    y: PANEL.y + PANEL.height - BUTTON.bottom - BUTTON.height / 2,
-  }
+/** 三颗入口钮，竖着排（`phase: 'idle'`，这时还没有「准备」钮）。 */
+const ENTRY = {
+  match: buttonSpot('idle', 'hidden', 'match'),
+  create: buttonSpot('idle', 'hidden', 'create'),
+  join: buttonSpot('idle', 'hidden', 'join'),
 }
-
-/** 三颗入口钮，竖着排（`phase: 'idle'`）。 */
-const ENTRY = { match: columnSpot(0, 3), create: columnSpot(1, 3), join: columnSpot(2, 3) }
-/** 房里那两颗，并排（`phase: 'room'`）。 */
-const IN_ROOM = { ready: rowSpot(0, 2), leave: rowSpot(1, 2) }
+/** 房里那两颗，并排（`phase: 'room'`，「准备」还没点）。 */
+const IN_ROOM = {
+  ready: buttonSpot('room', 'idle', 'ready'),
+  leave: buttonSpot('room', 'idle', 'leave'),
+}
 
 /** 读这一页此刻的状态。 */
 export async function roomView(page: Page): Promise<RoomSnapshot> {

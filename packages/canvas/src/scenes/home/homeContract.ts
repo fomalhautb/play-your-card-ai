@@ -7,24 +7,24 @@
  *
  * ## 谁管什么
  *
- * 场景管**画面和文案**：菜单上印哪几个字、按钮长什么样。
+ * 场景管**画面和文案**：菜单上印哪几个字、按钮摆在哪。
  * 装配层管**去哪**：按了「开始游戏」进联机房、按了「牌组」跳哪条路由。
  * 所以下面这些操作只说「玩家点了哪一颗」，不带任何路由信息。
  * 这条分工和房间页是一样的：canvas 里有中文文案不奇怪，那是界面的一部分；
  * 但**没有任何路由和存档**，那是装配层的事。
  *
- * ## 图片和卡牌数据都由装配层给
+ * ## 卡牌数据由装配层给
  *
  * 场景不管资源从哪来（架构第 2 节第 5 条），也不许 import `content`
  *（依赖方向见 7.2 第 1 条）。所以四张展示卡是哪四张，由装配层查好、连纹理一起传进来。
+ * 原先这里还有一份 `HomeTextures`（夜空底、桌面弧、前景道具、匾额底图），
+ * 正式版简化第 4 步把这一页剥成素方块，那四张图连同底下的素材一起删了。
  */
 
-import type { Platform } from '@ai-duel/platform'
-import type { Texture } from 'pixi.js'
 import type { CardVisual } from '../../components/CardSprite'
 import type { EffectTier } from '../../fx/effectTier'
 
-/** 菜单上那几项。「开始游戏」不在里面——它是主入口，单独一颗匾额。 */
+/** 菜单上那几项。「开始游戏」不在里面——它是主入口，单独一块。 */
 export type HomeMenuId = 'deck' | 'hero' | 'online' | 'test' | 'account' | 'about' | 'settings'
 
 export interface HomeMenuItem {
@@ -62,18 +62,6 @@ export type HomeAction =
   /** 主入口。去哪一页由装配层决定（现在是联机房）。 */
   { kind: 'start' } | { kind: 'menu'; item: HomeMenuId }
 
-/** 那幅画的各层。都是和舞台等比的整幅图。 */
-export interface HomeTextures {
-  /** 夜空底。 */
-  background: Texture
-  /** 桌面弧，压在展示卡之上。 */
-  table: Texture
-  /** 前景道具（地球仪、望远镜），压在桌面弧之上。 */
-  props: Texture
-  /** 「开始游戏」那颗匾额的底图。 */
-  plaque: Texture
-}
-
 export interface HomeSceneOptions {
   canvas: HTMLCanvasElement
   /** CSS 像素。 */
@@ -81,21 +69,15 @@ export interface HomeSceneOptions {
   height: number
   /** 渲染倍率，调用方负责封顶（纪律 3.3）。 */
   resolution: number
-  textures: HomeTextures
   /** 四张展示卡。取的是卡池里的真卡，查好了传进来。 */
   cards: CardVisual[]
   /** 效果档位，决定展示卡要不要跟指针倾斜和反光。不给就是中档。 */
   tier?: EffectTier
   /** 开发构建才摆「测试对局」那一项。 */
   dev?: boolean
-  /**
-   * 触感和音效。只要这两样——首页不碰网络、存储、全屏。
-   * 不给就静音、不震动（目录页就是这么跑的）。
-   */
-  platform?: Pick<Platform, 'audio' | 'haptics'>
   /** true 时不注册任何真实时间源，只靠 step() 推进。目录页拍图那一档用它。 */
   manualClock?: boolean
-  /** 指针是不是粗的。它和视口短边一起决定走哪一档版式（同对局场景）。 */
+  /** 指针是不是粗的。它和视口短边一起决定展示卡放多大（同对局场景的分档判据）。 */
   coarsePointer?: boolean
 }
 
@@ -105,13 +87,13 @@ export interface HomeScene {
   /** 手动推进一帧。 */
   step(deltaMs: number): void
   /**
-   * 没有动画在跑。
+   * 没有动画在跑；此时帧循环必须停（3.6）。
    *
-   * 首页**几乎永远是 false**：主入口那颗匾额常驻上下浮动（见 PlateButton 的变体 E）。
-   * 这是设计如此，不是 3.6 的漏网——「没有动画时停掉帧循环」的前提是真的没有动画。
+   * 这一页现在**真的会空闲**：主入口从前那颗常驻上下浮动的匾额在正式版简化第 4 步
+   * 换成了素方块，页面静止时只剩展示卡的 hover 还会动。
    */
   isIdle(): boolean
-  /** 视口变了，两档版式各按各的重排。 */
+  /** 视口变了，整页重排。 */
   resize(width: number, height: number): void
   /** 拆场景。重复调用是安全的。 */
   destroy(): void

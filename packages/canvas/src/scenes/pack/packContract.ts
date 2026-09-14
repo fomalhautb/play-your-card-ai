@@ -13,7 +13,6 @@
  * 场景不认识存档，也不决定「继续」之后去哪——那是 `PackScreen.tsx` 的事。
  */
 
-import type { Platform } from '@ai-duel/platform'
 import type { CardVisual } from '../../components/CardSprite'
 import type { EffectTier } from '../../fx/effectTier'
 
@@ -46,8 +45,6 @@ export interface PackSceneOptions {
   resolution: number
   /** 档位决定命中特效的烟尘数量和那圈亮环。不给就是中档。 */
   tier?: EffectTier
-  /** 触感和音效。不给就静音、不震动（目录页就是这么跑的）。 */
-  platform?: Pick<Platform, 'audio' | 'haptics'>
   /** true 时不注册任何真实时间源，只靠 step() 推进。 */
   manualClock?: boolean
   /** 指针是不是粗的。它和视口短边一起决定卡放多大。 */
