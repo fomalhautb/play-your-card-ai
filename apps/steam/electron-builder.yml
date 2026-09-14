@@ -8,9 +8,24 @@
 # 两条都会先跑一遍 build，产物在 apps/steam/release/。
 
 appId: online.playyourcardai.game
-# ASCII，不用中文名：AppImage 和 Windows 的产物文件名是拿它拼出来的，
+# 显示名：mac 的 CFBundleName、Linux 桌面项的 Name，也是 AppImage 的产物文件名
+# （默认模板 ${productName}-${version}.AppImage，这个宏取的就是这里）。
+# ASCII，不用中文名：它会被原样塞进桌面项和 AppImage 启动脚本的 shell 字符串里，
 # 中文名在有些系统上会被转义成一串百分号，也不好在命令行里补全。
 productName: PlayYourCardAI
+
+# 可执行文件名。**必须显式设**：Linux 这一档的默认值不是 productName，而是 package.json 的
+# `name` 去掉 `/` 再小写——本包叫 `@ai-duel/steam`，算出来就是 `@ai-duelsteam`。
+# 而 AppImage 会把可执行名当文件路径和 shell 字符串用，带 `@` 的名字 electron-builder
+# 直接判错（executableName contains characters that cannot be safely used in file paths），
+# 于是 Linux 那一格构建红，mac 和 Windows 却是绿的（那两端的默认值取的是 productName）。
+#
+# 写在顶层而不是 linux 下面：三端同一个可执行名，不用记「Linux 叫这个、mac 叫那个」。
+# 连带效果是 mac 的包目录和 Windows 的 exe 也跟着它叫（ai-duel.app / ai-duel.exe），
+# 因为那两个名字取 productFilename，而 productFilename 一旦设了 executableName 就优先取它；
+# AppImage 的文件名不受影响（见上面 productName），mac 上 Dock 里显示的也仍是 productName。
+# 取 `ai-duel` 是为了和 Cloudflare Worker 的名字（packages/server/wrangler.jsonc）对齐。
+executableName: ai-duel
 copyright: © play-your-card-ai
 
 directories:
