@@ -1,48 +1,49 @@
 /**
- * 战场上的一个格子：一张缩小的卡，加一列状态角标（需求单徽章 D），
- * 外加选目标时那圈会呼吸的橙色描边（弹窗 G 的一部分）。
+ * 战场上的一个格子：一张缩小的卡，加一列状态角标，外加选目标时那圈会呼吸的描边。
+ *
+ * 正式版简化第 4 步之二把角标和那圈描边剥成素方块（见 components/Box.ts）：
+ * 从前的药丸角标（四档配色）和橙色圆角环都换成一圈 1px 的方框。卡本身不动。
  *
  * 卡由调用方建、也由调用方销毁——canvas 不管资源从哪来（同 PlayerPanel 的英雄牌）。
- * 格子只负责把它缩到战场尺寸、摆好角标、按状态改描边。
+ * 格子只负责把它缩到战场尺寸、摆好角标、按状态开关那圈描边。
  *
  * 「缩到战场尺寸」写的是卡自己的 scale，不是另画一套小卡面：卡面排版是照 150×225
  * 写死的（见 CardSprite 的坐标约定），整张缩下去字和插画一起变小，比例才对得上。
  *
- * 橙圈是一圈 Graphics 描边，不是滤镜（3.1）。它画在卡的**外面**一圈：
- * 描在卡身上会被卡面盖住一半，而这一圈的用处正是「隔着别的卡也认得出这张能打」。
- * 呼吸补间只改 alpha 和 scale，符合 3.10。
+ * 那圈描边画在卡的**外面**一圈：描在卡身上会被卡面盖住一半，
+ * 而这一圈的用处正是「隔着别的卡也认得出这张能打」。呼吸补间只改 alpha 和 scale，符合 3.10。
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, Graphics } from 'pixi.js'
-import type { UiTextures } from '../fx/uiTextures'
-import { CARD_HEIGHT, CARD_RADIUS, CARD_WIDTH } from '../layout/fanMath'
+import { Container } from 'pixi.js'
+import { CARD_HEIGHT, CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
 import { killAndDestroy } from '../runtime/dispose'
-import type { TextTextureCache } from '../runtime/textCache'
-import { Badge, type BadgeTone } from './Badge'
+import { Box, type BoxDeps } from './Box'
 import type { CardSprite } from './CardSprite'
 
-/** 角标之间的行距，以及整列离卡右上角多远。抄旧样式 `.battle__tile-marks` 的 gap 4 / inset 4。 */
+/** 角标之间的行距、每行多高，以及整列离卡边缘多远。抄旧样式 `.battle__tile-marks` 的 gap 4 / inset 4。 */
 const MARK_GAP = 4
 const MARK_INSET = 4
-/** 橙圈离卡边缘多远、画多粗、圆角比卡角大多少。抄 `.battle__tile-target-ring`。 */
+const MARK_HEIGHT = 16
+/** 那圈描边离卡边缘多远。抄 `.battle__tile-target-ring` 的 spread。 */
 const RING_SPREAD = 4
-const RING_WIDTH = 2
 /** 呼吸一趟多久（秒），以及两端的透明度和缩放。抄 MatchStage.tsx:1697-1709。 */
 const PULSE_DUR = 0.7
 const PULSE_ALPHA = { from: 0.35, to: 1 }
 const PULSE_SCALE = { from: 0.98, to: 1.03 }
 
-/** 一枚角标：印什么字、算哪一档配色。文案表跟着引擎的状态走，归场景查，不在这里。 */
+/**
+ * 一枚角标印什么字。
+ *
+ * 从前还带一个 `tone`（四档配色），剥成素方块之后没有配色可挑了，只剩文案。
+ * 场景那边的文案表（scenes/duel/tileMarks.ts）跟着引擎的状态走，不在这里。
+ */
 export interface TileMark {
   text: string
-  tone: BadgeTone
 }
 
-export interface BoardTileDeps {
-  ui: UiTextures
-  text: TextTextureCache
+export type BoardTileDeps = BoxDeps & {
   animator: Animator
 }
 
@@ -56,7 +57,7 @@ export class BoardTile extends Container {
   /** 卡和角标都挂在这一层。放大查看借走卡时整层藏起来，格子仍占位（见 setHeld）。 */
   private readonly body = new Container()
   private readonly marks = new Container()
-  private readonly ring: Graphics
+  private readonly ring: Box
   private card: CardSprite
 
   constructor(instanceId: string, card: CardSprite, deps: BoardTileDeps) {
@@ -65,7 +66,7 @@ export class BoardTile extends Container {
     this.deps = deps
     this.label = `tile:${instanceId}`
     // 原点在格子中心：整排排位、飞行落点、特效落点用的都是中心，摆哪儿都不用再换算。
-    this.ring = this.buildRing()
+    this.ring = this.buildRing(deps)
     this.card = card
     this.adopt(card)
     this.addChild(this.ring, this.body)
@@ -95,17 +96,26 @@ export class BoardTile extends Container {
     this.body.visible = !held
   }
 
-  /** 挂哪几枚角标。传空数组就清干净。数量一变就整列重建（一轮里只发生几次）。 */
+  /**
+   * 挂哪几枚角标。传空数组就清干净。数量一变就整列重建（一轮里只发生几次）。
+   *
+   * 每一枚都占满格子的宽：素方块的宽是调用方给的，而角标文案长短不一
+   *（「复读中」三个字，「已进化 ×2」六个），各按各的宽摆出来会是一列参差不齐的方块。
+   * 占满之后文案太长的那几枚由 Box 自己缩小字号，整列看着是齐的。
+   */
   setMarks(marks: readonly TileMark[]): void {
     // 先掐补间再拆，理由见 runtime/dispose.ts 的文件头。
     for (const child of this.marks.removeChildren()) killAndDestroy(this.deps.animator, child)
+    const width = this.boxWidth - MARK_INSET * 2
     let y = -this.boxHeight / 2 + MARK_INSET
     for (const mark of marks) {
-      // 字面量 'D' 就是 BADGE_TILE_MARK（卡角状态角标），写字面量的理由同 BoardGrid。
-      const badge = new Badge({ variant: 'D', text: mark.text, tone: mark.tone }, this.deps)
-      badge.position.set(this.boxWidth / 2 - MARK_INSET - badge.boxWidth, y)
-      this.marks.addChild(badge)
-      y += badge.boxHeight + MARK_GAP
+      const box = new Box(
+        { width, height: MARK_HEIGHT, label: mark.text, size: 'small' },
+        this.deps,
+      )
+      box.position.set(-width / 2, y)
+      this.marks.addChild(box)
+      y += MARK_HEIGHT + MARK_GAP
     }
   }
 
@@ -142,14 +152,18 @@ export class BoardTile extends Container {
     this.body.addChildAt(card, 0)
   }
 
-  /** 橙圈：贴着卡轮廓往外扩一圈的圆角描边。 */
-  private buildRing(): Graphics {
+  /** 那圈描边：贴着卡轮廓往外扩一圈的素方块。 */
+  private buildRing(deps: BoardTileDeps): Box {
     const scale = this.boxWidth / CARD_WIDTH
-    const w = this.boxWidth + RING_SPREAD * 2
-    const h = CARD_HEIGHT * scale + RING_SPREAD * 2
-    const ring = new Graphics()
-      .roundRect(-w / 2, -h / 2, w, h, CARD_RADIUS * scale + RING_SPREAD)
-      .stroke({ width: RING_WIDTH, color: tokens.color.accent.skill })
+    const width = this.boxWidth + RING_SPREAD * 2
+    const height = CARD_HEIGHT * scale + RING_SPREAD * 2
+    const ring = new Box({ width, height }, deps)
+    /*
+     * 呼吸那一下缩的是这块方框自己，所以轴要放在它的中心：pivot 留在左上角的话，
+     * 一呼一吸会像整圈往右下角甩。摆位用 position 抵消 pivot，看到的仍然是「套在格子外一圈」。
+     */
+    ring.pivot.set(width / 2, height / 2)
+    ring.position.set(0, 0)
     ring.eventMode = 'none'
     return ring
   }

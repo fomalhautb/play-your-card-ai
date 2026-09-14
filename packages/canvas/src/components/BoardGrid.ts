@@ -1,5 +1,8 @@
 /**
- * 战场：上下两排卡槽（需求单列表 A），中间一条横杆（边框 E）嵌一枚回合徽章（徽章 E）。
+ * 战场：上下两排卡槽，中间一条横线嵌一块回合匾。
+ *
+ * 正式版简化第 4 步之二把中线和那块匾剥成素方块（见 components/Box.ts）：
+ * 从前两端渐隐的横杆换成一条 1px 直线，深蓝药丸匾换成一圈描边。
  * 每格的样子见 BoardTile；这里管的是**排位**和**场上单位的增删改**。
  *
  * 上面那排是对方、下面那排是我方，和旧版一致。这条读图规则是硬的，所以：
@@ -24,21 +27,26 @@ import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
 import { killAndDestroy } from '../runtime/dispose'
 import type { TextTextureCache } from '../runtime/textCache'
-import { Badge } from './Badge'
 import { BoardTile, type TileMark } from './BoardTile'
+import { BOX_LINE, Box, type BoxDeps } from './Box'
 import type { CardSprite } from './CardSprite'
-import { DIVIDER_MIDLINE, Divider } from './Divider'
 import { Label } from './Label'
 
 /** 哪一排。和 cue 里的 `side` 同名同义。 */
 export type BoardSide = 'self' | 'opponent'
 
-/** 相邻两格之间至少留多宽。抄旧样式 `.battle__row` 的 `gap: 12px`。 */
+/**
+ * 相邻两格之间留多宽。
+ *
+ * 抄黑客松版 `.battle__row` 的 `gap: 12px`：那一排是 flex 居中排的，摆得下的时候
+ * 相邻两格的中心就正好隔开「一格宽 + 这个 gap」。它同时也是挤到压边时的下限。
+ */
 const MIN_GAP = 12
-/** 没挤到压边时，相邻两格的中心相距多远（格宽的倍数）。抄 duelLayout 里落点那一档。 */
-const SLOT_STEP = 1.12
 /** 中线上下各留多高。抄 `.battle__midline` 的 `margin: 5px 0`。 */
 const MIDLINE_MARGIN = 5
+/** 中线正中那块匾多高、多宽。高抄 `.battle__midline-badge` 的 20px，宽按最长的那句文案留。 */
+const MIDLINE_BADGE_HEIGHT = 20
+const MIDLINE_BADGE_WIDTH = 140
 
 /** 进化那一下的三样动作。数值抄黑客松版的 playSummonFx.ts，时长走 timings。 */
 const EVOLVE = { popScale: 1.16, popDur: 0.42, glowDur: 0.7, labelRise: 34 } as const
@@ -49,7 +57,7 @@ const POP_IN = { fromScale: 0.6, ease: 'back.out(1.7)' } as const
 /** 进化浮字的字号（px）。组件私有，理由见 design 的 README。 */
 const EVOLVE_LABEL = { fontSize: 20, letterSpacing: 2, weight: '600' } as const
 
-export interface BoardGridDeps {
+export type BoardGridDeps = BoxDeps & {
   ui: UiTextures
   text: TextTextureCache
   animator: Animator
@@ -70,7 +78,7 @@ export class BoardGrid extends Container {
   /** 特效（进化的辉光和浮字）画在这一层，压在两排之上、不吃指针事件。 */
   private readonly fxLayer = new Container()
   private readonly badgeSlot = new Container()
-  private midline: Divider
+  private readonly midline = new Graphics()
   private boxWidth: number
   private boxHeight: number
 
@@ -81,24 +89,17 @@ export class BoardGrid extends Container {
     this.boxHeight = options.height
     this.label = 'board-grid'
 
-    this.midline = new Divider({ variant: DIVIDER_MIDLINE, length: options.width, gap: 0 }, deps)
     this.fxLayer.eventMode = 'none'
     this.addChild(this.rows.opponent, this.rows.self, this.midline, this.badgeSlot, this.fxLayer)
+    this.drawMidline()
     this.layout()
   }
 
-  /** 改大小。中线的几何是画死的，换一条新的；两排重新排位。 */
+  /** 改大小。中线重画一遍，两排重新排位。 */
   resize(width: number, height: number): void {
     this.boxWidth = width
     this.boxHeight = height
-    const index = this.getChildIndex(this.midline)
-    this.removeChild(this.midline)
-    this.midline.destroy({ children: true })
-    this.midline = new Divider(
-      { variant: DIVIDER_MIDLINE, length: width, gap: this.badgeGap() },
-      this.deps,
-    )
-    this.addChildAt(this.midline, index)
+    this.drawMidline()
     this.layout()
   }
 
@@ -268,27 +269,37 @@ export class BoardGrid extends Container {
     return [...this.tiles.keys()]
   }
 
-  /** 中线正中那枚徽章上印什么（「第 3 轮 · 轮到你出牌」）。传 null 就不挂。 */
+  /** 中线正中那块匾上印什么（「第 3 轮 · 轮到你出牌」）。传 null 就不挂。 */
   setTurnBadge(text: string | null): void {
     for (const child of this.badgeSlot.removeChildren()) killAndDestroy(this.deps.animator, child)
     if (text !== null) {
-      // 字面量 'E' 就是 BADGE_TURN（中线回合徽章）：Badge 的选项是按变体分支的联合类型，
-      // 传变量会丢掉分支信息，所以这里和别的调用方一样写字面量。
-      const badge = new Badge({ variant: 'E', text }, this.deps)
-      badge.position.set((this.boxWidth - badge.boxWidth) / 2, -badge.boxHeight / 2)
+      const badge = new Box(
+        { width: MIDLINE_BADGE_WIDTH, height: MIDLINE_BADGE_HEIGHT, label: text, size: 'small' },
+        this.deps,
+      )
+      badge.position.set((this.boxWidth - MIDLINE_BADGE_WIDTH) / 2, -MIDLINE_BADGE_HEIGHT / 2)
       this.badgeSlot.addChild(badge)
     }
     this.badgeSlot.y = this.boxHeight / 2
   }
 
-  /** 中线要给徽章让出多宽。徽章还没挂时让 0，线就是完整的一条。 */
-  private badgeGap(): number {
-    const badge = this.badgeSlot.children[0]
-    return badge === undefined ? 0 : badge.width + MIDLINE_MARGIN * 4
+  /**
+   * 中线那一条：横贯整块战场的一条 1px 直线。
+   *
+   * 不吃指针事件——落点是按战场外框的矩形判的，中线挡不着它，但「点空白处取消选目标」
+   * 是真的点击，这条线横在战场正中间，吃了事件就会吃掉一整条的取消。
+   */
+  private drawMidline(): void {
+    this.midline.clear().rect(0, -0.5, this.boxWidth, 1).fill({ color: BOX_LINE })
+    this.midline.eventMode = 'none'
   }
 
   /**
-   * 两排各占一半高，中线压在正中。
+   * 两排平分「总高减去中线那一行」，中线压在正中。
+   *
+   * 中线那一行是**匾高加上下外边距**（20 + 5×2 = 30），不是只有一条线的厚度：
+   * 黑客松版那笔高度预算就是这么算的（`.battle__board` 的 padding 注释），
+   * 少算的话两排的中心会各往中间挪两三个像素。
    *
    * 两排的原点都放在**战场横向的正中**：格子是按「离中心多远」排的（见 layoutRow），
    * 原点留在左上角的话整排会往左跑出去一半。
@@ -296,8 +307,9 @@ export class BoardGrid extends Container {
   private layout(): void {
     const half = this.boxHeight / 2
     const centerX = this.boxWidth / 2
-    this.rows.opponent.position.set(centerX, half / 2 - MIDLINE_MARGIN)
-    this.rows.self.position.set(centerX, half + half / 2 + MIDLINE_MARGIN)
+    const rowHeight = (this.boxHeight - MIDLINE_BADGE_HEIGHT - MIDLINE_MARGIN * 2) / 2
+    this.rows.opponent.position.set(centerX, rowHeight / 2)
+    this.rows.self.position.set(centerX, this.boxHeight - rowHeight / 2)
     this.midline.position.set(0, half)
     this.badgeSlot.y = half
     this.layoutRow('opponent')
@@ -307,15 +319,16 @@ export class BoardGrid extends Container {
   /**
    * 一排里的格子从左到右居中排开。
    *
-   * 间距先按理想的 `SLOT_STEP` 取，装不下就压到「刚好铺满可用宽度」，
-   * 再被 `MIN_GAP` 兜住下限——那一档下相邻两张已经互相压边，但每张至少还露 12px。
+   * 间距先按「一格宽加一个 gap」取（摆得下时黑客松版那排 flex 就是这个步距），
+   * 装不下就压到「刚好铺满可用宽度」，再被 `MIN_GAP` 兜住下限——
+   * 那一档下相邻两张已经互相压边，但每张至少还露 12px。
    */
   private layoutRow(side: BoardSide): void {
     const row = this.rows[side]
     const tiles = row.children as BoardTile[]
     if (tiles.length === 0) return
     const tileWidth = tiles[0]!.boxWidth
-    const ideal = tileWidth * SLOT_STEP
+    const ideal = tileWidth + MIN_GAP
     const fit = tiles.length <= 1 ? ideal : (this.boxWidth - tileWidth) / (tiles.length - 1)
     const step = Math.max(MIN_GAP, Math.min(ideal, fit))
     tiles.forEach((tile, index) => {

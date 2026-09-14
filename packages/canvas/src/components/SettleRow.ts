@@ -1,6 +1,11 @@
 /**
- * 结算层里的一张作答结果卡（需求单面板 K）：左边一张迷你卡面，右边模型名、回答和理由，
- * 判定块（徽章 H）盖上来，答完之前先摆三个跳动的点（条 E）。
+ * 结算层里的一张作答结果卡：左边一张迷你卡面，右边模型名、回答和理由，
+ * 判定块盖上来，答完之前先摆三个跳动的点。
+ *
+ * 正式版简化第 4 步之二把底板、判定块和「保送留场」剥成素方块（见 components/Box.ts），
+ * 宽度也从定死的 444 改回黑客松版那套**弹性**的：一侧几张就分几列，每列不窄于
+ * `size.settle.cardMinWidth`（300），列间距 14。打进去的回答和理由仍然走 `Label`——
+ * 那两段是**打字机**（见 typeInto），素方块换字是换整张纹理，做不了逐字露出。
  *
  * **打字机是用遮罩做的，不是一个字一个字换文字**。旧版靠 GSAP 的 TextPlugin 改 innerHTML，
  * 那在画布上等价于「每多一个字就烤一张新纹理」——一句十个字的答案要烤十张，
@@ -20,20 +25,24 @@ import {
   SETTLE_REASONING_MAX_MS,
   SETTLE_STAMP_MS,
 } from '../director/timings'
-import type { UiTextures } from '../fx/uiTextures'
 import { CARD_WIDTH } from '../layout/fanMath'
 import type { Animator } from '../runtime/animator'
 import type { TextTextureCache } from '../runtime/textCache'
-import { Badge } from './Badge'
+import { Box, type BoxDeps } from './Box'
 import type { CardSprite } from './CardSprite'
 import { Label } from './Label'
 
 /**
  * 这张卡自己的几何和字号（px）。组件私有，理由见 design 的 README。
- * 来源：需求单面板 K（444×154、padding 14、头像 77×116、回答 30px/700、模型名 18px）
- * 和徽章 H 的字号（20px/700）。徽章 H 那条上量到的 172×110 没有采用，理由见 VERDICT。
+ * 高、内边距、头像宽和字号照旧；宽改成**下限**，真实宽度由 `SettleSquad` 按这一侧几张算。
  */
-const BOX = { width: 444, height: 154, pad: 14, avatarWidth: 77, gap: 14 } as const
+const BOX = {
+  minWidth: tokens.size.settle.cardMinWidth as number,
+  height: 154,
+  pad: 14,
+  avatarWidth: 77,
+  gap: 14,
+} as const
 const TYPE = {
   name: { fontSize: 18, letterSpacing: 0 },
   answer: { fontSize: 30, letterSpacing: 0, weight: '700' },
@@ -41,32 +50,32 @@ const TYPE = {
   verdict: { fontSize: 20, letterSpacing: 1.2, weight: '700' },
 } as const
 /**
- * 判定块的内边距、离卡角多远、盖下来时的起始缩放和倾角。
- * 抄旧样式 `.settle-card__verdict`（padding 8px 18px、top/right 8、rotate −6deg）
- * 和 `VERDICT_TILT_DEG`。宽高不写死，跟着字走——理由见 buildVerdict。
+ * 判定块那一格的尺寸、离卡角多远、盖下来时的起始缩放和倾角。
+ * 位置和倾角抄旧样式 `.settle-card__verdict`（top/right 8、rotate −6deg）；
+ * 宽高写死是因为素方块的字会自己缩，不像从前那样要跟着文案量。
  */
-const VERDICT = { padX: 18, padY: 8, inset: 8, fromScale: 1.6, tiltDeg: -6 } as const
-/** 「保送留场」那条小签离卡上沿多远。抄旧样式 `.settle-card__safe` 的 `top: 52px`。 */
-const SAFE_TOP = 52
+const VERDICT = { width: 96, height: 36, inset: 8, fromScale: 1.6, tiltDeg: -6 } as const
+/** 「保送留场」那条小签的尺寸和它离卡上沿多远。抄旧样式 `.settle-card__safe` 的 `top: 52px`。 */
+const SAFE = { width: 80, height: 20, top: 52 } as const
 /**
  * 三个等待点的直径、间距和跳多高。跳一次多久走令牌——它是「有人在想」这件事的节奏，
  * 和展示层的浮动、选目标的压暗同属一档环境动画，一起改才不会有一处快一处慢。
  */
 const LOADER = { dot: 7, gap: 7, rise: 6, dur: tokens.duration.settle.dots } as const
 
-export interface SettleRowDeps {
-  /** 「保送留场」那枚小签走 Badge D，它要预烤的药丸纹理。 */
-  ui: UiTextures
+export type SettleRowDeps = BoxDeps & {
   text: TextTextureCache
   animator: Animator
 }
 
 export class SettleRow extends Container {
   readonly rowId: string
-  readonly boxWidth = BOX.width
+  /** 这一张现在多宽。一侧多一张卡，整排的列宽就重算一次（见 `setWidth`）。 */
+  boxWidth = BOX.minWidth
   readonly boxHeight = BOX.height
 
   private readonly deps: SettleRowDeps
+  private readonly plate: Box
   private readonly loader = new Container()
   private readonly answerSlot = new Container()
   private readonly reasoningSlot = new Container()
@@ -80,12 +89,13 @@ export class SettleRow extends Container {
     this.label = `settle-row:${rowId}`
     this.eventMode = 'none'
 
-    this.addChild(this.buildPlate())
+    this.plate = new Box({ width: BOX.minWidth, height: BOX.height }, deps)
+    this.addChild(this.plate)
     this.addChild(this.mountAvatar(card))
     const bodyX = BOX.pad + BOX.avatarWidth + BOX.gap
     const nameLabel = new Label(
       name,
-      { ...TYPE.name, align: 'left', maxWidth: BOX.width - bodyX - BOX.pad },
+      { ...TYPE.name, align: 'left', maxWidth: BOX.minWidth - bodyX - BOX.pad },
       deps,
       tokens.color.battle.inkMuted,
     )
@@ -103,6 +113,20 @@ export class SettleRow extends Container {
     )
     // 建出来是藏着的：一张结果卡是跟着 `settle-row` cue 一条条淡入的，不是一上来就都在。
     this.alpha = 0
+  }
+
+  /**
+   * 改这一张的宽。
+   *
+   * 只动底板和右上角那两块——右边那几段字是按**最小列宽**烤的（见构造函数和 typeInto），
+   * 列变宽了它们只是右边多出一截空白，不会溢出；而打字机正在演的时候重烤一张纹理，
+   * 会当场把已经露出来的那半句吞回去。
+   */
+  setWidth(width: number): void {
+    if (width === this.boxWidth) return
+    this.boxWidth = width
+    this.plate.setSize(width, BOX.height)
+    this.placeCorner()
   }
 
   /** 淡入。返回时长（毫秒）由调用方从 `SETTLE_ROW_IN_MS` 取——这里只管演。 */
@@ -154,6 +178,7 @@ export class SettleRow extends Container {
     this.fadeLoader()
     const block = this.buildVerdict(correct)
     this.verdictSlot.addChild(block)
+    this.placeCorner()
     const duration = SETTLE_STAMP_MS / 1000
     block.scale.set(VERDICT.fromScale)
     block.alpha = 0
@@ -164,12 +189,15 @@ export class SettleRow extends Container {
     return SETTLE_STAMP_MS
   }
 
-  /** 底板：一块圆角纸，一圈细边。 */
-  private buildPlate(): Graphics {
-    return new Graphics()
-      .roundRect(0, 0, BOX.width, BOX.height, tokens.radius.lg)
-      .fill({ color: tokens.color.battle.paper })
-      .stroke({ width: 1, color: tokens.color.battle.line })
+  /** 判定块和「保送留场」都贴着卡的右上角，卡一变宽就要重新摆。 */
+  private placeCorner(): void {
+    const verdict = this.verdictSlot.children[0]
+    verdict?.position.set(
+      this.boxWidth - VERDICT.inset - VERDICT.width / 2,
+      VERDICT.inset + VERDICT.height / 2,
+    )
+    const safe = this.safeSlot.children[0]
+    safe?.position.set(this.boxWidth - VERDICT.inset - SAFE.width, SAFE.top)
   }
 
   /** 左边那张迷你卡面。整张卡缩到 77 宽，字和插画跟着一起变小。 */
@@ -244,7 +272,8 @@ export class SettleRow extends Container {
         letterSpacing: style.letterSpacing,
         weight: style.weight,
         align: 'left',
-        maxWidth: BOX.width - slot.x - BOX.pad,
+        // 按**最小列宽**烤：列可能后来被别的卡挤窄，按当前宽烤的话那时就溢出了。
+        maxWidth: BOX.minWidth - slot.x - BOX.pad,
       },
       this.deps,
       color,
@@ -270,30 +299,17 @@ export class SettleRow extends Container {
   }
 
   /**
-   * 判定块：一块深色圆角牌，上面「✓ 正确 / ✗ 错误」，歪 6° 压在卡的右上角。
+   * 判定块：一块印着「✓ 正确 / ✗ 错误」的方块，歪 6° 压在卡的右上角。
    *
-   * 尺寸跟着字走（左右各留 18、上下各留 8），不写死宽高：需求单上量到的 172×110
-   * 是连影子和周围留白一起量的，照它画出来那枚章能盖住半张卡，把答案和推理全糊掉。
-   * 旧样式 `.settle-card__verdict` 才是准的——它本来就是一块「文字 + 内边距」的牌子。
+   * 轴放在它自己的中心：盖章那一下是「从大缩到原大」，pivot 留在左上角的话，
+   * 章会从右下方甩进来而不是压下来；歪那 6° 同理要绕中心转。
    */
   private buildVerdict(correct: boolean): Container {
-    const block = new Container()
-    const fill = correct ? tokens.color.theme.forest : tokens.color.theme.brick
-    const label = new Label(
-      correct ? '✓ 正确' : '✗ 错误',
-      TYPE.verdict,
+    const block = new Box(
+      { width: VERDICT.width, height: VERDICT.height, label: correct ? '正确' : '错误' },
       this.deps,
-      tokens.color.battle.paper,
     )
-    const width = Math.round(label.textWidth) + VERDICT.padX * 2
-    const height = Math.round(label.textHeight) + VERDICT.padY * 2
-    block.addChild(
-      new Graphics()
-        .roundRect(-width / 2, -height / 2, width, height, tokens.radius.sm)
-        .fill({ color: fill }),
-      label,
-    )
-    block.position.set(BOX.width - VERDICT.inset - width / 2, VERDICT.inset + height / 2)
+    block.pivot.set(VERDICT.width / 2, VERDICT.height / 2)
     block.rotation = (VERDICT.tiltDeg * Math.PI) / 180
     return block
   }
@@ -306,10 +322,13 @@ export class SettleRow extends Container {
    * 旧样式里这两处本来就是同一组值。
    */
   private addSafeBadge(delay: number): void {
-    const badge = new Badge({ variant: 'D', text: '保送留场', tone: 'safe' }, this.deps)
-    badge.position.set(BOX.width - VERDICT.inset - badge.boxWidth, SAFE_TOP)
+    const badge = new Box(
+      { width: SAFE.width, height: SAFE.height, label: '保送留场', size: 'small' },
+      this.deps,
+    )
     badge.alpha = 0
     this.safeSlot.addChild(badge)
+    this.placeCorner()
     this.deps.animator.tween(badge, {
       alpha: 1,
       duration: SETTLE_STAMP_MS / 1000,

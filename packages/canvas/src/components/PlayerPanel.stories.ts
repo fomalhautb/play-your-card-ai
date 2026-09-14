@@ -30,20 +30,32 @@ interface Variant {
   skill?: string
 }
 
+/**
+ * 这几条都按**桌面档**拍：英雄牌 2:3 填满面板、右下角压一摞牌库，
+ * 和对局页侧栏里的那两块一模一样（手机档那一行另有一套留白，见 PlayerPanelOptions.cardInset）。
+ */
+const DECK_COUNT = 12
+
 function mount(ctx: StoryStage, variant: Variant) {
   const deps = storyDeps(ctx)
   const panel = new PlayerPanel(
-    { width: ctx.width - 40, height: ctx.height - 40, tokens: variant.tokens },
+    {
+      width: ctx.width - 40,
+      height: ctx.height - 40,
+      tokens: variant.tokens,
+      deckSide: variant.tokens === true ? 'bottom' : 'top',
+    },
     deps,
   )
   panel.position.set(20, 20)
   ctx.stage.addChild(panel)
 
   /*
-   * 铭牌写的是**玩家**的名字，不是卡名——它盖住的正是卡面自带的那条卡名铭牌
-   *（见 PlayerPanel 的 layout）。所以这里给的是一个玩家昵称。
+   * 那一格写的是**玩家**的名字，不是卡名——它压在英雄牌的顶边上
+   *（见 PlayerPanel 的文件头）。所以这里给的是一个玩家昵称。
    */
   panel.setName(variant.tokens === true ? '我方' : '对方')
+  panel.setDeckCount(DECK_COUNT)
   if (variant.hero !== false) panel.setHero(storyCard(ctx, deps, 0))
   if (variant.tokens === true) panel.setTokens(4, 7)
   if (variant.held === true) panel.setHeroHeld(true)
@@ -69,20 +81,20 @@ export default {
   render: () => null,
 }
 
-/** 对方那块：一圈雕花框、一张英雄牌、牌脚一块铭牌。没有 Token 细条。 */
+/** 对方那块：一圈方框、一张英雄牌、顶边一格名字、右上角一摞牌库。没有 Token 细条。 */
 export const Foe = { name: '对方那块', parameters: spec({}) }
 
 /** 我方那块：右缘多挂一条 Token 细条，整条按面板高等比缩进来。 */
 export const Mine = { name: '我方那块', parameters: spec({ tokens: true }) }
 
-/** 还没选英雄：卡位空着，框和铭牌照旧——面板尺寸和有牌时完全一样。 */
+/** 还没选英雄：卡位空着，框和名字照旧——面板尺寸和有牌时完全一样。 */
 export const NoHero = { name: '还没选英雄', parameters: spec({ hero: false }) }
 
-/** 被借走：英雄牌正在被放大查看，原位不可见但格子还占着，框和铭牌不动。 */
+/** 被借走：英雄牌正在被放大查看，原位不可见但格子还占着，框和名字不动。 */
 export const HeroHeld = { name: '被借走', parameters: spec({ held: true }) }
 
 /**
- * 可发动技能：主动技能的英雄（陈丹琦、梅拉妮·珀金斯）在卡脚多一颗纸白匾额钮。
+ * 可发动技能：主动技能的英雄（陈丹琦、梅拉妮·珀金斯）在卡脚多一块方块钮。
  * 被动技能的英雄和技能已经用掉的那一局都没有它，那两种就是上面「我方那块」的样子。
  */
 export const HeroSkill = {

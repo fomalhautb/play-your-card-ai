@@ -4,7 +4,7 @@
  * 它认得的只有三样东西——`PlayerView`、`Cue`、`DirectorLocks`（契约和分工见 duelContract.ts）。
  * 这个文件本身只做四件事：建渲染器和零件、推自己的虚拟时钟、把 cue 分给播放器、
  * 收玩家的输入往外发。真正的活分散在旁边几个文件里：
- *   layout/      两档版式（桌面 / 手机，并列不缩放）
+ *   layout/      两档版式（桌面档是 1672×941 死版式整块缩放，手机档按视口实算）
  *   parts.ts     建组件、分层、按版式摆位
  *   applyView.ts 局面 → 画面的结构同步，以及演出播完之后的兜底对账
  *   cuePlayers/  一条 cue 怎么播（按演在屏幕哪个位置分组）
@@ -15,11 +15,10 @@
  */
 
 import type { CardId, InstanceId } from '@ai-duel/core'
-import { tokens } from '@ai-duel/design'
-import { autoDetectRenderer, Container, Rectangle, type Renderer } from 'pixi.js'
+import { autoDetectRenderer, Container, Graphics, Rectangle, type Renderer } from 'pixi.js'
+import { CANVAS_BACKGROUND } from '../../components/Box'
 import { CardSprite } from '../../components/CardSprite'
 import type { DirectorLocks } from '../../director/director'
-import { bakePlaceholderIcons, type DuelIcons } from '../../fx/controlIcons'
 import { FrameLoop } from '../../runtime/frameLoop'
 import type { DuelCommand, DuelScene, DuelSceneCounters, DuelSceneOptions } from '../duelContract'
 import { warmupScene } from '../warmup'
@@ -36,6 +35,7 @@ import { createDuelInput, type DuelInput } from './input'
 import { pickLayout } from './layout/pickLayout'
 import type { DuelLayout } from './layout/types'
 import { applyPartsLayout, createParts, type DuelParts } from './parts'
+import { paintStageFrame } from './stageFrame'
 
 export async function createDuelScene(options: DuelSceneOptions): Promise<DuelScene> {
   const renderer = await autoDetectRenderer({
@@ -48,7 +48,7 @@ export async function createDuelScene(options: DuelSceneOptions): Promise<DuelSc
     antialias: true,
     // 让 Pixi 顺手把 canvas 的 CSS 尺寸设成逻辑像素，画布分辨率才和 resolution 对得上。
     autoDensity: true,
-    background: tokens.color.page.background,
+    background: CANVAS_BACKGROUND,
   })
   const scene = new DuelSceneImpl(renderer, options, true)
   scene.warmup()
@@ -68,9 +68,7 @@ export interface MountedDuelScene extends DuelScene {
  *
  * 组件目录页用它：那边一条条目就是一块画布，渲染器、帧循环、固定步进都是目录页搭好的
  *（见 client 的 dev/storybook/pixiStory.tsx）。让场景自己再建一个渲染器就是两套帧循环
- * 抢同一条 GSAP 根时间线，补间会被推两遍。
- *
- * 渲染器不归它销毁（谁建的谁负责），别的东西照常自己收。
+ * 抢同一条 GSAP 根时间线，补间会被推两遍。渲染器不归它销毁（谁建的谁负责）。
  */
 export function mountDuelScene(renderer: Renderer, options: DuelSceneOptions): MountedDuelScene {
   const scene = new DuelSceneImpl(renderer, options, false)
@@ -82,13 +80,20 @@ export function mountDuelScene(renderer: Renderer, options: DuelSceneOptions): M
 class DuelSceneImpl {
   private readonly renderer: Renderer
   private readonly options: DuelSceneOptions
+  /**
+   * 交给渲染器的根节点。它只做一件事：把下面那个舞台等比缩放居中放进视口。
+   * 分成两层是为了让**舞台里所有的坐标都是设计坐标**（桌面档 1672×941），
+   * 零件摆位、落点判定、飞行轨迹、命中区都不用再乘一次缩放；指针事件进来的是视口坐标，
+   * 由 `HandPointer` 过一次 `stage.toLocal` 换算（见它的文件头）。
+   */
+  private readonly root = new Container()
   private readonly stage = new Container()
+  /** 垫在舞台底下那一块（只有挂在别人渲染器上时才要）和盖在四周那一圈，都见 stageFrame.ts。 */
+  private readonly backdrop: Graphics | null
+  private readonly letterbox = new Container()
   private readonly frameLoop: FrameLoop
   private readonly deps: DuelDeps
   private readonly visuals: CardVisuals
-  private readonly icons: DuelIcons
-  /** 图标是自己烤的还是调用方给的。自己烤的才归自己销毁。 */
-  private readonly ownsIcons: boolean
   /** 渲染器是自己建的还是挂在别人的上面（目录页那条路）。自己建的才归自己销毁。 */
   private readonly ownsRenderer: boolean
   private readonly clock = createSceneClock()
@@ -109,6 +114,7 @@ class DuelSceneImpl {
     this.renderer = renderer
     this.options = options
     this.ownsRenderer = ownsRenderer
+    this.backdrop = ownsRenderer ? null : new Graphics()
     this.layout = pickLayout(options.width, options.height, options.coarsePointer)
     this.frameLoop = new FrameLoop({
       manual: options.manualClock === true,
@@ -125,12 +131,12 @@ class DuelSceneImpl {
       wake: () => this.frameLoop.wake(),
     })
     this.visuals = createCardVisuals(options.catalog, options.textures)
-    this.ownsIcons = options.icons === undefined
-    this.icons = options.icons ?? bakePlaceholderIcons(renderer)
+    if (this.backdrop !== null) this.root.addChild(this.backdrop)
+    this.root.addChild(this.stage, this.letterbox)
     this.parts = this.buildParts()
     this.ctx = this.makeContext()
     this.input = createDuelInput(this.ctx)
-    this.applyStageHitArea()
+    this.applyStageTransform()
     // 4.3：上下文丢了之后把「画出来的」纹理重画一遍。图片纹理 Pixi 自己会重传，这几张不会。
     options.canvas.addEventListener('webglcontextrestored', this.onContextRestored)
   }
@@ -141,19 +147,17 @@ class DuelSceneImpl {
       renderer: this.renderer,
       deps: this.deps,
       layout: this.layout,
-      icons: this.icons,
       onEndPlay: () => {
         this.onUserActionCb?.({ kind: 'end-play' })
         this.onCommandCb?.({ type: 'END_PLAY', player: this.options.seat })
       },
       onLeave: this.options.onLeave,
-      onToggleMute: this.options.onToggleMute,
     })
   }
 
   /**
    * 组装上下文。`parts` 和 `layout` 走取值器：换档位会整套换掉零件、改视口会换掉版式，
-   * 而 cue 播放器手里的这份上下文是同一个对象，取值器让它们始终看到当前那一份。
+   * 而 cue 播放器手里的是同一个对象，取值器让它们始终看到当前那一份。
    */
   private makeContext(): DuelContext {
     const scene = this
@@ -183,7 +187,6 @@ class DuelSceneImpl {
       locks: new Set(),
       showcased: null,
       inspectingTile: null,
-
       makeCard: (cardId, instanceId) => this.makeCard(cardId, instanceId),
       makeHero: (heroId) => makeHeroArt(this.options.textures.heroes?.[heroId]),
       tilePoint: (instanceId) => tilePointOf(this.layout, this.parts.board, instanceId),
@@ -220,17 +223,26 @@ class DuelSceneImpl {
     this.input.refresh(this.locks, this.ctx.locks.size > 0)
   }
 
-  private applyStageHitArea(): void {
+  /**
+   * 把舞台缩放居中放进视口，并按设计尺寸给它一块命中区（`hitArea` 本来就在局部坐标里判）。
+   * 缩放之后短边留出的那一圈黑边因此不在命中区里——它不属于这一页，点了不该有反应。
+   */
+  private applyStageTransform(): void {
+    const { stage, width, height } = this.layout
+    this.stage.scale.set(stage.scale)
+    this.stage.position.set(stage.x, stage.y)
     this.stage.eventMode = 'static'
-    this.stage.hitArea = new Rectangle(0, 0, this.layout.width, this.layout.height)
+    this.stage.hitArea = new Rectangle(0, 0, width, height)
+    paintStageFrame(this.backdrop, this.letterbox, this.layout)
   }
 
   /** 把这一局用得上的纹理和文字全部先过一遍 GPU，理由见 warmup.ts。 */
   warmup(): void {
     warmupScene({
       renderer: this.renderer,
-      stage: this.stage,
-      // 挂在战场层：它在最底下，预热卡不会盖住别的层，而这时候场上本来也是空的。
+      // 预热要真画一帧，画的得是交给渲染器的那个根节点（舞台只是它缩放居中之后的一层）。
+      stage: this.root,
+      // 挂在战场层：它在最底下，预热卡不会盖住别的层，这时候场上本来也是空的。
       layer: this.parts.layers.board,
       // 只热这一局用得上的贴图：调用方按纪律 3.4 只加载了当前两副牌要的那些。
       visuals: Object.keys(this.options.textures.faces).map((cardId, index) =>
@@ -259,7 +271,7 @@ class DuelSceneImpl {
   /** 一帧：推进，然后把画面交出去。自己管帧循环的那条路走这里。 */
   private render(deltaMs: number): void {
     this.advance(deltaMs)
-    this.renderer.render(this.stage)
+    this.renderer.render(this.root)
   }
 
   private idle(): boolean {
@@ -306,16 +318,17 @@ class DuelSceneImpl {
   }
 
   mounted(): MountedDuelScene {
-    return { ...this.handle(), root: this.stage, advance: (deltaMs) => this.advance(deltaMs) }
+    return { ...this.handle(), root: this.root, advance: (deltaMs) => this.advance(deltaMs) }
   }
 
   private resize(width: number, height: number): void {
-    if (width === this.layout.width && height === this.layout.height) return
+    const before = this.layout.viewport
+    if (width === before.width && height === before.height) return
     const next = pickLayout(width, height, this.options.coarsePointer)
     this.renderer.resize(width, height)
     const switched = next.tier !== this.layout.tier
     this.layout = next
-    this.applyStageHitArea()
+    this.applyStageTransform()
     if (switched) this.rebuild()
     else applyPartsLayout(this.parts, this.layout)
     this.frameLoop.wake()
@@ -361,8 +374,7 @@ class DuelSceneImpl {
 
   /**
    * 拆场景。调第二次直接返回——Pixi 的 `renderer.destroy()` 会把内部几个系统的表置成 null，
-   * 第二次进去就在 null 上取属性，当场抛 TypeError。契约里只说了 destroy，
-   * 没说「只许调一次」，所以由这里兜住（开发页的 effect 清理很容易写成拆两次）。
+   * 第二次进去就在 null 上取属性，当场抛 TypeError。契约里没说「只许调一次」，这里兜住。
    */
   private destroy(): void {
     if (this.destroyed) return
@@ -380,9 +392,8 @@ class DuelSceneImpl {
      */
     destroyDeps(this.deps)
     this.frameLoop.destroy()
-    if (this.ownsIcons) for (const icon of Object.values(this.icons)) icon.destroy(true)
     // 只销毁场景自己建的东西：调用方传进来的卡面纹理不归我们管（谁加载谁负责）。
-    this.stage.destroy({ children: true, texture: false, textureSource: false })
+    this.root.destroy({ children: true, texture: false, textureSource: false })
     if (this.ownsRenderer) this.renderer.destroy()
   }
 }

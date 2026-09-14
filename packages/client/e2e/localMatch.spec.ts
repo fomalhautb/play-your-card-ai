@@ -12,34 +12,67 @@
  * 答题不用管：进答题阶段 2.5 秒后自动交卷（见 src/match/quizAutopilot.ts）。
  */
 
+import { CARD_HEIGHT, fanTransform, PLAYER_FAN, pickLayout } from '@ai-duel/canvas'
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { enterTestMatch, openHome } from './homePage'
+import { VIEWPORT } from './players'
 
-/*
- * 手牌那五张在屏幕上的位置，按 1280×900 的桌面档版式算出来的
- *（公式见 canvas 的 scenes/duel/layout/desktopLayout.ts 和 layout/fanMath.ts）：
- *
- *   侧栏宽 306 → 战场那一栏从 x=306 起、宽 974，手牌扇形的锚点在它正中 x=793；
- *   手牌整排缩放 974/1000 ≈ 0.974，锚点压在视口底边 y=900，整排再抬起 32×0.974 ≈ 31；
- *   五张牌按 95 的间距铺开（fanMath 的 GAP_PER_CARD），换算到屏幕上约 92.5 一格。
- *
- * 所以按在卡底往上 90 像素处，稳稳落在那张牌上（卡高 225×0.974 ≈ 219）。
- */
-const FAN = { centerX: 793, stepX: 92.5, y: 780 }
-/** 松手的地方：战场正中，在出牌区里（出牌区下沿约 y=736，上沿约 y=114）。 */
-const DROP = { x: 793, y: 400 }
 /**
- * 一处「点了什么都不会发生」的空地：侧栏那块玩家面板上。
+ * 落点一律**调 canvas 的版式函数现算**，不在这里抄一份公式。
+ *
+ * 从前这里写死了一组按 1280×900 推出来的坐标，版式一改就点空——正式版简化第 4 步之二
+ * 把桌面档改回「1672×941 死版式 + 整块缩放」时就踩了这一下：扇形锚点、每张牌的间距
+ * 全变了。现在和首页、房间页同一个做法（见 homePage.ts / roomPage.ts）。
+ */
+const LAYOUT = pickLayout(VIEWPORT.width, VIEWPORT.height)
+
+/** 测试房开局双方各五张手牌（core 的 engineSetup）。扇形的间距要按这个张数算。 */
+const HAND_COUNT = 5
+
+/** 舞台坐标 → 视口坐标。桌面档的舞台是整块等比缩放居中过的，两者差一个 scale 加一个偏移。 */
+function toViewport(x: number, y: number): { x: number; y: number } {
+  const { stage } = LAYOUT
+  return { x: stage.x + x * stage.scale, y: stage.y + y * stage.scale }
+}
+
+/**
+ * 第 index 张手牌的卡心（视口坐标）。0 是最左边那张。
+ *
+ * 卡以自己的**底边中点**为原点也为旋转轴（见 canvas 的 CardSprite 坐标约定），
+ * 所以卡心是从原点沿着卡自己的竖轴往上半张卡——外侧那几张是歪的，这一段要跟着转。
+ */
+function handSpot(index: number): { x: number; y: number } {
+  const { hand } = LAYOUT
+  const slot = fanTransform(index, HAND_COUNT, hand.areaWidth, PLAYER_FAN)
+  const radians = (slot.rotation * Math.PI) / 180
+  const half = CARD_HEIGHT / 2
+  return toViewport(
+    hand.x + (slot.x + Math.sin(radians) * half) * hand.scale,
+    hand.y + (slot.y - Math.cos(radians) * half) * hand.scale,
+  )
+}
+
+/** 松手的地方：战场正中，落在出牌区里（出牌区就是战场外框本身）。 */
+const DROP = toViewport(
+  LAYOUT.boardFrame.x + LAYOUT.boardFrame.width / 2,
+  LAYOUT.boardFrame.y + LAYOUT.boardFrame.height / 2,
+)
+
+/**
+ * 一处「点了什么都不会发生」的空地：侧栏里我方那块玩家面板上。
  *
  * 用来收掉可能立起来的选目标层——那一层铺满全屏、点哪儿都是取消。
  * 不能拿战场当空地：点战场上的格子会打开放大查看，那反而多一层要收的东西。
  */
-const IDLE_SPOT = { x: 60, y: 500 }
+const IDLE_SPOT = toViewport(
+  LAYOUT.panels.mine.x + LAYOUT.panels.mine.width / 2,
+  LAYOUT.panels.mine.y + LAYOUT.panels.mine.height / 2,
+)
 
 /** 拖第 index 张手牌（0 是最左边那张）到出牌区。 */
 async function dragCard(page: Page, index: number): Promise<void> {
-  const from = { x: FAN.centerX + FAN.stepX * (index - 2), y: FAN.y }
+  const from = handSpot(index)
   await page.mouse.move(from.x, from.y)
   await page.mouse.down()
   // 中间多走几步是因为拖拽有 4 像素的阈值，一步到位反而可能被当成点击。

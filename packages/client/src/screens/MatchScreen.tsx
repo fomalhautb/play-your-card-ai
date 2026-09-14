@@ -19,7 +19,6 @@ import { useLocation } from 'wouter'
 import { useMatchSession } from '../app/MatchSession'
 import { usePlatform } from '../app/platform'
 import { playTrack } from '../audio/music'
-import { toggleMuted } from '../audio/mute'
 import type { MatchDriver } from '../match/driver'
 import { isLocalDriver } from '../match/localDriver'
 import { isServerDriver } from '../match/serverDriver'
@@ -167,7 +166,6 @@ function Match({ driver }: { driver: MatchDriver }) {
         seat={view.seat ?? 0}
         status={linkStatusOf(view)}
         onLeave={() => setLeaving(true)}
-        onToggleMute={() => toggleMuted(platform)}
         reducedMotion={reducedMotion}
       />
 

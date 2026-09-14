@@ -12,27 +12,46 @@
  *
  * 全屏半透明层同屏不超过三层（纪律 3.2）：抛硬币、抵消层、展示遮罩、结算层、选目标压暗
  * 五者由编排层保证不会同时立起来（见 director/reveal.ts 那四道门），场景这边也不叠。
+ *
+ * 正式版简化第 4 步之二之后，界面那一层几乎全是素方块（见 components/Box.ts）：
+ * 侧栏外框、战场外框、落点提示、「下一题」匾、「结束出牌」都是这里直接建的 `Box`，
+ * 不再各有一个带底图和配色的组件。两块玩家面板在**两档里都由这里摆**——
+ * 从前桌面档是塞进 `SideBar` 里由它算，那等于把版式分散到了两处。
  */
 
 import { Container, type Renderer } from 'pixi.js'
 import { Banner } from '../../components/Banner'
 import { BoardGrid } from '../../components/BoardGrid'
+import { Box } from '../../components/Box'
 import { CoinToss } from '../../components/CoinToss'
 import { FoeHand } from '../../components/FoeHand'
 import { HandFan } from '../../components/HandFan'
-import { PLAQUE_TERRACOTTA, PlaqueButton } from '../../components/PlaqueButton'
 import { PlayerPanel } from '../../components/PlayerPanel'
 import { RevealOverlay } from '../../components/RevealOverlay'
 import { SettleLayer } from '../../components/SettleLayer'
-import { SideBar } from '../../components/SideBar'
 import { SkillCancelLayer } from '../../components/SkillCancelLayer'
 import { TargetingLayer } from '../../components/TargetingLayer'
+import { TokenRail } from '../../components/TokenRail'
 import { TopBar } from '../../components/TopBar'
-import type { DuelIcons } from '../../fx/controlIcons'
+import { TurnPlaque } from '../../components/TurnPlaque'
 import { HitFx } from '../../fx/HitFx'
 import { PLAYER_FAN } from '../../layout/fanMath'
 import type { DuelDeps } from './deps'
-import type { DuelLayout } from './layout/types'
+import type { DuelLayout, Rect } from './layout/types'
+
+/**
+ * 手机档那一行面板里英雄牌四周留多宽。
+ *
+ * 桌面档留 0：那一档面板 266×373.5，英雄牌按 2:3 填满正好是黑客松版的 249×373.5。
+ * 手机档那一行只有 96 高，卡贴着框边会和名字那一格糊在一起。
+ */
+const MOBILE_CARD_INSET = 22
+
+/** 落点提示进到「松手就打出去」那一档时，战场外框里再套的那一圈往里让多少。 */
+const HOT_RING_INSET = 2
+
+/** 拖拽时落点提示印什么。抄黑客松版 `.battle__drop-cue--board` 的那两段字。 */
+const DROP_CUE_TEXT = '松手 放到场上'
 
 interface DuelLayers {
   world: Container
@@ -49,15 +68,26 @@ interface DuelLayers {
 export interface DuelParts {
   layers: DuelLayers
   topBar: TopBar
-  /** 桌面档才有。手机档这里是 null，两块面板改挂在 `panelRow` 那一行上。 */
-  sideBar: SideBar | null
-  /** 不管哪一档都指得到的两块玩家面板：桌面档是侧栏里的那两块，手机档是独立的两块。 */
+  /** 桌面档侧栏那一圈外框。手机档没有侧栏，这里是 null。 */
+  sideBar: Box | null
+  /** 两块玩家面板。两档都有，位置由版式给。 */
   panels: { mine: PlayerPanel; theirs: PlayerPanel }
+  /** Token 细条。桌面档贴舞台右缘自己站着，手机档挂在我方面板里（这里是 null）。 */
+  tokenRail: TokenRail | null
+  /** 「下一题」匾。手机档折叠掉了。 */
+  nextPlaque: Box | null
+  /** 「对方回合」吊匾。手机档没有。 */
+  turnPlaque: TurnPlaque | null
+  /** 战场那一圈外框，以及「松手就打出去」时套在它里面的第二圈。 */
+  boardFrame: Box
+  hotRing: Box
+  /** 拖拽时战场顶部那条落点提示。手机档没有。 */
+  dropCue: Box | null
   board: BoardGrid
   foeHand: FoeHand
   fan: HandFan
   /** 「结束出牌」。等对方出牌时整颗收起来（由 input.refresh 按 `waitingForFoe` 切）。 */
-  endPlay: PlaqueButton
+  endPlay: Box
   banner: Banner
   coin: CoinToss
   cancel: SkillCancelLayer
@@ -72,10 +102,8 @@ export interface PartsOptions {
   renderer: Renderer
   deps: DuelDeps
   layout: DuelLayout
-  icons: DuelIcons
   onEndPlay: () => void
   onLeave?: () => void
-  onToggleMute?: () => void
 }
 
 function makeLayers(stage: Container): DuelLayers {
@@ -101,30 +129,83 @@ function makeLayers(stage: Container): DuelLayers {
   return layers
 }
 
+/** 一块只画描边、不吃事件的方块。侧栏外框、战场外框这几样都是它。 */
+function frameBox(rect: Rect, deps: DuelDeps): Box {
+  const box = new Box({ width: rect.width, height: rect.height }, deps)
+  box.position.set(rect.x, rect.y)
+  box.eventMode = 'none'
+  return box
+}
+
 /** 建出全部组件并挂到各自的层上。摆位不在这里，建完立刻由 `applyPartsLayout` 摆一次。 */
 export function createParts(options: PartsOptions): DuelParts {
   const { deps, layout } = options
   const layers = makeLayers(options.stage)
+  const desktop = layout.tier === 'desktop'
 
   const topBar = new TopBar(
-    {
-      width: layout.width,
-      height: layout.topBarHeight,
-      // 手机档只摆「离开」那一颗，理由见 TopBarOptions.actions。
-      actions: layout.tier === 'desktop' ? 'both' : 'leave',
-      onLeave: options.onLeave,
-      onToggleMute: options.onToggleMute,
-    },
-    { ...deps, icons: options.icons },
+    { width: layout.width, height: layout.topBarHeight, onLeave: options.onLeave },
+    deps,
   )
-  const sideBar =
-    layout.sideBar === null
+  const sideBar = layout.sideBar === null ? null : frameBox(layout.sideBar, deps)
+  const panels = {
+    theirs: new PlayerPanel(
+      {
+        width: layout.panels.theirs.width,
+        height: layout.panels.theirs.height,
+        cardInset: desktop ? 0 : MOBILE_CARD_INSET,
+        ...(desktop ? { deckSide: 'top' as const } : {}),
+      },
+      deps,
+    ),
+    mine: new PlayerPanel(
+      {
+        width: layout.panels.mine.width,
+        height: layout.panels.mine.height,
+        cardInset: desktop ? 0 : MOBILE_CARD_INSET,
+        // 手机档没有贴边的地方，细条只能挂在面板里；桌面档它自己站在舞台右缘。
+        tokens: !desktop,
+        ...(desktop ? { deckSide: 'bottom' as const } : {}),
+      },
+      deps,
+    ),
+  }
+  const tokenRail = layout.tokenRail === null ? null : new TokenRail(deps)
+  const nextPlaque = layout.nextPlaque === null ? null : frameBox(layout.nextPlaque, deps)
+  const turnPlaque =
+    layout.turnPlaque === null
       ? null
-      : new SideBar({ width: layout.sideBar.width, height: layout.sideBar.height }, deps)
-  const panels =
-    sideBar === null
-      ? standalonePanels(deps, layout)
-      : { mine: sideBar.mine, theirs: sideBar.theirs }
+      : new TurnPlaque({ width: layout.turnPlaque.width, height: layout.turnPlaque.height }, deps)
+
+  /*
+   * 战场外框平时**不画**。
+   *
+   * 黑客松版那条边是 `border: 1px dashed transparent`——只有拖着牌的时候才亮起来
+   *（`data-drop-ready` / `data-drop-hot`）。这里照它来，顺带躲开一笔不小的账：
+   * 过度绘制那条指标把每个 Graphics 按**包围盒**算成一整块实心（见 bench 的
+   * src/page/overdraw.ts），一个 1310×535 的空心框会被记成盖住战场那一整块，
+   * 常亮的话桌面档直接顶破 3.2 那条上限。
+   */
+  const boardFrame = frameBox(layout.boardFrame, deps)
+  boardFrame.visible = false
+  const hotRing = frameBox(layout.boardFrame, deps)
+  hotRing.visible = false
+  const dropCue =
+    layout.dropCue === null
+      ? null
+      : new Box(
+          {
+            width: layout.dropCue.width,
+            height: layout.dropCue.height,
+            label: DROP_CUE_TEXT,
+            size: 'small',
+          },
+          deps,
+        )
+  if (dropCue !== null) {
+    dropCue.eventMode = 'none'
+    dropCue.visible = false
+  }
 
   const board = new BoardGrid(
     {
@@ -139,19 +220,15 @@ export function createParts(options: PartsOptions): DuelParts {
     geometry: PLAYER_FAN,
     areaWidth: layout.hand.areaWidth,
   })
-  const endPlay = new PlaqueButton(
-    {
-      variant: PLAQUE_TERRACOTTA,
-      caption: '结束出牌',
-      size: 'endTurn',
-      onActivate: options.onEndPlay,
-    },
+  const endPlay = new Box(
+    { width: layout.endPlay.width, height: layout.endPlay.height, label: '结束出牌' },
     deps,
   )
+  endPlay.onPress(options.onEndPlay)
   /*
    * 在场景树上给它留个名字。
    *
-   * PlaqueButton 是通用组件，一颗按钮是干什么的只有装配处知道，所以名字在这里给。
+   * 素方块是通用原语，一块方块是干什么的只有装配处知道，所以名字在这里给。
    * 真浏览器的交互回归靠它找到「按哪儿」（bench 的 src/page/hitPoints.ts），
    * 命名跟卡（`card:`）和格子（`tile:`）一个路子。
    */
@@ -160,7 +237,10 @@ export function createParts(options: PartsOptions): DuelParts {
   const banner = new Banner(deps)
   const coin = new CoinToss(deps)
   const cancel = new SkillCancelLayer(deps)
-  const reveal = new RevealOverlay({ scale: layout.revealScale }, deps)
+  const reveal = new RevealOverlay(
+    { scale: layout.revealScale, anchorY: 0.46, topClip: layout.topBarHeight },
+    deps,
+  )
   const targeting = new TargetingLayer(deps)
   const settle = new SettleLayer(layout.width, layout.height, deps)
 
@@ -175,11 +255,15 @@ export function createParts(options: PartsOptions): DuelParts {
     reducedMotion: deps.reducedMotion,
   })
 
-  layers.board.addChild(board)
+  // 战场外框垫在格子底下，落点提示和「加粗」那一圈压在格子上面（它们要盖住的正是格子那一带）。
+  layers.board.addChild(boardFrame, board, hotRing)
+  if (dropCue !== null) layers.board.addChild(dropCue)
   layers.foeHand.addChild(foeHand)
-  layers.chrome.addChild(topBar, endPlay)
-  if (sideBar !== null) layers.chrome.addChild(sideBar)
-  else layers.chrome.addChild(panels.theirs, panels.mine)
+  layers.chrome.addChild(topBar, endPlay, panels.theirs, panels.mine)
+  if (sideBar !== null) layers.chrome.addChildAt(sideBar, 0)
+  if (tokenRail !== null) layers.chrome.addChild(tokenRail)
+  if (nextPlaque !== null) layers.chrome.addChild(nextPlaque)
+  if (turnPlaque !== null) layers.chrome.addChild(turnPlaque)
   layers.hand.addChild(fan)
   layers.overlay.addChild(targeting, reveal, coin, cancel, settle, banner)
 
@@ -188,6 +272,12 @@ export function createParts(options: PartsOptions): DuelParts {
     topBar,
     sideBar,
     panels,
+    tokenRail,
+    nextPlaque,
+    turnPlaque,
+    boardFrame,
+    hotRing,
+    dropCue,
     board,
     foeHand,
     fan,
@@ -204,46 +294,41 @@ export function createParts(options: PartsOptions): DuelParts {
   return parts
 }
 
-/** 手机档：侧栏折叠掉之后，两块面板自己站着。我方那块仍然带 Token 细条。 */
-function standalonePanels(
-  deps: DuelDeps,
-  layout: DuelLayout,
-): { mine: PlayerPanel; theirs: PlayerPanel } {
-  const size = panelRowSize(layout)
-  return {
-    theirs: new PlayerPanel(size, deps),
-    mine: new PlayerPanel({ ...size, tokens: true }, deps),
-  }
-}
-
-/** 折叠那一行里每块面板多大。两块平分，中间留一个空隙。 */
-function panelRowSize(layout: DuelLayout): { width: number; height: number } {
-  const row = layout.panelRow
-  if (row === null) return { width: 0, height: 0 }
-  return { width: Math.max(0, (row.width - row.gap) / 2), height: row.height }
-}
-
 /**
  * 按版式把所有零件摆一遍。改视口和换档位都走这里。
  *
- * 换档位（桌面 ↔ 手机）时侧栏是有还是没有会变，那种情况由场景整个重建零件，
+ * 换档位（桌面 ↔ 手机）时有没有侧栏、细条、两块吊匾都会变，那种情况由场景整个重建零件，
  * 这里只处理**同一档内**的尺寸变化。
  */
 export function applyPartsLayout(parts: DuelParts, layout: DuelLayout): void {
   parts.topBar.resize(layout.width, layout.topBarHeight)
   parts.topBar.position.set(0, 0)
 
-  if (parts.sideBar !== null && layout.sideBar !== null) {
-    parts.sideBar.resize(layout.sideBar.width, layout.sideBar.height)
-    parts.sideBar.position.set(layout.sideBar.x, layout.sideBar.y)
-  } else if (layout.panelRow !== null) {
-    const size = panelRowSize(layout)
-    const row = layout.panelRow
-    parts.panels.theirs.resize(size.width, size.height)
-    parts.panels.mine.resize(size.width, size.height)
-    parts.panels.theirs.position.set(row.x, row.y)
-    parts.panels.mine.position.set(row.x + size.width + row.gap, row.y)
+  place(parts.sideBar, layout.sideBar)
+  for (const side of ['theirs', 'mine'] as const) {
+    const rect = layout.panels[side]
+    parts.panels[side].resize(rect.width, rect.height)
+    parts.panels[side].position.set(rect.x, rect.y)
   }
+  if (parts.tokenRail !== null && layout.tokenRail !== null) {
+    parts.tokenRail.position.set(layout.tokenRail.x, layout.tokenRail.y)
+  }
+  place(parts.nextPlaque, layout.nextPlaque)
+  if (parts.turnPlaque !== null && layout.turnPlaque !== null) {
+    parts.turnPlaque.resize(layout.turnPlaque.width, layout.turnPlaque.height)
+    parts.turnPlaque.position.set(layout.turnPlaque.x, layout.turnPlaque.y)
+  }
+
+  place(parts.boardFrame, layout.boardFrame)
+  parts.hotRing.setSize(
+    layout.boardFrame.width - HOT_RING_INSET * 2,
+    layout.boardFrame.height - HOT_RING_INSET * 2,
+  )
+  parts.hotRing.position.set(
+    layout.boardFrame.x + HOT_RING_INSET,
+    layout.boardFrame.y + HOT_RING_INSET,
+  )
+  place(parts.dropCue, layout.dropCue)
 
   parts.board.resize(
     layout.board.width / layout.board.scale,
@@ -259,15 +344,31 @@ export function applyPartsLayout(parts: DuelParts, layout: DuelLayout): void {
   parts.fan.position.set(layout.hand.x, layout.hand.y)
   parts.fan.scale.set(layout.hand.scale)
 
-  parts.endPlay.position.set(
-    layout.endPlay.x - parts.endPlay.boxWidth / 2,
-    layout.endPlay.y - parts.endPlay.boxHeight / 2,
-  )
+  parts.endPlay.setSize(layout.endPlay.width, layout.endPlay.height)
+  parts.endPlay.position.set(layout.endPlay.x, layout.endPlay.y)
 
-  parts.banner.position.set(layout.width / 2, layout.height * 0.24)
+  parts.banner.position.set(layout.banner.x, layout.banner.y)
   parts.coin.resize(layout.width, layout.height)
   parts.cancel.resize(layout.width, layout.height)
   parts.reveal.resize(layout.width, layout.height)
   parts.targeting.resize(layout.width, layout.height)
   parts.settle.resize(layout.width, layout.height)
+}
+
+/** 把一块方块按矩形摆好。两边只要有一个是 null 就说明这一档没有这样东西。 */
+function place(box: Box | null, rect: Rect | null): void {
+  if (box === null || rect === null) return
+  box.setSize(rect.width, rect.height)
+  box.position.set(rect.x, rect.y)
+}
+
+/**
+ * 拖拽期间落点提示的三档：没在拖（外框整个不画）、拖着（外框和提示亮出来）、
+ * 指针已经进到落区里（外框里再套一圈，两条平行线看着就是加粗）。
+ * 抄黑客松版 `.battle__board` 的 `data-drop-ready` / `data-drop-hot`。
+ */
+export function setDropState(parts: DuelParts, state: 'off' | 'ready' | 'hot'): void {
+  parts.boardFrame.visible = state !== 'off'
+  if (parts.dropCue !== null) parts.dropCue.visible = state !== 'off'
+  parts.hotRing.visible = state === 'hot'
 }

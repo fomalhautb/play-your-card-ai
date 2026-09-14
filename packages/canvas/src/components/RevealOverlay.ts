@@ -67,6 +67,24 @@ export interface RevealOverlayOptions {
    * 卡摆在正中的话右边那一栏只能贴着屏幕边。字幕跟着这个锚点走，不另设一个。
    */
   anchorX?: number
+  /**
+   * 卡停在视口纵向的哪一处。不给就是正中。
+   *
+   * 对局页传 0.46，比正中略高一点，下方留给对方战场行，落场的飞行看着更顺
+   *（抄黑客松版 `.reveal-card` 的 `top: 46%`）。
+   */
+  anchorY?: number
+  /**
+   * 顶上裁掉多高（0 就是不裁）。
+   *
+   * 对局页传顶栏的高度：强制展示的那张牌起飞时正停在对手手牌的位置，那张牌本来有一截
+   * 被不透明的顶栏遮住，不裁的话点下去的第一帧那一截会突然画到顶栏上面，
+   * 牌看着凭空长高一倍（黑客松版 `.reveal-clip` 那段注释讲的就是这件事）。
+   *
+   * 裁的是**这一层自己坐标里的一条水平线**，所以遮罩挂在这一层上、不跟着卡走。
+   * 卡飞到中央之后整张都在这条线下面，裁不裁都一样，因此这里不像旧版那样飞完再撤掉。
+   */
+  topClip?: number
 }
 
 export class RevealOverlay extends Container {
@@ -75,8 +93,18 @@ export class RevealOverlay extends Container {
   /** 卡挂在这一层。层自己管位置和缩放，卡自己的 transform 留给它原来的用途。 */
   private readonly slot = new Container()
   private readonly captionSlot = new Container()
+  /**
+   * 顶上那一刀。
+   *
+   * 是 Graphics 不是 Sprite：Pixi 按遮罩对象的类型挑实现，Sprite 走 AlphaMask
+   *（先把被遮的东西画进一张离屏纹理再乘遮罩），而纪律 3.1 要求离屏渲染为 0。
+   * Graphics 走的是 StencilMask，只写模板缓冲（同 SettleChrome 里那一处）。
+   */
+  private readonly clip: Graphics | null
   private readonly zoom: number
   private readonly anchorX: number
+  private readonly anchorY: number
+  private readonly topClip: number
   private card: Container | null = null
   private boxWidth = 0
   private boxHeight = 0
@@ -86,6 +114,9 @@ export class RevealOverlay extends Container {
     this.deps = deps
     this.zoom = options.scale ?? tokens.size.card.revealScale
     this.anchorX = options.anchorX ?? 0.5
+    this.anchorY = options.anchorY ?? 0.5
+    this.topClip = options.topClip ?? 0
+    this.clip = this.topClip > 0 ? new Graphics() : null
     this.label = 'reveal-overlay'
     /*
      * 整层吃指针事件：强制展示期间点什么都不该有反应，而放大查看要靠"点遮罩关掉"。
@@ -93,6 +124,10 @@ export class RevealOverlay extends Container {
      */
     this.eventMode = 'static'
     this.addChild(this.veil, this.slot, this.captionSlot)
+    if (this.clip !== null) {
+      this.addChild(this.clip)
+      this.slot.mask = this.clip
+    }
     this.visible = false
     this.alpha = 0
   }
@@ -105,11 +140,19 @@ export class RevealOverlay extends Container {
       .clear()
       .rect(0, 0, width, height)
       .fill({ color: tokens.color.overlay.reveal, alpha: tokens.opacity.overlay.reveal })
+    this.clip
+      ?.clear()
+      .rect(0, this.topClip, width, Math.max(0, height - this.topClip))
+      .fill({ color: 0xffffff })
   }
 
-  /** 卡停在哪个点（默认是屏幕正中，见 `anchorX`）。调用方算飞行轨迹时要用。 */
+  /** 卡停在哪个点（默认是屏幕正中，见 `anchorX` / `anchorY`）。调用方算飞行轨迹时要用。 */
   center(): RevealPoint {
-    return { x: this.boxWidth * this.anchorX, y: this.boxHeight / 2, scale: this.zoom }
+    return {
+      x: this.boxWidth * this.anchorX,
+      y: this.boxHeight * this.anchorY,
+      scale: this.zoom,
+    }
   }
 
   /**

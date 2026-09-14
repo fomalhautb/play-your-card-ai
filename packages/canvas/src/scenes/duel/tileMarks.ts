@@ -2,8 +2,8 @@
  * 战场小卡上那一列角标：这个单位现在怎么了。
  *
  * 纯函数，只读一份 `AiInstance` 加一个「主人被金钟罩罩着吗」，所以不用起画布就测得了。
- * 原样搬自旧客户端 `ui/tileMarks.ts`，只把「一串 CSS class」换成组件认的 `BadgeTone`
- *（画布这边配色是徽章的一档参数，不是样式表里的修饰类）。
+ * 原样搬自旧客户端 `ui/tileMarks.ts`。旧版每一档还带一个配色（CSS 修饰类），
+ * 正式版简化第 4 步之二把角标剥成素方块之后没有配色可挑了，只剩文案。
  *
  * 写的是这个单位**现在是什么状态**而不是牌名（「复读中」不是「复读机」）：
  * 角标要回答的是「这张卡怎么了」。干扰按种类分而不是笼统写「已干扰」——
@@ -12,7 +12,6 @@
  */
 
 import type { AiInstance, CardId } from '@ai-duel/core'
-import type { BadgeTone } from '../../components/Badge'
 import type { TileMark } from '../../components/BoardTile'
 
 /**
@@ -22,11 +21,11 @@ import type { TileMark } from '../../components/BoardTile'
  * 引擎往 `affectedBy` 记一笔的同时，这里也要补上文案（漏了会落到通用的「被影响」）。
  * 「金钟罩」不在表里：它罩的是整个人而不是某个单位，另算一档。
  */
-const SKILL_EFFECT_MARKS: Record<CardId, { text: string; tone: BadgeTone }> = {
-  'fixed-answer': { text: '复读中', tone: 'amber' },
-  'black-white-reversal': { text: '已颠倒', tone: 'amber' },
-  'jade-purification-vase': { text: '已净化', tone: 'safe' },
-  'safe-pass': { text: '保送', tone: 'safe' },
+const SKILL_EFFECT_MARKS: Record<CardId, TileMark> = {
+  'fixed-answer': { text: '复读中' },
+  'black-white-reversal': { text: '已颠倒' },
+  'jade-purification-vase': { text: '已净化' },
+  'safe-pass': { text: '保送' },
 }
 
 /**
@@ -51,15 +50,15 @@ export function tileMarksOf(ai: AiInstance, shielded: boolean): TileMark[] {
   const marks: TileMark[] = []
   for (const cardId of ai.affectedBy ?? []) {
     if (PERSISTENT_MARK_CARDS.has(cardId)) continue
-    marks.push(SKILL_EFFECT_MARKS[cardId] ?? { text: '被影响', tone: 'amber' })
+    marks.push(SKILL_EFFECT_MARKS[cardId] ?? { text: '被影响' })
   }
-  if (shielded) marks.push({ text: '金钟罩', tone: 'safe' })
+  if (shielded) marks.push({ text: '金钟罩' })
   const evolved = ai.evolvedTimes ?? 0
   if (evolved > 0) {
-    marks.push({ text: evolved > 1 ? `已进化 ×${evolved}` : '已进化', tone: 'up' })
+    marks.push({ text: evolved > 1 ? `已进化 ×${evolved}` : '已进化' })
   }
   const shift = ai.levelShift ?? 0
-  if (shift > 0) marks.push({ text: '已升级', tone: 'up' })
-  else if (shift < 0) marks.push({ text: '已降级', tone: 'down' })
+  if (shift > 0) marks.push({ text: '已升级' })
+  else if (shift < 0) marks.push({ text: '已降级' })
   return marks
 }

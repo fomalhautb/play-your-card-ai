@@ -1,52 +1,45 @@
 /**
- * 结算层的上半截：顶栏（标题、三步进度条、轮次药丸、比分）和题目那一行
- *（题面 + 一条带宝石的竖分隔 + 标准答案框）。
+ * 结算层的上半截：顶栏（标题、三步进度、轮次和比分）和题目那一行（题面 + 标准答案框）。
  *
  * 拆成单独一个文件不是因为它自成一个组件，而是因为 `SettleLayer` 装不下——
  * 单文件 400 行那条（7.2 第 3 条）卡着。所以它只对 `SettleLayer` 负责，不进包入口。
  *
- * 对应需求单：列表 C（步骤条）、徽章 F（轮次药丸）、边框 F（分隔线加宝石）、
- * 面板 J（标准答案框）。
+ * 正式版简化第 4 步之二剥成素方块（见 components/Box.ts）：顶栏那两条线、三档圆点的
+ * 步骤条、轮次药丸、深绿比分块、带宝石的竖分隔、答案框的绿描边全删了，一律换成描边方块。
  *
- * 标准答案是**擦出来**的：内容先摆好，再拿一张白色精灵当遮罩、把它的 `scale.x`
- * 从 0 补到 1。不重画遮罩几何、每帧只改一个 transform（3.10）。
+ * 标准答案仍然是**擦出来**的：内容先摆好，再拿一张遮罩把它的 `scale.x` 从 0 补到 1。
+ * 不重画遮罩几何、每帧只改一个 transform（3.10）。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import { SETTLE_ANSWER_MS } from '../director/timings'
-import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
-import type { TextTextureCache } from '../runtime/textCache'
-import { DIVIDER_GEM, Divider } from './Divider'
-import { Label } from './Label'
+import { Box, type BoxDeps } from './Box'
 
 /**
- * 上半截自己的几何和字号（px）。组件私有，理由见 design 的 README。
- * 来源：styles.css 的 `.settle__*` 一族，以及需求单的徽章 F / 面板 J / 列表 C。
+ * 上半截自己的几何（px）。组件私有，理由见 design 的 README。
+ * 顶栏高 84、左右留白 28、答案框 362×166 都照旧，只是画法换成了方块。
  */
 const BAR = { height: 84, padX: 28 } as const
 const ANSWER_PANEL = { width: 362, height: 166, pad: 26 } as const
-const TYPE = {
-  title: { fontSize: 28, letterSpacing: 1.68, weight: '700' },
-  step: { fontSize: tokens.font.size.md, letterSpacing: 0 },
-  pill: { fontSize: tokens.font.size.lg, letterSpacing: 1.68 },
-  score: { fontSize: 22, letterSpacing: 0, weight: '700' },
-  category: { fontSize: tokens.font.size.base, letterSpacing: 2.08 },
-  question: { fontSize: 26, letterSpacing: 0 },
-  answerLabel: { fontSize: tokens.font.size.base, letterSpacing: 2.08 },
-  answerMain: { fontSize: 40, letterSpacing: 0, weight: '700' },
-  answerExplain: { fontSize: tokens.font.size.lg, letterSpacing: 0 },
+/** 顶栏上那几格各多大：标题、三步进度、轮次、比分。 */
+const CELL = {
+  title: { width: 180, height: 40 },
+  step: { width: 120, height: 28, gap: 10 },
+  round: { width: 96, height: 32 },
+  score: { width: 96, height: 32 },
 } as const
-/** 轮次药丸和步骤标记的尺寸。抄需求单徽章 F（69×26）和列表 C（标记 13.8、连线 46）。 */
-const PILL = { padX: 14, padY: 4 } as const
-const STEP = { mark: 14, gap: 8, link: 46 } as const
 /** 顶栏那三步。文案抄旧版 `RoundSettleLayer` 的 `STEP_LABELS`。 */
 const STEPS = ['题目揭晓', 'AI 作答', '裁判结算'] as const
+/** 题面和答案框里那几格的尺寸。 */
+const QUESTION = { categoryHeight: 28, bodyHeight: 110, gap: 12 } as const
+/**
+ * 答案框里那三行各多高、行距多少。
+ * 三行连内边距加起来必须塞得进 166——超出去的那一截会被擦出来的那张遮罩直接裁掉。
+ */
+const ANSWER_ROW = { tag: 24, main: 52, note: 44, gap: 6 } as const
 
-export interface SettleChromeDeps {
-  ui: UiTextures
-  text: TextTextureCache
+export type SettleChromeDeps = BoxDeps & {
   animator: Animator
 }
 
@@ -78,14 +71,15 @@ export class SettleChrome extends Container {
     this.setStep(0)
   }
 
-  /** 顶栏右端的轮次药丸和比分。比分一变就换纹理，所以整块重建。 */
+  /** 顶栏右端的轮次和比分。比分一变就换纹理，所以整块重建。 */
   setMeta(round: number, mine: number, theirs: number): void {
     for (const child of this.metaSlot.removeChildren()) child.destroy({ children: true })
-    const pill = this.buildPill(`第 ${round} 轮`)
-    const score = this.buildScore(mine, theirs)
-    score.x = this.boxWidth - BAR.padX - score.width
-    pill.x = score.x - 16 - pill.width
-    for (const part of [pill, score]) part.y = (BAR.height - part.height) / 2
+    const score = new Box({ ...CELL.score, label: `${mine} : ${theirs}`, size: 'small' }, this.deps)
+    const pill = new Box({ ...CELL.round, label: `第 ${round} 轮`, size: 'small' }, this.deps)
+    score.x = this.boxWidth - BAR.padX - CELL.score.width
+    pill.x = score.x - 16 - CELL.round.width
+    score.y = (BAR.height - CELL.score.height) / 2
+    pill.y = (BAR.height - CELL.round.height) / 2
     this.metaSlot.addChild(pill, score)
   }
 
@@ -112,59 +106,42 @@ export class SettleChrome extends Container {
    */
   setStep(current: number): void {
     for (const child of this.stepSlot.removeChildren()) child.destroy({ children: true })
-    let x = 0
+    /*
+     * 三档从前靠配色分（空圈 / 空圈套点 / 实心），素方块只有「点得动」和「点不动」两档，
+     * 所以改成：还没到的那几步压暗，已完成和进行中的是实的。
+     * 这一条在画面上仍然回答「走到第几步了」，只是分辨力从三档掉到两档。
+     */
     STEPS.forEach((text, index) => {
-      if (index > 0) x += STEP.link
-      const done = index < current
-      const active = index === current
-      const mark = new Graphics()
-      const color = done || active ? tokens.color.theme.forest : tokens.color.battle.line
-      /*
-       * 三档要一眼分得开：已完成是整颗实心，进行中是空心圈里一颗小点，还没到的只有空圈。
-       * 旧版已完成那档画的是一个勾（内联 SVG），这里用实心圆代替——在这个尺寸下
-       *（圈直径 14）一个勾只有五六个像素，比实心圆更难认。
-       */
-      mark.circle(0, 0, STEP.mark / 2).stroke({ width: 1, color })
-      if (done) mark.circle(0, 0, STEP.mark / 2 - 1).fill({ color })
-      else if (active) mark.circle(0, 0, STEP.mark / 2 - 4.5).fill({ color })
-      mark.position.set(x + STEP.mark / 2, BAR.height / 2)
-      const label = new Label(
-        text,
-        TYPE.step,
-        this.deps,
-        active ? tokens.color.battle.ink : tokens.color.battle.inkMuted,
+      const cell = new Box({ ...CELL.step, label: text, size: 'small' }, this.deps)
+      cell.setDisabled(index > current)
+      cell.position.set(
+        index * (CELL.step.width + CELL.step.gap),
+        (BAR.height - CELL.step.height) / 2,
       )
-      label.position.set(x + STEP.mark + STEP.gap + label.textWidth / 2, BAR.height / 2)
-      this.stepSlot.addChild(mark, label)
-      x += STEP.mark + STEP.gap + label.textWidth
+      this.stepSlot.addChild(cell)
     })
-    this.stepSlot.x = (this.boxWidth - x) / 2
+    const total = STEPS.length * CELL.step.width + (STEPS.length - 1) * CELL.step.gap
+    this.stepSlot.x = (this.boxWidth - total) / 2
   }
 
-  /** 题面那一栏。答案框同时建好但压着（`answerBody.alpha = 0`），等 `revealAnswer` 擦出来。 */
+  /** 题面那一栏。答案框同时建好但压着，等 `revealAnswer` 擦出来。 */
   setQuestion(category: string, text: string): void {
     for (const child of this.questionSlot.removeChildren()) child.destroy({ children: true })
     const left = BAR.padX
     const width = this.boxWidth - ANSWER_PANEL.width - BAR.padX * 3 - 40
-    const label = new Label(category, TYPE.category, this.deps, tokens.color.battle.inkMuted)
-    label.position.set(left + label.textWidth / 2, BAR.height + 26)
-    const body = new Label(
-      text,
-      { ...TYPE.question, align: 'left', maxWidth: width },
-      this.deps,
-      tokens.color.battle.ink,
-    )
-    body.position.set(left, BAR.height + 68)
-    this.questionSlot.addChild(label, body)
-
-    const gemX = left + width + 20
-    const divider = new Divider(
-      { variant: DIVIDER_GEM, length: ANSWER_PANEL.height, vertical: true },
+    const top = BAR.height + 16
+    const categoryBox = new Box(
+      { width, height: QUESTION.categoryHeight, label: category, align: 'left', size: 'small' },
       this.deps,
     )
-    divider.position.set(gemX, BAR.height + 16)
-    this.questionSlot.addChild(divider)
-    this.rowBottom = BAR.height + 16 + ANSWER_PANEL.height + 24
+    categoryBox.position.set(left, top)
+    const body = new Box(
+      { width, height: QUESTION.bodyHeight, label: text, align: 'left' },
+      this.deps,
+    )
+    body.position.set(left, top + QUESTION.categoryHeight + QUESTION.gap)
+    this.questionSlot.addChild(categoryBox, body)
+    this.rowBottom = top + ANSWER_PANEL.height + 24
   }
 
   /**
@@ -179,29 +156,20 @@ export class SettleChrome extends Container {
     this.answerSlot.position.set(x, y)
 
     this.answerBody.addChild(
-      new Graphics()
-        .roundRect(0, 0, ANSWER_PANEL.width, ANSWER_PANEL.height, tokens.radius.sm)
-        .fill({ color: tokens.color.battle.paper })
-        .stroke({ width: 2, color: tokens.color.theme.forest }),
+      new Box({ width: ANSWER_PANEL.width, height: ANSWER_PANEL.height }, this.deps),
     )
     const inner = ANSWER_PANEL.width - ANSWER_PANEL.pad * 2
-    const tag = new Label('标准答案', TYPE.answerLabel, this.deps, tokens.color.theme.forest)
-    tag.position.set(ANSWER_PANEL.pad + tag.textWidth / 2, ANSWER_PANEL.pad)
-    const main = new Label(
-      answer,
-      { ...TYPE.answerMain, maxWidth: inner },
-      this.deps,
-      tokens.color.battle.ink,
-    )
-    main.position.set(ANSWER_PANEL.width / 2, ANSWER_PANEL.pad + 52)
-    const note = new Label(
-      explanation,
-      { ...TYPE.answerExplain, maxWidth: inner },
-      this.deps,
-      tokens.color.battle.inkMuted,
-    )
-    note.position.set(ANSWER_PANEL.width / 2, ANSWER_PANEL.pad + 104)
-    this.answerBody.addChild(tag, main, note)
+    let rowY = ANSWER_PANEL.pad
+    for (const [height, label, size] of [
+      [ANSWER_ROW.tag, '标准答案', 'small'],
+      [ANSWER_ROW.main, answer, 'title'],
+      [ANSWER_ROW.note, explanation, 'small'],
+    ] as const) {
+      const row = new Box({ width: inner, height, label, size }, this.deps)
+      row.position.set(ANSWER_PANEL.pad, rowY)
+      this.answerBody.addChild(row)
+      rowY += height + ANSWER_ROW.gap
+    }
 
     // 遮罩按满格尺寸画好，再把横向缩放从 0 补到 1，就是「从左往右擦出来」。
     this.answerMask
@@ -220,56 +188,12 @@ export class SettleChrome extends Container {
     return SETTLE_ANSWER_MS
   }
 
-  /** 顶栏：标题在左，下沿一深一浅两条线（同对局顶栏的做法）。 */
+  /** 顶栏：标题那一格贴左。 */
   private buildBar(): Container {
     const bar = new Container()
-    const title = new Label('出牌吧, AI', TYPE.title, this.deps, tokens.color.battle.ink)
-    title.position.set(BAR.padX + title.textWidth / 2, BAR.height / 2)
-    const lines = new Graphics()
-      .rect(BAR.padX, BAR.height - 4, this.boxWidth - BAR.padX * 2, 1)
-      .fill({ color: tokens.color.battle.lineDark })
-      .rect(BAR.padX, BAR.height - 1, this.boxWidth - BAR.padX * 2, 1)
-      .fill({ color: tokens.color.battle.line })
-    bar.addChild(title, lines)
+    const title = new Box({ ...CELL.title, label: '出牌吧, AI' }, this.deps)
+    title.position.set(BAR.padX, (BAR.height - CELL.title.height) / 2)
+    bar.addChild(title)
     return bar
-  }
-
-  /** 轮次药丸：一颗描边的圆头小牌。 */
-  private buildPill(text: string): Container {
-    const box = new Container()
-    const label = new Label(text, TYPE.pill, this.deps, tokens.color.battle.inkMuted)
-    const width = Math.round(label.textWidth) + PILL.padX * 2
-    const height = Math.round(label.textHeight) + PILL.padY * 2
-    box.addChild(
-      new Graphics()
-        .roundRect(0, 0, width, height, tokens.radius.pill)
-        .fill({ color: tokens.color.battle.paper })
-        .stroke({ width: 1, color: tokens.color.battle.lineDark }),
-    )
-    label.position.set(width / 2, height / 2)
-    box.addChild(label)
-    return box
-  }
-
-  /**
-   * 比分：我方那个数压在一块深绿方块里，对方那个只上色。
-   * 两边不对称是刻意的——这一层从头到尾都是"我"在看，自己的分要能一眼抓住。
-   */
-  private buildScore(mine: number, theirs: number): Container {
-    const box = new Container()
-    const size = 28
-    box.addChild(
-      new Graphics()
-        .roundRect(0, 0, size, size, tokens.radius.sm)
-        .fill({ color: tokens.color.theme.forest }),
-    )
-    const mineLabel = new Label(String(mine), TYPE.score, this.deps, tokens.color.battle.paper)
-    mineLabel.position.set(size / 2, size / 2)
-    const colon = new Label(':', TYPE.score, this.deps, tokens.color.battle.inkMuted)
-    colon.position.set(size + 8, size / 2)
-    const foe = new Label(String(theirs), TYPE.score, this.deps, tokens.color.theme.life)
-    foe.position.set(size + 16 + size / 2, size / 2)
-    box.addChild(mineLabel, colon, foe)
-    return box
   }
 }

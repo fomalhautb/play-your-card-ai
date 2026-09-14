@@ -23,6 +23,7 @@ import type { DirectorLocks } from '../../director/director'
 import { HandPointer } from '../../interaction/handPointer'
 import type { DuelContext } from './context'
 import { fanToWorld, toFanLocal } from './layout/types'
+import { setDropState } from './parts'
 import {
   boardTargetsOf,
   handTargetsOf,
@@ -85,6 +86,7 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     // 接上要给每张卡各存一个 CardTilt，而卡在对局里是随发随建随销的。
     tiltFor: () => undefined,
     onPlay: (card) => onPlay(card),
+    onDropState: (state) => setDropState(ctx.parts, state),
     enabled: () => canAct(),
     wake: () => ctx.wake(),
   })
@@ -265,6 +267,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
        * 每次重建都要重新烤一遍匾额上那行字的纹理（3.5 明确不许在动画期间建文字）。
        */
       ctx.parts.endPlay.visible = !next.waitingForFoe
+      // 钮收起来的那一段正是「等对方出牌」，吊匾接替它把这件事说出来。
+      ctx.parts.turnPlaque?.setOn(next.waitingForFoe)
       /*
        * 英雄技能钮和「结束出牌」吃同一档锁，外加一条它自己的：一个合法目标都没有时也灰着
        *（场上空着、或者能打的那几个都到链顶 / 链底了）。

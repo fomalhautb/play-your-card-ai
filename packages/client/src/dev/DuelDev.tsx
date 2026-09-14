@@ -89,7 +89,6 @@ export function DuelDev() {
           sceneRef={sceneRef}
           // 这一页没有可去的地方，顶栏那两颗钮点了不做事。
           onLeave={() => undefined}
-          onToggleMute={() => undefined}
         />
         <span className="duel-dev__fps">{fps === null ? '空闲' : `${fps} fps`}</span>
       </div>

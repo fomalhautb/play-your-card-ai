@@ -80,8 +80,6 @@ export interface DuelStageProps {
   status?: string | null
   /** 顶栏那颗离开钮按下时叫谁。 */
   onLeave(): void
-  /** 顶栏那颗静音钮。 */
-  onToggleMute(): void
   /** 效果档位，不给就是默认那一档。只有开发页会传（它要现场切档看差别）。 */
   tier?: EffectTier
   /**
@@ -104,7 +102,6 @@ export function DuelStage({
   seat,
   status = null,
   onLeave,
-  onToggleMute,
   tier = DEFAULT_TIER,
   reducedMotion = false,
   sceneRef: outerSceneRef,
@@ -127,11 +124,11 @@ export function DuelStage({
   const view = useMatch(driver)
 
   /*
-   * 顶栏那两颗钮的回调存 ref：它们每次渲染都是新函数，而场景是建的时候把它们焊进去的。
+   * 顶栏那颗钮的回调存 ref：它每次渲染都是新函数，而场景是建的时候把它焊进去的。
    * 不存 ref 的话要么场景每渲染一次就重建，要么按钮永远调的是第一次那一版闭包。
    */
-  const handlers = useRef({ onLeave, onToggleMute })
-  handlers.current = { onLeave, onToggleMute }
+  const handlers = useRef({ onLeave })
+  handlers.current = { onLeave }
 
   useEffect(() => {
     const host = hostRef.current
@@ -166,7 +163,6 @@ export function DuelStage({
         manualClock: true,
         reducedMotion,
         onLeave: () => handlers.current.onLeave(),
-        onToggleMute: () => handlers.current.onToggleMute(),
       })
       if (disposed) {
         scene.destroy()

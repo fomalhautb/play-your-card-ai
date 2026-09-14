@@ -203,6 +203,8 @@ export interface InputProbe {
   endPlayDisabled: boolean | null
   /** 「结束出牌」现在在不在场。等对方出牌时它整颗收起来。 */
   endPlayVisible: boolean | null
+  /** 「对方回合」吊匾挂出来了没有。和「结束出牌」收起来是同一档锁切出来的。 */
+  turnPlaqueOn: boolean | null
   /** 侧栏那颗英雄技能钮现在灰不灰。null 表示 refresh 一次都没跑过。 */
   heroSkillDisabled: boolean | null
   /** 手牌扇形里那几张假卡，顺序同视图里的手牌。 */
@@ -256,6 +258,7 @@ export function createInputProbe(view: PlayerView): InputProbe {
     calls,
     endPlayDisabled: null,
     endPlayVisible: null,
+    turnPlaqueOn: null,
     heroSkillDisabled: null,
     cards,
     card(instanceId) {
@@ -306,6 +309,21 @@ export function createInputProbe(view: PlayerView): InputProbe {
         setHeroSkillDisabled: (disabled: boolean) => {
           probe.heroSkillDisabled = disabled
         },
+      },
+    },
+    /*
+     * 落点提示那三块和「对方回合」吊匾。
+     *
+     * 它们在真场景里是桌面档才有的（外框两档都有，提示只有桌面档），而这个替身走的是
+     * 桌面档版式，所以照桌面档给：`setDropState` 每次拖拽都会写它们的 visible，
+     * 缺一个就当场抛。
+     */
+    boardFrame: { visible: false },
+    dropCue: { visible: false },
+    hotRing: { visible: false },
+    turnPlaque: {
+      setOn: (on: boolean) => {
+        probe.turnPlaqueOn = on
       },
     },
   }

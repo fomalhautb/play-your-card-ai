@@ -1,6 +1,10 @@
 /**
- * 结算层里一侧（我方 / 对方）的那一块：一行标头（阵营侧条、称呼、「正确 x / N」、
- * 「本轮领先」徽章）加下面横着排开的结果卡。
+ * 结算层里一侧（我方 / 对方）的那一块：一行标头（称呼、「正确 x / N」、「本轮领先」）
+ * 加下面横着排开的结果卡。
+ *
+ * 正式版简化第 4 步之二剥成素方块（见 components/Box.ts）：阵营侧条那条竖色带和
+ * 绿底白字的领先徽章都换成描边方块。结果卡的宽也改回黑客松版那套**弹性**的——
+ * 一侧几张就分几列，每列不窄于 `size.settle.cardMinWidth`，列间距 14。
  *
  * 拆成单独一个文件不是因为它自成一个组件，而是因为 `SettleLayer` 装不下——
  * 单文件 400 行那条（7.2 第 3 条）卡着。所以它只对 `SettleLayer` 负责，不进包入口。
@@ -8,35 +12,30 @@
  * 对应需求单：标签页 D（阵营侧条）、徽章 G（本轮领先）。
  * 旧版 `RoundSettleLayer.tsx` 里同名的那个组件就是这一块，切法照抄它。
  *
- * 标头是**整块重建**的：正确数一变就要换纹理，而 `Label` 建好之后改不了内容
- *（那是它有意做成这样的，见 Label 的文件头）。重建的时机只有两个——立起来那一下
- * 和结算那一下，都不在动画中间，不会撞上 3.5。
+ * 标头是**整块重建**的：正确数一变就要换纹理（素方块换字也是换整张）。
+ * 重建的时机只有两个——立起来那一下和结算那一下，都不在动画中间，不会撞上 3.5。
  */
 
 import { tokens } from '@ai-duel/design'
-import { Container, Graphics } from 'pixi.js'
+import { Container } from 'pixi.js'
 import type { Animator } from '../runtime/animator'
 import { killAndDestroy } from '../runtime/dispose'
-import type { TextTextureCache } from '../runtime/textCache'
-import { Label } from './Label'
+import { Box, type BoxDeps } from './Box'
 import type { SettleRow } from './SettleRow'
 
-/**
- * 标头自己的几何和字号（px）。组件私有，理由见 design 的 README。
- * 来源：styles.css 的 `.settle__squad-tab`（5.2 宽）一族。
- */
-const HEAD = { tabWidth: 6, height: 26, titleGap: 12, noteGap: 16, leadGap: 14, rowGap: 8 } as const
-/** 同一排里两张结果卡之间至少留多宽。摆不下时它就是压边的下限，见 layout。 */
-const CARD_GAP = 18
-const TYPE = {
-  head: { fontSize: tokens.font.size.lg, letterSpacing: 1.68 },
-  lead: { fontSize: tokens.font.size.md, letterSpacing: 1.2 },
+/** 标头那几格的尺寸。组件私有，理由见 design 的 README。 */
+const HEAD = {
+  height: 26,
+  titleWidth: 72,
+  noteWidth: 120,
+  leadWidth: 88,
+  gap: 12,
+  rowGap: 8,
 } as const
-/** 领先徽章的内边距。抄需求单徽章 G（45×13、padding 2/10）。 */
-const LEAD_PAD = { x: 10, y: 2 } as const
+/** 同一排里两张结果卡之间留多宽。抄黑客松版 `.settle__cards` 的 `gap: 14px`。 */
+const CARD_GAP = 14
 
-export interface SettleSquadDeps {
-  text: TextTextureCache
+export type SettleSquadDeps = BoxDeps & {
   animator: Animator
 }
 
@@ -78,33 +77,20 @@ export class SettleSquad extends Container {
   setCounts(correct: number | null, leading: boolean): void {
     // 先掐补间再拆，理由见 runtime/dispose.ts 的文件头。
     for (const child of this.head.removeChildren()) killAndDestroy(this.deps.animator, child)
-    const title = new Label(
-      this.mine ? '我方' : '对方',
-      TYPE.head,
-      this.deps,
-      tokens.color.battle.ink,
-    )
-    title.position.set(HEAD.tabWidth + HEAD.titleGap + title.textWidth / 2, HEAD.height / 2)
-    this.head.addChild(title)
+    let x = 0
+    x = this.addCell(x, HEAD.titleWidth, this.mine ? '我方' : '对方')
     if (correct !== null) {
-      const note = new Label(
-        `正确 ${correct} / ${this.rowCount}`,
-        TYPE.head,
-        this.deps,
-        tokens.color.battle.inkMuted,
-      )
-      note.position.set(
-        title.x + title.textWidth / 2 + HEAD.noteGap + note.textWidth / 2,
-        HEAD.height / 2,
-      )
-      this.head.addChild(note)
-      if (leading) this.head.addChild(this.buildLead(note.x + note.textWidth / 2 + HEAD.leadGap))
+      x = this.addCell(x, HEAD.noteWidth, `正确 ${correct} / ${this.rowCount}`)
+      if (leading) this.addCell(x, HEAD.leadWidth, '本轮领先')
     }
-    // 阵营侧条：贴在结果卡这一排外侧的一条竖色带。
-    const accent = this.mine ? tokens.color.theme.life : tokens.color.battle.lineDark
-    this.head.addChild(
-      new Graphics().rect(0, 0, HEAD.tabWidth, HEAD.height).fill({ color: accent }),
-    )
+  }
+
+  /** 标头里加一格，返回下一格的起点。 */
+  private addCell(x: number, width: number, text: string): number {
+    const cell = new Box({ width, height: HEAD.height, label: text, size: 'small' }, this.deps)
+    cell.position.set(x, 0)
+    this.head.addChild(cell)
+    return x + width + HEAD.gap
   }
 
   /** 标头换成带正确数的那一版，整块淡入（`settle-counts` 那一下）。 */
@@ -134,8 +120,21 @@ export class SettleSquad extends Container {
      * 就掉到另一侧的地盘里去了。旧版同理，它是靠 `--settle-cols` 按张数现算列数的。
      * 张数多到一行摆不下时压边（同战场那两排的处理），每张至少露出 `CARD_GAP` 那么宽。
      */
-    const cardWidth = rows[0]!.boxWidth
+    /*
+     * 列宽照黑客松版那条 `repeat(auto-fill, minmax(300px, 1fr))` 算：
+     * 先看这一行**最多**摆得下几列（每列不窄于 `size.settle.cardMinWidth`、列距 14），
+     * 再把宽度在这几列里平分。列数只看容器宽、不看这一侧有几张——
+     * 只有一张时它也是那么宽的一列，不会独占整行。
+     *
+     * 不能拿 `rows[0].boxWidth` 当下限：那个数**已经被上一次摆位改过**（见 SettleRow.setWidth），
+     * 拿它算下一次就会越算越宽，第二张卡到的时候两张会几乎重叠在一起。
+     */
     const usable = width - padX * 2
+    const minWidth = tokens.size.settle.cardMinWidth
+    const columns = Math.max(1, Math.floor((usable + CARD_GAP) / (minWidth + CARD_GAP)))
+    const cardWidth = (usable - CARD_GAP * (columns - 1)) / columns
+    for (const row of rows) row.setWidth(cardWidth)
+
     const ideal = cardWidth + CARD_GAP
     const fit = rows.length <= 1 ? ideal : (usable - cardWidth) / (rows.length - 1)
     const step = Math.max(CARD_GAP, Math.min(ideal, fit))
@@ -145,22 +144,5 @@ export class SettleSquad extends Container {
     rows.forEach((row, index) => {
       row.position.set(left + index * step, rowY)
     })
-  }
-
-  /** 「本轮领先」徽章：绿底白字的一小块。 */
-  private buildLead(x: number): Container {
-    const box = new Container()
-    const label = new Label('本轮领先', TYPE.lead, this.deps, tokens.color.battle.paper)
-    const width = Math.round(label.textWidth) + LEAD_PAD.x * 2
-    const height = Math.round(label.textHeight) + LEAD_PAD.y * 2
-    box.addChild(
-      new Graphics()
-        .roundRect(0, 0, width, height, tokens.radius.sm)
-        .fill({ color: tokens.color.theme.forest }),
-    )
-    label.position.set(width / 2, height / 2)
-    box.addChild(label)
-    box.position.set(x, (HEAD.height - height) / 2)
-    return box
   }
 }

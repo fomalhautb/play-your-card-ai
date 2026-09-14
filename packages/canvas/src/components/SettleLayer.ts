@@ -1,5 +1,8 @@
 /**
- * 回合结算全屏层（需求单面板 I）：题目 + 标准答案 + 双方 AI 的作答 + 本轮计分 + 确认按钮。
+ * 回合结算全屏层：题目 + 标准答案 + 双方 AI 的作答 + 本轮计分 + 确认按钮。
+ *
+ * 正式版简化第 4 步之二剥成素方块（见 components/Box.ts）：底纸、底栏那两行、
+ * 确认那颗匾额按钮都换成描边方块。骨架（照 1672×941 排好再整块缩放）一点没动。
  *
  * 上半截（顶栏和题目那一行）在 `SettleChrome`，一侧的标头加那一排结果卡在 `SettleSquad`，
  * 一张结果卡在 `SettleRow`，拆开只是因为单文件 400 行那条卡着——四个文件合起来才是这一层。
@@ -16,7 +19,6 @@
  */
 
 import { tokens } from '@ai-duel/design'
-import type { Platform, SoundSpec } from '@ai-duel/platform'
 import { Container, Graphics } from 'pixi.js'
 import {
   SETTLE_CONFIRM_MS,
@@ -26,13 +28,10 @@ import {
   SETTLE_ROW_IN_MS,
   SETTLE_SCORE_MS,
 } from '../director/timings'
-import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
 import { killAndDestroy } from '../runtime/dispose'
-import type { TextTextureCache } from '../runtime/textCache'
+import { Box, CANVAS_BACKGROUND } from './Box'
 import type { CardSprite } from './CardSprite'
-import { Label } from './Label'
-import { PLAQUE_NAVY, PlaqueButton } from './PlaqueButton'
 import { SettleChrome, type SettleChromeDeps } from './SettleChrome'
 import { SettleRow } from './SettleRow'
 import { SettleSquad } from './SettleSquad'
@@ -41,15 +40,14 @@ import { SettleSquad } from './SettleSquad'
 export type SettleSide = 'mine' | 'theirs'
 
 /**
- * 底栏自己的几何、字号（px）。组件私有，理由见 design 的 README。
+ * 底栏自己的几何（px）。组件私有，理由见 design 的 README。
  * 来源：styles.css 的 `.settle__bottom`（96 高）。`padX` 同时是整层的左右留白，
  * 两侧的标头也贴着它起排（见 layoutSquads）。
  */
 const BOTTOM = { height: 96, padX: 28 } as const
-const TYPE = {
-  spend: { fontSize: tokens.font.size.lg, letterSpacing: 0.78 },
-  verdict: { fontSize: 22, letterSpacing: 1.32, weight: '600' },
-} as const
+/** 底栏那两行各多高，以及确认那颗钮多大。 */
+const BOTTOM_ROW = { spend: 26, verdict: 34, width: 520 } as const
+const CONFIRM = { width: 180, height: 52 } as const
 /**
  * 这一层的设计尺寸，也是旧版那块舞台的大小。
  *
@@ -65,19 +63,21 @@ const PULSE = { scale: 1.25, dur: tokens.duration.settle.scorePulse } as const
 const EXIT_SCALE = 0.96
 
 export interface SettleLayerDeps extends SettleChromeDeps {
-  ui: UiTextures
-  text: TextTextureCache
   animator: Animator
-  /** 确认按钮是一颗匾额按钮，它按下时要叫触感和音效，所以这两项要一路透下来。 */
-  platform: Pick<Platform, 'audio' | 'haptics'>
-  clickSound: SoundSpec | null
 }
 
 export class SettleLayer extends Container {
   private readonly deps: SettleLayerDeps
   /** 内容全部按设计尺寸摆，整块再缩放到调用方给的大小（见 resize）。 */
   private readonly content = new Container()
-  private readonly paper = new Graphics()
+  /**
+   * 垫在整层底下那块不透明的底。
+   *
+   * 素方块是空心的，而结算层**必须挡住底下的战场**：它是一层盖上来的全屏纸，
+   * 不挡光的话两排小卡和手牌会从题面和结果卡中间透出来，一句话都读不清。
+   */
+  private readonly backdrop = new Graphics()
+  private readonly paper: Box
   private readonly chrome: SettleChrome
   private readonly squads: Record<SettleSide, SettleSquad>
   private readonly bottom = new Container()
@@ -102,9 +102,12 @@ export class SettleLayer extends Container {
     this.label = 'settle-layer'
     // 整层吃指针事件：结算期间战场点不动，只有确认按钮能点。
     this.eventMode = 'static'
+    this.backdrop.rect(0, 0, DESIGN.width, DESIGN.height).fill({ color: CANVAS_BACKGROUND })
+    this.paper = new Box({ width: DESIGN.width, height: DESIGN.height }, deps)
     this.chrome = new SettleChrome(DESIGN.width, deps)
     this.squads = { theirs: new SettleSquad('theirs', deps), mine: new SettleSquad('mine', deps) }
     this.content.addChild(
+      this.backdrop,
       this.paper,
       this.chrome,
       this.squads.theirs,
@@ -113,7 +116,6 @@ export class SettleLayer extends Container {
       this.confirmSlot,
     )
     this.addChild(this.content)
-    this.drawPaper()
     this.resize(width, height)
     this.visible = false
     this.alpha = 0
@@ -256,13 +258,12 @@ export class SettleLayer extends Container {
    */
   enableConfirm(onConfirm: () => void): number {
     for (const child of this.confirmSlot.removeChildren()) this.drop(child)
-    const button = new PlaqueButton(
-      { variant: PLAQUE_NAVY, caption: '确认', disabled: true, onActivate: onConfirm },
-      this.deps,
-    )
+    const button = new Box({ ...CONFIRM, label: '确认' }, this.deps)
+    button.setDisabled(true)
+    button.onPress(onConfirm)
     button.position.set(
-      (this.boxWidth - button.boxWidth) / 2,
-      this.boxHeight - BOTTOM.height / 2 - button.boxHeight / 2,
+      (this.boxWidth - CONFIRM.width) / 2,
+      this.boxHeight - BOTTOM.height / 2 - CONFIRM.height / 2,
     )
     button.alpha = 0
     this.confirmSlot.addChild(button)
@@ -320,14 +321,6 @@ export class SettleLayer extends Container {
     this.clearRows()
   }
 
-  /** 底纸：铺满整块舞台的一张纸，四周一圈深色细边收口。 */
-  private drawPaper(): void {
-    this.paper
-      .rect(0, 0, this.boxWidth, this.boxHeight)
-      .fill({ color: tokens.color.battle.paper })
-      .stroke({ width: 1, color: tokens.color.battle.lineDark })
-  }
-
   private clearRows(): void {
     for (const row of this.rows.values()) this.drop(row)
     this.rows.clear()
@@ -351,17 +344,30 @@ export class SettleLayer extends Container {
   ): void {
     for (const child of this.bottom.removeChildren()) this.drop(child)
     const top = this.boxHeight - BOTTOM.height
-    const spend = new Label(
-      data === null
-        ? '本轮消耗: —'
-        : `本轮消耗: 我方 ${data.spent.mine} · 对方 ${data.spent.theirs}`,
-      TYPE.spend,
+    const spend = new Box(
+      {
+        width: BOTTOM_ROW.width,
+        height: BOTTOM_ROW.spend,
+        align: 'left',
+        size: 'small',
+        label:
+          data === null
+            ? '本轮消耗: —'
+            : `本轮消耗: 我方 ${data.spent.mine} · 对方 ${data.spent.theirs}`,
+      },
       this.deps,
-      tokens.color.battle.inkMuted,
     )
-    spend.position.set(BOTTOM.padX + spend.textWidth / 2, top + 26)
-    const verdict = new Label(data?.verdict ?? '', TYPE.verdict, this.deps, tokens.color.battle.ink)
-    verdict.position.set(BOTTOM.padX + verdict.textWidth / 2, top + 58)
+    spend.position.set(BOTTOM.padX, top + 12)
+    const verdict = new Box(
+      {
+        width: BOTTOM_ROW.width,
+        height: BOTTOM_ROW.verdict,
+        align: 'left',
+        label: data?.verdict ?? '',
+      },
+      this.deps,
+    )
+    verdict.position.set(BOTTOM.padX, top + 12 + BOTTOM_ROW.spend + 6)
     this.bottom.addChild(spend, verdict)
   }
 

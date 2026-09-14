@@ -1,6 +1,9 @@
 /**
  * 手机档版式：竖着排一列——顶栏、折叠成一行的两块玩家面板、对手手牌、战场、我方手牌。
  *
+ * 这一档**不缩放**：算出来的就是视口坐标（桌面档那边是 1672×941 死版式再整块缩放，
+ * 见 desktopLayout 的文件头）。所以 `stage` 是恒等变换、`viewport` 就是 `width × height`。
+ *
  * 和桌面档并列，三处真的分岔（需求第 3 条，不是缩放）：
  * 1. **侧栏折叠成顶栏下面一行**：竖着的侧栏在 390 宽的屏幕上要吃掉一半宽，
  *    剩下的地方摆不下战场。折叠之后「下一题」纸匾和 Token 细条一起去掉——
@@ -49,11 +52,17 @@ const END_PLAY_INSET = { x: 12, y: 10 }
 /** 牌库那摞牌的缩放和它离右边多远。 */
 const DECK = { scale: 0.3, inset: 0.04 }
 
-/** 右下角那一颗钮的中心，理由同桌面档的同名函数。 */
-function endPlayCenter(width: number, height: number, handZone: number): { x: number; y: number } {
+/** 右下角那一颗钮占的那块，贴着手牌区上沿。 */
+function endPlayRect(
+  width: number,
+  height: number,
+  handZone: number,
+): { x: number; y: number; width: number; height: number } {
   return {
-    x: width - tokens.size.plaque.endTurnWidth / 2 - END_PLAY_INSET.x,
-    y: height - handZone - tokens.size.plaque.endTurnHeight / 2 - END_PLAY_INSET.y,
+    x: width - tokens.size.plaque.endTurnWidth - END_PLAY_INSET.x,
+    y: height - handZone - tokens.size.plaque.endTurnHeight - END_PLAY_INSET.y,
+    width: tokens.size.plaque.endTurnWidth,
+    height: tokens.size.plaque.endTurnHeight,
   }
 }
 
@@ -101,14 +110,36 @@ export function mobileLayout(width: number, height: number): DuelLayout {
     scale: deckScale,
   }
 
+  // 折叠那一行里两块面板左右平分，中间留一个空隙。上面的两档版式共用 `panels` 这一个字段。
+  const panelWidth = Math.max(0, (panelRow.width - panelRow.gap) / 2)
+  const panels = {
+    theirs: { x: panelRow.x, y: panelRow.y, width: panelWidth, height: panelRow.height },
+    mine: {
+      x: panelRow.x + panelWidth + panelRow.gap,
+      y: panelRow.y,
+      width: panelWidth,
+      height: panelRow.height,
+    },
+  }
+
   return {
     tier: 'mobile',
     width,
     height,
+    // 这一档不缩放：舞台坐标就是视口坐标，两项写成恒等变换。
+    viewport: { width, height },
+    stage: { scale: 1, x: 0, y: 0 },
     topBarHeight,
     sideBar: null,
-    panelRow,
+    panels,
+    // 这一档没有「战场外框」那一圈内边距，外框和格子区是同一块。
+    boardFrame: { ...boardRect },
     board: { ...boardRect, scale: boardScale },
+    // 落点提示、Token 细条贴边、两块吊匾都是竖排才摆得下的东西，这一档一律没有。
+    dropCue: null,
+    tokenRail: null,
+    nextPlaque: null,
+    turnPlaque: null,
     foeHand: {
       x: width / 2,
       y: topBarHeight + panelRow.height,
@@ -117,9 +148,10 @@ export function mobileLayout(width: number, height: number): DuelLayout {
     hand,
     dropZone,
     deck,
-    endPlay: endPlayCenter(width, height, handZone),
+    endPlay: endPlayRect(width, height, handZone),
     // 触屏档放大得更多：1.7 倍在手机上只有约 126 个屏幕像素宽，和「点开看清楚」差得远。
     revealScale: tokens.size.card.revealScaleTouch,
+    banner: { x: width / 2, y: height * 0.24 },
     bubble: { x: width / 2, y: height - handZone - 20 },
   }
 }
