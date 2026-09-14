@@ -1,26 +1,22 @@
 /**
- * 纸面单行输入框。
- *
- * **需求单里没有这一档**：旧版全站只有牌组改名那一处输入框，而它是就地写在
- * `DeckScreen.tsx` 里的一个裸 `<input>`（`.deck-manage__input`），盘点时没被记成变体。
- * 这里按纸面那套（纸底、细框、墨字）先做一档 A 出来；等第 31 条把真界面搬完，
- * 回头把它补进需求单的「表单」一类。
+ * 单行文字输入框（构筑页的牌组改名）。
  *
  * 文字输入**只能在 React 这半边**做：画布上不做文字输入（《正式版架构》第 2 节第 3 条），
- * 输入法、选区、剪贴板这些东西自己实现一遍是没有尽头的。所以构筑页那个「改名」
- * 弹的是这个组件，不是画布上的什么东西。
+ * 输入法、选区、剪贴板这些东西自己实现一遍是没有尽头的。
  *
- * 组件是**受控**的：值和长度上限都由调用方给。截断按码点算而不是 `slice`——
+ * 受控组件，值和长度上限都由调用方给。截断按码点算而不是 `slice`——
  * 中文名和 emoji 都该算一个字，也免得把代理对切成半个乱码（同存档那边的 `clampName`）。
+ *
+ * 正式版简化第 3 步剥掉了纸面配色和框线。标签从「只给读屏软件的 `aria-label`」
+ * 改成包住 `<input>` 的 `<label>`：没有样式可以把它藏起来了，写在界面上反而更清楚。
  */
 
 import { useEffect, useRef } from 'react'
-import './textField.css'
 
 export interface TextFieldProps {
   value: string
   onChange: (value: string) => void
-  /** 无障碍用的标签。界面上不显示——它一般紧跟在一句说明后面。 */
+  /** 框前面那行字，同时也是无障碍的标签。 */
   label: string
   /** 最多几个字（按码点算）。不给就不限。 */
   maxLength?: number
@@ -62,19 +58,20 @@ export function TextField({
   }, [autoFocus])
 
   return (
-    <input
-      ref={ref}
-      type="text"
-      className="ui-text-field"
-      aria-label={label}
-      value={value}
-      placeholder={placeholder}
-      onChange={(event) => onChange(clamp(event.target.value, maxLength))}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') onSubmit?.()
-        if (event.key === 'Escape') onCancel?.()
-      }}
-    />
+    <label>
+      {label}
+      <input
+        ref={ref}
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(clamp(event.target.value, maxLength))}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') onSubmit?.()
+          if (event.key === 'Escape') onCancel?.()
+        }}
+      />
+    </label>
   )
 }
 

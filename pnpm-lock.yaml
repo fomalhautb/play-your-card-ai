@@ -453,9 +453,6 @@ importers:
 
   packages/ui:
     dependencies:
-      '@ai-duel/design':
-        specifier: workspace:*
-        version: link:../design
       '@ai-duel/platform':
         specifier: workspace:*
         version: link:../platform

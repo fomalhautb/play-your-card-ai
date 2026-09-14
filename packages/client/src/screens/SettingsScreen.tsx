@@ -76,35 +76,33 @@ export function SettingsScreen() {
 
   return (
     <Page title="设置" onBack={() => navigate('/')}>
-      <div className="settings__group">
-        <Toggle
-          label="关闭声音"
-          hint="音乐和音效一起静音。这一项记在本机上，换台机器要重新关。"
-          checked={muted}
-          onChange={(next) => setMuted(platform, next)}
-        />
-        <Toggle
-          label="减少动效"
-          hint="关掉画面上的弹跳、震屏和跟着指针跑的倾斜，留下必要的淡入淡出。"
-          checked={reduced}
-          onChange={toggleReduced}
-        />
-        <Toggle
-          label="全屏"
-          hint={
-            canFullscreen
-              ? '进全屏并尽量把屏幕锁成横屏，手机上画面会大一圈。'
-              : '这台设备的浏览器不给网页整页全屏（iPhone 上都是这样）。'
-          }
-          checked={fullscreen}
-          disabled={!canFullscreen}
-          onChange={toggleFullscreen}
-        />
-      </div>
+      <Toggle
+        label="关闭声音"
+        hint="音乐和音效一起静音。这一项记在本机上，换台机器要重新关。"
+        checked={muted}
+        onChange={(next) => setMuted(platform, next)}
+      />
+      <Toggle
+        label="减少动效"
+        hint="关掉画面上的弹跳、震屏和跟着指针跑的倾斜，留下必要的淡入淡出。"
+        checked={reduced}
+        onChange={toggleReduced}
+      />
+      <Toggle
+        label="全屏"
+        hint={
+          canFullscreen
+            ? '进全屏并尽量把屏幕锁成横屏，手机上画面会大一圈。'
+            : '这台设备的浏览器不给网页整页全屏（iPhone 上都是这样）。'
+        }
+        checked={fullscreen}
+        disabled={!canFullscreen}
+        onChange={toggleFullscreen}
+      />
 
       <div className="settings__danger">
-        <p className="settings__danger-title">重置存档</p>
-        <p className="settings__danger-text">
+        <h2>重置存档</h2>
+        <p>
           清掉收藏的卡牌、胜场和选过的英雄，回到新号的样子。
           <strong>不动牌组</strong>——那是另一份存档，要清的话去牌组页删。
         </p>

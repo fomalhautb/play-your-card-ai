@@ -78,11 +78,11 @@ export function AccountScreen() {
           : '绑定账号还没做好。在那之前，进度只留在这台机器的这个浏览器里——换浏览器、清网站数据，都会变成一个新号。'}
       </Notice>
 
-      <div className="account__actions">
+      <p>
         <Button disabled={session.status !== 'ready'} onClick={() => setConfirming(true)}>
           登出
         </Button>
-      </div>
+      </p>
 
       {error === null ? null : <Notice>{`登出失败：${error}`}</Notice>}
 

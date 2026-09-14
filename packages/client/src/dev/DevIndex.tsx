@@ -25,16 +25,16 @@ const PAGES: DevPage[] = [
 export function DevIndex() {
   return (
     <main className="dev-index">
-      <h1 className="dev-index__title">开发页</h1>
+      <h1>开发页</h1>
       <ul className="dev-index__list">
         {PAGES.map((page) => (
           <li key={page.path}>
             <a href={page.path}>{page.title}</a>
-            <span className="dev-index__note">{page.note}</span>
+            <span>{page.note}</span>
           </li>
         ))}
       </ul>
-      <p className="dev-index__note">
+      <p>
         组件目录页不在这里，它是另一个服务：<code>pnpm storybook</code>。
       </p>
     </main>

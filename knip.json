@@ -35,9 +35,9 @@
       // 同 canvas：目录页条目也是入口。
       "entry": ["src/**/*.stories.tsx"],
       /*
-       * react-dom 和 @types/react-dom 两条按上面的到期条款删掉了：
-       * 弹窗 A 要把自己传送到 body（迁移第 21 条，见 Dialog.tsx 的文件头）。
-       * design、react、@types/react 早先就被令牌一览那条目录页条目用上了。
+       * react-dom 和 @types/react-dom 两条按上面的到期条款删掉了：组件测试要靠它渲染。
+       * design 不在这儿也不在 package.json 里了——正式版简化第 3 步把这个包的样式
+       * 全部剥成素方块，一条 `var(--…)` 都不剩，依赖跟着去掉（重做视觉时再加回来）。
        * 剩 platform 一个还没有调用方——这个包里还没有要碰音频 / 存储 / 全屏的组件。
        */
       "ignoreDependencies": ["@ai-duel/platform"]

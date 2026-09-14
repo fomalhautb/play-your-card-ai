@@ -57,14 +57,20 @@ export const HERO_IMAGES: readonly string[] = [
   ...Object.keys(HEROES).map((id) => `/hero/card-${id}.webp`),
 ]
 
-/** 关于页，就一张背景。整页压在它上面，不等的话文字会先浮在一片空底上。 */
+/**
+ * 关于页那张背景，就一张。
+ *
+ * 现在**没有界面在用它**：正式版简化第 3 步把关于页的背景图（纯装饰）去掉了，
+ * 那一页也不再设等图闸门。仍然列在这里是因为这份清单是「图集之外全部图片的总目录」
+ *（见文件头），图还在 assets/source 下就得有人登记，否则 test/assetManifests.test.ts 会红。
+ */
 export const INFO_IMAGES: readonly string[] = ['/info/info-bg.webp']
 
 /**
  * 对局页：战场底图、猜先的两张硬币、终局结算的三张底板。
  *
- * 三张结算底板也要提前等：结算面板是对局结束那一刻直接铺上去的，
- * 等到那时才开始下就会先闪一块空白。
+ * 三张结算底板暂时没人用：正式版简化第 3 步把结算面板的底图（纯装饰）去掉了。
+ * 留在这里的理由同 `INFO_IMAGES`——这份清单要盖住 assets/source 下的每一张图。
  */
 export const BATTLE_IMAGES: readonly string[] = [
   '/battle/battle-bg.webp',

@@ -1,7 +1,4 @@
-/*
- * 整屏加载页的版式：铺满，正中一行字。
- * 数值读设计令牌（架构 7.1 第 4 条）。
- */
+/* 整屏加载页的版式：铺满，正中一行字。 */
 
 .loading {
   position: absolute;
@@ -9,17 +6,4 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-page-background);
-  color: var(--color-page-foreground);
-  font-family: var(--font-family-serif);
-}
-
-.loading__text {
-  margin: 0;
-  font-size: var(--font-size-xl);
-  /* 行高写死：`normal` 跟着字体度量走（同 ui 那几份样式的理由）。 */
-  line-height: 1.4;
-  letter-spacing: 0.32em;
-  /* 字距加在每个字右边，末字那一格会让整行看着偏左，缩回来。 */
-  text-indent: 0.32em;
 }

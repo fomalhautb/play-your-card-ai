@@ -1,55 +1,15 @@
 /*
- * 设置页：一组开关加一块「重置存档」。
- * 版式归 `ui` 的 `Page`（页宽、页眉、安全区），这里只管这两块之间的关系。
- * 数值读设计令牌（架构 7.1 第 4 条）。
+ * 设置页只剩一件版式上的事：把「重置存档」那一块和上面三条开关拉开、单独框起来。
+ * 它是这一页唯一一个**做了就回不来**的操作，不该和随手翻的开关排在同一列里。
+ * 其余（页宽、页眉、安全区）归 `ui` 的 `Page`。
  */
 
-/*
- * 一组开关。开关自己带底线分隔，最后一条那根要去掉——否则它和下面那块
- * 「重置存档」之间会有两道线（这一条的底线加那一块的上边框）。
- */
-.settings__group {
-  margin-top: var(--space-sm);
-}
-
-.settings__group > :last-child {
-  border-bottom: 0;
-}
-
-/*
- * 重置存档那一块。和上面拉开一大段距离，并单独框起来：
- * 它是这一页唯一一个**做了就回不来**的操作，不该和三条随手翻的开关排在同一列里。
- */
 .settings__danger {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-lg);
-  margin-top: 40px;
-  padding: 20px;
-  border: 1px solid var(--color-status-error);
-  border-radius: var(--radius-md);
-}
-
-.settings__danger-title {
-  margin: 0;
-  color: var(--color-status-error);
-  font-size: 17px;
-  font-weight: 600;
-  /* 行高写死：`normal` 由字体度量决定，换台机器就换一档。 */
-  line-height: 1.4;
-  letter-spacing: 0.12em;
-}
-
-.settings__danger-text {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.8;
-  letter-spacing: 0.04em;
-  opacity: var(--opacity-home-cast-copy);
-}
-
-.settings__danger-text strong {
-  font-weight: 600;
-  opacity: 1;
+  gap: 8px;
+  margin-top: 32px;
+  padding: 12px;
+  border: 1px solid currentColor;
 }
