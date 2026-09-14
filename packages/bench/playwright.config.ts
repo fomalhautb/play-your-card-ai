@@ -61,13 +61,26 @@ const crossBrowserProjects: NonNullable<PlaywrightTestConfig['projects']> = [
     timeout: 600_000,
     use: {
       browserName: 'firefox',
-      headless: true,
+      /*
+       * **Linux 上必须有头。** Firefox 的无头模式是**写死不给 WebGL** 的
+       *（`WebGLContext.cpp` 里那句 "Can't use WebGL in headless mode"，上游
+       * bugzilla 1375585 从 2017 年挂到现在还没修）：页面拿到的 `getContext('webgl2')`
+       * 是 null，Pixi 当场抛 `No available renderer for the current environment`。
+       * 慢档 firefox 那四格第一次跑就是这么全红的（运行 34674939419）。
+       * 跑机上没有显示器，所以由工作流在外面套一层 xvfb 给它一块虚拟屏
+       *（见 .github/workflows/slow.yml 的 cross-browser 那一格）。
+       *
+       * macOS 上仍然无头：那边无头照样有 WebGL（本机那张实测表就是无头量出来的），
+       * 改成有头只会在开发者屏幕上真弹出一串窗口。
+       */
+      headless: process.platform !== 'linux',
       launchOptions: {
         /*
          * 两条都是给**没有显卡的 Linux 跑机**留的保险，macOS 上是空操作（开不开都一样）。
          * Firefox 有一张图形黑名单，认不出的驱动（跑机上的软件光栅就是这一类）会被它
          * 直接判成「不给 WebGL」，那时候页面拿到的是 null 上下文、场景一帧都画不出来。
          * force-enabled 是绕过黑名单的那个开关，disabled 只是再明确一次别关掉。
+         * 这两条治的是「驱动被拉黑」，治不了上面那条无头限制——那一条在挑驱动之前就否了。
          */
         firefoxUserPrefs: { 'webgl.force-enabled': true, 'webgl.disabled': false },
       },
@@ -86,26 +99,34 @@ export default defineConfig({
   fullyParallel: false,
   workers: WORKERS,
   /*
-   * 单条用例 15 分钟。
+   * 单条用例的超时：本机 15 分钟，CI 上 35 分钟。
    *
    * 这个数是被 SwiftShader 顶上来的：桌面档 1920×1080 按 1.5 倍渲染就是 2880×1620，
    * 软件光栅在这个分辨率上是填充率绑定的（画多少像素就花多少时间），
    * 而每条用例要把同一段剧本跑三轮——逐帧记录一轮、关掉记录做堆采样一轮、
    * 再重跑一轮验两遍完全一致。
    *
-   * 迁移第 18 条接上真对局场景之后这个数从 8 分钟提到了 15 分钟，原因是剧本变长了：
+   * **本机 15 分钟**：迁移第 18 条接上真对局场景之后从 8 分钟提上来的，原因是剧本变长了。
    * `play10` 现在打的是一局真对局，一张一张打、每张等演出收完再打下一张，
    * 十张连打覆盖约 26 秒的演出，一轮就是 1589 帧（原型那版只有四百来帧）。
-   * 这台 M2 上最慢的一条（desktop/play10）单独跑 6.8 分钟。
+   * 这台 M2 上最慢的一条（desktop/play10）单独跑 6.8 分钟。之所以不是 7 分钟：
+   * 并行之后同一条用例会变慢，SwiftShader 是纯 CPU 的，几个 worker 一起跑就在抢同一批核
+   *（M2 八个逻辑核里只有 4 个是性能核）。超时要按「并行时的最慢一条」给：
+   * desktop/play10 跑整批时实测 12.9 分钟（慢 1.9 倍），按 8 分钟给会当场超时，取整到 15。
    *
-   * 之所以不是 7 分钟：并行之后同一条用例会变慢。SwiftShader 是纯 CPU 的，
-   * 几个 worker 一起跑就在抢同一批核（M2 八个逻辑核里只有 4 个是性能核）。
-   * 超时要按「并行时的最慢一条」给，不是按单独跑的：desktop/play10 单独跑 6.8 分钟，
-   * 跑整批时实测 12.9 分钟（慢 1.9 倍），按 8 分钟给会当场超时，所以取整到 15。
-   * 整批八条并行跑完 17 分钟，desktop/play10 一条就占了其中的 12.9 分钟。
-   * 要再快只能少跑一轮、缩短剧本或者降分辨率，那三样都是改口径，另议。
+   * **CI 上 35 分钟**：两核的 ubuntu 跑机比这台 M2 慢一大截，而慢档一格只跑一条用例、
+   * 不存在抢核，所以本机那条「并行时的最慢一条」在那边不适用，得按跑机自己的实测给。
+   * 2026-09-12 的运行 34674939419（一格一台跑机）：mobile/deal 1.9 分钟、
+   * mobile/deckScroll 1.8、mobile/settle 2.8、mobile/flip 3.9、desktop/deckScroll 8.7、
+   * desktop/flip 8.9、desktop/deal 13.9 分钟，而 desktop/play10、desktop/settle、
+   * mobile/play10 三条都是跑到 15 分钟被这个超时掐掉的——**掐在第三轮上**，
+   * 前两轮都跑完了，也就是说它们不是卡住而是纯粹跑不完（掐掉前的上限断言全过）。
+   * 按第三轮和第一轮同样重推算，最慢的 desktop/play10 整条约 24 分钟，
+   * 留约 1.5 倍余量取整到 35。顶破 35 分钟要查的是剧本为什么变长了，不是再往上抬。
+   *
+   * 要让它真的跑快只能少跑一轮、缩短剧本或者降分辨率，那三样都是改口径，另议。
    */
-  timeout: 900_000,
+  timeout: process.env.CI ? 2_100_000 : 900_000,
   // 确定性那组的报告为什么要走 reporter 而不是用例自己写，见 deterministicReporter.ts。
   reporter: [['list'], ['./src/node/deterministicReporter.ts']],
   // 图集不在就先打一份：它是构建产物、不进仓库，少了这一步第一次跑批只会看到一串 404。

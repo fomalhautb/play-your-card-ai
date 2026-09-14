@@ -40,13 +40,20 @@ jobs:
   bench:
     name: 确定性指标 ${{ matrix.profile }}/${{ matrix.segment }}
     runs-on: ubuntu-latest
-    # 最慢的两格是 desktop/play10（M2 上单独跑 6.8 分钟）和 desktop/settle（同机 7.1 分钟，
-    # 那还是和另一格抢着核跑出来的）。两核跑机按三倍估约 20 分钟。
-    # 给 20 分钟是"跑得完"的下限，不是余量——顶破了要查的是剧本为什么变长了。
+    # 这里原来是 20 分钟，按「M2 上最慢一格 6.8 分钟 × 三倍」估的。第一次真跑完发现估少了
+    # （运行 34674939419，一格一台跑机、谁也不抢谁的核）：desktop/deal 实测 13.9 分钟，
+    # desktop/play10、desktop/settle、mobile/play10 三格跑满 15 分钟的**用例**超时被掐。
+    # 掐的位置都在第三轮上（前两轮跑完了、上限断言全过），也就是说它们不是卡住，是跑不完：
+    # 一条用例要把同一段剧本跑三轮，而两核跑机上的 SwiftShader 比 M2 慢三倍多。
+    # 推算最慢的 desktop/play10 整条约 24 分钟，用例超时因此提到 35 分钟
+    # （见 packages/bench/playwright.config.ts，那儿写了怎么推的）。
     #
-    # 第 28 条加的 deckScroll（牌组编辑）是最轻的两格：M2 上桌面档 1.8 分钟、手机档 15 秒
-    # ——那一页没有演出，帧数（291 / 336）几乎全是「动作之间等真人的那点反应时间」。
-    timeout-minutes: 20
+    # 这里给 40 分钟：比用例超时多五分钟，刚好够装依赖、装浏览器和打图集那几步。
+    # 也就是说掐在这里的只会是「用例超时之外的东西卡住了」，剧本本身变长该由那 35 分钟报。
+    #
+    # 最轻的几格：mobile/deckScroll 1.8 分钟、mobile/deal 1.9、mobile/settle 2.8、
+    # mobile/flip 3.9、desktop/deckScroll 8.7、desktop/flip 8.9（同一次运行）。
+    timeout-minutes: 40
     strategy:
       # 一格超限不该把别的格掐掉：一次跑完能看到全部超限项，比一条一条试快得多。
       fail-fast: false
@@ -91,10 +98,25 @@ jobs:
             packages/bench/test-results
 
   guard:
-    name: 测量骨架自测与泄漏
+    name: 确定性指标 ${{ matrix.label }}
     runs-on: ubuntu-latest
-    # 桩场景那条几十秒；泄漏那条要连开二十多轮场景，本机约 3 分钟，两核跑机按三倍估。
-    timeout-minutes: 20
+    # 时限口径同上面 bench 那格（用例 35 分钟 + 五分钟装东西的时间）。
+    #
+    # 跑机上这两条都比本机（桩场景几十秒、泄漏约 3 分钟）慢得多：运行 34674939419 里
+    # 桩场景 7.7 分钟，泄漏那条**连十二轮热身都没跑完**就被 15 分钟的用例超时掐了。
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        # 这两条原来挤在同一格里（`--grep "@stub|@leak"`），而这个包在 CI 上开两个 worker，
+        # 于是两条用例在两核跑机上一人一核、各慢一倍——泄漏那条要连开二十二轮场景，
+        # 正是最吃亏的那一条。拆成两格各占一台跑机，和上面 bench 按「视口 × 剧本」分格同一个道理。
+        # 只写 include：这一维不是「所有组合」，就是这两条各一格，顺带给每格一个中文名。
+        include:
+          - tag: stub
+            label: 桩场景
+          - tag: leak
+            label: 泄漏
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -116,14 +138,16 @@ jobs:
 
       # 这两条不按视口 × 剧本分格：桩场景是测量骨架的对照组，泄漏是连跑十轮比堆基线，
       # 两条都只在一个视口上跑一遍就够（见 deterministic.spec.ts 各自的说明）。
-      - name: 桩场景与泄漏
-        run: pnpm --filter @ai-duel/bench bench --grep "@stub|@leak"
+      # 标签（@stub / @leak）和上面 bench 那格一样**是这个工作流的接口**，改了名字
+      # 这一格会变成「一条用例都没匹配到」而不是失败。
+      - name: 跑这一条
+        run: pnpm --filter @ai-duel/bench bench --grep "@${{ matrix.tag }}"
 
       - name: 上传报告
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bench-guard
+          name: bench-guard-${{ matrix.tag }}
           path: |
             packages/bench/results
             packages/bench/test-results
@@ -134,7 +158,11 @@ jobs:
     # 本机（M2、真 GPU）十六条一共 20 秒，一格两条各两三秒。这个数**不是**按它给的：
     # ubuntu 跑机上 webkit 和 firefox 也落到软件光栅，而快档里同样两条用例的
     # Chromium 软件光栅实测一格 3～5 分钟。按那个量级加上装两个浏览器的时间，
-    # 20 分钟（慢档的口径）留了约四倍余量。第一次真跑完要回来把实测写在这里。
+    # 20 分钟（慢档的口径）留了约四倍余量。
+    #
+    # 第一次真跑完的实测（运行 34674939419，webkit 那四格，含装浏览器和打图集）：
+    # 整格 2.2～3.0 分钟，其中两条用例本身各 35～45 秒。余量比估的还厚，20 分钟不用动。
+    # firefox 那四格当时一格都没跑起来（无头没 WebGL），它有头 + xvfb 之后要多久还没量到。
     timeout-minutes: 20
     strategy:
       # 一家画错了不该把另一家掐掉：一次跑完能看到全部差异。
@@ -143,6 +171,15 @@ jobs:
         # chromium 不在这里：它拍的图就是被比的那个参照物（见下面）。
         browser: [webkit, firefox]
         segment: [deal, play10, flip, settle]
+        include:
+          # firefox 在 Linux 上**必须有头**才拿得到 WebGL（无头是写死不给的，
+          # 理由见 packages/bench/playwright.config.ts），有头就得有一块屏，
+          # 而跑机上没有显示器——所以给它套一层 xvfb（跑机镜像自带，
+          # `playwright install --with-deps` 也会确保装上）。
+          # `--auto-servernum` 让它自己挑一个没被占的显示号。
+          # webkit 照旧无头，这一项对它是空的，那一行命令前面什么也不加。
+          - browser: firefox
+            xvfb: xvfb-run --auto-servernum
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -182,7 +219,7 @@ jobs:
       - name: 三浏览器一致性
         id: cross
         run: |
-          pnpm --filter @ai-duel/bench exec playwright test \
+          ${{ matrix.xvfb }} pnpm --filter @ai-duel/bench exec playwright test \
             --project=keyframes-${{ matrix.browser }} --grep "@${{ matrix.segment }}"
 
       # 超了的时候把「这一家拍到的」和「差异图」带出来：光看日志里那个比例
