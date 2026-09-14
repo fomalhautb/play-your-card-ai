@@ -1,5 +1,5 @@
 /**
- * 四个「只负责画、没有交互」的组件的逻辑：`Sheet`、`Veil`、`Notice`、`CardLoader`、`Icon`。
+ * 四个「只负责画、没有交互」的组件的逻辑：`Sheet`、`Veil`、`Notice`、`Icon`。
  *
  * 合成一个文件是因为每个都只有两三条值得测的分支，各开一个文件的话每份里
  * 一半篇幅是 import 和 `afterEach`。测的都是**逻辑**：哪些东西该出现、
@@ -8,7 +8,6 @@
 
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { CardLoader } from '../src/CardLoader'
 import { Icon } from '../src/Icon'
 import { Notice } from '../src/Notice'
 import { Sheet } from '../src/Sheet'
@@ -78,23 +77,6 @@ describe('提示行', () => {
   it('补充说明那一档也是 status', () => {
     render(<Notice tone="info">绑定账号还没做好</Notice>)
     expect(screen.getByRole('status')).not.toBeNull()
-  })
-})
-
-describe('卡牌加载动画', () => {
-  it('报成一处状态，文字全在 aria-label 上', () => {
-    render(<CardLoader />)
-    expect(screen.getByRole('status').getAttribute('aria-label')).toBe('加载中')
-  })
-
-  it('尺寸写进自定义属性，宽度和描边由 CSS 从它推出来', () => {
-    render(<CardLoader size={110} />)
-    expect(screen.getByRole('status').style.getPropertyValue('--cl-size')).toBe('110px')
-  })
-
-  it('不给 speed 就整个不写这一条，让 CSS 里读令牌的默认值生效', () => {
-    render(<CardLoader />)
-    expect(screen.getByRole('status').style.getPropertyValue('--cl-speed')).toBe('')
   })
 })
 

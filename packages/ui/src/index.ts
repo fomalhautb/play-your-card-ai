@@ -1,7 +1,7 @@
 /**
  * 画布外的 React 组件库：按钮、边框、列表、弹窗、表单。
  *
- * 只服务文字型界面（设置、账号、关于、结算、加载页、弹窗），这些界面自己做响应式，
+ * 只服务文字型界面（设置、账号、关于、结算、弹窗），这些界面自己做响应式，
  * 不依赖画布。每种组件只有编号的变体，界面代码只能选变体、传数据，不能自己画
  *（见《正式版架构》7.1）。
  * 允许依赖：`design`（令牌）、`platform`（平台能力）。
@@ -13,10 +13,11 @@
  *   按钮 A（墨蓝匾额，离开确认弹窗上那两颗）、弹窗 A（纸面对话框）、
  *   输入框 A（纸面数字框，「填四位房间码」是唯一非要真的 `<input>` 不可的事，
  *   见 CodeInput.tsx 的文件头）、单行输入框（构筑页改名用）。
- * - 第 31 条那批，四个文字界面（结算、设置、账号、关于）加加载页要用的：
- *   面板 H（`Sheet` 羊皮纸结算底板）、弹窗 E（`Veil` 结算遮罩）、条 B（`ProgressBar`）、
- *   条 D（`CardLoader`）、提示 E（`Notice`）、图标 B / C（`Icon`）、
- *   按钮 J（`SealButton` 夜色圆章）、设置开关（`Toggle`）、文字页外壳（`Page`）。
+ * - 第 31 条那批，四个文字界面（结算、设置、账号、关于）要用的：
+ *   面板 H（`Sheet` 羊皮纸结算底板）、弹窗 E（`Veil` 结算遮罩）、提示 E（`Notice`）、
+ *   图标 B / C（`Icon`）、按钮 J（`SealButton` 夜色圆章）、设置开关（`Toggle`）、
+ *   文字页外壳（`Page`）。那一批里还有加载页要的条 B（`ProgressBar`）和条 D（`CardLoader`），
+ *   正式版简化第 2 步把加载页换成一行文字，这两个跟着删了。
  *
  * `Toggle` 和 `Page` 在需求单里还没有编号（旧版压根没有设置页），
  * 理由各写在自己的文件头里。其余变体按需求单（docs/design/组件需求单.md）在用到时补，
@@ -29,8 +30,6 @@
 
 export type { ButtonProps, ButtonState, ButtonVariant } from './Button'
 export { Button } from './Button'
-export type { CardLoaderProps } from './CardLoader'
-export { CardLoader } from './CardLoader'
 export type { CodeInputProps } from './CodeInput'
 export { CodeInput } from './CodeInput'
 export type { DialogAction, DialogProps } from './Dialog'
@@ -41,8 +40,6 @@ export type { NoticeProps, NoticeTone } from './Notice'
 export { Notice } from './Notice'
 export type { PageProps } from './Page'
 export { Page } from './Page'
-export type { ProgressBarProps } from './ProgressBar'
-export { ProgressBar } from './ProgressBar'
 export type { SealButtonProps, SealButtonState } from './SealButton'
 export { SealButton } from './SealButton'
 export type { SheetProps, SheetTone } from './Sheet'

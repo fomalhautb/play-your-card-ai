@@ -19,4 +19,4 @@
  * 项目还没上线、不留兼容层（见 AGENTS.md），所以永远只有一个当前值，
  * 不存在「服务端同时支持 v1 和 v2」这回事。
  */
-export const PROTOCOL_VERSION = 1
+export const PROTOCOL_VERSION = 2

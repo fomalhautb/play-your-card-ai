@@ -61,8 +61,6 @@ export type HeroAction =
   | { kind: 'confirm'; hero: string }
   /** 左上角那颗返回。 */
   | { kind: 'back' }
-  /** 右上角那颗静音圆章。 */
-  | { kind: 'toggle-mute' }
 
 export interface HeroSceneOptions {
   canvas: HTMLCanvasElement
@@ -75,12 +73,6 @@ export interface HeroSceneOptions {
   heroes: HeroEntry[]
   /** 整页的背景图。不给就只有一层底色。 */
   background?: Texture
-  /**
-   * 静音钮的两枚剪影（有声 / 静音）。真图标是美术资源（需求单图标 B），还没有；
-   * 不给就用场景现画的占位（见 fx/controlIcons.ts）。
-   */
-  muteIcons?: { on: Texture; off: Texture }
-  muted?: boolean
   /** 触感和音效。不给就静音、不震动（目录页就是这么跑的）。 */
   platform?: Pick<Platform, 'audio' | 'haptics'>
   /** true 时不注册任何真实时间源，只靠 step() 推进。 */
@@ -94,8 +86,6 @@ export interface HeroScene {
   setView(view: HeroView): void
   /** 玩家按了某颗钮。全局只有一个回调，后设的顶掉前一个。 */
   onAction(callback: (action: HeroAction) => void): void
-  /** 静音钮换一枚剪影。 */
-  setMuted(muted: boolean): void
   /**
    * 把指针停在第 index 张卡上（null 是不停）。只给目录页用——那边没有真指针。
    */

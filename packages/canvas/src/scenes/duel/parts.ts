@@ -7,7 +7,7 @@
  *
  * 层序（自下而上）：
  *   worldRoot   战场 → 对手手牌 → 界面框架（顶栏 / 侧栏 / 按钮）→ 特效 → 我方手牌 → 拖拽层
- *   overlayRoot 选目标 → 展示层 → 抛硬币 / 抵消层 / 结算层 → 横幅 → 提示气泡
+ *   overlayRoot 选目标 → 展示层 → 抛硬币 / 抵消层 / 结算层 → 横幅 → 提示气泡（指令被拒的红字）
  * 震屏抖的是 worldRoot：全屏过场和展示层不该跟着抖，抖了就不像「战场被砸了一下」。
  *
  * 全屏半透明层同屏不超过三层（纪律 3.2）：抛硬币、抵消层、展示遮罩、结算层、选目标压暗
@@ -56,12 +56,8 @@ export interface DuelParts {
   board: BoardGrid
   foeHand: FoeHand
   fan: HandFan
+  /** 「结束出牌」。等对方出牌时整颗收起来（由 input.refresh 按 `waitingForFoe` 切）。 */
   endPlay: PlaqueButton
-  /**
-   * 「催一催」。只在等对方出牌时露出来（由 input.refresh 按 `waitingForFoe` 切），
-   * 和「结束出牌」摞在同一个位置上（见 layout/types.ts 的 `urge`）。
-   */
-  urge: PlaqueButton
   banner: Banner
   coin: CoinToss
   cancel: SkillCancelLayer
@@ -78,7 +74,6 @@ export interface PartsOptions {
   layout: DuelLayout
   icons: DuelIcons
   onEndPlay: () => void
-  onUrge?: () => void
   onLeave?: () => void
   onToggleMute?: () => void
 }
@@ -162,20 +157,6 @@ export function createParts(options: PartsOptions): DuelParts {
    */
   endPlay.label = 'button:end-play'
 
-  const urge = new PlaqueButton(
-    {
-      variant: PLAQUE_TERRACOTTA,
-      caption: '催一催',
-      size: 'urge',
-      onActivate: options.onUrge,
-    },
-    deps,
-  )
-  // 名字同 endPlay：真浏览器的交互回归靠它找到「按哪儿」（bench 的 src/page/hitPoints.ts）。
-  urge.label = 'button:urge'
-  // 建出来先藏着：一局开始时是我方或对方出牌，`refreshLocks` 会在第一份局面到手时摆正。
-  urge.visible = false
-
   const banner = new Banner(deps)
   const coin = new CoinToss(deps)
   const cancel = new SkillCancelLayer(deps)
@@ -196,7 +177,7 @@ export function createParts(options: PartsOptions): DuelParts {
 
   layers.board.addChild(board)
   layers.foeHand.addChild(foeHand)
-  layers.chrome.addChild(topBar, endPlay, urge)
+  layers.chrome.addChild(topBar, endPlay)
   if (sideBar !== null) layers.chrome.addChild(sideBar)
   else layers.chrome.addChild(panels.theirs, panels.mine)
   layers.hand.addChild(fan)
@@ -211,7 +192,6 @@ export function createParts(options: PartsOptions): DuelParts {
     foeHand,
     fan,
     endPlay,
-    urge,
     banner,
     coin,
     cancel,
@@ -282,11 +262,6 @@ export function applyPartsLayout(parts: DuelParts, layout: DuelLayout): void {
   parts.endPlay.position.set(
     layout.endPlay.x - parts.endPlay.boxWidth / 2,
     layout.endPlay.y - parts.endPlay.boxHeight / 2,
-  )
-
-  parts.urge.position.set(
-    layout.urge.x - parts.urge.boxWidth / 2,
-    layout.urge.y - parts.urge.boxHeight / 2,
   )
 
   parts.banner.position.set(layout.width / 2, layout.height * 0.24)

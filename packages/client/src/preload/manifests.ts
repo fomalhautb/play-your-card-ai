@@ -15,20 +15,13 @@
 import { HEROES } from '@ai-duel/content'
 
 /**
- * 首页那张画的各层：夜空底、七个人物、桌子、道具、匾额。
+ * 首页那张画的各层：夜空底、桌子、道具、匾额。
  *
  * 首页要等这些全部到齐才上场——浏览器是拿到一张画一张，不等的话玩家会看着
- * 夜空、人物、桌子、道具一层层往上冒。
+ * 夜空、桌子、道具一层层往上冒。
  */
 export const HOME_IMAGES: readonly string[] = [
   '/home/home-bg.webp',
-  '/home/cast-left-back.webp',
-  '/home/cast-left-officer.webp',
-  '/home/cast-left-front.webp',
-  '/home/cast-right-glasses.webp',
-  '/home/cast-right-laugh.webp',
-  '/home/cast-right-classic.webp',
-  '/home/cast-right-front.webp',
   '/home/home-table.webp',
   '/home/home-props.webp',
   '/home/home-plaque.webp',

@@ -118,8 +118,6 @@ export function mobileLayout(width: number, height: number): DuelLayout {
     dropZone,
     deck,
     endPlay: endPlayCenter(width, height, handZone),
-    // 和「结束出牌」摞在同一个位置上，两颗钮永远不同时出现（见 types.ts 的 `urge`）。
-    urge: endPlayCenter(width, height, handZone),
     // 触屏档放大得更多：1.7 倍在手机上只有约 126 个屏幕像素宽，和「点开看清楚」差得远。
     revealScale: tokens.size.card.revealScaleTouch,
     bubble: { x: width / 2, y: height - handZone - 20 },

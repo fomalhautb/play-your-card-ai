@@ -5,7 +5,6 @@
  * 假平台的 audio 把每一次调用按顺序记在 `calls` 上（见 platform 的 fake/audio.ts）。
  */
 
-import { URGE_LINES } from '@ai-duel/content'
 import type { FakePlatform } from '@ai-duel/platform'
 import { createFakePlatform } from '@ai-duel/platform'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -18,13 +17,7 @@ import {
   stopMusic,
 } from '../src/audio/music'
 import { restoreMuted, setMuted, toggleMuted } from '../src/audio/mute'
-import {
-  playButtonClick,
-  playSkillTargeting,
-  playUrge,
-  preloadSounds,
-  SOUNDS,
-} from '../src/audio/sounds'
+import { playButtonClick, playSkillTargeting, preloadSounds, SOUNDS } from '../src/audio/sounds'
 
 const MUTED_KEY = 'ai-duel-muted.v1'
 
@@ -47,24 +40,12 @@ afterEach(() => {
 })
 
 describe('音效', () => {
-  it('预取一次把七段全带上', async () => {
+  it('预取一次把三段全带上', async () => {
     await preloadSounds(platform)
     expect(platform.audio.calls[0]).toEqual({
       kind: 'preload',
       sources: Object.values(SOUNDS).map((spec) => spec.src),
     })
-  })
-
-  // 连点「催一催」时新的一句要把没播完的上一句掐掉，否则几段人声叠着响，一句都听不清。
-  it('四句喊话都走同一个人声声道，各有各的录音', () => {
-    for (const line of URGE_LINES) playUrge(platform, line.id)
-    const voices = plays()
-    expect(voices).toHaveLength(URGE_LINES.length)
-    expect(voices.every((call) => call.channel === 'voice')).toBe(true)
-    // 四句录音互不相同，不能几句共用一个文件。
-    expect(new Set(voices.map((call) => call.src)).size).toBe(URGE_LINES.length)
-    // 声道那条规矩由 platform 落实：这一刻只剩最后一句在响。
-    expect(platform.audio.playing()).toEqual([voices.at(-1)?.src])
   })
 
   it('按钮点击不占声道（连点就是要叠着响），技能音占自己的声道', () => {
@@ -79,13 +60,13 @@ describe('音效', () => {
     expect(platform.audio.playing()).toHaveLength(3)
   })
 
-  it('音量都落在 0~1 内，相对关系照旧版：人声 > 点击 > 技能', () => {
-    // platform 的 SoundSpec 上限就是 1，旧版那种 2 倍 / 3 倍增益整套缩下来（见 audio/loudness.ts）。
+  it('音量都落在 0~1 内，相对关系照旧版：问候 = 点击 > 技能', () => {
+    // platform 的 SoundSpec 上限就是 1，旧版那种倍数增益整套缩下来（见 audio/loudness.ts）。
     for (const spec of Object.values(SOUNDS)) {
       expect(spec.volume).toBeGreaterThan(0)
       expect(spec.volume).toBeLessThanOrEqual(1)
     }
-    expect(SOUNDS.urgeHurryUp.volume).toBeGreaterThan(SOUNDS.buttonClick.volume ?? 0)
+    expect(SOUNDS.homeIntro.volume).toBe(SOUNDS.buttonClick.volume)
     expect(SOUNDS.buttonClick.volume).toBeGreaterThan(SOUNDS.skillTargeting.volume ?? 0)
   })
 })

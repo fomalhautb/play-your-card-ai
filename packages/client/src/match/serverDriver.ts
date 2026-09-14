@@ -130,10 +130,6 @@ export function createServerDriver(options: ServerDriverOptions): ServerDriver {
         })
         break
 
-      case 'room:urged':
-        core.emitUrge(message.id)
-        break
-
       case 'room:closed':
         // 正常打完是 finished（有赢家），另外两种是中断（没有赢家）。
         if (message.reason === 'match-over') finish('finished', null)
@@ -210,17 +206,9 @@ export function createServerDriver(options: ServerDriverOptions): ServerDriver {
     subscribe: core.subscribe,
     getSnapshot: core.getSnapshot,
     subscribeEvents: core.subscribeEvents,
-    subscribeUrge: core.subscribeUrge,
 
     send(command) {
       room.send({ type: 'match:command', command })
-    },
-
-    urge(id) {
-      room.send({ type: 'room:urge', id })
-      // 本端也立刻播一遍：服务端只把喊话转给对面，不回给发起人（server 的 handleUrge），
-      // 而两台机器上要弹的是同一句。
-      core.emitUrge(id)
     },
 
     loadout(deck, hero) {

@@ -18,10 +18,10 @@ describe('假音频', () => {
 
   it('同一个声道上新的把旧的掐掉', () => {
     const { audio } = createFakePlatform()
-    audio.play({ src: '/music/urge-hurry-up.m4a' }, { channel: 'voice' })
-    audio.play({ src: '/music/urge-come-on.m4a' }, { channel: 'voice' })
-    // 连点两句「催一催」，只该剩后喊的那句在响。
-    expect(audio.playing()).toEqual(['/music/urge-come-on.m4a'])
+    audio.play({ src: '/music/question-ai.m4a' }, { channel: 'voice' })
+    audio.play({ src: '/music/skill-jiejie.m4a' }, { channel: 'voice' })
+    // 同一个声道上连放两段，只该剩后放的那段在响。
+    expect(audio.playing()).toEqual(['/music/skill-jiejie.m4a'])
     expect(audio.calls.map((call) => call.kind)).toEqual(['play', 'stop', 'play'])
   })
 

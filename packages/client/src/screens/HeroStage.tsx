@@ -24,11 +24,10 @@ const MAX_RESOLUTION = 1.5
 export interface HeroStageProps {
   view: HeroView
   platform: Platform
-  muted: boolean
   onAction(action: HeroAction): void
 }
 
-export function HeroStage({ view, platform, muted, onAction }: HeroStageProps) {
+export function HeroStage({ view, platform, onAction }: HeroStageProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<HeroScene | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,8 +40,6 @@ export function HeroStage({ view, platform, muted, onAction }: HeroStageProps) {
   actionRef.current = onAction
   const viewRef = useRef(view)
   viewRef.current = view
-  const mutedRef = useRef(muted)
-  mutedRef.current = muted
 
   useEffect(() => {
     const host = hostRef.current
@@ -64,7 +61,6 @@ export function HeroStage({ view, platform, muted, onAction }: HeroStageProps) {
         resolution: Math.min(metrics.pixelRatio, MAX_RESOLUTION),
         heroes: entriesOf(art.heroes),
         background: art.background,
-        muted: mutedRef.current,
         platform,
         coarsePointer: platform.safeArea.isCoarsePointer(),
       })
@@ -101,10 +97,6 @@ export function HeroStage({ view, platform, muted, onAction }: HeroStageProps) {
   useEffect(() => {
     sceneRef.current?.setView(view)
   }, [view])
-
-  useEffect(() => {
-    sceneRef.current?.setMuted(muted)
-  }, [muted])
 
   return (
     <div className="hero-stage" ref={hostRef}>

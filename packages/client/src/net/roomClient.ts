@@ -50,7 +50,7 @@ export interface RoomClient {
    * 发一条消息给房间。
    *
    * `session:hello` 和 `room:resync` 不走这儿——那两条是这一层自己的事，
-   * 调用方发的是 `room:loadout` / `room:ready` / `room:leave` / `room:urge` / `match:command`。
+   * 调用方发的是 `room:loadout` / `room:ready` / `room:leave` / `match:command`。
    */
   send(message: ClientMessage): void
   close(): void

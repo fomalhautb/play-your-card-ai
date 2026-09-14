@@ -37,23 +37,22 @@ export const PLAQUE_PLAIN: PlaqueVariant = 'K'
 export type PlaqueButtonState = 'default' | 'hover' | 'pressed' | 'disabled'
 
 /**
- * 五个尺寸档各自匾上那行字的字号和字距（px）。
+ * 四个尺寸档各自匾上那行字的字号和字距（px）。
  *
- * 这一批**不进设计令牌**：它们是旧样式里就地写的中号字（24 / 20 / 18 / 19 / 24.8px），
- * 五个数互不相同也不成阶梯，只服务这一个组件，收进令牌就是给一个没人复用的数起个全局名字
+ * 这一批**不进设计令牌**：它们是旧样式里就地写的中号字（24 / 20 / 18 / 24.8px），
+ * 四个数互不相同也不成阶梯，只服务这一个组件，收进令牌就是给一个没人复用的数起个全局名字
  *（design 的 README「明确不收什么」里「组件私有字号」那条说的就是它们）。
- * 集中成一张表而不是分散写进下面五个尺寸对象里，是为了「不进令牌」这件事有一处交代得清。
+ * 集中成一张表而不是分散写进下面四个尺寸对象里，是为了「不进令牌」这件事有一处交代得清。
  * 字距是把旧样式的 em 值乘开的结果：0.25em × 24px = 6，0.22em × 18px = 3.96，以此类推。
  */
 const PLAQUE_TYPE = {
   default: { fontSize: 24, letterSpacing: 6 },
   endTurn: { fontSize: 20, letterSpacing: 4 },
   play: { fontSize: 18, letterSpacing: 3.96 },
-  urge: { fontSize: 19, letterSpacing: 4.56 },
   hero: { fontSize: 24.8, letterSpacing: 6.2 },
 } as const
 
-/** 五个尺寸档。宽高和左右内边距从令牌取，字号和字距取上面那张表。 */
+/** 四个尺寸档。宽高和左右内边距从令牌取，字号和字距取上面那张表。 */
 export const PLAQUE_SIZES = {
   /** 全站主操作键的默认档。 */
   default: {
@@ -82,13 +81,6 @@ export const PLAQUE_SIZES = {
     height: tokens.size.plaque.heroHeight,
     padX: tokens.size.plaque.padX,
     ...PLAQUE_TYPE.hero,
-  },
-  /** 等对方出牌时的「催一催」。 */
-  urge: {
-    width: tokens.size.plaque.urgeWidth,
-    height: tokens.size.plaque.urgeHeight,
-    padX: tokens.size.plaque.padXSmall,
-    ...PLAQUE_TYPE.urge,
   },
 } as const
 

@@ -90,9 +90,6 @@ export function DuelDev() {
           // 这一页没有可去的地方，顶栏那两颗钮点了不做事。
           onLeave={() => undefined}
           onToggleMute={() => undefined}
-          // 「催一催」在这一页只是为了能看见它长什么样：本地 driver 收到之后会原样
-          // 回调回来（见 driverCore 的 emitUrge），气泡和那一声照常播。
-          onUrge={() => driver.urge('hurryUp')}
         />
         <span className="duel-dev__fps">{fps === null ? '空闲' : `${fps} fps`}</span>
       </div>

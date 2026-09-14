@@ -112,29 +112,6 @@ describe('事件订阅', () => {
   })
 })
 
-describe('喊话订阅', () => {
-  it('允许多个订阅者，每个都收到', () => {
-    const core = createDriverCore(EMPTY)
-    const first: string[] = []
-    const second: string[] = []
-    core.subscribeUrge((id) => first.push(id))
-    core.subscribeUrge((id) => second.push(id))
-
-    core.emitUrge('hurryUp')
-    expect(first).toEqual(['hurryUp'])
-    expect(second).toEqual(['hurryUp'])
-  })
-
-  it('没人听就直接丢，不补发', () => {
-    const core = createDriverCore(EMPTY)
-    core.emitUrge('hurryUp')
-
-    const got: string[] = []
-    core.subscribeUrge((id) => got.push(id))
-    expect(got).toEqual([])
-  })
-})
-
 describe('事件批的形状', () => {
   it('和演出编排层的入参一致', () => {
     // 这一行是编译期断言：形状对不上 tsc 直接报错，运行时它只是走个过场。

@@ -131,7 +131,7 @@ export function createFakeDuelContext(): { ctx: DuelContext; calls: FakeCalls } 
     deps: {
       animator: recorder(names, 'animator', ['tween', 'killTweensOf', 'fromTo']),
       /*
-       * 提示气泡那两条 cue 会真的建一个 `Bubble`（它是组件，画不画得出来不归 cue 播放器管），
+       * 提示气泡那条 cue 会真的建一个 `Bubble`（它是组件，画不画得出来不归 cue 播放器管），
        * 而 `Bubble` 里的文字要过一次纹理缓存。缓存这里给一张空纹理顶上：
        * 这条检查只问「有没有接上组件」，不看画面。
        */

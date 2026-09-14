@@ -125,10 +125,13 @@ export const PaperDisabled = {
   parameters: spec({ variant: 'B', caption: '等待对方…', size: 'endTurn', state: 'disabled' }),
 }
 
-/** 陶橙匾额：唯一一颗「催促对方」的次要操作键，配色刻意和主操作拉开。 */
+/**
+ * 陶橙匾额：对局右下角那颗「结束出牌」走的就是这一档配色（见 scenes/duel/parts.ts）。
+ * 原先这条拍的是「催一催」，那颗钮在简化第 2 步删掉了，换成同一档配色下真实在用的那颗。
+ */
 export const Terracotta = {
-  name: '陶橙：催一催',
-  parameters: spec({ variant: 'C', caption: '催一催', size: 'urge' }),
+  name: '陶橙：结束出牌',
+  parameters: spec({ variant: 'C', caption: '结束出牌', size: 'endTurn' }),
 }
 
 /** 纸面无底图标钮：不画底也不画框，只有一枚实心剪影。 */

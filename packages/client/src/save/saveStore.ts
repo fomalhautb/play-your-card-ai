@@ -25,7 +25,8 @@ export interface SaveData {
    * 玩家在设置页要求「减少动效」。
    *
    * 两边都读它：DOM 那半边由应用壳翻成 `<html data-reduced-motion="true">`，
-   * `ui` 的 CSS 认这个属性（同时也认系统的 `prefers-reduced-motion`）；
+   * 约定是 `ui` 的 CSS 认这个属性（同时也认系统的 `prefers-reduced-motion`），
+   * 不过现在一份都没在认，原委见 app/reducedMotion.ts；
    * 画布那半边由 `DuelStage` 透给场景，关掉震屏和跟指针跑的倾斜 / 反光
    *（见 canvas 的 duelContract.ts 的 `reducedMotion`）。
    *

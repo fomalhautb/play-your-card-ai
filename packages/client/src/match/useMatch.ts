@@ -69,15 +69,3 @@ export function useMatchEvents(
     return driver.subscribeEvents((batch) => handlerRef.current(batch))
   }, [driver])
 }
-
-/**
- * 订阅「催一催」的喊话。
- *
- * 和事件流相反：允许多个订阅者、没有补发缓冲（催促是当下的一句话，补播就成了迟到的鬼叫）。
- * handler 同样存 ref，理由一样。
- */
-export function useMatchUrge(driver: MatchDriver, handler: (id: string) => void): void {
-  const handlerRef = useRef(handler)
-  handlerRef.current = handler
-  useEffect(() => driver.subscribeUrge((id) => handlerRef.current(id)), [driver])
-}

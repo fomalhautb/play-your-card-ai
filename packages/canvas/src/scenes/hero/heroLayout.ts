@@ -66,8 +66,6 @@ export interface HeroLayout {
   subtitle: { x: number; y: number; fontSize: number }
   /** 左上角那颗返回。 */
   back: { x: number; y: number; fontSize: number }
-  /** 右上角那颗静音圆章。 */
-  seal: HeroRect
   detail: {
     /** 放大的卡停在视口横向的哪一处（0~1），交给 RevealOverlay 的 `anchorX`。 */
     anchorX: number
@@ -135,12 +133,6 @@ function build(
       fontSize: height * spec.subtitleSize,
     },
     back: { x: side, y: height * 0.05, fontSize: Math.max(14, height * 0.022) },
-    seal: {
-      x: width - side - width * 0.045,
-      y: height * 0.045,
-      width: width * 0.045,
-      height: width * 0.045,
-    },
     detail: {
       anchorX: spec.detailAnchorX,
       scale: detailScale,

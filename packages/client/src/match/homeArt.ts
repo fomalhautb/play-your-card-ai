@@ -14,7 +14,7 @@ import { CARDS, HEROES } from '@ai-duel/content'
 import type { CardId, HeroId } from '@ai-duel/core'
 import { tokens } from '@ai-duel/design'
 import { Assets, type Texture } from 'pixi.js'
-import { HOME_CAST, HOME_OCCLUDERS, HOME_SHOWCASE, homeArtUrl } from '../screens/homeCast'
+import { HOME_OCCLUDERS, HOME_SHOWCASE, homeArtUrl } from '../screens/homeCast'
 import { loadCardTextures } from './cardAtlas'
 
 /** 三类牌的标识色，和对局那边同一份（canvas 的 scenes/duel/cardVisuals.ts）。 */
@@ -30,21 +30,12 @@ export interface HomeArt {
     props: Texture
     plaque: Texture
   }
-  cast: { hero: HeroId; texture: Texture }[]
   cards: CardVisual[]
 }
 
-/**
- * 首页要的全部纹理：那幅画的十一层，加四张展示卡的卡面（后者在卡面图集里）。
- *
- * 静音钮那两枚剪影**不在这里**：它们现在是场景自己画的占位（见 canvas 的
- * fx/controlIcons.ts）。烤纹理要一个渲染器，而首页那个渲染器要等到 `createHomeScene`
- * 才建得出来；更要紧的是，一个渲染器烤出来的纹理换个渲染器就画不出来
- *（GPU 那一份资源跟着上下文走）。真图标到位之后由这里加载、从 options 传下去。
- */
+/** 首页要的全部纹理：那幅画的四层，加四张展示卡的卡面（后者在卡面图集里）。 */
 export async function loadHomeTextures(): Promise<HomeArt> {
-  const layers = ['home-bg', ...HOME_OCCLUDERS, 'home-plaque']
-  const files = [...layers, ...HOME_CAST.map((member) => member.file)]
+  const files = ['home-bg', ...HOME_OCCLUDERS, 'home-plaque']
   const [atlas, ...textures] = await Promise.all([
     loadCardTextures(),
     ...files.map((file) => Assets.load<Texture>(homeArtUrl(file))),
@@ -54,17 +45,16 @@ export async function loadHomeTextures(): Promise<HomeArt> {
   return {
     textures: {
       background: at('home-bg'),
-      // 遮挡层的顺序就是画上的层叠顺序：桌面弧在下、前景道具在上。
+      // 这两层的顺序就是画上的层叠顺序：桌面弧在下、前景道具在上。
       table: at(HOME_OCCLUDERS[0]),
       props: at(HOME_OCCLUDERS[1]),
       plaque: at('home-plaque'),
     },
-    cast: HOME_CAST.map((member) => ({ hero: member.hero, texture: at(member.file) })),
     cards: HOME_SHOWCASE.map((id, index) => visualOf(id, index, atlas.faces, atlas.back)),
   }
 }
 
-/** 选英雄页要的：背景一张、七位英雄各一张原画。静音剪影同上，由场景自己画。 */
+/** 选英雄页要的：背景一张、七位英雄各一张原画。 */
 export async function loadHeroTextures(): Promise<{
   background: Texture
   heroes: Record<HeroId, Texture>

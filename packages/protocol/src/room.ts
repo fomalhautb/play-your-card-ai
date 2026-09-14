@@ -14,8 +14,7 @@
  * 1. 序号 `seq` 从 1 开始，**按座位各算一串**，不是房间共用一串。
  *    这样一批事件被 `filterEvent` 对某一方过滤成空时就整条不发，不用为了对齐编号发空包。
  * 2. 只有 `match:started` 和 `match:events` 带序号，且每发一条就 +1。
- *    `match:rejected`（指令回执）和 `room:urged`（催一催）不占号：
- *    它们不是「局面上发生的事」，丢了也不影响局面。
+ *    `match:rejected`（指令回执）不占号：它不是「局面上发生的事」，丢了也不影响局面。
  * 3. 客户端记住收到的最后一个号。下一条的 `seq` 不等于「上一个 + 1」就是漏包了，
  *    发 `room:resync` 要一份快照。TCP 本身不会乱序也不会丢，所以漏包实际上只有一个来源：
  *    断线期间服务端发出去的那些消息。
@@ -70,9 +69,6 @@ const EVENTS_PER_BATCH_MAX = 256
  */
 const DECK_CARDS_MAX = 60
 
-/** 催一催的 id 长度上限（`hurryUp` 这种短标识）。 */
-const URGE_ID_MAX_LENGTH = 32
-
 /**
  * 装载：本方的牌组和英雄。双方都装载完、都就绪了，房间才开局。
  *
@@ -109,19 +105,6 @@ export const roomResyncSchema = z.strictObject({
 })
 
 /**
- * 催一催：告诉对面这一下喊的是哪句，两边同时放同一段录音、弹同一句气泡。
- *
- * **只带 id 不带文字**，和旧协议一样（见黑客松版的 `urgeLines.ts`）：
- * 文案两端代码一致，没必要来回搬字符串，也就没人能借它往对方屏幕上打任意文字。
- * id 合不合法由服务端查内容表定（那张表在 content 里，protocol 够不着），
- * 查不到就回 `room:error` 的 `'unknown-urge'`，不转发。
- */
-export const roomUrgeSchema = z.strictObject({
-  type: z.literal('room:urge'),
-  id: z.string().min(1).max(URGE_ID_MAX_LENGTH),
-})
-
-/**
  * 一条玩家指令。
  *
  * 载荷只认 `playerCommandSchema` 那四种：`SUBMIT_ANSWERS` 和 `DEBUG_*` 不许从网上进来，
@@ -151,13 +134,6 @@ export const roomPeerSchema = z.object({
   ready: z.boolean(),
 })
 
-/** 对面催了一下。`from` 是喊话的那个座位。 */
-export const roomUrgedSchema = z.object({
-  type: z.literal('room:urged'),
-  from: playerIdSchema,
-  id: z.string().min(1).max(URGE_ID_MAX_LENGTH),
-})
-
 /**
  * 房间结束了，别再重连。
  *
@@ -184,7 +160,6 @@ export const roomClosedSchema = z.object({
  * - `'not-in-match'`：对局还没开始（或已经结束）就发指令。
  * - `'already-loaded'` / `'already-ready'`：重复装载或重复就绪。
  * - `'bad-loadout'`：牌组或英雄过不了内容表那一关（张数、同名上限、不在收藏里）。
- * - `'unknown-urge'`：催一催的 id 内容表里没有。
  * - `'malformed'`：整条消息连 schema 都没过。这一条**只在开发模式下发**——
  *   线上告诉对方「你发的东西我没看懂」除了帮他调试没有别的用处。
  */
@@ -194,7 +169,6 @@ export const roomErrorReasonSchema = z.enum([
   'already-loaded',
   'already-ready',
   'bad-loadout',
-  'unknown-urge',
   'malformed',
 ])
 
@@ -280,14 +254,12 @@ export const roomClientMessageSchemas = [
   roomReadySchema,
   roomLeaveSchema,
   roomResyncSchema,
-  roomUrgeSchema,
   matchCommandSchema,
 ] as const
 
 /** 房间发给客户端的全部消息。 */
 export const roomServerMessageSchemas = [
   roomPeerSchema,
-  roomUrgedSchema,
   roomClosedSchema,
   roomErrorSchema,
   matchStartedSchema,

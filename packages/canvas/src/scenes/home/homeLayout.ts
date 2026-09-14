@@ -4,15 +4,15 @@
  *
  * 两档的分岔在哪：
  *
- * - **桌面档**：那幅 1672×941 的画按 contain 塞进视口居中，展示卡、人物、桌子、道具
+ * - **桌面档**：那幅 1672×941 的画按 contain 塞进视口居中，展示卡、桌子、道具
  *   全在画里；标题压在画的上部，「开始游戏」压在画的下部，菜单横着排成一行。
  * - **手机档**：竖屏的短边只有 390，那幅 16:9 的画横着铺满就只有 220 高——
- *   于是画整块**缩到屏幕上半部**（这就是需求单说的「人物缩小」），
+ *   于是画整块**缩到屏幕上半部**，
  *   标题、主按钮和菜单在画的下方**竖着摞**。菜单竖排不是桌面档的缩放，
  *   是另一套摆法：六项横排在 390 宽里挤不下，字再小就点不中了。
  *
- * 画本身两档都用 contain（等比放进给定的那一块），不用 cover：cover 会把两侧的人裁掉，
- * 而那两位正是设计稿里挡住最外侧展示卡的人。
+ * 画本身两档都用 contain（等比放进给定的那一块），不用 cover：cover 会把画两侧裁掉，
+ * 而最外侧那两张展示卡就在那儿。
  */
 
 import { pickTier } from '../duel/layout/pickLayout'
@@ -49,8 +49,6 @@ const DESKTOP = {
   menuY: 0.9,
   menuSize: 0.0172,
   menuGap: 0.022,
-  sealTop: 0.035,
-  sealRight: 0.035,
 } as const
 
 /** 手机档：画占屏幕上部多少、下面那一摞怎么排。全是占视口的比例。 */
@@ -67,8 +65,6 @@ const MOBILE = {
   gapTitle: 0.02,
   gapStart: 0.028,
   gapMenu: 0.028,
-  sealTop: 0.02,
-  sealRight: 0.04,
 } as const
 
 /** 一块矩形，视口坐标，原点在左上角。 */
@@ -103,10 +99,6 @@ export interface HomeLayout {
   menu: HomeRect[]
   /** 菜单项之间那颗分隔星的直径。手机档竖排不摆星，这时是 0。 */
   menuDotSize: number
-  /** 静音圆章的盒子。 */
-  seal: HomeRect
-  /** 人物介绍卡的宽，以及它离人物包围盒留多少空。 */
-  castPanel: { width: number; gap: number; scale: number }
 }
 
 /** 菜单里一项大概多宽：字数 × 字号 ×（1 + 字距），字距按按钮 I 那一档的 0.24em 算。 */
@@ -177,7 +169,6 @@ function desktopHome(width: number, height: number, labels: readonly string[]): 
     cursor += itemWidth + gap
     return rect
   })
-  const sealSize = stage.height * 0.055
 
   return {
     tier: 'desktop',
@@ -203,13 +194,6 @@ function desktopHome(width: number, height: number, labels: readonly string[]): 
     },
     menu,
     menuDotSize: menuSize * 0.55,
-    seal: {
-      x: stage.x + stage.width - stage.width * DESKTOP.sealRight - sealSize,
-      y: stage.y + stage.height * DESKTOP.sealTop,
-      width: sealSize,
-      height: sealSize,
-    },
-    castPanel: { width: stage.width * 0.19, gap: stage.width * 0.01, scale: stage.width / 1440 },
   }
 }
 
@@ -239,7 +223,6 @@ function mobileHome(width: number, height: number, labels: readonly string[]): H
     y += menuHeight + height * MOBILE.menuGap
     return rect
   })
-  const sealSize = width * 0.1
 
   return {
     tier: 'mobile',
@@ -253,12 +236,5 @@ function mobileHome(width: number, height: number, labels: readonly string[]): H
     menu,
     // 竖排不摆分隔星：那颗星是「项与项之间」的分隔，竖着摆等于在每行之间塞一颗，很吵。
     menuDotSize: 0,
-    seal: {
-      x: width - width * MOBILE.sealRight - sealSize,
-      y: height * MOBILE.sealTop,
-      width: sealSize,
-      height: sealSize,
-    },
-    castPanel: { width: Math.min(width * 0.6, 260), gap: width * 0.02, scale: 0.8 },
   }
 }

@@ -166,7 +166,6 @@ export function createLocalDriver(options: LocalDriverOptions): LocalDriver {
     subscribe: core.subscribe,
     getSnapshot: core.getSnapshot,
     subscribeEvents: core.subscribeEvents,
-    subscribeUrge: core.subscribeUrge,
 
     send(command: PlayerCommand) {
       run(command)
@@ -177,9 +176,6 @@ export function createLocalDriver(options: LocalDriverOptions): LocalDriver {
     },
 
     peek: () => state,
-
-    // 单机的「对面」就在旁边坐着（或者压根不存在），本地播一遍就够了。
-    urge: core.emitUrge,
 
     dispose() {
       disposed = true

@@ -6,6 +6,7 @@
  * 手写 JSON 的话，服务端哪天改了一个字段名这组测试还是全绿的。
  */
 
+import { PROTOCOL_VERSION } from '@ai-duel/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { MatchEventBatch } from '../src/match/driver'
 import type { ServerDriver } from '../src/match/serverDriver'
@@ -59,9 +60,10 @@ describe('握手', () => {
     expect(harness.socket().urls).toEqual([`ws://127.0.0.1:8787/match/${CODE}`])
 
     harness.socket().acceptConnection()
+    // 版本号读常量而不是写死：协议改一次形状它就 +1，写死的话这条要跟着改一遍。
     expect(harness.sent()[0]).toEqual({
       type: 'session:hello',
-      protocolVersion: 1,
+      protocolVersion: PROTOCOL_VERSION,
       clientVersion: '0.0.0-dev',
     })
   })
@@ -297,21 +299,6 @@ describe('房间成员和喊话', () => {
 
     harness.deliver({ type: 'room:peer', seat: 1, online: true, loaded: true, ready: false })
     expect(driver.getSnapshot().peer?.loaded).toBe(true)
-  })
-
-  it('本端喊一句会发出去，也在本地播一遍', () => {
-    const { harness, driver } = start()
-    connect(harness)
-    const heard: string[] = []
-    driver.subscribeUrge((id) => heard.push(id))
-
-    driver.urge('hurryUp')
-    expect(harness.sent().at(-1)).toEqual({ type: 'room:urge', id: 'hurryUp' })
-    // 服务端只把喊话转给对面，不回给发起人，所以本地这一遍不能省。
-    expect(heard).toEqual(['hurryUp'])
-
-    harness.deliver({ type: 'room:urged', from: 1, id: 'wellPlayed' })
-    expect(heard).toEqual(['hurryUp', 'wellPlayed'])
   })
 
   it('装载、就绪、离开、出牌都发的是协议认的那几条', () => {

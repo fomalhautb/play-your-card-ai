@@ -1,8 +1,8 @@
 /**
- * 首页画面上那些**文字类**的东西：标题、副标题、主入口匾额、菜单、静音圆章。
+ * 首页画面上那些**文字类**的东西：标题、副标题、主入口匾额、菜单。
  *
- * 和人物那一层分开，是因为两者变化的理由不同：那边跟着画走（整层贴在画上，
- * 命中靠 alpha 掩码），这边跟着**版式**走——两档版式在这里是真的分岔，
+ * 和画那几层分开，是因为两者变化的理由不同：那几层整幅贴在画上、按画的矩形铺满，
+ * 这边跟着**版式**走——两档版式在这里是真的分岔，
  * 桌面档菜单横排、手机档竖排（见 homeLayout.ts）。
  *
  * 换版式一律整层重建：这一页一辈子只在窗口尺寸变化时重建几次，不在动画期间，
@@ -15,19 +15,16 @@ import { Container, Sprite, type Texture } from 'pixi.js'
 import { Flourish } from '../../components/Flourish'
 import { Label } from '../../components/Label'
 import { PLATE_HOME_START, PlateButton, type PlateButtonDeps } from '../../components/PlateButton'
-import { SealButton, type SealButtonDeps } from '../../components/SealButton'
 import { TEXT_BUTTON_NAV, TextButton, type TextButtonDeps } from '../../components/TextButton'
-import type { MuteIcons } from '../../fx/controlIcons'
 import { killAndDestroy } from '../../runtime/dispose'
 import type { HomeAction, HomeMenuItem } from './homeContract'
 import type { HomeLayout } from './homeLayout'
 
-export type HomeUiDeps = PlateButtonDeps & SealButtonDeps & TextButtonDeps
+export type HomeUiDeps = PlateButtonDeps & TextButtonDeps
 
-/** 这一层要用到的纹理：主入口那张匾额底图，加静音钮的两枚剪影。 */
+/** 这一层要用到的纹理：主入口那张匾额的底图。 */
 export interface HomeUiArt {
   plaque: Texture
-  mute: MuteIcons
 }
 
 /** 标题那句话。感叹号用半角，理由抄旧版：全角标点独占一整格，整行看上去会偏左。 */
@@ -43,15 +40,12 @@ export class HomeUi extends Container {
   private readonly art: HomeUiArt
   private readonly menu: readonly HomeMenuItem[]
   private onAction: ((action: HomeAction) => void) | null = null
-  private seal: SealButton | null = null
-  private muted: boolean
 
-  constructor(art: HomeUiArt, menu: readonly HomeMenuItem[], muted: boolean, deps: HomeUiDeps) {
+  constructor(art: HomeUiArt, menu: readonly HomeMenuItem[], deps: HomeUiDeps) {
     super()
     this.deps = deps
     this.art = art
     this.menu = menu
-    this.muted = muted
     this.label = 'home-ui'
   }
 
@@ -59,20 +53,12 @@ export class HomeUi extends Container {
     this.onAction = callback
   }
 
-  /** 静音钮换一枚剪影。换版式那一瞬间钮可能还没建出来，那时什么都不做。 */
-  setMuted(muted: boolean): void {
-    this.muted = muted
-    this.seal?.setIcon(muted ? this.art.mute.off : this.art.mute.on)
-  }
-
   /** 按一档版式重建整层。 */
   place(layout: HomeLayout): void {
     for (const child of this.removeChildren()) killAndDestroy(this.deps.animator, child)
-    this.seal = null
     this.addTitle(layout)
     this.addStart(layout)
     this.addMenu(layout)
-    this.addSeal(layout)
   }
 
   private addTitle(layout: HomeLayout): void {
@@ -161,20 +147,5 @@ export class HomeUi extends Container {
       dot.position.set((rect.x + rect.width + next.x) / 2, rect.y + rect.height / 2)
       this.addChild(dot)
     })
-  }
-
-  private addSeal(layout: HomeLayout): void {
-    const icons = this.art.mute
-    const seal = new SealButton(
-      {
-        size: layout.seal.width,
-        icon: this.muted ? icons.off : icons.on,
-        onActivate: () => this.onAction?.({ kind: 'toggle-mute' }),
-      },
-      this.deps,
-    )
-    seal.position.set(layout.seal.x, layout.seal.y)
-    this.addChild(seal)
-    this.seal = seal
   }
 }

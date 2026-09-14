@@ -39,14 +39,14 @@ import {
   type EffectTier,
   Rng,
 } from '@ai-duel/canvas'
-import { createCatalog, isUrgeId } from '@ai-duel/content'
+import { createCatalog } from '@ai-duel/content'
 import type { PlayerId, PlayerView } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
 import { type RefObject, useEffect, useRef, useState } from 'react'
-import { playSkillTargeting, playUrge } from '../audio/sounds'
+import { playSkillTargeting } from '../audio/sounds'
 import { loadCardTextures } from '../match/cardAtlas'
 import type { MatchDriver } from '../match/driver'
-import { useMatch, useMatchEvents, useMatchUrge } from '../match/useMatch'
+import { useMatch, useMatchEvents } from '../match/useMatch'
 import './duelStage.css'
 
 /**
@@ -82,14 +82,6 @@ export interface DuelStageProps {
   onLeave(): void
   /** 顶栏那颗静音钮。 */
   onToggleMute(): void
-  /**
-   * 右下角那颗「催一催」。等对方出牌时它才在场（场景按 `waitingForFoe` 切）。
-   *
-   * 喊哪一句由这一层挑（`pickUrgeId`），场景挑不了——喊话文案在 `content` 里，
-   * 而 canvas 不依赖 content。挑好之后 `driver.urge(id)` 发出去，
-   * 喊话回到两端时走的是另一条路（`useMatchUrge` → `director.userAction`）。
-   */
-  onUrge(): void
   /** 效果档位，不给就是默认那一档。只有开发页会传（它要现场切档看差别）。 */
   tier?: EffectTier
   /**
@@ -113,7 +105,6 @@ export function DuelStage({
   status = null,
   onLeave,
   onToggleMute,
-  onUrge,
   tier = DEFAULT_TIER,
   reducedMotion = false,
   sceneRef: outerSceneRef,
@@ -136,11 +127,11 @@ export function DuelStage({
   const view = useMatch(driver)
 
   /*
-   * 两颗钮的回调存 ref：它们每次渲染都是新函数，而场景是建的时候把它们焊进去的。
+   * 顶栏那两颗钮的回调存 ref：它们每次渲染都是新函数，而场景是建的时候把它们焊进去的。
    * 不存 ref 的话要么场景每渲染一次就重建，要么按钮永远调的是第一次那一版闭包。
    */
-  const handlers = useRef({ onLeave, onToggleMute, onUrge })
-  handlers.current = { onLeave, onToggleMute, onUrge }
+  const handlers = useRef({ onLeave, onToggleMute })
+  handlers.current = { onLeave, onToggleMute }
 
   useEffect(() => {
     const host = hostRef.current
@@ -176,7 +167,6 @@ export function DuelStage({
         reducedMotion,
         onLeave: () => handlers.current.onLeave(),
         onToggleMute: () => handlers.current.onToggleMute(),
-        onUrge: () => handlers.current.onUrge(),
       })
       if (disposed) {
         scene.destroy()
@@ -262,13 +252,6 @@ export function DuelStage({
   useMatchEvents(ready ? driver : null, (batch) => {
     applyView(batch.view)
     directorRef.current?.push(batch)
-  })
-
-  // 「催一催」：本端喊的和对面发来的走同一条路，两台机器上放的是同一句。
-  useMatchUrge(driver, (id) => {
-    if (!isUrgeId(id)) return
-    directorRef.current?.userAction({ kind: 'urge', lineId: id })
-    playUrge(platform, id)
   })
 
   /*

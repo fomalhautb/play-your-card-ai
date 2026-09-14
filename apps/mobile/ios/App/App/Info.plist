@@ -53,7 +53,7 @@
 	</array>
 	<!--
 		横屏锁：两组里都只留横屏的两个方向。对局版式两档都是横的，竖屏下战场那一排五格和
-		手牌区上下叠不下（见 packages/client/src/screens/OrientationNotice.tsx）。
+		手牌区上下叠不下（见 packages/canvas/src/scenes/duel/layout/）。
 		写死在这儿而不是运行时调插件锁：应用从启动第一帧就是横的，不会先竖着画一帧再转过来。
 		两个横屏方向都留着，手机横过来的方向不用猜。
 		安卓那半边是 AndroidManifest.xml 的 android:screenOrientation。

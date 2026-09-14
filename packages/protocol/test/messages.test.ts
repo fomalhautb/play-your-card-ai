@@ -32,7 +32,6 @@ const CLIENT_SAMPLES: ClientMessage[] = [
   { type: 'room:ready' },
   { type: 'room:leave' },
   { type: 'room:resync', haveSeq: 0 },
-  { type: 'room:urge', id: 'hurryUp' },
   // 实例 id 用真实那一局摸到的手牌，「合法样本」四个字才不打折。
   {
     type: 'match:command',
@@ -59,7 +58,6 @@ const SERVER_SAMPLES: ServerMessage[] = [
   { type: 'lobby:room', code: '0417', origin: 'queue' },
   { type: 'lobby:error', reason: 'room-not-found', notice: '房间不存在' },
   { type: 'room:peer', seat: 1, online: true, loaded: true, ready: false },
-  { type: 'room:urged', from: 1, id: 'hurryUp' },
   { type: 'room:closed', reason: 'match-over', notice: '对局结束' },
   { type: 'room:error', reason: 'not-your-seat', notice: '这不是你的座位' },
   { type: 'match:started', seat: 0, seq: 1, events: SAMPLE_EVENTS, view: SAMPLE_VIEW },
@@ -148,8 +146,6 @@ describe('畸形的客户端消息一律被拒，而且不抛', () => {
     ['牌组太长', { type: 'room:loadout', deck: new Array(61).fill('gpt-4'), hero: null }],
     ['英雄不在名单里', { type: 'room:loadout', deck: ['gpt-4'], hero: 'skynet' }],
     ['英雄字段漏了', { type: 'room:loadout', deck: ['gpt-4'] }],
-    ['催一催的 id 超长', { type: 'room:urge', id: 'u'.repeat(33) }],
-    ['催一催带了文字', { type: 'room:urge', id: 'hurryUp', text: '快点啊' }],
     ['haveSeq 是负数', { type: 'room:resync', haveSeq: -1 }],
     ['haveSeq 是小数', { type: 'room:resync', haveSeq: 1.5 }],
     ['指令里的座位是负数', { type: 'match:command', command: { type: 'END_PLAY', player: -1 } }],

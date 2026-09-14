@@ -5,10 +5,12 @@
  * 真正让它生效的是这里的两件事：
  *
  * 1. **DOM 那半边**：往 `<html>` 上打一个 `data-reduced-motion="true"`。
- *    `ui` 的样式表认这个属性（`cardLoader.css`、`progressBar.css` 里各有一条），
- *    和系统的 `prefers-reduced-motion: reduce` 并列——两条谁成立都算。
- *    为什么不反过来、由组件去读存档：组件库不许知道存档长什么样（它只依赖 design 和
- *    platform），而 CSS 本来就有「按祖先属性换一套规则」这条现成的路。
+ *    约定是 `ui` 的样式表认这个属性，和系统的 `prefers-reduced-motion: reduce` 并列——
+ *    两条谁成立都算。为什么不反过来、由组件去读存档：组件库不许知道存档长什么样
+ *   （它只依赖 design 和 platform），而 CSS 本来就有「按祖先属性换一套规则」这条现成的路。
+ *    **现在没有任何一份 `ui` 样式表在认它**：唯一认过的两处（`cardLoader.css`、
+ *    `progressBar.css`）随简化第 2 步删掉加载页那两个组件一起走了。属性照旧打上去，
+ *    等剥样式那几步重画 React 组件时直接接上。
  * 2. **画布那半边**：`DuelStage` 把这一位透给场景（`DuelSceneOptions.reducedMotion`），
  *    场景据此关掉震屏和跟指针跑的倾斜 / 反光。那条路不经过 DOM，所以要单独走一趟。
  *
