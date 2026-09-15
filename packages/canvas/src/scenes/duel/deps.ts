@@ -1,5 +1,5 @@
 /**
- * 全部组件共用的那一份依赖：两批预烤纹理、文字缓存、补间记账、平台能力、随机数。
+ * 全部组件共用的那一份依赖：预烤纹理、文字缓存、补间记账、平台能力、随机数。
  *
  * 每个组件的 `XxxDeps` 都是这份东西的一个子集（结构类型，直接传整份就行），
  * 所以场景只建一份、所有组件共享——文字纹理缓存尤其不能一个组件一份，
@@ -11,13 +11,11 @@ import type { Renderer, Texture } from 'pixi.js'
 import type { CardSpriteDeps } from '../../components/CardSprite'
 import { type BakedTextures, bakeTextures } from '../../fx/bakedTextures'
 import { type EffectTier, TIER_CONFIG } from '../../fx/effectTier'
-import { bakeUiTextures, type UiTextures } from '../../fx/uiTextures'
 import { Animator } from '../../runtime/animator'
 import { Rng } from '../../runtime/rng'
 import { TextTextureCache } from '../../runtime/textCache'
 
 export interface DuelDeps {
-  ui: UiTextures
   baked: BakedTextures
   text: TextTextureCache
   animator: Animator
@@ -86,7 +84,6 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
   const text = new TextTextureCache(options.renderer)
   const reducedMotion = options.reducedMotion === true
   return {
-    ui: bakeUiTextures(options.renderer),
     baked,
     text,
     animator: new Animator(options.wake),
@@ -110,7 +107,6 @@ export function createDuelDeps(options: DuelDepsOptions): DuelDeps {
 
 /** 上下文丢失之后把「画出来的」纹理重画一遍（4.3）。图片纹理 Pixi 自己会重传。 */
 export function restoreDeps(deps: DuelDeps): void {
-  deps.ui.restore()
   deps.baked.restore()
   deps.text.restore()
 }
@@ -118,7 +114,6 @@ export function restoreDeps(deps: DuelDeps): void {
 /** 拆掉这一份依赖建出来的东西。调用方传进来的卡面纹理不归这里管。 */
 export function destroyDeps(deps: DuelDeps): void {
   deps.animator.destroy()
-  deps.ui.destroy()
   deps.baked.destroy()
   deps.text.destroy()
 }

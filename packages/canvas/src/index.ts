@@ -13,30 +13,33 @@
  * 迁移第 28 条的牌组编辑器（scenes/deck）：分页的卡池、20 个卡位的牌组栏、拖拽增删，
  * 那一页的分页 / 落点 / 让位 / 合法性全在 scenes/deck/logic 里，是不碰 Pixi 的纯函数；
  * 以及迁移第 17 条那批对局用的组件，分两层：
- * 基础件（匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字）和拿它们拼出来的复合件
- *（顶栏、侧栏、玩家面板、Token 细条、战场、对手手牌、横幅、抛硬币、抵消层、展示层、
+ * 基础件（素方块、文字）和拿它们拼出来的复合件
+ *（顶栏、玩家面板、Token 细条、战场、对手手牌、横幅、抛硬币、抵消层、展示层、
  * 选目标层、结算层）。复合件都是**哑的**：只提供「摆好、播一段、改状态」的方法，
  * 不认识引擎事件，也不认识 director——把哪条 cue 映射到哪个方法是场景的活。
  * 复合件拆出来的内部件（结算层的顶栏 / 一侧 / 一行、战场的一格）**不导出**：
  * 它们只对自己的父组件负责，拆文件是被 400 行那条上限逼的，不是多了四个可以单独用的组件。
- * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）：
- * 现在多了选英雄页要的那批（文字钮、星芒花饰、人物说明栏）。
+ * 别的场景要用的组件按需要往 components/ 里加，不先建完整再用（迁移第 17 条）。
  * 迁移第 29、30 条的三个场景：首页 scenes/home、选英雄页 scenes/hero、开包 scenes/pack。
  *
  * 正式版简化第 4 步之一：首页、房间页、开包页剥成了**素方块**。这三页上的按钮、面板、
  * 一行状态字全走 components/Box.ts 这一个原语（1px 描边矩形加一行字），
  * 只服务它们的装饰件（图片底板按钮、夜色圆章）连同底图素材一起删了。
- * 之二把对局页的版式和界面件也换成了素方块。
+ * 之二把对局页的版式和界面件也换成了素方块，之四是组牌页，之五是选英雄页。
+ * 三页的桌面档都回到黑客松那一版的 1672×941 死版式 + 整块等比缩放。
+ * 剥到之五为止，装饰件**一个不剩**：匾额按钮、雕花框、分隔线、面板、页签、徽章、气泡、
+ * 花饰、进度条、提示条、文字钮、圆章钮、人物说明栏连同它们的模具（界面零件那批预烤纹理、
+ * 雕花框 / 匾额 / 首页图标的画法）全删了。
  *
  * **卡牌是这一轮唯一没被剥的东西**（简化第 4 步之三）：卡面按黑客松版还原了边框羽化、
  * 八角雕花铭牌、三圈费用章、卡下投影和三种牌背，和卡牌有关的交互（灰墨态、点锁牌弹小字、
  * 施放抬起、落点和取消区提示、跟指针倾斜、翻面看背面）也一并补回来了。
  *
  * 目录：
- *   components/    Pixi 组件（素方块、卡牌、手牌扇形、匾额按钮、雕花框、分隔线、面板、徽章、气泡、文字，
- *                  对局那批复合件，以及卡面分几层、卡面倾斜、卡面的透视投影和网格几何）
+ *   components/    Pixi 组件（素方块、文字、卡牌、手牌扇形、对局那批复合件，
+ *                  以及卡面分几层、卡面倾斜、卡面的透视投影和网格几何）
  *   director/      对局演出编排（事件批 → 演出指令，纯 TS，不碰 Pixi / GSAP / DOM）
- *   fx/            特效和预烤纹理（命中特效、卡面反光、卡牌那批纹理、界面零件那批纹理、
+ *   fx/            特效和预烤纹理（命中特效、卡面反光、卡牌那批纹理、
  *                  各零件的模具画法、调色、效果分档）
  *   interaction/   交互（拖拽判定的纯函数、手牌的指针状态机、手牌的 hover 和倾斜跟随）
  *   layout/        布局数学（扇形几何、hover 让位）
@@ -51,15 +54,6 @@
  * 它只依赖类型和纯函数，不碰 Pixi、GSAP、DOM、platform（依赖方向由 .dependency-cruiser.cjs 卡着）。
  */
 
-export {
-  BADGE_SOON,
-  BADGE_TILE_MARK,
-  Badge,
-  type BadgeDeps,
-  type BadgeOptions,
-  type BadgeTone,
-  type BadgeVariant,
-} from './components/Badge'
 export { Banner, type BannerDeps } from './components/Banner'
 export {
   BoardGrid,
@@ -78,49 +72,13 @@ export {
   type BoxSize,
   CANVAS_BACKGROUND,
 } from './components/Box'
-export {
-  BUBBLE_ERROR,
-  BUBBLE_TIP,
-  Bubble,
-  type BubbleDeps,
-  type BubbleOptions,
-  type BubbleVariant,
-} from './components/Bubble'
 export { CardSprite, type CardSpriteDeps, type CardVisual } from './components/CardSprite'
 export { CoinToss, type CoinTossDeps } from './components/CoinToss'
 export { CardTilt } from './components/cardTilt'
 export { DeckSlots, type DeckSlotsDeps, type DeckSlotsOptions } from './components/DeckSlots'
-export {
-  Flourish,
-  type FlourishDeps,
-  type FlourishOptions,
-  type FlourishSides,
-} from './components/Flourish'
 export { FoeHand, type FoeHandDeps, type FoeHandOptions } from './components/FoeHand'
 export { applyPose, HandFan, type HandFanOptions, type LayoutMode } from './components/HandFan'
-export {
-  INFO_CARD_HERO,
-  InfoCard,
-  type InfoCardDeps,
-  type InfoCardOptions,
-  type InfoCardVariant,
-  type InfoSection,
-} from './components/InfoCard'
 export { Label, type LabelStyle } from './components/Label'
-export {
-  PLAQUE_IVORY,
-  PLAQUE_NAVY,
-  PLAQUE_PAPER,
-  PLAQUE_PLAIN,
-  PLAQUE_SIZES,
-  PLAQUE_TERRACOTTA,
-  PlaqueButton,
-  type PlaqueButtonDeps,
-  type PlaqueButtonOptions,
-  type PlaqueButtonState,
-  type PlaqueSizeName,
-  type PlaqueVariant,
-} from './components/PlaqueButton'
 export {
   PlayerPanel,
   type PlayerPanelDeps,
@@ -140,14 +98,6 @@ export {
   TargetingLayer,
   type TargetingLayerDeps,
 } from './components/TargetingLayer'
-export {
-  TEXT_BUTTON_BACK,
-  TEXT_BUTTON_NAV,
-  TextButton,
-  type TextButtonDeps,
-  type TextButtonOptions,
-  type TextButtonVariant,
-} from './components/TextButton'
 export { TokenRail, type TokenRailDeps } from './components/TokenRail'
 export { TopBar, type TopBarDeps, type TopBarOptions } from './components/TopBar'
 export type { Cue, CueSides, CueSpec, LockReason } from './director/cues'
@@ -160,7 +110,6 @@ export {
 } from './director/director'
 export { EVENT_PLAN, type EventPlan } from './director/ignored'
 export { type EffectTier, TIER_CONFIG, type TierConfig } from './fx/effectTier'
-export { bakeUiTextures, type UiTextureKey, type UiTextures } from './fx/uiTextures'
 export {
   DRAG_FOLLOW_DUR,
   DRAG_POSE_DUR,

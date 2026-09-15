@@ -23,7 +23,6 @@
 import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import { EVOLVE_FX_MS, EVOLVE_STAGGER_MS, POP_IN_MS, REMOVAL_FX_MS } from '../director/timings'
-import type { UiTextures } from '../fx/uiTextures'
 import type { Animator } from '../runtime/animator'
 import { killAndDestroy } from '../runtime/dispose'
 import type { TextTextureCache } from '../runtime/textCache'
@@ -58,7 +57,6 @@ const POP_IN = { fromScale: 0.6, ease: 'back.out(1.7)' } as const
 const EVOLVE_LABEL = { fontSize: 20, letterSpacing: 2, weight: '600' } as const
 
 export type BoardGridDeps = BoxDeps & {
-  ui: UiTextures
   text: TextTextureCache
   animator: Animator
 }

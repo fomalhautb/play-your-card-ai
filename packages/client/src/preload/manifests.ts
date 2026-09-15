@@ -15,15 +15,16 @@
 import { HEROES } from '@ai-duel/content'
 
 /**
- * 选英雄页：背景加七张人物卡。
+ * 选英雄页：七张人物卡。
+ *
+ * 背景底图在正式版简化第 4 步之五连源文件一起删了——那一页剥成素方块之后只剩一层底色。
  *
  * 卡面按英雄 id 现算而不是写死文件名（「id 即文件名」，见 content 的 test/assets.test.ts）：
  * 加一位英雄就自动进清单，抄一份文件名迟早对不上。
  */
-export const HERO_IMAGES: readonly string[] = [
-  '/hero/hero-bg.webp',
-  ...Object.keys(HEROES).map((id) => `/hero/card-${id}.webp`),
-]
+export const HERO_IMAGES: readonly string[] = Object.keys(HEROES).map(
+  (id) => `/hero/card-${id}.webp`,
+)
 
 /**
  * 关于页那张背景，就一张。

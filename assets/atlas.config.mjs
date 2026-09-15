@@ -34,7 +34,7 @@ export const FRAME_HEIGHT = 768
  * 卡面圆角在图集这一档上的半径（像素）。
  *
  * 圆角在构建期烤进原画的 alpha（纪律 3.1：软边这类东西要么写进着色器、要么烤进纹理），
- * 运行期不用遮罩也不用 Filter。半径按卡面基准宽等比缩到图集这一档：512 × 10 / 150 ≈ 34。
+ * 运行期不用遮罩也不用 Filter。半径按卡面基准宽等比缩到图集这一档：512 × 8 / 150 ≈ 27。
  *
  * 两个数都从设计令牌的源文件里读，而不是在这儿抄一份：卡宽和圆角改了这里要跟着改，
  * 抄一份就迟早对不上。这个脚本不在 pnpm 工作区里（assets/ 不是一个包），
@@ -44,13 +44,27 @@ const here = dirname(fileURLToPath(import.meta.url))
 const cardTokens = JSON.parse(
   readFileSync(join(here, '../packages/design/tokens/size.json'), 'utf8'),
 ).size.card
-export const FRAME_RADIUS = Math.round(
-  (FRAME_WIDTH * Number.parseFloat(cardTokens.radius.$value)) /
-    Number.parseFloat(cardTokens.width.$value),
-)
 
-/** 图集图片的 webp 质量。90 在卡面这种大面积渐变上看不出压缩痕迹，体积却只有 png 的两三成。 */
-const WEBP_QUALITY = 90
+/**
+ * 一张多宽的卡面该烤多大的圆角。半径按**卡宽的比例**走（令牌里是 150 宽配 8），
+ * 这样图集那一档和整幅的人物卡用的是同一条规矩。
+ *
+ * @param {number} width 这张图多宽（像素）
+ */
+export function radiusFor(width) {
+  return Math.round(
+    (width * Number.parseFloat(cardTokens.radius.$value)) /
+      Number.parseFloat(cardTokens.width.$value),
+  )
+}
+
+export const FRAME_RADIUS = radiusFor(FRAME_WIDTH)
+
+/**
+ * 图集图片的 webp 质量。90 在卡面这种大面积渐变上看不出压缩痕迹，体积却只有 png 的两三成。
+ * 导出是给 build-atlas.mjs 用的：人物卡烤完圆角也要重新编码一次，两处得是同一档。
+ */
+export const WEBP_QUALITY = 90
 
 /**
  * @param {string} entry 输入目录（build-atlas.mjs 准备好的暂存目录）

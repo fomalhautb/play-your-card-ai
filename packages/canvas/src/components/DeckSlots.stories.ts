@@ -14,7 +14,6 @@
 import { tokens } from '@ai-duel/design'
 import { createFakePlatform } from '@ai-duel/platform'
 import { Graphics } from 'pixi.js'
-import { bakeUiTextures } from '../fx/uiTextures'
 import type { GridSpec } from '../layout/gridMath'
 import { TextTextureCache } from '../runtime/textCache'
 import { GAP_SHIFT_DUR } from '../scenes/deck/timings'
@@ -42,7 +41,6 @@ const CARD_SCALE = GRID.cellWidth / 150
 const _SILENT_PLATFORM = createFakePlatform()
 
 function mount(ctx: StoryStage, filled: number, gap: number | null) {
-  const ui = bakeUiTextures(ctx.renderer)
   const text = new TextTextureCache(ctx.renderer)
   const deps = storyDeps(ctx)
   // 它长在纸面牌组栏上。
@@ -75,7 +73,6 @@ function mount(ctx: StoryStage, filled: number, gap: number | null) {
   return () => {
     for (const card of cards) card.destroy({ children: true })
     deps.dispose()
-    ui.destroy()
     text.destroy()
   }
 }

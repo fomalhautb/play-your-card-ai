@@ -25,7 +25,14 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { AssetPack } from '@assetpack/core'
 import sharp from 'sharp'
-import { atlasConfig, FRAME_HEIGHT, FRAME_RADIUS, FRAME_WIDTH } from './atlas.config.mjs'
+import {
+  atlasConfig,
+  FRAME_HEIGHT,
+  FRAME_RADIUS,
+  FRAME_WIDTH,
+  radiusFor,
+  WEBP_QUALITY,
+} from './atlas.config.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(here, '..')
@@ -55,19 +62,22 @@ const TARGETS = [
 ]
 
 /**
- * 原样复制到网页壳 public 下的目录：`assets/source/<from>` → `apps/web/public/<to>`。
+ * 复制到网页壳 public 下的目录：`assets/source/<from>` → `apps/web/public/<to>`。
  *
  * 这几类不进图集，各有各的理由：
- * - 界面底图（关于页、英雄）是整幅大图，一张一用，打进图集只会浪费图集页；
- *   英雄牌也在里面（`hero/card-<英雄 id>.webp`），它不进牌组、场上也不摆，用不着图集那条路。
+ * - 人物卡（`hero/card-<英雄 id>.webp`）是整幅大图，一张一用，它不进牌组、场上也不摆，
+ *   打进图集只会浪费图集页。
+ * - 关于页那张底图同理。
  * - 音频不是图。目录名换成 `audio/music` 是为了给以后可能拆出来的音效留个 `audio/` 前缀，
  *   客户端那边按 `/audio/music/<名字>.m4a` 取（见 client 的 audio/music.ts）。
+ *
+ * `round` 那一档要烤圆角，所以不能原样复制，见 copyRaw。
  *
  * 卡面（`cards/`）刻意不在这里：正式版的卡一律从图集取纹理，把原画也复制过去等于
  * 让同一张图有两个地址，改图时只换掉没人用的那份。
  */
 const COPIES = [
-  { from: 'hero', to: 'hero' },
+  { from: 'hero', to: 'hero', round: true },
   { from: 'info', to: 'info' },
   { from: 'music', to: 'audio/music' },
 ]
@@ -77,13 +87,21 @@ const COPIES = [
  *
  * 用 SVG 而不是自己拼像素，是因为 sharp 会用 librsvg 把它抗锯齿地栅格化，
  * 圆弧边缘自带半透明过渡；手写像素就得自己做抗锯齿，边上会有台阶。
- * 每张图都用同一块 Buffer，不用每张重新生成——所有帧的尺寸和半径都一样。
+ *
+ * @param {number} width
+ * @param {number} height
+ * @param {number} radius
  */
-const roundedMask = Buffer.from(
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${FRAME_WIDTH}" height="${FRAME_HEIGHT}">` +
-    `<rect width="${FRAME_WIDTH}" height="${FRAME_HEIGHT}" rx="${FRAME_RADIUS}" ry="${FRAME_RADIUS}" fill="#fff"/>` +
-    `</svg>`,
-)
+function roundedMask(width, height, radius) {
+  return Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+      `<rect width="${width}" height="${height}" rx="${radius}" ry="${radius}" fill="#fff"/>` +
+      `</svg>`,
+  )
+}
+
+/** 图集那一档的遮罩只有一块：所有帧的尺寸和半径都一样，不用每张重新生成。 */
+const frameMask = roundedMask(FRAME_WIDTH, FRAME_HEIGHT, FRAME_RADIUS)
 
 async function stage() {
   await rm(distDir, { recursive: true, force: true })
@@ -101,7 +119,7 @@ async function stage() {
         // 原画是不透明的 webp，先给它一条 alpha 通道，下面那步才有东西可扣。
         .ensureAlpha()
         // 圆角烤进 alpha：运行期就不用遮罩也不用 Filter 去切卡角了（纪律 3.1）。
-        .composite([{ input: roundedMask, blend: 'dest-in' }])
+        .composite([{ input: frameMask, blend: 'dest-in' }])
         .png()
         .toFile(join(outDir, name.replace(/\.webp$/, '.png')))
       count += 1
@@ -132,18 +150,54 @@ async function main() {
 }
 
 /**
- * 把 COPIES 里那几个目录原样复制到 apps/web/public 下。
+ * 把 COPIES 里那几个目录复制到 apps/web/public 下。
  *
  * 每次先整个删掉再复制：源目录里删掉一张图之后，产物里那一份不会自己消失，
  * 而客户端的清单测试查的是源目录，谁也不会发现产物里还留着一张没人要的图。
+ *
+ * 标了 `round` 的那一档（人物卡）不是原样复制，要逐张把圆角烤进 alpha，理由见 roundHero。
  */
 async function copyRaw() {
-  for (const { from, to } of COPIES) {
+  for (const { from, to, round } of COPIES) {
     const target = join(repoRoot, 'apps/web/public', to)
     await rm(target, { recursive: true, force: true })
     await mkdir(dirname(target), { recursive: true })
-    await cp(join(sourceDir, from), target, { recursive: true })
+    if (round === true) await roundHero(join(sourceDir, from), target)
+    else await cp(join(sourceDir, from), target, { recursive: true })
     console.log(`已复制到 ${target}`)
+  }
+}
+
+/**
+ * 人物卡：复制的同时把圆角烤进 alpha，半径按卡宽的比例取（和卡面图集同一条规矩，
+ * 见 atlas.config.mjs 的 radiusFor）——768 宽的原画烤的是 768 × 8 / 150 ≈ 41。
+ *
+ * 为什么在构建期做：选英雄页把这张图整幅贴在一块透视网格上（见 canvas 的
+ * scenes/hero/heroCard.ts），运行期要圆角就只剩遮罩和 Filter 两条路，而纪律 3.1 两条都不许。
+ * 烤进 alpha 之后运行期一分钱不花，和卡面图集的做法也一致。
+ *
+ * 按**每张图自己的尺寸**算遮罩，不写死 768×1152：源目录里的图哪天换成更大的重导版本时，
+ * 这里不用跟着改（代码一行不动，同 HeroScreen 当年那条注释）。
+ *
+ * @param {string} from 源目录
+ * @param {string} to 目标目录
+ */
+async function roundHero(from, to) {
+  await mkdir(to, { recursive: true })
+  for (const name of await readdir(from)) {
+    const source = join(from, name)
+    if (!name.endsWith('.webp')) {
+      await cp(source, join(to, name))
+      continue
+    }
+    const image = sharp(source)
+    const { width, height } = await image.metadata()
+    await image
+      // 原画是不透明的 webp，先给它一条 alpha 通道，下面那步才有东西可扣。
+      .ensureAlpha()
+      .composite([{ input: roundedMask(width, height, radiusFor(width)), blend: 'dest-in' }])
+      .webp({ quality: WEBP_QUALITY })
+      .toFile(join(to, name))
   }
 }
 

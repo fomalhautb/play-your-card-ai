@@ -50,7 +50,7 @@ export function HeroStage({ view, platform, onAction }: HeroStageProps) {
     let disposed = false
 
     const boot = async () => {
-      const art = await loadHeroTextures()
+      const arts = await loadHeroTextures()
       if (disposed) return
       const rect = host.getBoundingClientRect()
       const metrics = platform.safeArea.metrics()
@@ -59,9 +59,7 @@ export function HeroStage({ view, platform, onAction }: HeroStageProps) {
         width: rect.width,
         height: rect.height,
         resolution: Math.min(metrics.pixelRatio, MAX_RESOLUTION),
-        heroes: entriesOf(art.heroes),
-        background: art.background,
-        platform,
+        heroes: entriesOf(arts),
         coarsePointer: platform.safeArea.isCoarsePointer(),
       })
       if (disposed) {

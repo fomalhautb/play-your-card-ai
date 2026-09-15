@@ -53,7 +53,7 @@ const HEROES = [
   },
 ] as const
 
-const URLS = ['/hero/hero-bg.webp', ...HEROES.map((hero) => `/hero/card-${hero.id}.webp`)]
+const URLS = HEROES.map((hero) => `/hero/card-${hero.id}.webp`)
 
 async function mount(
   ctx: StoryStage,
@@ -82,8 +82,6 @@ async function mount(
     ...size,
     resolution: ctx.resolution,
     heroes,
-    background: images['/hero/hero-bg.webp'] ?? blank,
-    // 静音钮那两枚剪影不传：场景会自己画一对占位（见 fx/controlIcons.ts）。
     manualClock: true,
     coarsePointer: size === MOBILE,
   })
@@ -103,10 +101,12 @@ function spec(size: { width: number; height: number }, view: HeroView, hover: nu
       // 卡面图集只用来当兜底纹理（图没下下来时顶上），但要它才能保证不出现空引用。
       needsAtlas: true,
       /*
-       * 推到 900 毫秒：悬停的上浮（0.25s）、提示气泡的淡入（0.24s）、
-       * 详情的进场（0.32s）和说明淡入（0.26s）全都演完了，画面停住。
+       * 推到 1400 毫秒。要等的是这几段：整页入场（三格 0.5 + 错峰，七张卡 0.1 起跑
+       * 各 0.55 + 错峰 0.05，最晚一张 0.75 收尾）、悬停的上浮（0.25）、提示淡入（0.18）、
+       * 详情进场（0.55）和说明淡入（0.26），外加跟指针倾斜那一路的指数收敛
+       *（时间常数 0.35/3，跑满判据要三百多毫秒）。不推够的话拍到的是半路。
        */
-      settleMs: 900,
+      settleMs: 1400,
       mount: (ctx: StoryStage) => mount(ctx, size, view, hover),
     },
   }
@@ -117,13 +117,13 @@ export default {
   render: () => null,
 }
 
-/** 桌面档：两排 4 + 3，后三位灰着并压着「敬请期待」。 */
+/** 桌面档：1672×941 死版式缩放居中，两排 4 + 3，后三位灰着并压着「敬请期待」。 */
 export const Desktop = { name: '桌面档', parameters: spec(DESKTOP, CLOSED, null) }
 
-/** 指针停在第一张上：上浮、放大、转一点角度，卡下沿浮出「点击查看技能」。 */
+/** 指针停在第一张上：上浮、放大、跟指针三维倾斜加一块反光，卡上沿浮出「点击查看技能」。 */
 export const CardHover = { name: '卡片悬停', parameters: spec(DESKTOP, CLOSED, 0) }
 
-/** 技能详情打开：暗幕升起、卡放到左侧、右侧摊开说明，底下两颗匾额。 */
+/** 技能详情打开：暗幕升起、卡放到左侧、右侧摊开说明，底下两颗钮。 */
 export const DetailOpen = {
   name: '详情打开',
   parameters: spec(

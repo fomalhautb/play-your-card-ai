@@ -126,17 +126,22 @@ function falloff(distance: number, spread: number, blur: number): number {
  * 卡下那团软阴影。
  *
  * 画法是一圈套一圈的黑色圆角矩形，从最外面那圈开始画、每圈都半透明，叠出来就是化开的边。
- * 每圈的透明度取同一个小值，叠 N 层之后正好到 `CARD_SHADOW.alpha`：
+ * 每圈的透明度取同一个小值，叠 N 层之后正好到 `shadow.alpha`：
  * 一个点被几圈盖住取决于它离卡轮廓多远，于是越靠近卡越黑，自然就成了渐变。
  *
  * 纹理不带 `offsetY`——那是摆的时候往下挪，不是画进纹理里的。
  * 画进去的话纹理上半截就白留一条空，等于多传一片透明像素。
+ *
+ * @param shadow 哪一档阴影。不给就是卡牌那一档（`CARD_SHADOW`）；选英雄页的人物卡另有一档
+ *   更浅更紧的（见 scenes/hero/heroCard.ts 的 `HERO_SHADOW`），所以这里收参数而不是读常量。
  */
-export function drawCardShadow(): Mold {
-  const { blur } = CARD_SHADOW
+export function drawCardShadow(
+  shadow: { blur: number; offsetY: number; alpha: number } = CARD_SHADOW,
+): Mold {
+  const { blur } = shadow
   const g = new Graphics()
   // 叠 SHADOW_RINGS 层同样透明度的黑，合起来正好是目标透明度。
-  const step = 1 - (1 - CARD_SHADOW.alpha) ** (1 / SHADOW_RINGS)
+  const step = 1 - (1 - shadow.alpha) ** (1 / SHADOW_RINGS)
   for (let i = SHADOW_RINGS; i >= 1; i -= 1) {
     const grow = (blur * i) / SHADOW_RINGS
     g.roundRect(

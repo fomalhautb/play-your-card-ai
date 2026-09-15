@@ -14,7 +14,6 @@
  * 唯一由场景自己管的是**悬停**：那是纯粹的画面反馈，出了这一页没有任何意义。
  */
 
-import type { Platform } from '@ai-duel/platform'
 import type { Texture } from 'pixi.js'
 
 /** 一位英雄。数据来自 `content` 的 HEROES，由装配层查好连原画一起传进来。 */
@@ -33,7 +32,10 @@ export interface HeroEntry {
    * 而且玩家会以为这个游戏只有四位英雄（旧版 HeroScreen 同一处的理由）。
    */
   comingSoon?: boolean
-  /** 整张人物卡的原画（2:3）。名字和边框都画在图里，所以摆出来是一个普通精灵。 */
+  /**
+   * 整张人物卡的原画（2:3）。名字和边框都画在图里，所以卡面上不再叠铭牌和费用章。
+   * 圆角在构建期就烤进它的 alpha 了（见 assets/build-atlas.mjs），运行期不挂遮罩也不挂 Filter。
+   */
   art: Texture
 }
 
@@ -71,10 +73,6 @@ export interface HeroSceneOptions {
   resolution: number
   /** 七位英雄，顺序就是摆放顺序（`content` 的 HEROES 键序，那边有约定）。 */
   heroes: HeroEntry[]
-  /** 整页的背景图。不给就只有一层底色。 */
-  background?: Texture
-  /** 触感和音效。不给就静音、不震动（目录页就是这么跑的）。 */
-  platform?: Pick<Platform, 'audio' | 'haptics'>
   /** true 时不注册任何真实时间源，只靠 step() 推进。 */
   manualClock?: boolean
   /** 指针是不是粗的。它和视口短边一起决定走哪一档版式（同对局场景）。 */
