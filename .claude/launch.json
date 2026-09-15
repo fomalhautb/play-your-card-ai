@@ -1,10 +1,10 @@
 {
   "version": "0.0.1",
-  "note": "联机要同时起 web 和 relay 两个进程：web 的 vite 配置把 /api、/lobby、/match/xxxx 代理给 relay，浏览器眼里前后端同源（见仓库根 README 的「本地怎么跑联机」）。单机对局只起 web 就够。",
+  "note": "联机要同时起 web 和 server 两个进程：web 的 vite 配置把 /api、/lobby、/match/xxxx 代理给 server，浏览器眼里前后端同源（见仓库根 README 的「本地怎么跑联机」）。单机对局只起 web 就够。",
   "configurations": [
     {
       "name": "web",
-      "note": "网页壳 apps/web：首页那颗「开始」直接进联机房；菜单里另有测试对局和联机对战。联机那条要同时起 relay。",
+      "note": "网页壳 apps/web：首页那颗「开始」直接进联机房；菜单里另有测试对局和联机对战。联机那条要同时起 server。",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
         "dev"
@@ -13,7 +13,7 @@
       "autoPort": true
     },
     {
-      "name": "relay",
+      "name": "server",
       "note": "服务端：wrangler dev 起本地 Cloudflare Worker，里面是房间、大厅和账号三块。起之前会先建一次账号库的表。第一次要先 cp packages/server/.dev.vars.example packages/server/.dev.vars。不用先构建网页壳：这条命令给 wrangler 传 --assets ../../apps/web/public 顶掉配置里那个构建产物目录，原因见 packages/server/README.md 的「本地开发」。",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [

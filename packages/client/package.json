@@ -22,7 +22,6 @@
     "@ai-duel/canvas": "workspace:*",
     "@ai-duel/content": "workspace:*",
     "@ai-duel/core": "workspace:*",
-    "@ai-duel/design": "workspace:*",
     "@ai-duel/platform": "workspace:*",
     "@ai-duel/protocol": "workspace:*",
     "@ai-duel/ui": "workspace:*",

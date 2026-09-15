@@ -29,7 +29,7 @@
       // 包入口 src/index.ts 不用写，knip 从 package.json 的 exports 里认。
       "entry": ["src/**/*.stories.ts"]
       // 这里原来有一条 ignoreDependencies: ["@ai-duel/platform"]，按上面的到期条款删掉了：
-      // 迁移第 17 条的匾额按钮按下时要调触感和音效（见 components/PlaqueButton.ts）。
+      // 组件按下时要调触感和音效（见 components/Box.ts）。
     },
     "packages/ui": {
       // 同 canvas：目录页条目也是入口。
@@ -44,7 +44,7 @@
     },
     "packages/bench": {
       /*
-       * design 和 canvas 两条都按上面的到期条款删掉了：桩场景在读 @ai-duel/design 的令牌，
+       * design 和 canvas 两条都按上面的到期条款删掉了：桩场景在读 @ai-duel/design 的时长令牌，
        * 剧本驱动的是 @ai-duel/canvas 的对局场景（迁移第 3 条接上的）。
        * platform 还留着——接口还没定（迁移第 11 条）。
        */

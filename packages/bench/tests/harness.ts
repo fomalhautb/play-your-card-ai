@@ -5,11 +5,11 @@
  * 这样页面 API 一改，要跟着改的只有这一个文件。
  */
 
+import type { HitPoint } from '@ai-duel/canvas'
 import type { CDPSession, Page } from '@playwright/test'
 import type { BenchMetrics, OverdrawResult } from '../src/metrics/types'
 import { DECK, type Profile, SEED } from '../src/node/profiles'
-import type { BenchApi, BenchInitOptions, GpuReport, SceneKind } from '../src/page/benchApi'
-import type { HitPoint } from '../src/page/hitPoints'
+import type { BenchApi, BenchInitOptions, GpuReport, SceneKind } from '../src/page/benchContract'
 import type { KeyframeShots } from '../src/page/keyframes'
 import { sceneOfScenario } from '../src/scenarios/index'
 import type { DuelCommand } from '../src/scene/contract'

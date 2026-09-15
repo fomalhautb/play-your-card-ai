@@ -11,10 +11,9 @@
  * 注意这里只有**形状**，不是显示对象。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Graphics } from 'pixi.js'
 import { CARD_WIDTH } from '../layout/fanMath'
-import { mixHex } from './colors'
+import { mixHex, PALETTE } from './colors'
 import { type Mold, mold } from './mold'
 
 /**
@@ -90,8 +89,8 @@ export function drawCostDisc(): Mold {
  * 颜色全场一样，所以画的是真颜色而不是白色——这一层没有逐张上色的需求。
  */
 export function drawCostRings(): Mold {
-  const metal = mixHex(tokens.color.theme.gold, 0.35, tokens.color.paper.lineDark)
-  const metalLight = mixHex(tokens.color.paper.base, 0.76, tokens.color.theme.gold)
+  const metal = mixHex(PALETTE.gold, 0.35, PALETTE.paperLineDark)
+  const metalLight = mixHex(PALETTE.paperBase, 0.76, PALETTE.gold)
   const r = BADGE_VIEW / 2
   const g = new Graphics()
   g.circle(r, r, 48).stroke({ width: 2.5, color: metal })

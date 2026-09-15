@@ -12,76 +12,59 @@
  * 答题不用管：进答题阶段 2.5 秒后自动交卷（见 src/match/quizAutopilot.ts）。
  */
 
-import { CARD_HEIGHT, fanTransform, PLAYER_FAN, pickLayout } from '@ai-duel/canvas'
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { enterTestMatch, openHome } from './homePage'
-import { VIEWPORT } from './players'
+import { centerOf, inertSpot, type Spot, stageBox, stageHits } from './stagePage'
+
+/** 对局那块画布。所有落点都是相对它算的（见 stagePage.ts）。 */
+const STAGE = '.duel-stage canvas'
 
 /**
- * 落点一律**调 canvas 的版式函数现算**，不在这里抄一份公式。
+ * 落点一律**从 Pixi 场景树上反查**，不在这里抄版式公式，也不调版式函数现算。
  *
- * 从前这里写死了一组按 1280×900 推出来的坐标，版式一改就点空——正式版简化第 4 步之二
- * 把桌面档改回「1672×941 死版式 + 整块缩放」时就踩了这一下：扇形锚点、每张牌的间距
- * 全变了。现在和首页、房间页同一个做法（见 homePage.ts / roomPage.ts）。
+ * 这里从前写死过一组按 1280×900 推出来的坐标，版式一改就点空——正式版简化第 4 步之二
+ * 把桌面档改回「1672×941 死版式 + 整块缩放」时就踩了这一下：扇形锚点、每张牌的间距全变了。
+ * 之后改成调 canvas 的版式函数，还是得在这儿复刻一遍「扇形第 n 张的卡心在哪儿」那段几何
+ *（卡以底边中点为原点也为旋转轴，外侧那几张是歪的），而那段几何只要组件一改就又对不上。
+ * 现在问场景自己：按 label 找到对象，再用 Pixi 的命中测试验一遍那个坐标真的会命中它
+ *（实现见 canvas 的 runtime/hitProbe.ts，bench 的交互用例读的是同一份）。
  */
-const LAYOUT = pickLayout(VIEWPORT.width, VIEWPORT.height)
 
-/** 测试房开局双方各五张手牌（core 的 engineSetup）。扇形的间距要按这个张数算。 */
-const HAND_COUNT = 5
-
-/** 舞台坐标 → 视口坐标。桌面档的舞台是整块等比缩放居中过的，两者差一个 scale 加一个偏移。 */
-function toViewport(x: number, y: number): { x: number; y: number } {
-  const { stage } = LAYOUT
-  return { x: stage.x + x * stage.scale, y: stage.y + y * stage.scale }
+/**
+ * 此刻点得到的那些手牌，按屏幕上从左到右排。
+ *
+ * 限定在扇形（`hand-fan`）底下：战场上打出去的卡 label 是同一个前缀，
+ * 不限定的话打出第一张之后「第 2 张手牌」就可能指到场上那张去。
+ */
+async function handSpots(page: Page): Promise<Spot[]> {
+  return await stageHits(page, STAGE, 'card:', 'hand-fan')
 }
 
 /**
- * 第 index 张手牌的卡心（视口坐标）。0 是最左边那张。
+ * 松手的地方：战场正中。
  *
- * 卡以自己的**底边中点**为原点也为旋转轴（见 canvas 的 CardSprite 坐标约定），
- * 所以卡心是从原点沿着卡自己的竖轴往上半张卡——外侧那几张是歪的，这一段要跟着转。
+ * 出牌区就是战场外框本身（见 canvas 的 desktopLayout），而战场那一格（`board-grid`）
+ * 整块都在它里面，所以取这一格的正中一定落得进去。空着的时候这一格里只有中线那条横杆，
+ * 横杆横贯整格、竖直居中，所以它的外框正中就是整格的正中。
  */
-function handSpot(index: number): { x: number; y: number } {
-  const { hand } = LAYOUT
-  const slot = fanTransform(index, HAND_COUNT, hand.areaWidth, PLAYER_FAN)
-  const radians = (slot.rotation * Math.PI) / 180
-  const half = CARD_HEIGHT / 2
-  return toViewport(
-    hand.x + (slot.x + Math.sin(radians) * half) * hand.scale,
-    hand.y + (slot.y - Math.cos(radians) * half) * hand.scale,
-  )
+async function dropSpot(page: Page): Promise<Spot> {
+  return centerOf(await stageBox(page, STAGE, 'board-grid'))
 }
 
-/** 松手的地方：战场正中，落在出牌区里（出牌区就是战场外框本身）。 */
-const DROP = toViewport(
-  LAYOUT.boardFrame.x + LAYOUT.boardFrame.width / 2,
-  LAYOUT.boardFrame.y + LAYOUT.boardFrame.height / 2,
-)
-
-/**
- * 一处「点了什么都不会发生」的空地：侧栏里上下两块玩家面板中间那条缝。
- *
- * 用来收掉可能立起来的选目标层——那一层铺满全屏、点哪儿都是取消。
- * 不能拿战场当空地：点战场上的格子会打开放大查看，那反而多一层要收的东西。
- * 也**不能拿玩家面板中间**当空地：那儿摆着英雄牌，正式版简化第 4 步之三之后点它
- * 同样会打开放大查看（黑客松那一版就是这么设计的）。
- */
-const IDLE_SPOT = toViewport(
-  LAYOUT.panels.mine.x + LAYOUT.panels.mine.width / 2,
-  (LAYOUT.panels.theirs.y + LAYOUT.panels.theirs.height + LAYOUT.panels.mine.y) / 2,
-)
-
-/** 拖第 index 张手牌（0 是最左边那张）到出牌区。 */
+/** 拖第 index 张手牌（0 是最左边那张）到出牌区。点得到的没那么多张就拖最后一张。 */
 async function dragCard(page: Page, index: number): Promise<void> {
-  const from = handSpot(index)
+  const spots = await handSpots(page)
+  const from = spots[index] ?? spots.at(-1)
+  if (from === undefined) throw new Error('一张手牌都点不到')
+  const drop = await dropSpot(page)
   await page.mouse.move(from.x, from.y)
   await page.mouse.down()
   // 中间多走几步是因为拖拽有 4 像素的阈值，一步到位反而可能被当成点击。
   for (let step = 1; step <= 5; step += 1) {
     await page.mouse.move(
-      from.x + ((DROP.x - from.x) * step) / 5,
-      from.y + ((DROP.y - from.y) * step) / 5,
+      from.x + ((drop.x - from.x) * step) / 5,
+      from.y + ((drop.y - from.y) * step) / 5,
     )
   }
   await page.mouse.up()
@@ -151,8 +134,12 @@ test('从首页开一局测试对局，拖牌出牌，一路打到结算页', as
     await setPanel(page, true)
     await ensureMyTurn(page)
     await setPanel(page, false)
-    // 先点一下空地，把上一次可能立起来的选目标层收掉（那一层点哪儿都是取消）。
-    await page.mouse.click(IDLE_SPOT.x, IDLE_SPOT.y)
+    /*
+     * 先点一下空地，把上一次可能立起来的选目标层收掉（那一层点哪儿都是取消）。
+     * 空地每轮现扫：场上多了一张牌、或者哪层浮层立着，上一轮的空地就不一定还空着。
+     */
+    const idle = await inertSpot(page, STAGE)
+    await page.mouse.click(idle.x, idle.y)
     await dragCard(page, order[attempt % order.length] ?? 2)
     await page.waitForTimeout(2800)
     await setPanel(page, true)

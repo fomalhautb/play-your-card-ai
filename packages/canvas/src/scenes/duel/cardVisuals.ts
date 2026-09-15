@@ -16,16 +16,26 @@
  */
 
 import type { CardId, Catalog } from '@ai-duel/core'
-import { tokens } from '@ai-duel/design'
 import type { CardVisual } from '../../components/CardSprite'
-import { hexToInt, mix } from '../../fx/colors'
+import { hexToInt, mix, PALETTE } from '../../fx/colors'
 import { CARD_HEIGHT, CARD_WIDTH } from '../../layout/fanMath'
 import type { CardFaceStyle, CardTextures } from '../duelContract'
 
-/** 三类牌的标识色。兜底文字层底栏那行字跟着它走，一眼看得出是 AI 还是技能。 */
+/**
+ * 两类牌的标识色。兜底文字层底栏那行字跟着它走，一眼看得出是 AI 还是技能。
+ *
+ * 导出是给开包页用的（client 的 screens/PackScreen.tsx）：那一页也要按卡种给卡面上色，
+ * 两边必须是同一份，否则同一张牌在两处颜色不一样。
+ * 原先是 `color.accent.*` 两条令牌，正式版简化第 5 步把颜色那组整组删了（理由见 design 包的
+ * README），这两个值跟着唯一的消费方搬到这儿。
+ * 来源：黑客松版 styles.css 的 .card-face--ai / .card-face--skill 的 --accent。
+ */
+export const CARD_KIND_INK = { ai: '#7fd1ff', skill: '#ffc158' } as const
+
+/** 同一份颜色的 Pixi 形式（tint 吃的是数）。 */
 const ACCENT = {
-  ai: hexToInt(tokens.color.accent.ai),
-  skill: hexToInt(tokens.color.accent.skill),
+  ai: hexToInt(CARD_KIND_INK.ai),
+  skill: hexToInt(CARD_KIND_INK.skill),
 } as const
 
 /**
@@ -59,7 +69,7 @@ export function createCardVisuals(
   textures: CardTextures,
   faces: Record<string, CardFaceStyle> = {},
 ): CardVisuals {
-  const paperInk = hexToInt(tokens.color.paper.ink)
+  const paperInk = hexToInt(PALETTE.paperInk)
 
   return {
     visualOf(cardId, instanceId) {

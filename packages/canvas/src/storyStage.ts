@@ -16,6 +16,16 @@ import type { Container, Renderer, Texture } from 'pixi.js'
 import type { Animator } from './runtime/animator'
 import type { CardTextures } from './scenes/duelContract'
 
+/**
+ * 目录页画布上「没人管的地方」那两档颜色：条目自己的说明文字色，和垫在浅色零件底下的纸面暗部。
+ *
+ * 它们服务的是**目录页这块画布**而不是任何一个组件，所以既不进令牌也不进 `fx/colors.ts`
+ * 那张卡面色表（正式版简化第 5 步撤掉颜色令牌时一起收到这里）。
+ * 来源：黑客松版 styles.css 的 :root color，和 ui/paper/paper.css 的 --paper-shade。
+ */
+export const STORY_INK = '#e5e7eb'
+export const STORY_PLATE = '#e4ddc9'
+
 export interface StoryStage {
   /** 场景根节点。往这里挂东西就会被画出来。 */
   stage: Container

@@ -10,7 +10,7 @@
  * 新卡是「落进」收藏的。
  */
 
-import { autoDetectRenderer, Container, Graphics, type Renderer } from 'pixi.js'
+import { Container, Graphics, type Renderer } from 'pixi.js'
 import { Box, type BoxDeps, CANVAS_BACKGROUND } from '../../components/Box'
 import { CardSprite } from '../../components/CardSprite'
 import { PLAY_FLIP_MS } from '../../director/timings'
@@ -21,6 +21,7 @@ import { Animator } from '../../runtime/animator'
 import { killAndDestroy } from '../../runtime/dispose'
 import { FrameLoop } from '../../runtime/frameLoop'
 import { Rng } from '../../runtime/rng'
+import { createSceneRenderer } from '../../runtime/sceneRenderer'
 import { TextTextureCache } from '../../runtime/textCache'
 import { pickTier } from '../duel/layout/pickLayout'
 import type { PackAction, PackScene, PackSceneOptions, PackView } from './packContract'
@@ -32,17 +33,7 @@ const CARD_HEIGHT_RATIO = { desktop: 0.52, mobile: 0.42 }
 const COLUMN = { widthRatio: 0.6, minWidth: 160, maxWidth: 320, height: 44, gap: 12, top: 24 }
 
 export async function createPackScene(options: PackSceneOptions): Promise<PackScene> {
-  const renderer = await autoDetectRenderer({
-    canvas: options.canvas,
-    width: options.width,
-    height: options.height,
-    resolution: options.resolution,
-    // 3.8：显式走 WebGL。数组形式是排除式的——WebGPU 不在名单里就整个不试。
-    preference: ['webgl'],
-    antialias: true,
-    autoDensity: true,
-    background: CANVAS_BACKGROUND,
-  })
+  const renderer = await createSceneRenderer(options)
   return new PackSceneImpl(renderer, options, true).handle()
 }
 

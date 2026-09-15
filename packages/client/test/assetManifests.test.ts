@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { MUSIC_TRACKS } from '../src/audio/music'
 import { SOUNDS } from '../src/audio/sounds'
-import { HERO_IMAGES, INFO_IMAGES, PRELOAD_GROUPS } from '../src/preload/manifests'
+import { HERO_IMAGES, PRELOAD_GROUPS } from '../src/preload/manifests'
 
 const ASSETS_DIR = fileURLToPath(new URL('../../../assets/source', import.meta.url))
 
@@ -29,8 +29,10 @@ const ASSETS_DIR = fileURLToPath(new URL('../../../assets/source', import.meta.u
  * 站点图标和 manifest 也不在：那些由浏览器按 `<link>` 自己取，进清单只会白等。
  * `home/` `room/` `battle/` 三个目录整个没了：正式版简化第 4 步把这三页剥成素方块，
  * 那几批图（首页四张、房间页十四张切片、对局页六张底图）一张都没人引用，连源文件一起删了。
+ * `info/` 在第 5 步也没了：关于页那张背景同样没人引用。
+ * 于是现在只剩人物卡一个目录——这份检查仍然要留着，它守的是「加图忘了登记」。
  */
-const IMAGE_DIRS = ['hero', 'info']
+const IMAGE_DIRS = ['hero']
 
 /** 音频落在壳 public 的 `audio/music/` 下，源目录却叫 `music/`（见 assets/README.md 的复制表）。 */
 const AUDIO_URL_PREFIX = '/audio/music/'
@@ -47,7 +49,7 @@ function listSourceFiles(dirs: readonly string[]): string[] {
 
 describe('图片清单', () => {
   const files = listSourceFiles(IMAGE_DIRS)
-  const listed = new Set([HERO_IMAGES, INFO_IMAGES].flat())
+  const listed = new Set(HERO_IMAGES)
 
   it('这几个目录下的每一张图都登记在某份清单里', () => {
     // 逐个报缺失的文件名，而不是只说数字对不上——加图忘了登记的人要的是「哪一张」。

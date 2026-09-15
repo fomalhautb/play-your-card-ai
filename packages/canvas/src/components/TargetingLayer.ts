@@ -27,6 +27,15 @@ import type { Animator } from '../runtime/animator'
 import { Box, type BoxDeps } from './Box'
 
 /**
+ * 这一层压暗的颜色和不透明度。
+ *
+ * 偏蓝的深色而不是纯黑：它压着的是战场，纯黑会把场上小卡的暖色压成灰。
+ * 所以不和抛硬币 / 抵消层那两层共用 `fx/colors.ts` 的 `VEIL`，只有这里在读。
+ * 来源：黑客松版 styles.css 的 .battle__targeting。
+ */
+const DIM = { color: '#060b16', alpha: 0.62 } as const
+
+/**
  * 选目标态下手牌那一排怎么变：没在施放的牌压到这个透明度，正在施放的那张抬起这么多。
  * 抄黑客松版的 `ui/HandFan.tsx`（`CASTING_DIM` / `CASTING_LIFT`）。
  * 导出给场景用——它们作用在扇形上，不在这一层，理由见文件头。
@@ -66,10 +75,7 @@ export class TargetingLayer extends Container {
   /** 压暗要铺满整个视口，所以尺寸由调用方给。 */
   resize(width: number, height: number): void {
     this.boxWidth = width
-    this.dim
-      .clear()
-      .rect(0, 0, width, height)
-      .fill({ color: tokens.color.overlay.targeting, alpha: tokens.opacity.overlay.targeting })
+    this.dim.clear().rect(0, 0, width, height).fill({ color: DIM.color, alpha: DIM.alpha })
     this.layoutHint()
   }
 

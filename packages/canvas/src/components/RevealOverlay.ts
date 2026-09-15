@@ -38,6 +38,16 @@ import { Label } from './Label'
 /** 字幕的字号和字距（px），以及它离卡底多远。组件私有，理由见 design 的 README。 */
 const CAPTION = { fontSize: 20, letterSpacing: 4 } as const
 const CAPTION_GAP = 28
+/**
+ * 字幕的字色，和这一层遮罩的颜色 / 不透明度。
+ *
+ * 字是压在深色遮罩上的暖白，比纸面那套墨色亮得多——它印在深色背景上，不是印在纸上。
+ * 遮罩和抛硬币那两层同色不同透明度：那两层要把整块战场推远，这一层还得让人认出背景是战场
+ * （66% 是去掉背景模糊之后从旧版的 50% 补上来的）。只有这个文件在读，所以不进
+ * `fx/colors.ts` 的那张表。来源：黑客松版 styles.css 的 .battle__targeting-text 与 .reveal-overlay。
+ */
+const CAPTION_INK = '#ffeec5'
+const REVEAL_VEIL = { color: '#000000', alpha: 0.66 } as const
 /** 停留期间那条上下浮动往上浮多少。一趟多久走令牌（MatchStage.tsx:2447-2454）。 */
 const FLOAT_RISE = 8
 const FLOAT_DUR = tokens.duration.reveal.float
@@ -132,10 +142,7 @@ export class RevealOverlay extends Container {
     this.activeZoom = this.zoom
     this.anchorX = options.anchorX ?? 0.5
     this.anchorY = options.anchorY ?? 0.5
-    this.veilPaint = options.veil ?? {
-      color: tokens.color.overlay.reveal,
-      alpha: tokens.opacity.overlay.reveal,
-    }
+    this.veilPaint = options.veil ?? REVEAL_VEIL
     this.topClip = options.topClip ?? 0
     this.clip = this.topClip > 0 ? new Graphics() : null
     this.label = 'reveal-overlay'
@@ -333,7 +340,7 @@ export class RevealOverlay extends Container {
    */
   showCaption(text: string): number {
     for (const child of this.captionSlot.removeChildren()) child.destroy({ children: true })
-    const label = new Label(text, CAPTION, this.deps, tokens.color.battle.cueInk)
+    const label = new Label(text, CAPTION, this.deps, CAPTION_INK)
     label.alpha = 0
     label.position.set(this.boxWidth * this.anchorX, this.slot.y + CAPTION_GAP)
     this.captionSlot.addChild(label)

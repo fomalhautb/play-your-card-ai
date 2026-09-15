@@ -17,11 +17,12 @@
  * 一张人物卡怎么画在 heroCard.ts。
  */
 
-import { autoDetectRenderer, Container, Graphics, type Renderer } from 'pixi.js'
-import { Box, CANVAS_BACKGROUND } from '../../components/Box'
+import { Container, Graphics, type Renderer } from 'pixi.js'
+import { Box } from '../../components/Box'
 import { Animator } from '../../runtime/animator'
 import { killAndDestroy } from '../../runtime/dispose'
 import { FrameLoop } from '../../runtime/frameLoop'
+import { createSceneRenderer } from '../../runtime/sceneRenderer'
 import { TextTextureCache } from '../../runtime/textCache'
 import { paintStageFrame } from '../duel/stageFrame'
 import { bakeHeroTextures, type HeroTextures } from './heroCard'
@@ -36,17 +37,7 @@ const TITLE = '选择你的英雄'
 const SUBTITLE = '每位英雄自带一个改变对局的技能'
 
 export async function createHeroScene(options: HeroSceneOptions): Promise<HeroScene> {
-  const renderer = await autoDetectRenderer({
-    canvas: options.canvas,
-    width: options.width,
-    height: options.height,
-    resolution: options.resolution,
-    // 3.8：显式走 WebGL。数组形式是排除式的——WebGPU 不在名单里就整个不试。
-    preference: ['webgl'],
-    antialias: true,
-    autoDensity: true,
-    background: CANVAS_BACKGROUND,
-  })
+  const renderer = await createSceneRenderer(options)
   return new HeroSceneImpl(renderer, options, true).handle()
 }
 

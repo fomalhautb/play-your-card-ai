@@ -15,9 +15,8 @@
  * 它只在一局打完之后出现，那时图集早就在缓存里了，不再另设一道闸门。
  */
 
-import type { PackAction, PackView } from '@ai-duel/canvas'
+import { CARD_KIND_INK, type PackAction, type PackView } from '@ai-duel/canvas'
 import { CARDS } from '@ai-duel/content'
-import { tokens } from '@ai-duel/design'
 import { useEffect, useState } from 'react'
 import { useLocation, useSearch } from 'wouter'
 import { usePlatform } from '../app/platform'
@@ -26,10 +25,10 @@ import { PackStage } from './PackStage'
 import { packCardOf } from './packRoute'
 import './packScreen.css'
 
-/** 三类牌的标识色，和对局那边同一份（canvas 的 scenes/duel/cardVisuals.ts）。 */
+/** 两类牌的标识色，和对局那边同一份（canvas 导出的 CARD_KIND_INK）。Pixi 的 tint 吃的是数。 */
 const ACCENT = {
-  ai: Number.parseInt(tokens.color.accent.ai.slice(1), 16),
-  skill: Number.parseInt(tokens.color.accent.skill.slice(1), 16),
+  ai: Number.parseInt(CARD_KIND_INK.ai.slice(1), 16),
+  skill: Number.parseInt(CARD_KIND_INK.skill.slice(1), 16),
 }
 
 export function PackScreen() {

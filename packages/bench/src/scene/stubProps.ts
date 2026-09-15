@@ -5,9 +5,9 @@
  * 运行期一个都不再 new——纪律 3.5 要求动画期间文字对象不重建，卡池就是为这条准备的。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Sprite, Text, Texture } from 'pixi.js'
 import type { BenchSceneOptions } from './contract'
+import { BENCH_COLORS } from './palette'
 import { TIERS } from './stubLayout'
 
 export interface CardView {
@@ -41,8 +41,7 @@ function buildBackground(opts: BenchSceneOptions): Sprite {
   const bg = new Sprite(Texture.WHITE)
   bg.width = opts.width
   bg.height = opts.height
-  // 颜色和时长一律读 design 包的令牌，组件里不写死数值（7.1 第 4 条）。
-  bg.tint = tokens.color.paper.night
+  bg.tint = BENCH_COLORS.paperNight
   return bg
 }
 
@@ -56,7 +55,7 @@ function buildCards(opts: BenchSceneOptions): CardView[] {
     face.anchor.set(0.5)
     const label = new Text({
       text: key,
-      style: { fontFamily: 'sans-serif', fontSize: 14, fill: tokens.color.paper.base },
+      style: { fontFamily: 'sans-serif', fontSize: 14, fill: BENCH_COLORS.paperBase },
     })
     label.anchor.set(0.5)
     label.y = face.height / 2 - 16
@@ -86,7 +85,7 @@ function buildGlow(opts: BenchSceneOptions): Sprite | null {
   const glow = new Sprite(Texture.WHITE)
   glow.width = opts.width
   glow.height = opts.height
-  glow.tint = tokens.color.theme.purple
+  glow.tint = BENCH_COLORS.themePurple
   glow.blendMode = 'add'
   glow.visible = false
   return glow

@@ -18,7 +18,15 @@ import type { TimingStats } from '../src/node/trace'
 import { medianStats, statsFrom } from '../src/node/trace'
 import { scenarioNames } from '../src/scenarios/index'
 import { FRAME_BUDGET_MS } from '../src/thresholds'
-import { enableGpuTiming, gpuReport, initOptions, initScene, openBench, runQuiet } from './harness'
+import {
+  enableGpuTiming,
+  gpuReport,
+  initOptions,
+  initScene,
+  openBench,
+  runQuiet,
+  sceneOf,
+} from './harness'
 import { captureTrace, extractFrames, hasUv, traceScratchDir } from './tracing'
 
 /** 6.9：每次跑五遍取中位数抗噪声。 */
@@ -58,7 +66,8 @@ test.describe('时间指标', () => {
         await client.send('Emulation.setCPUThrottlingRate', { rate: CPU_THROTTLE })
 
         const scratch = traceScratchDir()
-        const opts = { ...initOptions(profile, false), overdrawSampleEvery: 0 }
+        // 剧本各自登记了要哪个场景（`deckScroll` 要构筑页），不按它建就会当场抛。
+        const opts = { ...initOptions(profile, false, sceneOf(segment)), overdrawSampleEvery: 0 }
         const perRun: TimingStats[] = []
         let gpu = { available: false, reason: '没跑到' } as Awaited<ReturnType<typeof gpuReport>>
 

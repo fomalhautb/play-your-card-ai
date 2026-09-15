@@ -13,13 +13,19 @@
  * 稳态每帧堆分配那条（3.10）过不去。
  */
 
-import { tokens } from '@ai-duel/design'
 import { type Container, Sprite } from 'pixi.js'
 import type { Animator } from '../runtime/animator'
 import type { Rng } from '../runtime/rng'
 import type { BakedTextures } from './bakedTextures'
 import { EdgeRing } from './edgeRing'
 import { type EffectTier, TIER_CONFIG } from './effectTier'
+
+/**
+ * 烟尘粒子的颜色：灰褐，取对局那套色板里偏深的那档线色。
+ * 只有这一处在用，所以不进 `fx/colors.ts` 的那张表（判据见那个文件的头）。
+ * 来源：黑客松版 styles.css 的 .battle --battle-line-dark。
+ */
+const SMOKE_TINT = '#777465'
 
 /** 震屏里每一小段位移的时长。五段拼成一次抖动，末段翻倍收尾，全程约 0.3 秒。 */
 const SHAKE_STEP = 0.05
@@ -81,8 +87,7 @@ export class HitFx {
       // 池子里的精灵不演的时候要整个藏起来：Pixi 判要不要画看 visible 不看 alpha，
       // 留着就是每帧白白多几个空批次（3.9）。
       puff.visible = false
-      // 灰褐色的尘，和旧版一套配色：取纸面色板里偏深的那档线色。
-      puff.tint = tokens.color.battle.lineDark
+      puff.tint = SMOKE_TINT
       options.layer.addChild(puff)
       this.smoke.push(puff)
     }

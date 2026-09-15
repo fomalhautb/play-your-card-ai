@@ -11,14 +11,13 @@
  * 目录页那块画布装不下，而两档的格子长得一模一样，只是排法不同。
  */
 
-import { tokens } from '@ai-duel/design'
 import { createFakePlatform } from '@ai-duel/platform'
 import { Graphics } from 'pixi.js'
 import type { GridSpec } from '../layout/gridMath'
 import { TextTextureCache } from '../runtime/textCache'
 import { GAP_SHIFT_DUR } from '../scenes/deck/timings'
 import { storyCard, storyDeps } from '../storyCards'
-import type { StoryStage } from '../storyStage'
+import { STORY_PLATE, type StoryStage } from '../storyStage'
 import type { CardSprite } from './CardSprite'
 import { DeckSlots } from './DeckSlots'
 
@@ -44,9 +43,7 @@ function mount(ctx: StoryStage, filled: number, gap: number | null) {
   const text = new TextTextureCache(ctx.renderer)
   const deps = storyDeps(ctx)
   // 它长在纸面牌组栏上。
-  ctx.stage.addChild(
-    new Graphics().rect(0, 0, ctx.width, ctx.height).fill({ color: tokens.color.paper.shade }),
-  )
+  ctx.stage.addChild(new Graphics().rect(0, 0, ctx.width, ctx.height).fill({ color: STORY_PLATE }))
 
   const slots = new DeckSlots(
     // 这条条目拍的是手机档那一套（4 列 × 5 行一屏摆下），所以不滚动。

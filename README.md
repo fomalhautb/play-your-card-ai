@@ -27,7 +27,7 @@ packages/
   core        规则引擎。纯函数、确定性、指令进事件出，不带内容数据，不碰浏览器
   content     内容数据：卡牌、英雄、题库、预生成答案，配 zod schema
   protocol    客户端与服务端之间的消息类型和解析
-  design      设计令牌（颜色、间距、时长……），由 Style Dictionary 从 tokens/*.json 生成
+  design      设计令牌（卡牌和版式的公共尺寸、动效时长），由 Style Dictionary 从 tokens/*.json 生成
   platform    平台能力的接口（存储、音频、全屏、安全区、网络），web / Capacitor 各一套实现
   canvas      Pixi 组件和对局演出编排层（编排层是纯 TS，不碰 Pixi 和 GSAP）
   ui          React 组件库，文字界面用
@@ -51,7 +51,7 @@ docs/         架构、部署、设计文档
 
 ```bash
 pnpm install
-pnpm assets:build       # 打卡面图集、分发界面底图和音频。第一次跑之前必须来一次
+pnpm assets:build       # 打卡面图集、分发人物卡和音频。第一次跑之前必须来一次
 pnpm dev                # 网页壳 http://localhost:5174
 pnpm dev:server         # 另开一个终端，起 Worker http://localhost:8787（联机才需要）
 pnpm storybook          # 组件目录页 http://localhost:6006
@@ -60,9 +60,13 @@ pnpm storybook          # 组件目录页 http://localhost:6006
 首页那颗「开始」直接进**联机房**。菜单里另有 **测试对局**（一个人的调试房，
 右下角挂着测试面板）和 **联机对战**（要 `pnpm dev:server`）。
 
+界面现在是**素方块**：正式版简化（2026-09，见架构文档第 8 节末尾）把颜色、字体、圆角、
+装饰和所有界面底图剥掉了，只留版式、卡牌和演出。看到的画面是对的，视觉后面整套重做。
+
 ### 本地怎么跑联机
 
-联机要**两个进程**：Vite 发页面，`wrangler dev` 跑权威服务端。
+联机要**两个进程**（`.claude/launch.json` 里就叫 `web` 和 `server`）：
+Vite 发页面，`wrangler dev` 跑权威服务端。
 浏览器只连 Vite，`/api`、`/lobby`、`/match/xxxx` 由 Vite 的 `server.proxy` 转给 wrangler
 （见 `apps/web/vite.config.ts`）——这样浏览器眼里前后端**同源**，和线上一样，
 账号的会话 cookie 才带得上。
@@ -107,6 +111,8 @@ pnpm size               # 包体上限（size-limit）
 pnpm --filter @ai-duel/bench interaction          # 对局场景的交互回归（真指针拖拽出牌）
 pnpm --filter @ai-duel/client catalog:test        # 组件目录页截图回归
 pnpm --filter @ai-duel/bench keyframes            # 剧本关键帧截图回归
+pnpm --filter @ai-duel/bench bench                # 确定性指标（渲染计数、过度绘制、纹理、泄漏）
+pnpm --filter @ai-duel/bench timing               # 时间指标（帧时间、卡顿帧、GPU 耗时），只出数不设门禁
 pnpm --filter @ai-duel/client e2e                 # 端到端：单机一条，联机两条
 ```
 
@@ -130,7 +136,7 @@ pnpm assets:build
 它做四件事：把 `assets/source/cards` 下的原画统一缩到 512×768、
 按 `models` / `skills` / `backs` 三组各打一张图集（页面 2048×2048，输出 webp）、
 把产物复制到 `apps/web/public/atlas/` 和 `packages/bench/public/atlas/`，
-再把界面底图和音频原样复制到 `apps/web/public/` 下（音频落在 `audio/music/`）。
+再把七张人物卡（逐张烤圆角）和音频复制到 `apps/web/public/` 下（音频落在 `audio/music/`）。
 三组分开打是为了按场景装卸——对局只要 models 和 backs。
 
 全部素材的源在 `assets/source/`，产物（`assets/dist/` 和 `apps/web/public/` 整个目录）
@@ -147,5 +153,5 @@ pnpm assets:build
 | [`packages/protocol/README.md`](packages/protocol/README.md) | 电线上的消息长什么样、序号怎么算、断线怎么补 |
 | [`packages/core/README.md`](packages/core/README.md) | 规则引擎的约定和边界，隐藏信息怎么守 |
 | [`docs/AI卡牌对战游戏_游戏机制与流程_V0.3.md`](docs/AI卡牌对战游戏_游戏机制与流程_V0.3.md) | 游戏规则本身 |
-| [`docs/design/组件需求单.md`](docs/design/组件需求单.md) | 组件库的需求输入：按钮、边框、面板、弹窗的编号变体 |
+| [`docs/design/组件需求单.md`](docs/design/组件需求单.md) | 黑客松版界面的变体清单，**旧版记录**，2026-09 简化之后不再作为需求输入 |
 | [`docs/legacy/architecture.md`](docs/legacy/architecture.md) | 黑客松版的架构说明，**已废弃**，只作存档 |

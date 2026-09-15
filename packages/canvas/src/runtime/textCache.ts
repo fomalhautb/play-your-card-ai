@@ -13,6 +13,20 @@
 
 import { type Renderer, Text, type TextStyle, type Texture } from 'pixi.js'
 
+/**
+ * 画布上所有文字共用的字体栈。
+ *
+ * EB Garamond 管拉丁字母和数字，Noto Serif SC 管中文，两者都从 Google Fonts 拿；
+ * 后面三个本地宋体是兜底，断网或字体没加载成功时至少还是衬线体，
+ * 不会掉回黑体把古典调子毁掉。来源：黑客松版 styles.css 的 :root font-family。
+ *
+ * 放在这里而不是 `@ai-duel/design`：正式版简化第 5 步把字体那组令牌删了（理由见那个包的
+ * README），而建 TextStyle 的地方都要经过这个缓存，字体栈跟着它走最不容易走岔。
+ * 字体阶段一用系统衬线体，第 34 条一致性检查之前不自托管子集化（《正式版架构》4.1），
+ * 所以目录页基线图上的字形跟着机器走，基线必须按平台分目录。
+ */
+export const FONT_STACK = "'EB Garamond', 'Noto Serif SC', 'Songti SC', STSong, SimSun, serif"
+
 /** 一段烤好的文字：纹理，加上重画它所需要的原料。 */
 interface BakedText {
   texture: Texture

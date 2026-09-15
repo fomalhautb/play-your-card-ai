@@ -19,7 +19,6 @@
  * 一层 transform 只许一个人写。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Point as PixiPoint, Rectangle } from 'pixi.js'
 import { Box, type BoxDeps } from '../../components/Box'
 import { CardTilt } from '../../components/cardTilt'
@@ -28,6 +27,16 @@ import type { Animator } from '../../runtime/animator'
 import { killAndDestroy } from '../../runtime/dispose'
 import { HeroCardArt, type HeroCardArtDeps } from './heroCard'
 import type { HeroEntry } from './heroContract'
+
+/**
+ * 还没实装的英雄卡压上去的灰和整张的透明度。
+ *
+ * 旧版是 `grayscale` 滤镜加 opacity，Pixi 这边不挂 Filter（纪律 3.1），只留 tint 加透明度。
+ * 只有这个文件在读，所以不进 `fx/colors.ts` 的那张表（判据见那个文件的头）。
+ * 来源：黑客松版 hero.css 的 .hero__card--soon。
+ */
+const SOON = { tint: '#8a8a8a', alpha: 0.55 } as const
+
 import type { HeroLayout, HeroRect } from './heroLayout'
 import {
   HINT_FADE,
@@ -202,8 +211,8 @@ export class HeroGrid extends Container {
        * 压暗写在**原画**上而不是外面那层：角标要留在这层里跟着卡一起缩放和上浮，
        * 但它是「这张还没做完」的说明，跟着一起变淡就没人看得见了。
        */
-      art.tint = tokens.color.hero.soonTint
-      art.alpha = tokens.opacity.hero.soonCard
+      art.tint = SOON.tint
+      art.alpha = SOON.alpha
       lift.addChild(this.buildSoonBadge(rect))
     } else {
       tilt = new CardTilt(art, true, HOVER_TILT_DEG)

@@ -14,6 +14,8 @@
  * 3. 分发：产物复制到 apps/web 和 packages/bench 的 public 下。
  *    两处都进 .gitignore——图集是构建产物，源头是 assets/source/cards 下那些原画。
  * 4. 音频：assets/source/music 原样复制到 apps/web/public/audio/music。
+ *
+ * 关于页那张底图原先也在复制表里，正式版简化第 5 步连源文件一起删了（没人引用）。
  *    音频不需要任何转换（源文件已经是 AAC/m4a），这一步只是「把源搬成产物」，
  *    好让 apps/web/public 下一件手写的东西都没有，整个目录都能进 .gitignore。
  *
@@ -67,7 +69,6 @@ const TARGETS = [
  * 这几类不进图集，各有各的理由：
  * - 人物卡（`hero/card-<英雄 id>.webp`）是整幅大图，一张一用，它不进牌组、场上也不摆，
  *   打进图集只会浪费图集页。
- * - 关于页那张底图同理。
  * - 音频不是图。目录名换成 `audio/music` 是为了给以后可能拆出来的音效留个 `audio/` 前缀，
  *   客户端那边按 `/audio/music/<名字>.m4a` 取（见 client 的 audio/music.ts）。
  *
@@ -78,7 +79,6 @@ const TARGETS = [
  */
 const COPIES = [
   { from: 'hero', to: 'hero', round: true },
-  { from: 'info', to: 'info' },
   { from: 'music', to: 'audio/music' },
 ]
 

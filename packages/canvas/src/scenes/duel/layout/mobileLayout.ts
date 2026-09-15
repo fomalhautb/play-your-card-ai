@@ -20,6 +20,7 @@ import {
   clamp,
   DESIGN_FAN_WIDTH,
   type DuelLayout,
+  END_PLAY_SIZE,
   FOE_FAN_SCALE,
   fitBoardScale,
   MIN_HAND_SCALE,
@@ -59,10 +60,10 @@ function endPlayRect(
   handZone: number,
 ): { x: number; y: number; width: number; height: number } {
   return {
-    x: width - tokens.size.plaque.endTurnWidth - END_PLAY_INSET.x,
-    y: height - handZone - tokens.size.plaque.endTurnHeight - END_PLAY_INSET.y,
-    width: tokens.size.plaque.endTurnWidth,
-    height: tokens.size.plaque.endTurnHeight,
+    x: width - END_PLAY_SIZE.width - END_PLAY_INSET.x,
+    y: height - handZone - END_PLAY_SIZE.height - END_PLAY_INSET.y,
+    width: END_PLAY_SIZE.width,
+    height: END_PLAY_SIZE.height,
   }
 }
 

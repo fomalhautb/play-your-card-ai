@@ -109,6 +109,16 @@ export const DESIGN_FAN_WIDTH = 1000
 /** 手牌缩放的下限。再小卡面上的名字就看不清了。 */
 export const MIN_HAND_SCALE = 0.55
 
+/**
+ * 右下角「结束出牌」那颗钮占多大，两档共用。
+ *
+ * 宽是按最长的那句「等待对方…」算出来的（五个字连字距约 120px，加两侧 14px 内边距还富余），
+ * 高 60 抄黑客松 `.battle__end-turn .plaque-button`。它原先是 `size.plaque.*` 两条令牌，
+ * 正式版简化第 5 步把按钮尺寸从令牌里撤掉了（判据见 design 包的 README），
+ * 而两档版式都要按它留位——扇形可铺宽的右侧障碍物就是这颗钮的左沿，所以放在这里。
+ */
+export const END_PLAY_SIZE = { width: 184, height: 60 } as const
+
 /** 战场缩放的下限。再小就看不出小卡上印的是谁了。 */
 const MIN_BOARD_SCALE = 0.45
 

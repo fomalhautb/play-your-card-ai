@@ -23,9 +23,9 @@
  * 抛硬币、抵消层、展示层、结算层在编排层里本来就是互斥的（旧版那四道闸门）。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import { COIN_TOSS_TOTAL_MS } from '../director/timings'
+import { VEIL } from '../fx/colors'
 import type { Animator } from '../runtime/animator'
 import { Box, type BoxDeps } from './Box'
 
@@ -84,10 +84,7 @@ export class CoinToss extends Container {
 
   /** 遮罩要铺满整个视口，所以尺寸由调用方给。 */
   resize(width: number, height: number): void {
-    this.veil
-      .clear()
-      .rect(0, 0, width, height)
-      .fill({ color: tokens.color.overlay.veil, alpha: tokens.opacity.overlay.veil })
+    this.veil.clear().rect(0, 0, width, height).fill({ color: VEIL.color, alpha: VEIL.alpha })
     const centerY = height / 2 - CAPTION_GAP / 2
     this.coin.position.set(width / 2, centerY)
     this.caption.position.set((width - CAPTION.width) / 2, centerY + COIN_SIZE / 2 + CAPTION_GAP)

@@ -85,6 +85,8 @@ export async function createDeckSession(options: BenchSceneOptions): Promise<Ben
     manualClock: options.manualClock,
   })
 
+  /** 时钟在谁手里。下面 `step` 里要按它决定推不推场景，理由写在那儿。 */
+  const manualClock = options.manualClock === true
   let warm = false
   /** 等着「再推几帧」的那些动作。每帧末尾各减一。 */
   let waiters: { frames: number; resolve: () => void }[] = []
@@ -178,7 +180,16 @@ export async function createDeckSession(options: BenchSceneOptions): Promise<Ben
 
     step(deltaMs) {
       const delta = warm ? deltaMs * WARMUP_SPEED : deltaMs
-      scene.step(delta)
+      /*
+       * 画面推不推，看时钟在谁手里。
+       *
+       * 手动时钟下场景的帧循环是停着的，全靠这一句推。真实时钟下它自己在 rAF 里推，
+       * 这里**不能再推一遍**——推了就是两倍速，时间指标量出来的帧数和帧时间全是假的。
+       * 热身那一遍是例外：它不进指标，推快一点正是要的（见 scenarios/duel.ts 的热身说明），
+       * 而场景自己只按真实时间走，所以把差额补上，让它和上面那个步长对齐。
+       */
+      if (manualClock) scene.step(delta)
+      else if (warm) scene.step(delta - deltaMs)
       if (waiters.length === 0) return
       const pending = waiters
       waiters = []

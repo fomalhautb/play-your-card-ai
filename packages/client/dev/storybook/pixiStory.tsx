@@ -12,7 +12,6 @@
  */
 
 import { Animator, FrameLoop, type StoryStage, type StoryTeardown } from '@ai-duel/canvas'
-import { tokens } from '@ai-duel/design'
 import { Assets, autoDetectRenderer, Container, type Texture } from 'pixi.js'
 import { useEffect, useRef, useState } from 'react'
 import { loadCardTextures } from '../../src/match/cardAtlas'
@@ -27,6 +26,23 @@ const STEP_MS = 1000 / 60
  * 所以基线图永远是按 1 倍烤的；这里跟着 devicePixelRatio 走只影响人在高分屏上看目录页，
  * 不影响比对。
  */
+/**
+ * 目录页这块取景台自己的几个视觉量：画布底色、起不来时那句提示的字体和间距。
+ *
+ * 原先读 `@ai-duel/design` 的颜色 / 字体 / 间距令牌，正式版简化第 5 步把那几组删了
+ *（理由见 design 包的 README）。这里是**目录页的外壳**、不是任何一个组件，
+ * 所以值就地写死；底色和截图基线绑在一起，改了要重拍 canvas 那批基线。
+ * 来源：黑客松版 styles.css 的 `:root` 底色和前景色、`--fs-base` 13px，字体栈同 canvas。
+ */
+const PAGE = {
+  background: '#0d1117',
+  foreground: '#e5e7eb',
+  fontStack: "'EB Garamond', 'Noto Serif SC', 'Songti SC', STSong, SimSun, serif",
+  fontSize: 13,
+  gap: 8,
+  pad: 16,
+} as const
+
 const MAX_RESOLUTION = 1.5
 
 /** 画布默认尺寸，单张卡那种小场面够用；摆得开的 story 自己在 spec 里放大。 */
@@ -122,7 +138,7 @@ export function PixiStage({ spec, live }: PixiStageProps) {
         preference: ['webgl'],
         antialias: true,
         autoDensity: true,
-        background: tokens.color.page.background,
+        background: PAGE.background,
         /*
          * 画完一帧之后保留后备缓冲。真场景里不开这个（多一次拷贝），目录页必须开：
          * 截图回归拍整页时浏览器会重新合成一次，而 WebGL 画布默认在合成后就把缓冲清掉了，
@@ -214,7 +230,7 @@ export function PixiStage({ spec, live }: PixiStageProps) {
       */}
       <div
         aria-hidden="true"
-        style={{ position: 'fixed', inset: 0, background: tokens.color.page.background }}
+        style={{ position: 'fixed', inset: 0, background: PAGE.background }}
       />
       <div
         // 截图回归拿这个属性当「这一帧可以拍了」的信号，见 catalog.spec.ts。
@@ -256,15 +272,15 @@ function StageProblem({
         height,
         display: 'flex',
         flexDirection: 'column',
-        gap: tokens.space.sm,
+        gap: PAGE.gap,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: tokens.space.xxl,
+        padding: PAGE.pad,
         boxSizing: 'border-box',
         textAlign: 'center',
-        color: tokens.color.page.foreground,
-        fontFamily: tokens.font.family.serif,
-        fontSize: tokens.font.size.base,
+        color: PAGE.foreground,
+        fontFamily: PAGE.fontStack,
+        fontSize: PAGE.fontSize,
         lineHeight: 1.6,
       }}
     >

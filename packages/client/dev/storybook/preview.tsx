@@ -11,12 +11,8 @@
 import type { Decorator, Preview } from '@storybook/react-vite'
 import { useState } from 'react'
 import { PixiStage, type PixiStorySpec } from './pixiStory'
-/*
- * 设计令牌的 CSS 变量。目录页现在没有条目读它们了（React 组件在正式版简化第 3 步
- * 剥成了素方块，令牌一览那条条目也删了），先跟着 client 的 App.tsx 一起留着，
- * 等第 5 步收拾令牌包时两处一起处理。
- */
-import '@ai-duel/design/tokens.css'
+// 这里原先还 import 过 `@ai-duel/design/tokens.css`，正式版简化第 5 步连同那份 CSS 产物
+// 一起删了：目录页没有一条条目还在读 `var(--…)`。
 import './preview.css'
 
 /**

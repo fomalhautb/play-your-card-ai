@@ -12,12 +12,13 @@
  * 菜单那一列直接建在这里而不是另起一层——它现在就是一个 for 循环加几个 Box。
  */
 
-import { autoDetectRenderer, Container, Graphics, type Renderer } from 'pixi.js'
+import { Container, Graphics, type Renderer } from 'pixi.js'
 import { Box, CANVAS_BACKGROUND } from '../../components/Box'
 import { bakeTextures } from '../../fx/bakedTextures'
 import { TIER_CONFIG } from '../../fx/effectTier'
 import { Animator } from '../../runtime/animator'
 import { FrameLoop } from '../../runtime/frameLoop'
+import { createSceneRenderer } from '../../runtime/sceneRenderer'
 import { TextTextureCache } from '../../runtime/textCache'
 import { HomeCards, type HomeCardsDeps } from './homeCards'
 import {
@@ -33,18 +34,7 @@ import { type HomeLayout, pickHomeLayout } from './homeLayout'
 const START_LABEL = '开始游戏'
 
 export async function createHomeScene(options: HomeSceneOptions): Promise<HomeScene> {
-  const renderer = await autoDetectRenderer({
-    canvas: options.canvas,
-    width: options.width,
-    height: options.height,
-    resolution: options.resolution,
-    // 3.8：显式走 WebGL。数组形式是排除式的——WebGPU 不在名单里就整个不试。
-    preference: ['webgl'],
-    antialias: true,
-    autoDensity: true,
-    // 底色不透明：这一页整幅铺满，透明只会让网页壳的底色从画的边缘漏出来。
-    background: CANVAS_BACKGROUND,
-  })
+  const renderer = await createSceneRenderer(options)
   return new HomeSceneImpl(renderer, options, true).handle()
 }
 

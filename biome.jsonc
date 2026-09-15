@@ -94,20 +94,20 @@
                   "@ai-duel/*/*",
                   "@ai-duel/*/**",
                   /*
-                   * 下面三条放行的都是包在 package.json 的 `exports` 里**声明过的第二个入口**，
+                   * 下面两条放行的都是包在 package.json 的 `exports` 里**声明过的第二个入口**，
                    * 不是伸进内部文件。上面两条禁令按形状匹配，会把它们一起拦掉，
-                   * 所以逐个放行精确路径——只开这几条，别的深路径照旧禁。
+                   * 所以逐个放行精确路径——只开这两条，别的深路径照旧禁。
                    * 加新的之前先问一句：那个包是不是真的需要两个入口？
                    *
-                   * - design/tokens.css（-> src/generated/tokens.css）：React 那边要在应用入口
-                   *   import 它，才能拿到 :root 上的那批 CSS 变量。
                    * - platform/capacitor、client/capacitor（迁移第 36 条）：手机壳那套平台实现
                    *   import 了有副作用的 `@capacitor/core`，摇不掉。搁在主入口上，网页壳和
                    *   Steam 壳的产物里会白背一份用不到的 Capacitor 运行时（实测 8.2 kB）。
                    *   分成第二个入口之后只有手机壳那条路径会碰到它，
                    *   见 packages/client/src/capacitor.ts 的文件头。
+                   *
+                   * 这里原先还有一条 `!@ai-duel/design/tokens.css`，正式版简化第 5 步连同那份
+                   * CSS 产物一起删了（见 packages/design/README.md）。
                    */
-                  "!@ai-duel/design/tokens.css",
                   "!@ai-duel/platform/capacitor",
                   "!@ai-duel/client/capacitor"
                 ],
@@ -203,7 +203,6 @@
                     "group": [
                       "@ai-duel/*/*",
                       "@ai-duel/*/**",
-                      "!@ai-duel/design/tokens.css",
                       "!@ai-duel/platform/capacitor",
                       "!@ai-duel/client/capacitor"
                     ],

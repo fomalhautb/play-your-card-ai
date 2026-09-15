@@ -14,9 +14,9 @@
  * 各换成一块方块，时长和各段的比例一个数都没动。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Graphics } from 'pixi.js'
 import { SKILL_CANCEL_TOTAL_MS } from '../director/timings'
+import { VEIL } from '../fx/colors'
 import type { Animator } from '../runtime/animator'
 import { Box, type BoxDeps } from './Box'
 
@@ -70,10 +70,7 @@ export class SkillCancelLayer extends Container {
   resize(width: number, height: number): void {
     this.boxWidth = width
     this.boxHeight = height
-    this.veil
-      .clear()
-      .rect(0, 0, width, height)
-      .fill({ color: tokens.color.overlay.veil, alpha: tokens.opacity.overlay.veil })
+    this.veil.clear().rect(0, 0, width, height).fill({ color: VEIL.color, alpha: VEIL.alpha })
     this.layout()
   }
 

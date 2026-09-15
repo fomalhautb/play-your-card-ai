@@ -10,11 +10,14 @@
  * 命名和 title 用英文的理由见 components/CardSprite.stories.ts 的文件头。
  */
 
-import { tokens } from '@ai-duel/design'
 import { Container, Graphics, Sprite, TextStyle } from 'pixi.js'
+import { PALETTE } from '../fx/colors'
 import { CARD_WIDTH } from '../layout/fanMath'
 import type { StoryStage } from '../storyStage'
-import { TextTextureCache } from './textCache'
+import { FONT_STACK, TextTextureCache } from './textCache'
+
+/** 铭牌带的圆角。旧样式里最小那一档（3px），只有这条条目在用。 */
+const STRIP_RADIUS = 3
 
 const SIZE = { width: 360, height: 320 }
 
@@ -40,10 +43,10 @@ const NAMES = ['4o', 'Gpt 4o', 'Claude Sonnet', 'Gemini 2.5 Pro', 'Deepseek R1 D
 function mountNames(ctx: StoryStage) {
   const cache = new TextTextureCache(ctx.renderer)
   const style = new TextStyle({
-    fontFamily: tokens.font.family.serif,
+    fontFamily: FONT_STACK,
     fontSize: NAME_FONT_SIZE,
     fontWeight: '600',
-    fill: tokens.color.battle.ink,
+    fill: PALETTE.battleInk,
   })
 
   const rows = new Container()
@@ -60,9 +63,9 @@ function mountNames(ctx: StoryStage) {
         cy - stripHeight / 2,
         MAX_NAME_WIDTH,
         stripHeight,
-        tokens.radius.xs,
+        STRIP_RADIUS,
       )
-      .fill({ color: tokens.color.battle.paper, alpha: 0.94 })
+      .fill({ color: PALETTE.battlePaper, alpha: 0.94 })
     rows.addChild(strip)
 
     const texture = cache.get(`name|${name}`, name, style)

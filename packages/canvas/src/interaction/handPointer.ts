@@ -4,6 +4,7 @@
  *
  * 没按下时的那一档（停留抬牌、离开收回、跟着指针倾斜）拆在 `handHover.ts`，
  * 分界线就是「指针有没有按下去」——按下之后 hover 立刻收手，理由见那个文件的头。
+ * 构造参数那张表拆在 `handPointerOptions.ts`（单看那张表也要读半屏，理由见那个文件的头）。
  *
  * 跟随不用 GSAP 的 quickTo，而是每帧朝目标位收一段（见 advance）。两个理由：
  * 一是 quickTo 建的补间不在场景的活动补间账上，帧循环（3.6）会以为没事在做而停掉；
@@ -20,80 +21,17 @@
  * 漏了的地方表现是"指针在动，画面冻着"。
  */
 
-import type { Container, FederatedPointerEvent } from 'pixi.js'
+import type { FederatedPointerEvent } from 'pixi.js'
 import { Point } from 'pixi.js'
 import type { CardSprite } from '../components/CardSprite'
 import { hitsSeal } from '../components/cardFaceParts'
-import type { CardTilt } from '../components/cardTilt'
-import type { HandFan } from '../components/HandFan'
 import { CARD_HEIGHT } from '../layout/fanMath'
-import type { Animator } from '../runtime/animator'
-import {
-  DRAG_POSE_DUR,
-  DRAG_SCALE,
-  type DropZoneRect,
-  dragGestureOf,
-  pointInZone,
-  resolveDrop,
-} from './dragRules'
+import { DRAG_POSE_DUR, DRAG_SCALE, dragGestureOf, pointInZone, resolveDrop } from './dragRules'
 import { HandHover } from './handHover'
+import type { HandPointerOptions } from './handPointerOptions'
 
 /** 跟随指针的时间常数（秒）。旧版是 0.18s 的 quickTo，换算成指数收敛就是它的三分之一。 */
 const FOLLOW_TAU = 0.18 / 3
-
-export interface HandPointerOptions {
-  /**
-   * 舞台。既是事件的汇合点，也是**坐标基准**：指针事件带的是视口坐标，
-   * 而落点区、扇形锚点这些都是舞台坐标，两者在桌面档差一个整块缩放
-   *（见 scenes/duel/layout/types.ts 的文件头）。所以这里收到的每个坐标都先过一次
-   * `stage.toLocal`，之后整个文件里就只有舞台坐标一种。
-   */
-  stage: Container
-  fan: HandFan
-  /** 被拖起来的牌画在这一层，它在扇形之上。 */
-  dragLayer: Container
-  animator: Animator
-  /** 现在的出牌区（舞台坐标）。版式一变就跟着变，所以是函数不是值。 */
-  dropZone: () => DropZoneRect
-  /** 舞台坐标 → 手牌容器坐标。 */
-  toFanLocal: (stageX: number, stageY: number) => { x: number; y: number }
-  /** 手牌容器坐标 → 舞台坐标，连缩放一起换算。 */
-  fanToWorld: (x: number, y: number, scale: number) => { x: number; y: number; scale: number }
-  /** 这张牌的倾斜跟随，没有就是这一档不做倾斜。 */
-  tiltFor: (card: CardSprite) => CardTilt | undefined
-  /** 玩家把牌拖进出牌区松手了，或者鼠标轻点了一下。 */
-  onPlay: (card: CardSprite) => void
-  /**
-   * 玩家点了能翻面那张牌的问号章（或者点了已经翻过去的牌想翻回来）。
-   * 翻面本身归场景演，这里只判「这一下点的是不是那枚章」。
-   */
-  onFlip?: (card: CardSprite) => void
-  /**
-   * 抬起来的换成了哪一张（没有就是 null）。
-   *
-   * 给「抬起的那张恢复本色、其余跟着整排压暗」用（见 scenes/duel/handMood.ts）。
-   * 抬牌本身的补间归扇形自己管，这里只是报一声换人了。
-   */
-  onHover?: (card: CardSprite | null) => void
-  /**
-   * 落点提示该处在哪一档：没在拖（off）、拖着（ready）、指针已经进到落区里（hot）。
-   *
-   * 高亮必须和松手的实际结果一致，所以这一档是拿**同一个** `pointInZone` 算的——
-   * 亮着「松手就打出去」结果松手被判成取消，是最容易让人以为是 bug 的那种不一致。
-   */
-  onDropState?: (state: 'off' | 'ready' | 'hot') => void
-  /** 现在允不允许出牌。演出期间整排冻住。 */
-  enabled: () => boolean
-  /**
-   * 叫醒帧循环。
-   *
-   * 这个回调是必需的，不是可选的优化：跟随和倾斜都只在 advance 里推进，而 advance 只有
-   * 帧循环在跑的时候才被调到。没有补间在播时帧循环是停着的（3.6），指针再怎么动都没人画，
-   * 卡面就冻在上一帧——表现是"抬起来的牌不跟着鼠标倾斜、高光根本不出现"。
-   * 补间那条路由 Animator 自己叫醒（见场景里 new Animator 那行），指针这条路只能自己叫。
-   */
-  wake: () => void
-}
 
 interface PressState {
   card: CardSprite

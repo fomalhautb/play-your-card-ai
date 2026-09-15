@@ -17,7 +17,7 @@
 import { tokens } from '@ai-duel/design'
 import { CARD_HEIGHT } from '../../../layout/fanMath'
 import { deckPileRectOf, heroCardRectOf, type Rect } from '../../../layout/panelGeometry'
-import { type DuelLayout, fitBoardScale } from './types'
+import { type DuelLayout, END_PLAY_SIZE, fitBoardScale } from './types'
 
 /** 设计稿尺寸。黑客松版 `ui/battleStage.ts` 的 `BATTLE_STAGE_WIDTH / HEIGHT`。 */
 const DESIGN_WIDTH = 1672
@@ -47,17 +47,23 @@ const PANEL_GAP = 16
 /** 两块面板中间那条分隔线占的高。抄 `.battle__player-divider` 的 10px。 */
 const PANEL_DIVIDER = 10
 
-/** 「下一题」匾：宽 168，连吊绳一共 144 高，右边沿离舞台右缘 56。抄 `.battle__next-plaque`。 */
-const NEXT_PLAQUE = { right: 56 } as const
+/**
+ * 两块吊匾的尺寸，和「下一题」那块离舞台右缘多远。
+ *
+ * 抄 `.battle__next-plaque`（宽 168、匾体 viewBox 0 0 168 118、吊绳 26，右边距 56）和
+ * `.battle__turn-plaque`（宽 252、匾体 66、吊绳 21）。吊绳是从屏幕顶边垂下来的，
+ * 太短看着像贴上去的。原先是 `size.nextPlaque.*` / `size.turnPlaque.*` 六条令牌，
+ * 正式版简化第 5 步撤掉了装饰尺寸，而只有这一档版式在读，所以收回到这里
+ *（判据见 design 包的 README）。
+ */
+const NEXT_PLAQUE = { width: 168, height: 118, cordLength: 26, right: 56 } as const
+const TURN_PLAQUE = { width: 252, height: 66, cordLength: 21 } as const
 
 /** 「结束出牌」离舞台右下角多远。抄 `.battle__end-turn` 的 `right: 32; bottom: 32`。 */
 const END_PLAY_INSET = 32
 
 /** 扇形最外侧那张牌和障碍物之间至少留出的空隙，以及被拒红字离手牌区上沿多远。 */
 const BUBBLE_GAP = 28
-
-/** 「对方回合」吊匾从顶栏下沿垂下来的绳长。抄 `.battle__turn-plaque-cords` 的 21px。 */
-const TURN_PLAQUE_CORD = tokens.size.turnPlaque.cordLength
 
 export function desktopLayout(viewWidth: number, viewHeight: number): DuelLayout {
   const width = DESIGN_WIDTH
@@ -86,10 +92,10 @@ export function desktopLayout(viewWidth: number, viewHeight: number): DuelLayout
   }
 
   const endPlay = {
-    x: width - END_PLAY_INSET - tokens.size.plaque.endTurnWidth,
-    y: height - END_PLAY_INSET - tokens.size.plaque.endTurnHeight,
-    width: tokens.size.plaque.endTurnWidth,
-    height: tokens.size.plaque.endTurnHeight,
+    x: width - END_PLAY_INSET - END_PLAY_SIZE.width,
+    y: height - END_PLAY_INSET - END_PLAY_SIZE.height,
+    width: END_PLAY_SIZE.width,
+    height: END_PLAY_SIZE.height,
   }
 
   /*
@@ -133,16 +139,16 @@ export function desktopLayout(viewWidth: number, viewHeight: number): DuelLayout
       height: tokens.size.rail.height,
     },
     nextPlaque: {
-      x: width - NEXT_PLAQUE.right - tokens.size.nextPlaque.width,
+      x: width - NEXT_PLAQUE.right - NEXT_PLAQUE.width,
       y: topBarHeight,
-      width: tokens.size.nextPlaque.width,
-      height: tokens.size.nextPlaque.height + tokens.size.nextPlaque.cordLength,
+      width: NEXT_PLAQUE.width,
+      height: NEXT_PLAQUE.height + NEXT_PLAQUE.cordLength,
     },
     turnPlaque: {
-      x: fanCenterX - tokens.size.turnPlaque.width / 2,
-      y: topBarHeight + TURN_PLAQUE_CORD,
-      width: tokens.size.turnPlaque.width,
-      height: tokens.size.turnPlaque.height,
+      x: fanCenterX - TURN_PLAQUE.width / 2,
+      y: topBarHeight + TURN_PLAQUE.cordLength,
+      width: TURN_PLAQUE.width,
+      height: TURN_PLAQUE.height,
     },
     /*
      * 对手那排钉在舞台顶边（y=0），上半截被不透明的顶栏压住，每张只露出约 72px。

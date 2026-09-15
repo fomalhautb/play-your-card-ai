@@ -63,7 +63,11 @@ const TALLY_HEIGHT = 22
 const PROGRESS_HEIGHT = 8
 const TABS_HEIGHT = 28
 const MANAGE_HEIGHT = 24
-const CONFIRM_HEIGHT = tokens.size.plaque.playHeight
+/*
+ * 确认钮的高抄手牌上方那颗「打出」的 46（`.hand-fan__play`，触屏才有）。
+ * 原先读 `size.plaque.playHeight` 令牌，撤掉按钮尺寸那一组之后只有这里在读。
+ */
+const CONFIRM_HEIGHT = 46
 const ROW_GAP = 8
 
 /** 收起来时露出来那一条有多高：内边距 + 把手那一行 + 进度条 + 内边距。 */
