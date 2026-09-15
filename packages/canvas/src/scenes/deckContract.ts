@@ -116,7 +116,12 @@ export interface DeckScene {
   pressAt(x: number, y: number): void
   moveTo(x: number, y: number): void
   releaseAt(x: number, y: number): void
-  /** 翻页。bench 的「牌组编辑滚动」剧本按它翻。 */
+  /**
+   * 翻一屏卡池。bench 的「牌组编辑滚动」剧本按它翻。
+   *
+   * 两档不是一回事：桌面档滚一个窗口高，手机档翻一页（见 scenes/deck/commands.ts）。
+   * 合成一个入口是因为调用方要的是「整屏换掉」这件事，不是「页码变了」。
+   */
   turnPage(delta: number): void
   /**
    * 手机档：开关底部那个装着牌组栏的抽屉。桌面档什么都不做（那一档牌组栏一直摊着）。

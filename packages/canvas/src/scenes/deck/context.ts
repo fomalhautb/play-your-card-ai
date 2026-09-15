@@ -10,16 +10,19 @@
  */
 
 import type { CardId } from '@ai-duel/core'
+import type { Container } from 'pixi.js'
 import type { CardSprite } from '../../components/CardSprite'
+import type { Animator } from '../../runtime/animator'
 import type { DeckLayout } from './layout/types'
 import type { PreviewGap } from './logic/insert'
 import type { DeckRules, PoolCard } from './logic/types'
 import type { DeckParts } from './parts'
+import type { ScrollState } from './scroll'
 import type { DeckState } from './state'
 
 /** 正拖着的那一张是从哪儿来的。 */
 type DragOrigin =
-  /** 卡池第 index 格（那一格在拖拽期间空着）。 */
+  /** 筛完的卡池里的第 index 张（那一格在拖拽期间空着）。翻页那一档同样是这个口径。 */
   | { from: 'pool'; cardId: CardId; index: number }
   /** 牌组第 index 张（那一格在拖拽期间空着，松手在牌组栏外面才是真的移除）。 */
   | { from: 'deck'; cardId: CardId; index: number }
@@ -32,12 +35,31 @@ export interface DeckContext {
   readonly rules: DeckRules
   readonly parts: DeckParts
   readonly layout: DeckLayout
+  /** 补间都走它记账，帧循环按它判忙（见 runtime/animator.ts）。 */
+  readonly animator: Animator
+  /** 舞台根节点。指针坐标要过它换算到某张卡自己的坐标里（见 hover.ts）。 */
+  readonly stage: Container
+  /**
+   * 卡跟不跟指针倾斜。
+   *
+   * 判据和对局那边同一条（效果档位开着、玩家没要求「减少动效」），
+   * 所以这里只是把 `DuelDeps.cardTilt` 传下来，不自己再算一遍。
+   */
+  readonly cardTilt: boolean
   /** 此刻的状态。改它走 state.ts 那几条纯函数，改完必须 `commit`。 */
   state: DeckState
   /** 拖拽途中让出来的那一格，没在拖就是 null。 */
   gap: PreviewGap
   /** 正拖着的是谁，没在拖就是 null。 */
   dragging: DragOrigin | null
+  /**
+   * 两块滚动区此刻滚到哪儿（桌面档的卡池和牌组卡位）。
+   *
+   * 手机档那一档它们的上限恒为 0（卡池翻页、20 个卡位一屏摆得下），所以怎么滚都不动，
+   * 下游因此不用到处判档位。
+   */
+  readonly poolScroll: ScrollState
+  readonly slotScroll: ScrollState
 
   /**
    * 借一张卡出来摆。**借出去的都记着**，下一轮 `beginBorrow` 会统一还回去，
@@ -62,17 +84,24 @@ export interface DeckContext {
   /** 单独还一张（拖拽结束时那张不走 `beginBorrow` 那条路）。 */
   releaseCard(card: CardSprite, cardId: CardId): void
 
-  /** 页码那行字。换内容要重烤纹理，所以由场景统一管（内容没变就不动）。 */
-  setPageLabel(text: string): void
-  /** 「已选 N / 20」那行字，同上。 */
-  setTally(text: string): void
-
   /** 状态或画面改了，叫醒帧循环。 */
   wake(): void
   /** 牌表或当前牌组变了，往外报一条（调用方当场落盘）。 */
   emitChange(): void
-  /** 玩家点开了一张卡看大图。 */
-  emitInspect(cardId: CardId): void
+  /**
+   * 玩家点开了一张卡看大图。
+   *
+   * 从哪儿点开的也要说：放大层那一行操作钮是「加入牌组」还是「移出牌组」按它定，
+   * 关掉时飞回哪一格也按它算。
+   */
+  emitInspect(origin: { from: 'pool' | 'deck'; cardId: CardId; index: number }): void
+  /**
+   * 这张牌加不进去：摇个头、在卡顶弹一句为什么。
+   *
+   * @param card 要摇的是哪张。拖拽那一条传跟手那张（它就在指针底下），
+   *   点「＋」那一条传 null——由场景去卡池里找那一格（见 refuse.ts）。
+   */
+  refuse(cardId: CardId, card: CardSprite | null): void
   /** 玩家要改名 / 新建 / 删除。 */
   emitManage(
     action: { kind: 'rename'; id: string } | { kind: 'delete'; id: string } | { kind: 'create' },

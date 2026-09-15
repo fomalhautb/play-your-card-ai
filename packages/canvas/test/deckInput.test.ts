@@ -10,8 +10,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { insertIndex } from '../src/scenes/deck/commands'
 import { addFromPool, createDeckInput, type DeckInput } from '../src/scenes/deck/input'
-import { pageInsertIndex } from '../src/scenes/deck/logic/pagination'
 import { createDeckProbe, type DeckProbe } from './helpers/fakeDeckInput'
 
 /** 完整走一次拖拽：按下 → 过阈值 → 移到落点 → 松手。 */
@@ -79,12 +79,13 @@ describe('从卡池拖进牌组', () => {
 })
 
 describe('加不进去的时候', () => {
-  it('牌组满 20 张：拖进去也不收', () => {
+  it('牌组满 20 张：拖进去也不收，当场摇头', () => {
     const full = Array.from({ length: 20 }, () => 'a')
     const { probe, input } = setup(full)
     drag(input, probe.poolCenter(0), probe.slotCenter(0))
     expect(probe.cards()).toHaveLength(20)
     expect(probe.changes).toEqual([])
+    expect(probe.refused).toEqual(['gpt-4o'])
   })
 
   it('同名已经带满 3 份：这一张进不来，别的还能进', () => {
@@ -151,14 +152,12 @@ describe('从牌组里拖出去', () => {
 })
 
 describe('点「＋」加牌', () => {
-  /** 点「＋」走的落点：当前这一页的第一格（口径见 logic/pagination.ts）。 */
+  /** 点「＋」走的落点：视野里第一格（两档口径见 commands.ts 的 insertIndex）。 */
   function addAt(probe: DeckProbe, index: number): boolean {
-    const perPage = probe.ctx.parts.poolCells.length
-    const deckLength = probe.cards().length
-    return addFromPool(probe.ctx, index, pageInsertIndex(0, perPage, deckLength))
+    return addFromPool(probe.ctx, index, insertIndex(probe.ctx))
   }
 
-  it('落在第一页的第一格，也就是牌组最前面', () => {
+  it('落在视野第一格，也就是牌组最前面', () => {
     const probe = createDeckProbe({ cards: ['a', 'b'] })
     expect(addAt(probe, 1)).toBe(true)
     expect(probe.cards()).toEqual(['gpt-3-5', 'a', 'b'])
@@ -175,6 +174,10 @@ describe('点「＋」加牌', () => {
     const blocked = createDeckProbe()
     expect(addAt(blocked, 5)).toBe(false)
     expect(blocked.changes).toEqual([])
+    // 三条都不是静默失败：各摇一次头、各弹一句为什么（见 refuse.ts）。
+    expect(full.refused).toEqual(['gpt-4o'])
+    expect(maxed.refused).toEqual(['gpt-4o'])
+    expect(blocked.refused).toEqual(['soon'])
   })
 })
 

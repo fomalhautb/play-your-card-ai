@@ -1,23 +1,23 @@
 /**
  * 牌组编辑场景（《正式版架构》迁移第 28 条）：卡池、牌组栏、拖拽、放大查看。
  *
- * 契约和分工见 `scenes/deckContract.ts`。这个文件本身只做四件事：
- * 建渲染器和零件、把状态摆成画面、收玩家的输入、往外报改动。真正的活分散在旁边几个文件里：
- *   logic/      分页、落点、让位、筛选、合法性（纯函数，先行做的一层）
- *   layout/     两档版式（桌面 / 手机，并列不缩放）
- *   parts.ts    建组件、分层、按版式摆位
- *   state.ts    此刻的状态和改它的那几条纯函数
- *   render.ts   状态 → 画面
- *   input.ts    拖拽和轻点
+ * 契约和分工见 `scenes/deckContract.ts`。这个文件只管**搭起来**：建渲染器、建零件、
+ * 装上下文、接指针、推帧循环。真正的活分散在旁边：logic/（落点、筛选、合法性、分页）、
+ * layout/（两档版式）、parts*.ts（建零件 / 摆零件）、state.ts、scroll.ts（滚动算术）、
+ * render.ts（状态 → 画面）、input.ts + drop.ts（滚动、拖拽、轻点）、hover.ts（指到哪张）、
+ * dragFx.ts（那几段补间）、inspect.ts（放大查看）、commands.ts（按钮接什么）。
  *
  * 契约里那几条硬要求落在这个文件：显式走 WebGL 不开 WebGPU（3.8）；手动时钟下不注册任何
  * 真实时间源、真实时钟下没有动画就停帧循环（3.6）；上下文丢失时把烤出来的纹理重画一遍（4.3）。
+ *
+ * 坐标：桌面档的舞台是 1672×941 的死版式，整块缩放居中放进视口（同对局场景）。
+ * **对外那三个指针入口收的是视口坐标**，进来先过一次 `toStage`；
+ * 场景内部、版式、input / hover / inspect 一律只认舞台坐标。
  */
 
 import type { CardId } from '@ai-duel/core'
-import { tokens } from '@ai-duel/design'
-import { autoDetectRenderer, Container, type Renderer } from 'pixi.js'
-import type { CardSprite } from '../../components/CardSprite'
+import { autoDetectRenderer, Container, Graphics, Rectangle, type Renderer } from 'pixi.js'
+import { CANVAS_BACKGROUND } from '../../components/Box'
 import { FrameLoop } from '../../runtime/frameLoop'
 import type {
   DeckManageAction,
@@ -28,27 +28,30 @@ import type {
 } from '../deckContract'
 import { type CardVisuals, createCardVisuals } from '../duel/cardVisuals'
 import { createDuelDeps, type DuelDeps, destroyDeps, restoreDeps } from '../duel/deps'
+import { paintStageFrame } from '../duel/stageFrame'
+import { originPointOf } from './anchors'
 import { type CardPool, createCardPool } from './cards'
+import {
+  addAtCell,
+  changeFilter,
+  insertIndex,
+  removeSlot,
+  toggleDrawer,
+  turnScreen,
+} from './commands'
 import type { DeckContext } from './context'
+import { createDeckHover, type DeckHover } from './hover'
 import { addFromPool, createDeckInput, type DeckInput } from './input'
 import { createDeckInspect, type DeckInspect } from './inspect'
-import { createDeckLabels, type DeckLabels } from './labels'
 import { pickDeckLayout } from './layout/pickLayout'
 import type { DeckLayout } from './layout/types'
-import { pageInsertIndex } from './logic/pagination'
-import { DEFAULT_DECK_RULES } from './logic/types'
 import { createDeckParts, type DeckParts } from './parts'
-import { ALL_FACTIONS, currentPage, poolPageCount, renderDeckScene } from './render'
-import {
-  createDeckState,
-  currentCards,
-  type DeckState,
-  selectDeck,
-  selectFaction,
-  selectKind,
-  setDrawerOpen,
-  setPage,
-} from './state'
+import { bindDeckPointer, deckWheelHandler, type PointerHost, toStage } from './pointer'
+import { createRefuse, type Refuse } from './refuse'
+import { ALL_FACTIONS, renderDeckScene } from './render'
+import { createDeckContext } from './sceneContext'
+import { ScrollState } from './scroll'
+import { currentCards, type DeckState, selectDeck, selectFaction, selectKind } from './state'
 
 export async function createDeckScene(options: DeckSceneOptions): Promise<DeckScene> {
   const renderer = await autoDetectRenderer({
@@ -60,7 +63,7 @@ export async function createDeckScene(options: DeckSceneOptions): Promise<DeckSc
     preference: ['webgl'],
     antialias: true,
     autoDensity: true,
-    background: tokens.color.page.background,
+    background: CANVAS_BACKGROUND,
   })
   return new DeckSceneImpl(renderer, options, true).handle()
 }
@@ -79,29 +82,35 @@ export function mountDeckScene(renderer: Renderer, options: DeckSceneOptions): M
 class DeckSceneImpl {
   private readonly renderer: Renderer
   private readonly options: DeckSceneOptions
+  /** 交给渲染器的那个根。舞台是它缩放居中之后的一层。 */
+  private readonly root = new Container()
   private readonly stage = new Container()
+  /** 挂在别人渲染器上时垫在舞台下面那块底；自己建渲染器时清屏色已经是同一个颜色。 */
+  private readonly backdrop: Graphics | null
+  private readonly letterbox = new Container()
   private readonly frameLoop: FrameLoop
   private readonly deps: DuelDeps
   private readonly visuals: CardVisuals
   private readonly cards: CardPool
   private readonly ownsRenderer: boolean
   private readonly ctx: DeckContext
+  private readonly poolScroll = new ScrollState()
+  private readonly slotScroll = new ScrollState()
+  /**
+   * 那几路**逐帧跟随**还在不在动：滚动惯性、倾斜收敛。
+   *
+   * 它们不是 GSAP 补间，`Animator` 记不到账，所以要自己记一笔——不记的话帧循环会以为
+   * 没事在做而停掉（3.6），卡歪在半路上不动（同对局场景的 `interactionBusy`）。
+   */
+  private interactionBusy = false
+  /** 指针那一层要的取值器。整套零件会被换掉，所以一律走函数而不是焊死一份。 */
+  private readonly pointerHost: PointerHost
   private layout: DeckLayout
   private parts: DeckParts
   private input: DeckInput
-  /**
-   * 这一轮借出去摆着的卡，以及上一轮那批（`stale`）。
-   *
-   * 「上一轮借过、这一轮还要」的卡从 `stale` 里原样取回来——它因此仍然挂在原来那一格上，
-   * 一次重挂都不用（重排画面是这一页最频繁的事，见 render.ts 的文件头）。
-   * 这一轮没再被要到的，到 `endBorrow` 那一步才真的还回回收池。
-   */
-  private borrowed = new Map<CardSprite, CardId>()
-  private stale = new Map<CardSprite, CardId>()
-  /** 放大查看那一小块状态（见 inspect.ts）。 */
+  private hover: DeckHover
   private readonly inspect: DeckInspect
-  /** 页码和「已选 N / 20」那两行会变的字（见 labels.ts）。 */
-  private readonly labels: DeckLabels
+  private readonly refuseFx: Refuse
   private destroyed = false
   private onChangeCb: ((decks: readonly DeckView[], currentId: string) => void) | null = null
   private onInspectCb: ((cardId: CardId) => void) | null = null
@@ -112,6 +121,7 @@ class DeckSceneImpl {
     this.options = options
     this.ownsRenderer = ownsRenderer
     this.layout = pickDeckLayout(options.width, options.height, options.coarsePointer)
+    this.backdrop = ownsRenderer ? null : new Graphics()
     this.frameLoop = new FrameLoop({
       manual: options.manualClock === true,
       render: (deltaMs) => this.render(deltaMs),
@@ -123,29 +133,67 @@ class DeckSceneImpl {
       seed: options.seed ?? 0,
       back: options.textures.back,
       platform: options.platform,
-      // 这一页的卡不跟指针倾斜，反光层建了也永远不亮，理由见 deps.ts 的 `glare`。
-      glare: false,
-      // 一屏二三十张卡平铺在格子里，每张再垫一层比卡还大的半透明投影就是白烧填充率。
-      cardShadow: false,
+      /*
+       * 这一页的卡**要**跟指针倾斜（黑客松卡池、格子、放大层三处都挂着），所以反光层照建。
+       * 它平时 `visible` 为 false，只有指着的那一张才亮——同屏最多一层，
+       * 不会像「每张都铺一层」那样吃掉填充率（3.2）。
+       */
+      cardShadow: true,
       wake: () => this.frameLoop.wake(),
     })
+    this.pointerHost = {
+      stage: this.stage,
+      canvas: options.canvas,
+      layout: () => this.layout,
+      parts: () => this.parts,
+      input: () => this.input,
+      hover: () => this.hover,
+      inspect: () => this.inspect,
+      wake: () => this.frameLoop.wake(),
+    }
     this.visuals = createCardVisuals(options.catalog, options.textures, options.cardFaces)
     this.cards = createCardPool(this.deps, this.visuals)
+    if (this.backdrop !== null) this.root.addChild(this.backdrop)
+    this.root.addChild(this.stage, this.letterbox)
     this.parts = this.buildParts()
-    this.ctx = this.makeContext(options)
-    this.labels = createDeckLabels(() => this.parts, this.deps)
+    // 走取值器：上下文是下面一行才装好的，零件也会被整套换掉。
+    this.refuseFx = createRefuse({ ctx: () => this.ctx, tip: () => this.parts.tip })
+    this.ctx = createDeckContext(options, {
+      // 走取值器：换一档版式会把零件整套换掉，焊死一份迟早指向已经销毁的东西。
+      parts: () => this.parts,
+      layout: () => this.layout,
+      cards: this.cards,
+      animator: this.deps.animator,
+      stage: this.stage,
+      cardTilt: this.deps.cardTilt,
+      poolScroll: this.poolScroll,
+      slotScroll: this.slotScroll,
+      wake: () => this.frameLoop.wake(),
+      emitChange: () => this.onChangeCb?.(this.ctx.state.decks, this.ctx.state.currentId),
+      emitInspect: (origin) => this.inspect.show(origin),
+      refuse: (cardId, card) => this.refuseFx.show(cardId, card),
+      emitManage: (action) => this.manage(action),
+    })
     this.inspect = createDeckInspect({
       // 走取值器：换一档版式会把零件整套换掉，焊死一份迟早指向已经销毁的东西。
       parts: () => this.parts,
+      layout: () => this.layout,
       cards: this.cards,
+      animator: this.deps.animator,
+      stage: this.stage,
+      cardTilt: this.deps.cardTilt,
       wake: () => this.frameLoop.wake(),
+      originPoint: (origin) => originPointOf(this.ctx, origin),
       onShow: (cardId) => this.onInspectCb?.(cardId),
     })
     this.input = createDeckInput(this.ctx)
+    this.hover = createDeckHover(this.ctx)
+    this.applyStageTransform()
     this.bindStage()
     renderDeckScene(this.ctx)
     // 4.3：上下文丢了之后把「画出来的」纹理重画一遍。图片纹理 Pixi 自己会重传，这几张不会。
     options.canvas.addEventListener('webglcontextrestored', this.onContextRestored)
+    options.canvas.addEventListener('wheel', this.onWheel, { passive: false })
     this.render(0)
   }
 
@@ -154,75 +202,26 @@ class DeckSceneImpl {
       stage: this.stage,
       deps: this.deps,
       layout: this.layout,
+      poolSize: this.options.pool.length,
       onBack: this.options.onBack,
       onConfirm: () => this.options.onConfirm?.(currentCards(this.ctx.state)),
-      onKind: (id) => this.change((state) => selectKind(state, id as DeckState['kind'])),
+      onKind: (id) => changeFilter(this.ctx, (state) => selectKind(state, id as DeckState['kind'])),
       onFaction: (id) =>
-        this.change((state) => selectFaction(state, id === ALL_FACTIONS ? null : id)),
+        changeFilter(this.ctx, (state) => selectFaction(state, id === ALL_FACTIONS ? null : id)),
       onDeck: (id) => {
-        this.change((state) => selectDeck(state, id))
+        changeFilter(this.ctx, (state) => selectDeck(state, id))
         this.ctx.emitChange()
       },
       onNewDeck: () => this.manage({ kind: 'create' }),
       onRename: () => this.manage({ kind: 'rename', id: this.ctx.state.currentId }),
       onDelete: () => this.manage({ kind: 'delete', id: this.ctx.state.currentId }),
-      onRemoveAt: (index) => this.removeAt(index),
-      onDrawer: () => this.toggleDrawer(),
-      onPage: (delta) => this.turnPage(delta),
-      onAddAt: (index) => this.addAt(index),
+      onRemoveAt: (index) => removeSlot(this.ctx, index),
+      onDrawer: () => toggleDrawer(this.ctx),
+      onPage: (delta) => turnScreen(this.ctx, delta),
+      onAddAt: (slot) => addAtCell(this.ctx, slot),
+      onZoomAdd: () => this.zoomAction(),
+      onZoomClose: () => this.inspect.hide(),
     })
-  }
-
-  /**
-   * 组装上下文。`parts` 和 `layout` 走取值器：换档位会整套换掉零件、改视口会换掉版式，
-   * 而 render 和 input 手里的是同一个对象，取值器让它们始终看到当前那一份。
-   */
-  private makeContext(options: DeckSceneOptions): DeckContext {
-    const scene = this
-    return {
-      pool: options.pool,
-      factions: options.factions,
-      rules: options.rules ?? DEFAULT_DECK_RULES,
-      get parts() {
-        return scene.parts
-      },
-      get layout() {
-        return scene.layout
-      },
-      // 手机档一进来抽屉是收着的：卡池才是这一屏的主角。桌面档没有抽屉，恒为展开。
-      state: createDeckState(options.decks, options.currentId, scene.layout.tier === 'desktop'),
-      gap: null,
-      dragging: null,
-
-      takeCard: (cardId, tag) => {
-        // 上一轮那批里有同一张牌的话原样取回来：它还在原位，谁都不用动。
-        for (const [card, id] of this.stale) {
-          if (id !== cardId) continue
-          this.stale.delete(card)
-          this.borrowed.set(card, cardId)
-          return card
-        }
-        const card = this.cards.take(cardId, tag)
-        this.borrowed.set(card, cardId)
-        return card
-      },
-      holdCard: (cardId, tag) => this.cards.take(cardId, tag),
-      beginBorrow: () => {
-        this.stale = this.borrowed
-        this.borrowed = new Map()
-      },
-      endBorrow: () => {
-        for (const [card, cardId] of this.stale) this.cards.release(card, cardId)
-        this.stale.clear()
-      },
-      releaseCard: (card, cardId) => this.cards.release(card, cardId),
-      setPageLabel: (text) => this.labels.setPage(text),
-      setTally: (text) => this.labels.setTally(text),
-      wake: () => this.frameLoop.wake(),
-      emitChange: () => this.onChangeCb?.(this.ctx.state.decks, this.ctx.state.currentId),
-      emitInspect: (cardId) => this.inspect.show(cardId),
-      emitManage: (action) => this.manage(action),
-    }
   }
 
   /** 改名 / 新建 / 删除三件事都要弹框，交给调用方。 */
@@ -230,61 +229,35 @@ class DeckSceneImpl {
     this.onManageCb?.(action)
   }
 
-  /** 改一次状态并重排画面。所有「点了某个控件」最后都走这条。 */
-  private change(next: (state: DeckState) => DeckState): void {
-    this.ctx.state = next(this.ctx.state)
-    renderDeckScene(this.ctx)
+  /** 放大层那一行的第一颗钮：从卡池点开的是「加入牌组」，从牌组点开的是「移出牌组」。 */
+  private zoomAction(): void {
+    const origin = this.inspect.origin
+    if (origin === null) return
+    this.inspect.hide()
+    if (origin.from === 'deck') {
+      removeSlot(this.ctx, origin.index)
+      return
+    }
+    addFromPool(this.ctx, origin.index, insertIndex(this.ctx))
   }
 
-  private turnPage(delta: number): void {
-    const pages = poolPageCount(this.ctx)
-    const next = Math.min(Math.max(0, currentPage(this.ctx) + delta), pages - 1)
-    this.change((state) => setPage(state, next))
-  }
-
-  /** 点卡池第 index 格的「＋」。落点是当前这一页的第一格，口径见 logic/pagination.ts。 */
-  private addAt(index: number): void {
-    const at = pageInsertIndex(
-      currentPage(this.ctx),
-      this.parts.poolCells.length,
-      currentCards(this.ctx.state).length,
-    )
-    addFromPool(this.ctx, index, at)
-  }
-
-  /** 手机档：开关抽屉。桌面档牌组栏一直摊着，这一下什么都不做。 */
-  private toggleDrawer(): void {
-    if (this.layout.drawer === null) return
-    this.change((state) => setDrawerOpen(state, !state.drawerOpen))
-  }
-
-  private removeAt(index: number): void {
-    const cards = currentCards(this.ctx.state)
-    if (index < 0 || index >= cards.length) return
-    this.change((state) => ({
-      ...state,
-      decks: state.decks.map((deck) =>
-        deck.id === state.currentId
-          ? { ...deck, cards: [...deck.cards.slice(0, index), ...deck.cards.slice(index + 1)] }
-          : deck,
-      ),
-    }))
-    this.ctx.emitChange()
-  }
-
-  /** 舞台上的指针：拖拽走合成入口那三条，点遮罩关掉放大查看。 */
+  /** 把真指针接到三个合成入口上。换一套零件之后要重接一次（监听挂在舞台和展示层上）。 */
   private bindStage(): void {
-    this.stage.eventMode = 'static'
-    this.stage.on('pointerdown', (event) => {
-      if (this.inspect.open) return
-      this.input.pressAt(event.global.x, event.global.y, event.pointerType)
-    })
-    this.stage.on('globalpointermove', (event) => this.input.moveTo(event.global.x, event.global.y))
-    this.stage.on('pointerup', (event) => this.input.releaseAt(event.global.x, event.global.y))
-    this.stage.on('pointerupoutside', (event) =>
-      this.input.releaseAt(event.global.x, event.global.y),
-    )
-    this.parts.reveal.on('pointertap', () => this.inspect.hide())
+    bindDeckPointer(this.pointerHost)
+  }
+
+  private readonly onWheel = (event: WheelEvent): void => deckWheelHandler(this.pointerHost)(event)
+
+  /**
+   * 把舞台缩放居中放进视口，并按设计尺寸给它一块命中区。
+   * 缩放之后短边留出的那一圈边因此不在命中区里——它不属于这一页，点了不该有反应。
+   */
+  private applyStageTransform(): void {
+    const { stage } = this.layout
+    this.stage.scale.set(stage.scale)
+    this.stage.position.set(stage.x, stage.y)
+    this.stage.hitArea = new Rectangle(0, 0, this.layout.width, this.layout.height)
+    paintStageFrame(this.backdrop, this.letterbox, this.layout)
   }
 
   /**
@@ -292,18 +265,23 @@ class DeckSceneImpl {
    *
    * 这一页**没有自己的虚拟时钟**（不像对局场景要按 cue 的 `at` 排演出）：
    * 补间归 GSAP，而 GSAP 的时间由帧循环统一推（见 runtime/frameLoop.ts）。
-   * 所以这里只回答「还忙不忙」，一个时间参数都不需要。
+   * 这里推的是那几路逐帧跟随：滚动惯性、倾斜收敛。
    */
-  private advance(): boolean {
+  private advance(deltaMs: number): boolean {
+    const scrolling = this.input.advance(deltaMs)
+    const tilting = this.hover.advance(deltaMs)
+    const zooming = this.inspect.advance(deltaMs)
+    this.interactionBusy = scrolling || tilting || zooming
     return !this.idle()
   }
 
-  private render(_deltaMs: number): void {
-    this.renderer.render(this.stage)
+  private render(deltaMs: number): void {
+    this.advance(deltaMs)
+    this.renderer.render(this.root)
   }
 
   private idle(): boolean {
-    return !this.deps.animator.isBusy() && !this.input.isBusy()
+    return !this.deps.animator.isBusy() && !this.input.isBusy() && !this.interactionBusy
   }
 
   handle(): DeckScene {
@@ -329,31 +307,45 @@ class DeckSceneImpl {
       }),
       resize: (width, height) => this.resize(width, height),
       destroy: () => this.destroy(),
-      pressAt: (x, y) => this.input.pressAt(x, y),
-      moveTo: (x, y) => this.input.moveTo(x, y),
-      releaseAt: (x, y) => this.input.releaseAt(x, y),
-      turnPage: (delta) => this.turnPage(delta),
-      toggleDrawer: () => this.toggleDrawer(),
+      pressAt: (x, y) => {
+        const at = toStage(this.layout, x, y)
+        this.input.pressAt(at.x, at.y)
+      },
+      moveTo: (x, y) => {
+        const at = toStage(this.layout, x, y)
+        this.input.moveTo(at.x, at.y)
+      },
+      releaseAt: (x, y) => {
+        const at = toStage(this.layout, x, y)
+        this.input.releaseAt(at.x, at.y)
+      },
+      turnPage: (delta) => turnScreen(this.ctx, delta),
+      toggleDrawer: () => toggleDrawer(this.ctx),
     }
   }
 
   mounted(): MountedDeckScene {
-    return { ...this.handle(), root: this.stage, advance: () => this.advance() }
+    return { ...this.handle(), root: this.root, advance: (deltaMs) => this.advance(deltaMs) }
   }
 
   private resize(width: number, height: number): void {
-    if (width === this.layout.width && height === this.layout.height) return
     const next = pickDeckLayout(width, height, this.options.coarsePointer)
+    if (
+      next.viewport.width === this.layout.viewport.width &&
+      next.viewport.height === this.layout.viewport.height
+    ) {
+      return
+    }
     this.renderer.resize(width, height)
+    const sameStage = next.tier === this.layout.tier && next.width === this.layout.width
     this.layout = next
     /*
-     * 改尺寸和换档位走的是同一条路：整套零件重建。
-     *
-     * 对局场景那边分了两条（同一档内只 `applyPartsLayout`），这里不分——构筑页的三块底板
-     *（面板 A / B / D）几何是**画死**的，尺寸一变就得换一块新的，而它们正是这一页的主体。
-     * 留一条只挪位置的快路等于让底板停在旧尺寸上，比重建更糟。
+     * 舞台尺寸没变（桌面档只是缩放比不同）就只改一个 transform：那一档的每一块底板
+     * 都是照 1672×941 画死的，换视口不用重画。换档位或换到手机档那条按视口实算的路
+     * 才要整套重建——那时候底板的几何真的变了。
      */
-    this.rebuild()
+    if (sameStage) this.applyStageTransform()
+    else this.rebuild()
     this.frameLoop.wake()
   }
 
@@ -361,13 +353,18 @@ class DeckSceneImpl {
   private rebuild(): void {
     const state = this.ctx.state
     this.input.destroy()
+    this.hover.release()
+    this.interactionBusy = false
     this.returnAllCards()
     this.inspect.hide()
     for (const child of this.stage.removeChildren()) child.destroy({ children: true })
     this.parts = this.buildParts()
     this.ctx.state = state
-    this.labels.reset()
+    this.poolScroll.reset()
+    this.slotScroll.reset()
     this.input = createDeckInput(this.ctx)
+    this.hover = createDeckHover(this.ctx)
+    this.applyStageTransform()
     this.bindStage()
     renderDeckScene(this.ctx)
   }
@@ -391,6 +388,7 @@ class DeckSceneImpl {
     if (this.destroyed) return
     this.destroyed = true
     this.options.canvas.removeEventListener('webglcontextrestored', this.onContextRestored)
+    this.options.canvas.removeEventListener('wheel', this.onWheel)
     this.input.destroy()
     this.returnAllCards()
     // 顺序要紧：先掐补间再还 GSAP 的时钟，理由见对局场景 DuelScene 的 destroy。
@@ -398,7 +396,7 @@ class DeckSceneImpl {
     this.frameLoop.destroy()
     this.cards.dispose()
     // 只销毁场景自己建的东西：调用方传进来的卡面纹理不归我们管（谁加载谁负责）。
-    this.stage.destroy({ children: true, texture: false, textureSource: false })
+    this.root.destroy({ children: true, texture: false, textureSource: false })
     if (this.ownsRenderer) this.renderer.destroy()
   }
 }

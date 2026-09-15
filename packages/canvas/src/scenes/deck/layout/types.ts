@@ -8,6 +8,19 @@
  *
  * 版式只输出**数**，不碰任何 Pixi 对象：两档的几何因此能在 vitest 里直接断言
  *（卡池不和牌组栏重叠、抽屉收起来时不挡住卡池……），不用起浏览器。
+ *
+ * ## 坐标基准
+ *
+ * `width` / `height` 和下面每一个矩形都是**舞台坐标**。桌面档的舞台是 1672×941 的死版式，
+ * 真实视口和换算写在 `viewport` / `stage` 两项里，由场景写到根节点的 scale 和 position 上
+ *（同对局场景，见 scenes/duel/layout/types.ts）。手机档不缩放：`stage.scale` 为 1、偏移为 0，
+ * 于是舞台坐标就是视口坐标，两档共用同一套下游代码。
+ *
+ * ## 两档的卡池不是同一种翻法
+ *
+ * 桌面档**纵向滚动**（`poolScroll` / `slotScroll` 不为 null），手机档**翻页**（`pager` 不为 null）。
+ * 两组字段互斥：是谁由档位定死，不存在两样都开着的版式。滚动那一档的网格是**内容网格**——
+ * `rows` 只说「窗口里同时摆得下几行」，真正有几行跟着卡池张数走，由场景在 render 时算。
  */
 
 import { tokens } from '@ai-duel/design'
@@ -22,6 +35,19 @@ export interface Rect {
   y: number
   width: number
   height: number
+}
+
+/**
+ * 一块纵向滚动区：可视窗口加一条滚动条。
+ *
+ * 窗口就是遮罩那块矩形；内容比它高多少由场景按实际张数算（版式不知道卡池有几张）。
+ * 滚动条摆在窗口右边的内边距里，不占内容宽——占了的话格宽的那条推导就要跟着改。
+ */
+interface ScrollSpec {
+  /** 可视窗口。遮罩画的就是它，命中判定也按它。 */
+  view: Rect
+  /** 滚动条的轨。滑块由场景按「看到了内容的哪一段」在轨里定位。 */
+  bar: Rect
 }
 
 /**
@@ -41,8 +67,13 @@ interface DrawerSpec {
 
 export interface DeckLayout {
   tier: DeckLayoutTier
+  /** 舞台宽高。桌面档恒为 1672×941，手机档就是视口。 */
   width: number
   height: number
+  /** 真实视口。只有画舞台四周那一圈挡边时用得着。 */
+  viewport: { width: number; height: number }
+  /** 舞台整块怎么放进视口：等比缩放 + 居中偏移。手机档是 `{ scale: 1, x: 0, y: 0 }`。 */
+  stage: { scale: number; x: number; y: number }
   /** 顶栏压在视口顶边，整条通宽。 */
   topBarHeight: number
   /** 返回钮的左上角。 */
@@ -59,21 +90,28 @@ export interface DeckLayout {
   /**
    * 阵营药丸（标签页 C）那一排摆哪儿。
    *
-   * `right` 不为 null 就是**靠右**贴着那条边界摆（桌面档：和种类页签同一行）；
-   * 为 null 就按 `x` 靠左摆（手机档：另起一行）。
-   * 靠右那一档的 x 要等这排页签的字烤出来才算得出（宽度跟着字走），所以在 render 里定。
+   * 两档都是**另起一行靠左**：桌面档回到黑客松那一版之后筛选栏就是两行
+   *（种类页签一行、阵营药丸一行），手机档本来就是两行。
    */
-  poolFactions: { x: number; y: number; right: number | null }
-  /** 卡池网格。列数两档不同。 */
+  poolFactions: { x: number; y: number }
+  /**
+   * 卡池网格。
+   *
+   * 翻页那一档（手机）它就是一页；滚动那一档（桌面）它是**内容网格**：
+   * x / y 是滚动量为 0 时第一行的左上角，`rows` 只说窗口里同时摆得下几行
+   *（含露头那一行），真正有几行跟着筛完的张数走。
+   */
   poolGrid: GridSpec
+  /** 卡池纵向滚动。翻页那一档是 null。 */
+  poolScroll: ScrollSpec | null
   /** 卡池底边那条提示（提示 A）。 */
   poolHint: Rect
-  /** 翻页控件：两颗钮的左上角和中间那行页码的锚点。 */
+  /** 翻页控件：两颗钮的左上角和中间那行页码的锚点。滚动那一档是 null。 */
   pager: {
     prev: { x: number; y: number }
     next: { x: number; y: number }
     label: { x: number; y: number }
-  }
+  } | null
   /** 卡池里一张卡缩到多大（基准是 150×225）。 */
   poolCardScale: number
 
@@ -98,8 +136,10 @@ export interface DeckLayout {
   tally: { x: number; y: number }
   /** 进度条（条 A）。 */
   progress: Rect
-  /** 牌组那 20 个卡位。 */
+  /** 牌组那 20 个卡位。滚动那一档它同样是内容网格，窗口见 `slotScroll`。 */
   slots: GridSpec
+  /** 牌组卡位的纵向滚动。一屏摆得下的那一档（手机）是 null。 */
+  slotScroll: ScrollSpec | null
   /** 牌组栏底边那条提示。 */
   sideHint: Rect
   /** 「确认牌组」按钮的中心。 */
@@ -110,9 +150,12 @@ export interface DeckLayout {
   revealScale: number
 }
 
-/** 整页四周留多宽。两档各有各的值，这里只给桌面档那一档当默认。 */
-export const PAGE_PAD = 24
-/** 网格里相邻两格的空隙。抄旧样式 `.deck-grid` 的 18 / 20 和 `.deck-slots` 的 10。 */
+/**
+ * 网格里相邻两格的空隙。
+ *
+ * 卡池那一组只有手机档在用（桌面档回到黑客松 `.deck-grid` 的 18 / 20，写在它自己那边）；
+ * 卡位那一组两档同用，就是黑客松 `--deck-slot-gap` 的 10。
+ */
 export const POOL_GAP = { x: 16, y: 16 }
 export const SLOT_GAP = { x: 10, y: 10 }
 /** 卡池头部条、底部提示条的高。抄旧版 `.deck-pool__head` 和 `.deck-pool__hint`。 */
@@ -169,7 +212,10 @@ export function cardScaleFor(cellWidth: number): number {
   return cellWidth / CARD_WIDTH
 }
 
-/** 桌面档顶栏高。和对局那一档同一个令牌——两页的顶栏本来就是同一条。 */
-export const DESKTOP_TOP_BAR = tokens.size.battle.topbarHeight
-/** 手机档顶栏高。 */
+/**
+ * 手机档顶栏高。
+ *
+ * 桌面档不在这里：那一档的顶栏是按黑客松 `.deck-top` 的 padding 16/30/12 现推的，
+ * 只有它自己用得着（见 desktopLayout.ts）。
+ */
 export const MOBILE_TOP_BAR = tokens.size.battle.topbarHeightTouch

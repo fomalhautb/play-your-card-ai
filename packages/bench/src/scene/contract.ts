@@ -57,7 +57,7 @@ export interface BenchSceneOptions {
  * 构筑页那个场景多出来的两件事（6.9 表里「牌组编辑滚动」那一段）。
  *
  * 单独一个接口挂在 `BenchScene.deck` 上，而不是把这两条并进下面那张表：
- * 对局场景没有「翻页」也没有「把一张牌拖进牌组」，让它去实现两个空方法只会让契约变糊。
+ * 对局场景没有「翻一屏卡池」也没有「把一张牌拖进牌组」，让它去实现两个空方法只会让契约变糊。
  * 剧本按 `Scenario.scene` 挑场景（见 scenarios/types.ts），拿不到这一份就是登记错了。
  */
 export interface BenchDeckActions {

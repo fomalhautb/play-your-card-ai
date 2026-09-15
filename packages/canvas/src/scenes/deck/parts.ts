@@ -5,93 +5,52 @@
  * 指针那一串归 input.ts。拆出来是因为「有哪些组件、它们叠在第几层」
  * 是读这个场景时第一个要回答的问题（同对局场景的 parts.ts）。
  *
+ * 正式版简化第 4 步之四之后，界面那一层全是素方块（见 components/Box.ts）：
+ * 外框、页签、提示条、进度条、按钮都是这里直接建的 `Box`，不再各有一个带底图和配色的组件。
+ * 整页也不再垫一块纸底——渲染器的清屏色就是那块底，垫一层等于凭空多一次满屏绘制（3.2）。
+ *
  * 层序（自下而上）：
- *   page      整页纸底
- *   pool      卡池底板、头部页签、卡、翻页
+ *   pool      卡池外框、筛选、提示、滚动条
+ *   poolCards 卡池格子（滚动那一档被遮罩裁在窗口里）
  *   side      牌组栏（手机档是抽屉）、卡位、确认钮
  *   drag      正被拖着的那一张
- *   overlay   放大查看（弹窗 B）
+ *   overlay   顶栏、放大查看（弹窗 B）和它右边那张背面大卡
  */
 
-import { tokens } from '@ai-duel/design'
-import { Container } from 'pixi.js'
+import { Container, Graphics } from 'pixi.js'
+import { Box, type BoxDeps } from '../../components/Box'
 import { DeckSlots } from '../../components/DeckSlots'
-import { HintBar } from '../../components/HintBar'
-import { Label } from '../../components/Label'
-import { Panel } from '../../components/Panel'
-import { PLAQUE_NAVY, PlaqueButton } from '../../components/PlaqueButton'
 import { PoolCell } from '../../components/PoolCell'
-import { ProgressBar } from '../../components/ProgressBar'
 import { RevealOverlay } from '../../components/RevealOverlay'
-import { SmallButton } from '../../components/SmallButton'
-import { Tabs } from '../../components/Tabs'
-import { cellCount, cellRect } from '../../layout/gridMath'
+import { cellCount } from '../../layout/gridMath'
 import type { DuelDeps } from '../duel/deps'
+import { BoxTabs } from './boxTabs'
 import type { DeckLayout } from './layout/types'
-
-/** 页头那两行字的字号字距。组件私有，不进令牌（同别处的理由）。 */
-const TITLE_TYPE = { fontSize: 22, letterSpacing: 4, weight: '600', align: 'left' } as const
-const TALLY_TYPE = { fontSize: 15, letterSpacing: 1.5, weight: '600', align: 'left' } as const
-const PAGER_TYPE = { fontSize: 13, letterSpacing: 1.3 } as const
-
-/** 页头标题。写死在这里而不是由调用方给：这一页只有这一个身份。 */
-const TITLE = '组建牌组'
-/** 返回钮和标题之间留多宽。 */
-const TITLE_GAP = 20
-
-interface DeckLayers {
-  page: Container
-  pool: Container
-  poolCards: Container
-  side: Container
-  drag: Container
-  overlay: Container
-}
-
-export interface DeckParts {
-  layers: DeckLayers
-  /** 整页纸底（面板 A）。 */
-  page: Panel
-  back: SmallButton
-  title: Label
-  /** 夜色卡池底板（面板 D）。 */
-  pool: Panel
-  /** 种类页签（标签页 B）和阵营药丸（标签页 C）。 */
-  kindTabs: Tabs
-  factionTabs: Tabs
-  /**
-   * 卡池那一页的格子。**长住**——翻页只换里面那张卡，格子本身一次都不重建。
-   * 它的长度就是这一档版式一页几格（桌面 8、手机 6）。
-   */
-  poolCells: PoolCell[]
-  poolHint: HintBar
-  prevPage: SmallButton
-  nextPage: SmallButton
-  pageLabel: Label
-  /** 牌组栏底板（面板 B 的构筑档）。 */
-  side: Panel
-  /** 牌组页签（标签页 A）和末尾那颗虚线「新建」。 */
-  deckTabs: Tabs
-  newDeck: SmallButton
-  /**
-   * 手机档抽屉的把手。桌面档也建但**藏着**——两档的零件表保持一样，
-   * 省掉一路 `null` 判断；藏起来的那颗一次都不会被点到。
-   */
-  drawerHandle: SmallButton
-  rename: SmallButton
-  remove: SmallButton
-  tally: Label
-  progress: ProgressBar
-  slots: DeckSlots
-  sideHint: HintBar
-  confirm: PlaqueButton
-  reveal: RevealOverlay
-}
+import { applyDeckLayout } from './partsLayout'
+import {
+  BACK,
+  type DeckLayers,
+  type DeckParts,
+  DRAWER_WIDTH,
+  MANAGE_WIDTH,
+  NEW_DECK_WIDTH,
+  PAGER_BUTTON,
+  TIP,
+  TITLE,
+  TITLE_BOX,
+  ZOOM_ACTION,
+  ZOOM_ANCHOR_Y,
+  ZOOM_FRONT_X,
+} from './partsSpec'
+import { ScrollBar } from './scrollBar'
+import { GAP_SHIFT_DUR } from './timings'
 
 export interface DeckPartsOptions {
   stage: Container
   deps: DuelDeps
   layout: DeckLayout
+  /** 卡池一共几张牌。滚动那一档按它算内容有多高，也按它兜住格子数。 */
+  poolSize: number
   onBack?: () => void
   onConfirm?: () => void
   onKind: (id: string) => void
@@ -104,75 +63,87 @@ export interface DeckPartsOptions {
   /** 手机档：点了抽屉把手。 */
   onDrawer: () => void
   onPage: (delta: number) => void
-  /** 点了卡池第 index 格的「＋」。 */
+  /** 点了卡池第 index 格的「＋」（格子的序号，不是卡池的序号，见 PoolCell.poolIndex）。 */
   onAddAt: (index: number) => void
+  /** 放大查看那一行的两颗钮。 */
+  onZoomAdd: () => void
+  onZoomClose: () => void
 }
 
 function makeLayers(stage: Container): DeckLayers {
   const layers: DeckLayers = {
-    page: new Container(),
     pool: new Container(),
     poolCards: new Container(),
     side: new Container(),
     drag: new Container(),
     overlay: new Container(),
   }
-  stage.addChild(
-    layers.page,
-    layers.pool,
-    layers.poolCards,
-    layers.side,
-    layers.drag,
-    layers.overlay,
-  )
-  // 纸底只是背景，吃了指针事件上面的卡就点不着了。
-  layers.page.eventMode = 'none'
+  stage.addChild(layers.pool, layers.poolCards, layers.side, layers.drag, layers.overlay)
   return layers
+}
+
+/** 一块只画描边、不吃事件的方块。两块外框都是它。 */
+function frameBox(
+  rect: { x: number; y: number; width: number; height: number },
+  deps: BoxDeps,
+): Box {
+  const box = new Box({ width: rect.width, height: rect.height }, deps)
+  box.position.set(rect.x, rect.y)
+  box.eventMode = 'none'
+  return box
+}
+
+/** 一颗按钮。名字（`label`）是交互测试和 bench 找命中点的依据。 */
+function button(
+  size: { width: number; height: number },
+  caption: string,
+  name: string,
+  onPress: () => void,
+  deps: BoxDeps,
+): Box {
+  const box = new Box({ ...size, label: caption }, deps)
+  box.onPress(onPress)
+  box.label = name
+  return box
 }
 
 export function createDeckParts(options: DeckPartsOptions): DeckParts {
   const { deps, layout } = options
   const layers = makeLayers(options.stage)
 
-  const page = new Panel({ variant: 'A', width: layout.width, height: layout.height })
-  const back = new SmallButton(
-    { variant: 'H', caption: '返回', ink: tokens.color.paper.ink, onActivate: options.onBack },
-    deps,
-  )
-  back.label = 'button:deck-back'
-  const title = new Label(TITLE, TITLE_TYPE, deps, tokens.color.paper.ink)
+  const back = button(BACK, '返回', 'button:deck-back', () => options.onBack?.(), deps)
+  const title = new Box({ ...TITLE_BOX, label: TITLE, size: 'title' }, deps)
+  title.eventMode = 'none'
 
-  const pool = new Panel({ variant: 'D', width: layout.pool.width, height: layout.pool.height })
-  const kindTabs = new Tabs({ variant: 'B', onSelect: options.onKind }, deps)
-  const factionTabs = new Tabs({ variant: 'C', onSelect: options.onFaction }, deps)
-  const poolHint = new HintBar(
-    { width: layout.poolHint.width, height: layout.poolHint.height, tone: 'dark' },
+  const pool = frameBox(layout.pool, deps)
+  const kindTabs = new BoxTabs({ height: 26, onSelect: options.onKind }, deps)
+  const factionTabs = new BoxTabs({ height: 24, onSelect: options.onFaction }, deps)
+  const poolHint = new Box(
+    { width: layout.poolHint.width, height: layout.poolHint.height, size: 'small' },
     deps,
   )
-  const prevPage = new SmallButton(
-    {
-      variant: 'L',
-      caption: '上一页',
-      ink: tokens.color.deck.chipInk,
-      onActivate: () => options.onPage(-1),
-    },
-    deps,
-  )
-  prevPage.label = 'button:deck-prev'
-  const nextPage = new SmallButton(
-    {
-      variant: 'L',
-      caption: '下一页',
-      ink: tokens.color.deck.chipInk,
-      onActivate: () => options.onPage(1),
-    },
-    deps,
-  )
-  nextPage.label = 'button:deck-next'
-  const pageLabel = new Label('', PAGER_TYPE, deps, tokens.color.deck.chipInk)
+  poolHint.eventMode = 'none'
 
+  const pager =
+    layout.pager === null
+      ? null
+      : {
+          prev: button(PAGER_BUTTON, '上一页', 'button:deck-prev', () => options.onPage(-1), deps),
+          next: button(PAGER_BUTTON, '下一页', 'button:deck-next', () => options.onPage(1), deps),
+          label: new Box({ width: 80, height: PAGER_BUTTON.height, size: 'small' }, deps),
+        }
+  if (pager !== null) pager.label.eventMode = 'none'
+
+  /*
+   * 建几个格子：滚动那一档按「窗口里同时摆得下几格」建（版式已经算好，含露头那一行），
+   * 但卡池比那还少时不用建满——目录页那份假卡池只有六张。
+   */
+  const cellTarget =
+    layout.poolScroll === null
+      ? cellCount(layout.poolGrid)
+      : Math.min(cellCount(layout.poolGrid), Math.max(1, options.poolSize))
   const poolCells: PoolCell[] = []
-  for (let index = 0; index < cellCount(layout.poolGrid); index += 1) {
+  for (let index = 0; index < cellTarget; index += 1) {
     const cell = new PoolCell(
       {
         width: layout.poolGrid.cellWidth,
@@ -185,56 +156,89 @@ export function createDeckParts(options: DeckPartsOptions): DeckParts {
     cell.visible = false
     poolCells.push(cell)
   }
+  /*
+   * 卡池那一刀。遮罩走 Graphics 而不是 Sprite：Pixi 按遮罩对象的类型挑实现，
+   * Graphics 只写模板缓冲，不产生离屏渲染（纪律 3.1，同 RevealOverlay 的顶栏裁剪）。
+   */
+  const poolClip = layout.poolScroll === null ? null : new Graphics()
+  const poolBar = layout.poolScroll === null ? null : new ScrollBar(layout.poolScroll.bar, deps)
 
-  const side = new Panel({
-    variant: 'B',
-    tone: 'deck',
-    width: layout.side.width,
-    height: layout.side.height,
-  })
-  const deckTabs = new Tabs({ variant: 'A', onSelect: options.onDeck }, deps)
-  const newDeck = new SmallButton(
-    { variant: 'L', caption: '＋ 新建', dashed: true, onActivate: options.onNewDeck },
+  const side = frameBox(layout.side, deps)
+  const deckTabs = new BoxTabs({ height: layout.tabs.height, onSelect: options.onDeck }, deps)
+  const newDeck = button(
+    { width: NEW_DECK_WIDTH, height: layout.tabs.height },
+    '＋ 新建',
+    'button:deck-new',
+    options.onNewDeck,
     deps,
   )
-  newDeck.label = 'button:deck-new'
-  const rename = new SmallButton(
-    { variant: 'L', caption: '改名', onActivate: options.onRename },
+  const manageSize = { width: MANAGE_WIDTH, height: 26 }
+  const rename = button(manageSize, '改名', 'button:deck-rename', options.onRename, deps)
+  const remove = button(manageSize, '删除', 'button:deck-delete', options.onDelete, deps)
+  const drawerHandle = button(
+    { width: DRAWER_WIDTH, height: 26 },
+    '牌组',
+    'button:deck-drawer',
+    options.onDrawer,
     deps,
   )
-  rename.label = 'button:deck-rename'
-  const remove = new SmallButton(
-    { variant: 'L', caption: '删除', onActivate: options.onDelete },
-    deps,
-  )
-  remove.label = 'button:deck-delete'
-  const drawerHandle = new SmallButton(
-    { variant: 'L', caption: '牌组', onActivate: options.onDrawer },
-    deps,
-  )
-  drawerHandle.label = 'button:deck-drawer'
   drawerHandle.visible = layout.drawer !== null
-  const tally = new Label('', TALLY_TYPE, deps, tokens.color.paper.ink)
-  const progress = new ProgressBar({ width: layout.progress.width })
+  const tally = new Box({ width: 240, height: 24, align: 'left', size: 'small' }, deps)
+  tally.eventMode = 'none'
+  const progress = {
+    track: new Box({ width: layout.progress.width, height: layout.progress.height }, deps),
+    fill: new Box({ width: 1, height: Math.max(1, layout.progress.height - 4) }, deps),
+  }
+  progress.track.eventMode = 'none'
+  progress.fill.eventMode = 'none'
   const slots = new DeckSlots(
-    { grid: layout.slots, cardScale: layout.slotCardScale, onRemove: options.onRemoveAt },
+    {
+      grid: layout.slots,
+      cardScale: layout.slotCardScale,
+      view: layout.slotScroll?.view ?? null,
+      shiftDur: GAP_SHIFT_DUR,
+      onRemove: options.onRemoveAt,
+    },
     deps,
   )
-  const sideHint = new HintBar(
-    { width: layout.sideHint.width, height: layout.sideHint.height, tone: 'paper' },
+  const slotBar = layout.slotScroll === null ? null : new ScrollBar(layout.slotScroll.bar, deps)
+  const sideHint = new Box(
+    { width: layout.sideHint.width, height: layout.sideHint.height, size: 'small' },
     deps,
   )
-  const confirm = new PlaqueButton(
-    { variant: PLAQUE_NAVY, caption: '确认牌组', size: 'endTurn', onActivate: options.onConfirm },
+  sideHint.eventMode = 'none'
+  const confirm = button(
+    { width: layout.side.width / 2, height: 44 },
+    '确认牌组',
+    'button:deck-confirm',
+    () => options.onConfirm?.(),
     deps,
   )
-  confirm.label = 'button:deck-confirm'
 
-  const reveal = new RevealOverlay({ scale: layout.revealScale }, deps)
+  /*
+   * 放大查看：正面那张飞到舞台的 39% / 46% 处（黑客松 `.deck-page .reveal-card` 的两个百分比），
+   * 右边 61% 处摆一张同尺寸的背面大卡。两张并排是这一页独有的——对局页那一份摆正中。
+   */
+  const reveal = new RevealOverlay(
+    { scale: layout.revealScale, anchorX: ZOOM_FRONT_X, anchorY: ZOOM_ANCHOR_Y },
+    deps,
+  )
+  const zoomSide = new Container()
+  zoomSide.visible = false
+  const zoomActions = {
+    add: button(ZOOM_ACTION, '加入牌组', 'button:deck-zoom-add', options.onZoomAdd, deps),
+    close: button(ZOOM_ACTION, '关闭', 'button:deck-zoom-close', options.onZoomClose, deps),
+  }
+  zoomSide.addChild(zoomActions.add, zoomActions.close)
 
-  layers.page.addChild(page)
-  layers.pool.addChild(pool, kindTabs, factionTabs, poolHint, prevPage, nextPage, pageLabel)
+  layers.pool.addChild(pool, kindTabs, factionTabs, poolHint)
+  if (pager !== null) layers.pool.addChild(pager.prev, pager.next, pager.label)
+  if (poolBar !== null) layers.pool.addChild(poolBar)
   layers.poolCards.addChild(...poolCells)
+  if (poolClip !== null) {
+    layers.poolCards.addChild(poolClip)
+    layers.poolCards.mask = poolClip
+  }
   layers.side.addChild(
     side,
     deckTabs,
@@ -243,103 +247,50 @@ export function createDeckParts(options: DeckPartsOptions): DeckParts {
     remove,
     drawerHandle,
     tally,
-    progress,
+    progress.track,
+    progress.fill,
     slots,
     sideHint,
     confirm,
   )
-  layers.overlay.addChild(back, title, reveal)
+  if (slotBar !== null) layers.side.addChild(slotBar)
+  const tip = new Box({ width: TIP.width, height: TIP.height, size: 'small' }, deps)
+  tip.eventMode = 'none'
+  tip.visible = false
+  layers.drag.addChild(tip)
+  layers.overlay.addChild(back, title, reveal, zoomSide)
 
   const parts: DeckParts = {
     layers,
-    page,
     back,
     title,
     pool,
     kindTabs,
     factionTabs,
     poolCells,
+    poolClip,
+    poolBar,
     poolHint,
-    prevPage,
-    nextPage,
-    pageLabel,
+    pager,
     side,
     deckTabs,
     newDeck,
+    drawerHandle,
     rename,
     remove,
-    drawerHandle,
     tally,
     progress,
     slots,
+    slotBar,
     sideHint,
     confirm,
+    tip,
     reveal,
+    zoomSide,
+    zoomActions,
   }
   applyDeckLayout(parts, layout)
   return parts
 }
 
-/**
- * 按版式把所有零件摆一遍。改视口和换档位都走这里。
- *
- * 底板（面板 A / B / D）的几何是**画死**的，尺寸一变就得换一块新的——所以换尺寸时
- * 这里只摆位置，重画由场景重建零件负责（见 DeckScene 的 rebuild）。
- */
-function applyDeckLayout(parts: DeckParts, layout: DeckLayout): void {
-  parts.page.position.set(0, 0)
-  parts.back.position.set(layout.back.x, layout.back.y)
-  /*
-   * 标题排在返回钮之后。版式给的 `title.x` 只是一个下限——返回钮的宽度跟着它那行字走
-   *（字要烤成纹理才知道多宽），版式算不出来，所以在这儿取两者的大的那个。
-   */
-  parts.title.position.set(
-    Math.max(layout.title.x, layout.back.x + parts.back.boxWidth + TITLE_GAP),
-    layout.title.y,
-  )
-
-  parts.pool.position.set(layout.pool.x, layout.pool.y)
-  /*
-   * 两排页签的**竖向**位置在这儿定（版式给的是那一行的中线，扣掉半个高就是左上角）；
-   * 阵营那一排的**横向**位置要等它的字烤出来才算得出，所以在 render 里定。
-   */
-  parts.kindTabs.position.set(layout.poolKinds.x, layout.poolKinds.y - parts.kindTabs.boxHeight / 2)
-  parts.factionTabs.position.set(
-    layout.poolFactions.x,
-    layout.poolFactions.y - parts.factionTabs.boxHeight / 2,
-  )
-  parts.poolCells.forEach((cell, index) => {
-    const rect = cellRect(layout.poolGrid, index)
-    cell.resize(rect.width, rect.height, layout.poolCardScale)
-    cell.position.set(rect.x, rect.y)
-  })
-  parts.poolHint.resize(layout.poolHint.width, layout.poolHint.height)
-  parts.poolHint.position.set(layout.poolHint.x, layout.poolHint.y)
-  parts.prevPage.position.set(layout.pager.prev.x, layout.pager.prev.y)
-  parts.nextPage.position.set(layout.pager.next.x, layout.pager.next.y)
-  parts.pageLabel.position.set(layout.pager.label.x, layout.pager.label.y)
-
-  parts.side.position.set(layout.side.x, layout.side.y)
-  parts.deckTabs.position.set(layout.tabs.x, layout.tabs.y)
-  parts.newDeck.position.set(
-    layout.tabs.x + layout.tabs.width - parts.newDeck.boxWidth,
-    layout.tabs.y,
-  )
-  const handle = layout.drawer?.handle
-  parts.drawerHandle.visible = handle !== undefined
-  if (handle !== undefined) parts.drawerHandle.position.set(handle.x, handle.y)
-  parts.rename.position.set(layout.manage.x, layout.manage.y)
-  parts.remove.position.set(layout.manage.x + parts.rename.boxWidth + 8, layout.manage.y)
-  parts.tally.position.set(layout.tally.x, layout.tally.y + 10)
-  parts.progress.resize(layout.progress.width)
-  parts.progress.position.set(layout.progress.x, layout.progress.y)
-  parts.slots.resize(layout.slots, layout.slotCardScale)
-  parts.slots.position.set(0, 0)
-  parts.sideHint.resize(layout.sideHint.width, layout.sideHint.height)
-  parts.sideHint.position.set(layout.sideHint.x, layout.sideHint.y)
-  parts.confirm.position.set(
-    layout.confirm.x - parts.confirm.boxWidth / 2,
-    layout.confirm.y - parts.confirm.boxHeight / 2,
-  )
-  parts.reveal.resize(layout.width, layout.height)
-}
+export type { DeckParts } from './partsSpec'
