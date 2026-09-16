@@ -120,9 +120,7 @@ export function DuelDev() {
         <span className="duel-dev__fps">{fps === null ? '空闲' : `${fps} fps`}</span>
       </div>
       <div className="duel-dev__panel">
-        <Button onClick={restart}>
-          重开一局
-        </Button>
+        <Button onClick={restart}>重开一局</Button>
         <span className="duel-dev__group">
           档位
           {TIERS.map((value) => (
