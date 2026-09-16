@@ -133,8 +133,19 @@ export function createLocalDriver(options: LocalDriverOptions): LocalDriver {
       lastRejection: rejectionOf(events),
     }
     core.patch(changes)
+    /*
+     * `COMMAND_REJECTED` 要**原样留给发起方**，不过 `filterEvent`——那个函数对它一律返回 null
+     *（见 core 的 view.ts：它不是「局面上发生的事」，不进广播），服务端是把它单独回给发指令的
+     * 那条连接的（`match:rejected`），本地这一端同理，而这一端的「发起方」就是自己。
+     *
+     * 漏了这一步的后果不是少一句提示那么轻：被拒的那一批过完滤就空了，而空批不发
+     *（见 driverCore 的 emitBatch），于是演出编排层永远等不到「上一条指令有结果了」，
+     * `awaiting` 一直挂着、`actionsLocked` 一直为真——**一次被拒之后整局都出不了牌**。
+     * 2026-09-16 在浏览器里复现到的正是这个：第一轮把「黑白颠倒」拖到空着的战场上
+     *（引擎拒「没有合法目标」），之后怎么拖都没反应，连红字提示也没有。
+     */
     const visible = events
-      .map((event) => filterEvent(event, seat))
+      .map((event) => (event.type === 'COMMAND_REJECTED' ? event : filterEvent(event, seat)))
       .filter((event): event is GameEvent => event !== null)
     core.emitBatch({ events: visible, view })
   }

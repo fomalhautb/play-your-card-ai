@@ -80,10 +80,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
 
   const mood = createHandMood(ctx)
   const tileHover = createTileHover(ctx, () => !performanceLocked && locks?.showcasing !== true)
-  /**
-   * 每张手牌各一份倾斜跟随。按卡存而不是「只留一份共用的」：卡在对局里是随发随建随销的，
-   * 共用那一份会在换牌那一刻还指着上一张。卡销毁时这里跟着摘（见 bindCard）。
-   */
+  // 每张手牌各一份倾斜跟随。按卡存而不是「只留一份共用的」：卡在对局里是随发随建随销的，
+  // 共用那一份会在换牌那一刻还指着上一张。卡销毁时这里跟着摘（见 bindCard）。
   const tilts = new Map<CardSprite, CardTilt>()
   const tiltFor = (card: CardSprite): CardTilt => {
     const kept = tilts.get(card)
@@ -178,12 +176,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     targeting = next
     ctx.userAction({ kind: 'targeting-begin' })
     ctx.parts.targeting.begin(card.name)
-    /*
-     * 施放的那张回扇形里抬起来（黑客松的 `CASTING_LIFT`）。
-     *
-     * 这一步不能省：它是被拖出去松手才进到这一档的，此刻还挂在拖拽层上、停在松手的地方。
-     * 不收回去的话，选目标期间它就浮在战场中间挡着要点的那几格，取消之后也回不来。
-     */
+    // 施放的那张回扇形里抬起来（黑客松的 `CASTING_LIFT`）。这一步不能省：拖出去松手进到
+    // 这一档时它还挂在拖拽层上，不收回去就会浮在战场中间挡着要点的那几格，取消之后也回不来。
     pointer.returnToFan(sprite)
     ctx.parts.fan.setCasting(instanceId)
     if (scope === 'board') {
@@ -224,33 +218,51 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     return true
   }
 
-  /** 手牌被拖进出牌区松手（或鼠标轻点）。 */
+  /**
+   * 手牌被拖进出牌区松手（或鼠标轻点）。
+   *
+   * 没受理的一律送回扇形：走到这儿的多半是拖到战场松手的那张，此刻还挂在拖拽层上
+   *（world 最顶层、照样吃指针事件），留在那儿会把底下的战场和手牌一起挡死，再按它还会
+   * 起一次原点算错的假拖拽。轻点过来的那张没被摘出扇形，`returnToFan` 自己认得出来
+   *（见 handPointer），所以这里无脑调。
+   */
   const onPlay = (card: CardSprite): void => {
+    if (!consumePlay(card)) pointer.returnToFan(card)
+  }
+
+  /** 这一下受理没有：发了指令、或者进了选目标态才算。false 一律由 onPlay 收尾。 */
+  const consumePlay = (card: CardSprite): boolean => {
     const view = ctx.view
-    if (view === null) return
+    if (view === null) return false
     const instanceId = card.instanceId
     // 正在给「模型蒸馏」这类牌选手牌目标时，点一张手牌的含义是选中它，不是把它打出去。
     if (targeting !== null && targeting.kind === 'card' && targeting.scope === 'hand') {
-      if (!targeting.legal.has(instanceId)) return
+      if (!targeting.legal.has(instanceId)) return false
       const pending = targeting.instanceId
       endTargeting()
       play(pending, instanceId)
-      return
+      return true
     }
-    if (targeting !== null) return
     /*
-     * 这一下打不出去（Token 不够）：弹一句小字说明为什么，不发指令，牌送回扇形。
-     * 送回不能省——走到这儿的多半是"拖到战场松手"，那张牌此刻还挂在拖拽层上。
-     * 整排锁着的那几档压根拖不动（`enabled` 已经挡在前面），那几句提示只从"点一下"弹出来。
+     * 正在给战场选目标时又拖了一张上来：只把这张送回去，**不动**正在选的那一档。
+     * 替玩家把他已经开始的一件事收掉太唐突；真要放弃，松手那一下会冒泡到舞台，
+     * 由「点空白处取消」统一处理（见下面的 onStageTap），落在候选格上的则先被格子接走。
      */
-    if (mood.popTip(card)) {
-      pointer.returnToFan(card)
-      return
-    }
+    if (targeting !== null) return false
+    // 这一下打不出去（Token 不够）：弹一句小字说明为什么，不发指令。
+    if (mood.popTip(card)) return false
     const definition = cardOf(view, instanceId)
-    if (definition === null) return
-    if (beginTargeting(card, definition, view)) return
+    if (definition === null) return false
+    if (beginTargeting(card, definition, view)) return true
     play(instanceId)
+    /*
+     * 要选目标、却一个目标都没有（第一轮打「黑白颠倒」、对面场上还空着就是这样）：
+     * 指令照发，为什么打不出去由引擎那条红字说清楚；但这一下**必被拒**（候选名单和引擎
+     * 同一份判据，见 skillTargets.ts 的文件头），而被拒那条路上没有任何 cue 会来接手
+     * 拖拽层上的它，所以照样报「没受理」，让 onPlay 把它送回扇形。
+     * 2026-09-16 在浏览器里复现到的「打不出牌」，现场就是这样一张卡停在战场正中。
+     */
+    return targetScopeOf(definition) === 'none'
   }
 
   /** 点一格：选目标时是选中它，平时是点开放大查看。 */
@@ -273,23 +285,16 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     ctx.userAction({ kind: 'inspect-open', source: 'tile', flipId: instanceId })
   }
 
-  /**
-   * 取消要等一次**新的**按下之后才算数。
-   *
-   * 进选目标态那一下本身是一次松手（牌拖进落区），Pixi 紧跟着会把它当成一次 tap
-   * 派发上来——按下的是手牌、松手时指针在战场上，共同祖先就是舞台。
-   * 不设这道闸的话，选目标刚立起来就被自己那一下取消掉了。
-   */
+  // 取消要等一次**新的**按下之后才算数：进选目标态那一下本身是一次松手（牌拖进落区），
+  // Pixi 紧跟着会把它当成一次 tap 派发上来（按下的是手牌、松手时指针在战场上，
+  // 共同祖先就是舞台）。不设这道闸的话，选目标刚立起来就被自己那一下取消掉了。
   let cancelArmed = false
 
-  /*
-   * 「点空白处取消」挂在**舞台**上，不挂在选目标层上。
-   *
-   * 选目标层铺满全屏而且在最上面，它要是吃指针事件，被它盖住的候选格和候选手牌就全点不动了
-   *（那正是这一步要玩家点的东西）。所以那一层只管压暗和提示条，不接事件（见 TargetingLayer），
-   * 取消这一下由舞台兜底：点中候选的那一下会先在格子 / 手牌那儿被处理掉并收场，
-   * 冒泡到这里时 targeting 已经是 null；没点中任何候选的才落到这里，一律算取消。
-   */
+  // 「点空白处取消」挂在**舞台**上，不挂在选目标层上：那一层铺满全屏而且在最上面，
+  // 它要是吃指针事件，被它盖住的候选格和候选手牌就全点不动了（那正是这一步要玩家点的东西）。
+  // 所以那一层只管压暗和提示条，不接事件（见 TargetingLayer），取消这一下由舞台兜底：
+  // 点中候选的那一下会先在格子 / 手牌那儿被处理掉并收场，冒泡到这里时 targeting 已经是 null；
+  // 没点中任何候选的才落到这里，一律算取消。
   const onStageDown = (): void => {
     if (targeting !== null) cancelArmed = true
   }
@@ -326,12 +331,8 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
   return {
     bindCard(card) {
       pointer.bind(card)
-      /*
-       * 卡被销毁时把它那份倾斜跟随一起摘掉。
-       *
-       * 不摘的话这张表会跟着一局里发过的每一张牌一直长，而每份跟随都握着卡的引用
-       *（`CardTilt` 逐帧往卡上写角度），卡就回收不掉。
-       */
+      // 卡被销毁时把它那份倾斜跟随一起摘掉：不摘的话这张表会跟着一局里发过的每一张牌一直长，
+      // 而每份跟随都握着卡的引用（`CardTilt` 逐帧往卡上写角度），卡就回收不掉。
       card.once('destroyed', () => tilts.delete(card))
     },
 
@@ -346,12 +347,9 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
       locks = next
       performanceLocked = locked
       ctx.parts.endPlay.setDisabled(next.actionsLocked || locked)
-      /*
-       * 等对方出牌时整颗收起来——那正是它按不动的时候，留一颗灰着的钮只是占地方。
-       *
-       * 用 `visible` 而不是建了又销：这颗钮一局要进出好几十次（每一轮双方各一次），
-       * 每次重建都要重新烤一遍匾额上那行字的纹理（3.5 明确不许在动画期间建文字）。
-       */
+      // 等对方出牌时整颗收起来——那正是它按不动的时候，留一颗灰着的钮只是占地方。
+      // 用 `visible` 而不是建了又销：这颗钮一局要进出好几十次（每一轮双方各一次），
+      // 每次重建都要重新烤一遍匾额上那行字的纹理（3.5 明确不许在动画期间建文字）。
       ctx.parts.endPlay.visible = !next.waitingForFoe
       // 钮收起来的那一段正是「等对方出牌」，吊匾接替它把这件事说出来。
       ctx.parts.turnPlaque?.setOn(next.waitingForFoe)

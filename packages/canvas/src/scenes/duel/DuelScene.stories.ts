@@ -15,8 +15,8 @@
  *
  * 画布尺寸不取需求里那两块真实屏幕（1920×1080 / 390×844），而取 1280×800 和 390×844：
  * 截图回归的浏览器视口钉死在 1280×900（见 client 的 dev/storybook/playwright.config.ts），
- * 1920 宽的条目拍不进去。1280×800 的短边是 800，和 1920×1080 落在同一档
- *（断点 768，见 layout/pickLayout.ts），所以拍到的仍是桌面档那套版式。
+ * 1920 宽的条目拍不进去。1280 宽和 1920×1080 落在同一档（断点 768 看的是**宽**，
+ * 见 layout/pickLayout.ts），所以拍到的仍是桌面档那套版式。
  *
  * 命名和 title 用英文的理由见 CardSprite.stories.ts 的文件头。
  */
@@ -51,7 +51,7 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frameMs
     cardFaces: STORY_CARD_FACES,
     catalog: STORY_CATALOG,
     manualClock: true,
-    // 手机档靠短边就够了，不用再假装指针是粗的。
+    // 手机档靠 390 的宽度就够了，不用再假装指针是粗的。
     coarsePointer: false,
     seed: SEED,
   })

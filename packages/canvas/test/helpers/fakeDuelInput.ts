@@ -19,7 +19,7 @@ import { desktopLayout } from '../../src/scenes/duel/layout/desktopLayout'
 import type { DuelCommand } from '../../src/scenes/duelContract'
 import { INPUT_CATALOG } from './fakeCatalog'
 
-/** 测试用的视口。短边 800 ≥ 断点 768，所以走桌面档。 */
+/** 测试用的视口。宽 1280 ≥ 断点 768，所以走桌面档。 */
 const FAKE_SIZE = { width: 1280, height: 800 }
 
 /** 一张能被指针状态机摆弄的假卡：它只会被读 id、改姿态、进出各层。 */
@@ -196,6 +196,13 @@ export interface InputProbe {
   tapTile(tile: FakeTile): void
   /** 只在舞台上发一次 tap，前面没有按下。用来验「松手那一下不算取消」。 */
   tapStageOnly(): void
+  /**
+   * 此刻还挂在拖拽层上的那几张牌。
+   *
+   * 一次拖拽收场之后它必须是空的：拖拽层在最顶上而且吃指针事件，忘在那儿的牌会把
+   * 底下的战场和手牌一起挡死（见 input.ts 的 onPlay）。
+   */
+  onDragLayer(): InstanceId[]
 }
 
 export function createInputProbe(view: PlayerView): InputProbe {
@@ -205,6 +212,8 @@ export function createInputProbe(view: PlayerView): InputProbe {
   const cards = view.self.hand.map((one) => fakeCard(one.instanceId))
   /** 被拖出扇形的那几张。`all()` 要照实排除它们，压暗候选牌那段才对得上。 */
   const detached = new Set<InstanceId>()
+  /** 此刻挂在拖拽层上的那几张。真场景里这就是 `layers.drag` 的子节点列表。 */
+  const onDragLayer = new Set<InstanceId>()
   const stageHandlers = new Map<string, () => void>()
   const fireStage = (event: string) => stageHandlers.get(event)?.()
 
@@ -221,7 +230,12 @@ export function createInputProbe(view: PlayerView): InputProbe {
       detached.add(card.instanceId)
       calls.push('fan.detach')
     },
-    adoptInOrder: () => calls.push('fan.adoptInOrder'),
+    // 指针状态机靠它分辨「这张牌是拖出去的还是原地点的」（见 handPointer 的 returnToFan）。
+    isDetached: (card: FakeCard) => detached.has(card.instanceId),
+    adoptInOrder: (card: FakeCard) => {
+      onDragLayer.delete(card.instanceId)
+      calls.push('fan.adoptInOrder')
+    },
     returnToFan: (card: FakeCard) => {
       detached.delete(card.instanceId)
       calls.push('fan.returnToFan')
@@ -255,12 +269,18 @@ export function createInputProbe(view: PlayerView): InputProbe {
       fireStage('pointertap')
     },
     tapStageOnly: () => fireStage('pointertap'),
+    onDragLayer: () => [...onDragLayer],
   }
 
   const parts = {
     fan,
     layers: {
-      drag: { addChild: () => calls.push('drag.addChild') },
+      drag: {
+        addChild: (card: FakeCard) => {
+          onDragLayer.add(card.instanceId)
+          calls.push('drag.addChild')
+        },
+      },
       // 灰墨态那几句小字挂在气泡层上（见 handMood.ts）。
       bubble: { addChild: () => undefined },
     },

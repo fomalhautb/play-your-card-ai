@@ -65,6 +65,18 @@ const END_PLAY_INSET = 32
 /** 扇形最外侧那张牌和障碍物之间至少留出的空隙，以及被拒红字离手牌区上沿多远。 */
 const BUBBLE_GAP = 28
 
+/**
+ * 出牌区下沿离手牌锚点留多少张卡高。
+ *
+ * 鼠标拖拽时牌不抬（handPointer 的 `lift` 对 mouse 是 0），卡的原点又是**底边中点**，
+ * 所以整张牌画在指针**上方**；而落点只看指针（dragRules 的 `pointInZone`）。
+ * 下沿要是贴着战场外框，玩家把牌拖到「看着已经盖在战场上」时指针还在外框下面一大截，
+ * 松手就被判成取消——这正是 2026-09-16 那次「打不出牌」的另一半原因。
+ * 0.75 是简化之前那一版用的数：抬过半张卡就算进了战场，而牌底还没离开手牌区。
+ * 手机档另有一份更宽的（`mobileLayout` 的 `DROP_GAP_CARDS`），那边手指还要额外抬半张卡。
+ */
+const DROP_GAP_CARDS = 0.75
+
 export function desktopLayout(viewWidth: number, viewHeight: number): DuelLayout {
   const width = DESIGN_WIDTH
   const height = DESIGN_HEIGHT
@@ -157,8 +169,16 @@ export function desktopLayout(viewWidth: number, viewHeight: number): DuelLayout
      */
     foeHand: { x: fanCenterX, y: 0, areaWidth: fieldWidth },
     hand,
-    // 落点判定就是战场外框本身：黑客松版没有「离手牌留几张卡」那条额外的让位。
-    dropZone: { ...boardFrame },
+    /*
+     * 落点判定：左右和上沿就是战场外框，下沿往下延到手牌区里（见 DROP_GAP_CARDS）。
+     * 越出外框的那一截是给「指针在牌底」让的位，画面上什么都不画。
+     */
+    dropZone: {
+      x: boardFrame.x,
+      y: boardFrame.y,
+      width: boardFrame.width,
+      height: height - CARD_HEIGHT * hand.scale * DROP_GAP_CARDS - boardFrame.y,
+    },
     deck: deckPose(panels.mine),
     endPlay,
     revealScale: tokens.size.card.revealScale,

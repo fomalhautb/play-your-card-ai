@@ -92,6 +92,20 @@ describe('发指令', () => {
     expect(driver.getSnapshot().lastRejection).toBe(null)
   })
 
+  it('被拒那条事件照样发给演出层，不然它会一直等着回包', () => {
+    const { driver, batches } = open()
+    const before = batches.length
+    driver.send({ type: 'END_PLAY', player: 1 })
+    /*
+     * `filterEvent` 对 `COMMAND_REJECTED` 一律返回 null（它不进广播，见 core 的 view.ts），
+     * 而空批不发（见 driverCore 的 emitBatch）。两条撞在一起的后果是演出编排层永远等不到
+     * 「上一条指令有结果了」：`awaiting` 一直挂着、手牌一直锁着，**一次被拒之后整局都出不了牌**。
+     * 所以这一条要原样留给发起方——服务端也是单独回给发指令那条连接的。
+     */
+    expect(batches).toHaveLength(before + 1)
+    expect(batches.at(-1)?.events.map((event) => event.type)).toEqual(['COMMAND_REJECTED'])
+  })
+
   it('dispose 之后指令不再进引擎', () => {
     const { driver } = open()
     const before = driver.getSnapshot().view

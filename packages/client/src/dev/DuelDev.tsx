@@ -9,12 +9,14 @@
  */
 
 import type { DuelScene, EffectTier } from '@ai-duel/canvas'
+import { Button } from '@ai-duel/ui'
 import { useEffect, useRef, useState } from 'react'
 import { usePlatform } from '../app/platform'
 import type { LocalDriver } from '../match/localDriver'
 import { createTestMatch } from '../match/localMatch'
 import { DuelStage } from '../screens/DuelStage'
 import { DevPanel } from './DevPanel'
+import { installStageDebug } from './debugHook'
 import './duelDev.css'
 
 /** 这一局的种子。写死是为了每次打开看到的都是同一副牌、同一套演出。 */
@@ -38,12 +40,37 @@ export function DuelDev() {
   /*
    * 「重开一局」= 换一个 driver。种子固定，所以重开出来的还是同一副牌、同一套演出。
    *
-   * 这一页不走 MatchSession（那是给跨路由用的），driver 就活在这个组件的 state 里。
-   * 换掉的那一局和卸载时都要 dispose，否则上一局的答题定时器还会接着往里发指令——
-   * 换掉那次由下面这个 effect 的清理负责（driver 一变就跑一次）。
+   * 这一页不走 MatchSession（那是给跨路由用的），driver 就活在这个组件的 state 里；
+   * 换掉的那一份当场 dispose，把它的答题定时器关掉。
+   *
+   * dispose **不能**写在 effect 的清理里。开发构建下 StrictMode 会把每个 effect 跑两遍
+   * （建 → 拆 → 再建），那一次「拆」会把**还在用**的这一局拆掉，之后 `localDriver` 的
+   * 每条指令都被 `disposed` 挡回去：画面照常演开局（那批事件是建 driver 时就发好的、
+   * 由 driverCore 攒着的），但从此一张牌也打不出去、测试面板每颗钮也都没反应。
+   * 正式对局页没踩这一下——那边的 driver 归 MatchSession，只在 `start` / `end` 时拆。
+   * 这里照它的办法来：只在换的时候拆，当前这一份存 ref（ref 是同步的，连点两下也不漏拆）。
    */
   const [driver, setDriver] = useState<LocalDriver>(() => createTestMatch(platform, { seed: SEED }))
-  useEffect(() => () => driver.dispose(), [driver])
+  const current = useRef(driver)
+  const restart = (): void => {
+    current.current.dispose()
+    const next = createTestMatch(platform, { seed: SEED })
+    current.current = next
+    setDriver(next)
+  }
+
+  /*
+   * 把画布的命中反查口子（`window.__aiDuel.stage`）装上，好让自动化脚本按 label 问
+   * 「这东西现在在屏幕哪儿」。正式对局页由 MatchScreen 装同一份，这一页从前没装——
+   * 于是想在这里复现拖拽问题时只能靠肉眼点，反而要开浏览器手动试。
+   * 静态 import 就行：整个 dev 目录只被 App.tsx 那张开发页表动态拉进来，生产构建里不存在。
+   * 探针不跟着页面生命周期走（见 installStageDebug），所以不需要清理。
+   * 子组件的 effect 先跑，这一句因此晚于 DuelStage 建场景那一步——不要紧：
+   * 那一步要先 await 卡面图集，而探针补的是渲染那一层，赶在第一帧之前装上就够了。
+   */
+  useEffect(() => {
+    installStageDebug()
+  }, [])
 
   /*
    * 计数器和帧率轮询着读，不每帧塞进 React——那本身就会把帧循环钉住不放。
@@ -93,20 +120,15 @@ export function DuelDev() {
         <span className="duel-dev__fps">{fps === null ? '空闲' : `${fps} fps`}</span>
       </div>
       <div className="duel-dev__panel">
-        <button type="button" onClick={() => setDriver(createTestMatch(platform, { seed: SEED }))}>
-          重开一局
-        </button>
+        <Button onClick={restart}>重开一局</Button>
         <span className="duel-dev__group">
           档位
           {TIERS.map((value) => (
-            <button
-              key={value}
-              type="button"
-              data-active={value === tier}
-              onClick={() => setTier(value)}
-            >
+            // pressed 既是读屏软件那边的「这一档选着呢」，也是方块按钮反色那一档：
+            // 素方块阶段只有这一种手段能在画面上分出当前选的是哪一档。
+            <Button key={value} pressed={value === tier} onClick={() => setTier(value)}>
               {value}
-            </button>
+            </Button>
           ))}
         </span>
         <span className="duel-dev__counters">

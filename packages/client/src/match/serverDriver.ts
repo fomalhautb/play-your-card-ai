@@ -159,6 +159,24 @@ export function createServerDriver(options: ServerDriverOptions): ServerDriver {
 
       case 'match:rejected':
         core.patch({ lastRejection: message.reason })
+        /*
+         * 还要往事件流里补一条 `COMMAND_REJECTED`，和单机那一端对称（见 localDriver 的
+         * publish）。演出编排层靠「上一条指令有结果了」把出牌解锁：玩家按下去那一刻它就
+         * 记上 `awaiting`，只有收到一批事件才清掉（见 canvas 的 director）。
+         * 服务端把这条回执单独回给发指令的那条连接、不混在 `match:events` 里
+         *（`filterEvent` 对它一律返回 null，见协议的 matchRejectedSchema），
+         * 所以被拒时这一端一批事件都收不到——不补的话 `awaiting` 一直挂着、手牌一直锁着，
+         * **一次被拒之后整局都出不了牌**，那条红字提示也没机会播。
+         *
+         * 局面没变（被拒的指令什么都没改），所以带的还是手上这一份视图。
+         * 第一份视图都还没到的时候不补：那时演出层还没开始，也就没有锁要解。
+         */
+        {
+          const view = core.getSnapshot().view
+          if (view !== null) {
+            core.emitBatch({ events: [{ type: 'COMMAND_REJECTED', reason: message.reason }], view })
+          }
+        }
         break
 
       default:

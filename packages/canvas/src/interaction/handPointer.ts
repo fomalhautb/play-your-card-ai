@@ -121,8 +121,14 @@ export class HandPointer {
   /**
    * 把一张还挂在拖拽层上的牌送回扇形。「拖出去松手」不一定等于「这张牌走了」：
    * 带目标的技能牌松手之后进的是选目标态，牌得先回扇形再抬起来等玩家点。
+   *
+   * 没被摘出扇形的那张直接不管。调用方（input.ts 的 onPlay）在每一条「这张牌没出成」的
+   * 分支上都会调它一次，而那些分支里有一半是**鼠标轻点**走过来的——那张牌压根没离开过扇形，
+   * 它的 x/y 是扇形坐标；照着送会被 `returnCard` 当成舞台坐标再换算一遍，牌当场飞到别处
+   * 再飞回来。这道闸让调用方可以无脑调，不必自己分辨这一下是拖的还是点的。
    */
   returnToFan(card: CardSprite): void {
+    if (!this.options.fan.isDetached(card)) return
     this.returnCard(card)
   }
 

@@ -12,8 +12,15 @@
  * 编号变体（按钮 A~D）和「用 prop 摆出悬停 / 按下」那套目录页专用的摆态也一起去掉了——
  * 前者没有第二档可选，后者没有样式可拍。
  *
- * 跟着一起删掉的两样：`Icon`（只有 `SealButton` 和 `Page` 内部在用，两者改成文字后没人用）、
+ * 跟着一起删掉的两样：`Icon`（只有按钮和 `Page` 内部在用，两者改成文字后没人用）、
  * 令牌一览那条目录页条目（对素方块没有意义）。
+ *
+ * ## 按钮只有一种
+ *
+ * 2026-09-16 起**只有 `Button` 一种按钮**：原来那颗 `SealButton` 只多一个 `pressed`，
+ * 剥成素方块之后连长相都一样了，合并进 `Button`（开关语义由 `pressed` 继续管）。
+ * 它也是这个包里唯一一个写了视觉的组件——长相对齐画布上的素方块，
+ * 剩下的组件仍然只有摆位（见 Button.tsx）。要第二种按钮等视觉整套重做时再议。
  *
  * 每个组件仍然保留一条目录页条目（`XXX.stories.tsx`，7.1 第 3 条），
  * 截图回归的机制要留着，重做视觉时它就是第一道检查。
@@ -29,8 +36,6 @@ export type { NoticeProps, NoticeTone } from './Notice'
 export { Notice } from './Notice'
 export type { PageProps } from './Page'
 export { Page } from './Page'
-export type { SealButtonProps } from './SealButton'
-export { SealButton } from './SealButton'
 export type { SheetProps } from './Sheet'
 export { Sheet } from './Sheet'
 export type { TextFieldProps } from './TextField'

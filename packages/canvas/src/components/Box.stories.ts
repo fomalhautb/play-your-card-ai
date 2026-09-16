@@ -5,11 +5,12 @@
  *   普通    「普通」那条，三档字号各摆一块
  *   悬停    不适用。这个组件没有悬停的视觉态（只换指针形状，拍不出来）
  *   按下    不适用，同上
- *   禁用    「禁用」那条，整块 0.4 透明度
+ *   禁用    「禁用」那条，描边和字压到 0.4 透明度（底不压，见 Box.setDisabled）
  *   加载    不适用。它不等任何东西
  *
- * 条目底下垫一块画布底色：真界面上素方块是画在浅灰底上的，
- * 而目录页自己的底是深色的，不垫的话深色描边看不见（见 Box.ts 的 CANVAS_BACKGROUND）。
+ * 条目底下仍然垫一块画布底色：方块自己已经有底了，但方块之间的空当还是目录页那层深色底，
+ * 不垫的话整条看着是「深底上飘着几块浅灰片」，和真界面上那种通铺浅灰的样子对不上
+ *（见 Box.ts 的 CANVAS_BACKGROUND）。
  *
  * 命名和 title 用英文的理由见 client 的 dev/storybook/README.md。
  */
@@ -58,7 +59,7 @@ export const Normal = {
   parameters: { pixi: { ...SIZE, mount: (ctx: StoryStage) => mount(ctx, false) } },
 }
 
-/** 禁用：整块压到 0.4 透明度，颜色一点没换。 */
+/** 禁用：描边和字压到 0.4 透明度，底和颜色一点没换。 */
 export const Disabled = {
   name: '禁用',
   parameters: { pixi: { ...SIZE, mount: (ctx: StoryStage) => mount(ctx, true) } },

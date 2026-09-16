@@ -96,7 +96,11 @@ export class BoardGrid extends Container {
     this.label = 'board-grid'
 
     this.fxLayer.eventMode = 'none'
-    this.addChild(this.rows.opponent, this.rows.self, this.midline, this.badgeSlot, this.fxLayer)
+    /*
+     * 中线排在两排格子**之前**：它横贯整块战场，排在后面就会从卡面上穿过去。
+     * 正中那块匾排在最后，它自己有底（见 components/Box.ts），会把线在那一段盖掉。
+     */
+    this.addChild(this.midline, this.rows.opponent, this.rows.self, this.badgeSlot, this.fxLayer)
     this.drawMidline()
     this.layout()
   }

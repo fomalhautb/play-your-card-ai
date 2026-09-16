@@ -21,7 +21,7 @@ import type { StoryStage } from '../../storyStage'
 import { mountHeroScene } from './HeroScene'
 import type { HeroEntry, HeroView } from './heroContract'
 
-/* 桌面档那条的画布要短边不小于 768，理由同首页那条条目。 */
+/* 桌面档那条的画布要宽不小于 768，理由同首页那条条目。 */
 const DESKTOP = { width: 1180, height: 790 }
 const MOBILE = { width: 380, height: 720 }
 

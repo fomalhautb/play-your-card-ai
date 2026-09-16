@@ -1,0 +1,36 @@
+/*
+ * 方块按钮：和画布上的 Box 一个长相。数值对齐 canvas/src/components/Box.ts 的
+ * BOX_LINE / CANVAS_BACKGROUND / BOX_INK / BOX_FONT_SIZE.body / PAD_X / BOX_DISABLED_ALPHA。
+ */
+
+.ui-button {
+  box-sizing: border-box;
+  min-height: 44px; /* 同 canvas 的 scenes/room/roomLayout.ts 里 BUTTON.height */
+  padding: 0 8px;
+  border: 1px solid #222;
+  border-radius: 0;
+  background: #eee;
+  color: #000;
+  font: inherit;
+  font-size: 16px;
+  /* 写死，别用 normal：normal 的具体值跟着字体走，而目录页基线要跨平台确定。 */
+  line-height: 24px;
+  cursor: pointer;
+}
+
+/* 禁用只压透明度、不换色，同 Box——换色就等于又开始定配色了。 */
+.ui-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/*
+ * 开关「现在是开着的」这一档反色。
+ *
+ * 这**不是**悬停 / 按下的视觉态（Box 不做那些，这里也不做），而是开关类按钮的当前值：
+ * 静音钮和开发页的档位选择全靠它才看得出现在是哪一档。除此之外不要再加别的视觉态。
+ */
+.ui-button[aria-pressed="true"] {
+  background: #222;
+  color: #eee;
+}

@@ -15,6 +15,7 @@
 import { CARD_POOL, CARDS } from '@ai-duel/content'
 import type { CardId, GamePhase, PlayerId } from '@ai-duel/core'
 import { effectivePlayCost, getCard, other } from '@ai-duel/core'
+import { Button } from '@ai-duel/ui'
 import { useState } from 'react'
 import type { LocalDriver } from '../match/localDriver'
 import { useMatch } from '../match/useMatch'
@@ -70,9 +71,7 @@ export function DevPanel({ driver }: { driver: LocalDriver }) {
 
   return (
     <div className="dev-panel">
-      <button type="button" onClick={() => setOpen((now) => !now)}>
-        {open ? '收起面板' : '测试面板'}
-      </button>
+      <Button onClick={() => setOpen((now) => !now)}>{open ? '收起面板' : '测试面板'}</Button>
 
       {open ? (
         <div className="dev-panel__body">
@@ -101,8 +100,7 @@ export function DevPanel({ driver }: { driver: LocalDriver }) {
           {rows.map((row) => (
             <div className="dev-panel__row" key={row.seat}>
               <span className="dev-panel__label">{row.label}</span>
-              <button
-                type="button"
+              <Button
                 onClick={() =>
                   driver.debug({
                     type: 'DEBUG_ADD_CARD',
@@ -113,35 +111,25 @@ export function DevPanel({ driver }: { driver: LocalDriver }) {
                 }
               >
                 加 1 张
-              </button>
-              <button
-                type="button"
-                onClick={() => driver.debug({ type: 'DEBUG_REMOVE_CARD', player: row.seat })}
-              >
+              </Button>
+              <Button onClick={() => driver.debug({ type: 'DEBUG_REMOVE_CARD', player: row.seat })}>
                 去 1 张
-              </button>
+              </Button>
             </div>
           ))}
 
           <div className="dev-panel__row">
             <span className="dev-panel__label">推进</span>
             {/* 对方不会自己点「结束出牌」，卡住时靠这颗钮把出牌权交出去。 */}
-            <button
-              type="button"
-              onClick={() => driver.send({ type: 'END_PLAY', player: state.activePlayer })}
-            >
+            <Button onClick={() => driver.send({ type: 'END_PLAY', player: state.activePlayer })}>
               结束出牌
-            </button>
-            <button type="button" onClick={playForFoe}>
-              代对手出牌
-            </button>
+            </Button>
+            <Button onClick={playForFoe}>代对手出牌</Button>
             {/* 只想看答题和计分时省掉连点两次「结束出牌」。 */}
-            <button type="button" onClick={() => driver.debug({ type: 'DEBUG_SKIP_TO_QUIZ' })}>
-              跳到答题
-            </button>
-            <button type="button" disabled={state.phase !== 'settle'} onClick={confirmBoth}>
+            <Button onClick={() => driver.debug({ type: 'DEBUG_SKIP_TO_QUIZ' })}>跳到答题</Button>
+            <Button disabled={state.phase !== 'settle'} onClick={confirmBoth}>
               确认本轮
-            </button>
+            </Button>
           </div>
 
           <p>进答题阶段后结果会自动交卷，不用手动点。</p>

@@ -75,7 +75,7 @@ export interface HeroSceneOptions {
   heroes: HeroEntry[]
   /** true 时不注册任何真实时间源，只靠 step() 推进。 */
   manualClock?: boolean
-  /** 指针是不是粗的。它和视口短边一起决定走哪一档版式（同对局场景）。 */
+  /** 指针是不是粗的。它和视口宽度一起决定走哪一档版式（同对局场景）。 */
   coarsePointer?: boolean
 }
 

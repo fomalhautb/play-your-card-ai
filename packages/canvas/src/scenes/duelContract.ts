@@ -112,7 +112,7 @@ export interface DuelSceneOptions {
   /** true 时不注册任何真实时间源，只靠 step() 推进。 */
   manualClock?: boolean
   /**
-   * 指针是不是粗的（CSS 的 `pointer: coarse`）。它和视口短边一起决定走哪一档版式，
+   * 指针是不是粗的（CSS 的 `pointer: coarse`）。它和视口宽度一起决定走哪一档版式，
    * 判据见 scenes/duel/layout/pickLayout.ts。
    */
   coarsePointer?: boolean

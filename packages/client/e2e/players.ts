@@ -35,7 +35,7 @@ export const LAUNCH_ARGS = [
   '--enable-unsafe-swiftshader',
 ]
 
-/** 视口。短边 900 > 断点 768，走的是有侧栏的那一档（见 canvas 的 pickLayout）。 */
+/** 视口。宽 1280 > 断点 768，走的是有侧栏的那一档（见 canvas 的 pickLayout）。 */
 export const VIEWPORT = { width: 1280, height: 900 }
 
 export interface Player {

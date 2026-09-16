@@ -22,7 +22,8 @@ import {
   openLocks,
 } from './helpers/fakeDuelInput'
 
-const IN_HAND: [number, number] = [700, 760]
+/** 手牌区里的一点（落区下沿 772.25 之下）和落区里的一点，口径同 duelInput.test.ts。 */
+const IN_HAND: [number, number] = [700, 860]
 const IN_ZONE: [number, number] = [700, 400]
 
 /** 拖一张手牌进落区松手。技能牌走到这一步只会进选目标态，不发指令。 */
@@ -153,6 +154,13 @@ describe('技能牌选战场目标', () => {
     dragToZone(input, probe, 'h1')
     expect(probe.commands).toEqual([{ type: 'PLAY_CARD', player: 0, instanceId: 'h1' }])
     expect(probe.calls).not.toContain('targeting.begin(打对面)')
+    /*
+     * 这一条必被拒（候选名单和引擎同一份判据），而被拒那条路上没有 cue 会来接手
+     * 拖拽层上的这张牌。不当场送回扇形的话，它会一直浮在战场中间挡着底下的格子和手牌——
+     * 2026-09-16 在浏览器里复现到的「打不出牌」就是这一张卡停在战场正中。
+     */
+    expect(probe.onDragLayer()).toEqual([])
+    expect(probe.calls).toContain('fan.returnToFan')
   })
 
   it('不带目标的技能牌照常一步打出', () => {

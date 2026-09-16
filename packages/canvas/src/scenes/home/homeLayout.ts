@@ -34,12 +34,17 @@ const MARGIN_RATIO = 0.05
 /**
  * 最上面那一排展示卡至少从这个高度开始，给右上角那颗常驻静音钮让出一条。
  *
- * 那颗钮是 DOM 的、钉在视口右上角（client 的 app/MuteButton.tsx：上边 8px + 一行
- * 浏览器默认按钮，一共三十出头），画布这边量不到它。窄屏上四张卡是按宽度铺满的，
+ * 那颗钮是 DOM 的、钉在视口右上角（client 的 app/MuteButton.tsx），画布这边量不到它，
+ * 所以这个数是照它的尺寸手算的：上边留 8px（muteButton.css）+ 钮高 44px
+ *（ui 的 button.css 里方块按钮的 min-height）= 52。窄屏上四张卡是按宽度铺满的，
  * 最右那张正好顶到右上角被它压住——实测 375×812 下就是这样。
  * 宽屏的留白本来就比这条宽，这个数在那儿不起作用。
+ *
+ * 改按钮高度或那 8px 时这个数要跟着改：对不上的那几像素就是点不着的一条。
+ * 原来是 44（那时钮还是一行浏览器默认按钮，三十出头），
+ * 2026-09-16 按钮统一成方块按钮、高度定到 44 之后抬到 52。
  */
-const TOP_RESERVED = 44
+const TOP_RESERVED = 52
 
 /** 展示卡那一条占视口高的几成。下面那一列从它的下边缘开始摆。 */
 const CARD_BAND_RATIO = 0.3
@@ -120,7 +125,7 @@ export function pickHomeLayout(
   labels: readonly string[],
   coarsePointer = false,
 ): HomeLayout {
-  const tier = pickTier(width, height, coarsePointer)
+  const tier = pickTier(width, coarsePointer)
   const margin = Math.min(width, height) * MARGIN_RATIO
   const cards = seatsOf(width, height, tier, Math.max(margin, TOP_RESERVED))
 
