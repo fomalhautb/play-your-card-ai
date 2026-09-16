@@ -151,7 +151,13 @@ export class CardSprite extends Container {
   /** 翻面转过的角度（度），0 是正面、180 是背面。 */
   private flipAngle = 0
 
-  /** 翻面用的角度代理。补间改它，onUpdate 再调 setFlipAngle。 */
+  /**
+   * 翻面用的角度代理。补间改它，onUpdate 再调 setFlipAngle。
+   *
+   * 它是**卡旁边挂的一个独立对象**，不是卡上的属性，而 GSAP 按目标对象认补间——
+   * 掐卡（或它的后代）掐不到这条补间。所以销毁卡时必须单独把它上面的补间也掐掉，
+   * 这件事由 `runtime/dispose.ts` 的 `killAndDestroy` 统一负责，别处不用自己操心。
+   */
   readonly flipState = { angle: 0 }
 
   /**
