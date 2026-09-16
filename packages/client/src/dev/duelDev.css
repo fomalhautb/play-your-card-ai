@@ -1,6 +1,6 @@
 /*
  * 开发页的版式：画布铺满上半截，控件贴底。
- * 正式版简化第 3 步把配色和按钮外观剥了，控件走浏览器默认样子。
+ * 这里只写摆位：按钮的长相归 ui 的方块按钮，下拉和文字仍是浏览器默认样子。
  */
 
 .duel-dev {
@@ -34,14 +34,6 @@
   align-items: center;
   gap: 4px;
   padding: 4px 12px;
-}
-
-/*
- * 当前选中的档位。原生按钮那圈默认边框是 2px 的立体框，换成 1px 实线就分得出来——
- * 这是素方块阶段唯一还能表达「选中」的手段（颜色都剥掉了）。
- */
-.duel-dev__panel button[data-active="true"] {
-  border: 1px solid currentColor;
 }
 
 .duel-dev__group {

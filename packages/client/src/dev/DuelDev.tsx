@@ -9,6 +9,7 @@
  */
 
 import type { DuelScene, EffectTier } from '@ai-duel/canvas'
+import { Button } from '@ai-duel/ui'
 import { useEffect, useRef, useState } from 'react'
 import { usePlatform } from '../app/platform'
 import type { LocalDriver } from '../match/localDriver'
@@ -119,20 +120,17 @@ export function DuelDev() {
         <span className="duel-dev__fps">{fps === null ? '空闲' : `${fps} fps`}</span>
       </div>
       <div className="duel-dev__panel">
-        <button type="button" onClick={restart}>
+        <Button onClick={restart}>
           重开一局
-        </button>
+        </Button>
         <span className="duel-dev__group">
           档位
           {TIERS.map((value) => (
-            <button
-              key={value}
-              type="button"
-              data-active={value === tier}
-              onClick={() => setTier(value)}
-            >
+            // pressed 既是读屏软件那边的「这一档选着呢」，也是方块按钮反色那一档：
+            // 素方块阶段只有这一种手段能在画面上分出当前选的是哪一档。
+            <Button key={value} pressed={value === tier} onClick={() => setTier(value)}>
               {value}
-            </button>
+            </Button>
           ))}
         </span>
         <span className="duel-dev__counters">

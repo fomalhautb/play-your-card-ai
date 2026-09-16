@@ -10,8 +10,8 @@
  */
 
 import type { ReactNode } from 'react'
+import { Button } from './Button'
 import { Page } from './Page'
-import { SealButton } from './SealButton'
 
 const noop = () => undefined
 
@@ -28,7 +28,7 @@ export default {
   args: {
     title: '关于本作',
     onBack: noop,
-    actions: <SealButton label="关闭声音" onClick={noop} />,
+    actions: <Button onClick={noop}>关闭声音</Button>,
     children: <p>出牌吧！AI！ 是一个把大模型答题做成卡牌对战的小游戏。</p>,
   },
   decorators: [
