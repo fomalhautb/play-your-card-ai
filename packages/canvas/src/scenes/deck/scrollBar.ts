@@ -25,7 +25,9 @@ export class ScrollBar extends Container {
     super()
     this.barHeight = bar.height
     this.track = new Box({ width: bar.width, height: bar.height }, deps)
-    this.thumb = new Box({ width: bar.width, height: bar.height }, deps)
+    // 滑块只画一圈线，压在轨上。轨已经是有底的，滑块再铺一层同色的底，
+    // 「滑块现在停在哪一段」就只剩上下两条横线看得出来了。
+    this.thumb = new Box({ width: bar.width, height: bar.height, transparent: true }, deps)
     // 纯显示，吃了指针事件底下的卡就点不着了。
     this.eventMode = 'none'
     this.addChild(this.track, this.thumb)

@@ -234,8 +234,8 @@ export function createParts(options: PartsOptions): DuelParts {
     reducedMotion: deps.reducedMotion,
   })
 
-  // 战场外框垫在格子底下，落点提示和「加粗」那一圈压在格子上面（它们要盖住的正是格子那一带）。
-  // 外框垫在格子底下，加粗圈和提示压在格子上面（它们要盖住的正是格子那一带）。
+  // 外框垫在格子底下，加粗圈和提示压在格子上面：那两样要圈住的正是格子那一带。
+  // 三块框都只画线不铺底（见 dropCue.ts 的 frameBox），压在上面也不会把卡糊掉。
   layers.board.addChild(drop.boardFrame, board, drop.hotRing)
   if (drop.boardCue !== null) layers.board.addChild(drop.boardCue)
   // 取消区排在手牌**之前**：它只是底下那条框，不该盖住牌。

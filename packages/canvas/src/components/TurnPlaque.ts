@@ -15,8 +15,8 @@
  * 所以点是印死在字里的：它仍然在说「对面在想」，只是不动。
  */
 
-import { Container, Graphics } from 'pixi.js'
-import { Box, type BoxDeps, CANVAS_BACKGROUND } from './Box'
+import { Container } from 'pixi.js'
+import { Box, type BoxDeps } from './Box'
 
 /** 匾上印什么。 */
 const LABEL = '对方回合 · · ·'
@@ -25,13 +25,10 @@ export type TurnPlaqueDeps = BoxDeps
 
 export class TurnPlaque extends Container {
   /**
-   * 垫在匾底下那一块不透明的底。
-   *
-   * 素方块是空心的，而这块匾**要压住对手那排牌背**：它吊在顶栏下沿、正对着战场居中，
-   * 底下就是对手扇形中间那一两张（黑客松版那块深蓝匾体干的就是这件事）。
-   * 不垫的话字会印在深色牌背上，读不出来。
+   * 匾身。它**要压住对手那排牌背**：匾吊在顶栏下沿、正对着战场居中，底下就是对手扇形
+   * 中间那一两张（黑客松版那块深蓝匾体干的就是这件事），不挡光的话字会印在深色牌背上，
+   * 读不出来。素方块自己就是有底的（见 components/Box.ts），从前另垫的那块 Graphics 已经删掉。
    */
-  private readonly backdrop = new Graphics()
   private readonly box: Box
 
   constructor(options: { width: number; height: number }, deps: TurnPlaqueDeps) {
@@ -40,15 +37,13 @@ export class TurnPlaque extends Container {
     // 纯显示：它盖在对手手牌上面，吃了指针事件底下的牌背就点不着了。
     this.eventMode = 'none'
     this.box = new Box({ width: options.width, height: options.height, label: LABEL }, deps)
-    this.addChild(this.backdrop, this.box)
-    this.paintBackdrop(options.width, options.height)
+    this.addChild(this.box)
     this.visible = false
   }
 
   /** 改大小。只在版式变了时调。 */
   resize(width: number, height: number): void {
     this.box.setSize(width, height)
-    this.paintBackdrop(width, height)
   }
 
   /** 挂出来 / 收回去。 */
@@ -59,9 +54,5 @@ export class TurnPlaque extends Container {
   /** 当场收掉（对局中断时的 `clear-overlays`）。 */
   clear(): void {
     this.visible = false
-  }
-
-  private paintBackdrop(width: number, height: number): void {
-    this.backdrop.clear().rect(0, 0, width, height).fill({ color: CANVAS_BACKGROUND })
   }
 }

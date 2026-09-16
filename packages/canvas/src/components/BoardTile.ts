@@ -161,7 +161,8 @@ export class BoardTile extends Container {
     const scale = this.cardScale
     const width = this.boxWidth + RING_SPREAD * 2
     const height = CARD_HEIGHT * scale + RING_SPREAD * 2
-    const ring = new Box({ width, height }, deps)
+    // 只画一圈线：它是套在卡外面指着「这张可以打」的，铺了底就把卡盖住了。
+    const ring = new Box({ width, height, transparent: true }, deps)
     /*
      * 呼吸那一下缩的是这块方框自己，所以轴要放在它的中心：pivot 留在左上角的话，
      * 一呼一吸会像整圈往右下角甩。摆位用 position 抵消 pivot，看到的仍然是「套在格子外一圈」。
