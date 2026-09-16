@@ -233,6 +233,32 @@ describe('事件流', () => {
     harness.deliver({ type: 'match:events', seq: 2, events: SAMPLE_ONE_EVENT, view: SAMPLE_DELTA })
     expect(driver.getSnapshot().lastRejection).toBeNull()
   })
+
+  it('指令被拒也要往事件流里补一条，不然演出层永远在等回包', () => {
+    const { harness, driver } = start()
+    const batches: MatchEventBatch[] = []
+    driver.subscribeEvents((batch) => batches.push(batch))
+    connect(harness)
+    harness.deliver({
+      type: 'match:started',
+      seat: SAMPLE_SEAT,
+      seq: 1,
+      events: SAMPLE_EVENTS,
+      view: SAMPLE_VIEW,
+    })
+    harness.deliver({ type: 'match:rejected', reason: '这张牌打不出去' })
+
+    /*
+     * 这条回执服务端是单独回给发指令那条连接的，不混在 `match:events` 里
+     *（`filterEvent` 对 `COMMAND_REJECTED` 一律返回 null）。不补的话这一端在被拒时
+     * 一批事件都收不到，而演出编排层正是靠「收到一批」才把出牌解锁——
+     * 一次被拒之后整局都出不了牌（单机那一端同一个洞，见 localDriver 的那条用例）。
+     */
+    expect(batches).toHaveLength(2)
+    expect(batches[1]?.events).toEqual([{ type: 'COMMAND_REJECTED', reason: '这张牌打不出去' }])
+    // 被拒的指令什么都没改，所以带的还是手上那一份视图。
+    expect(batches[1]?.view).toBe(driver.getSnapshot().view)
+  })
 })
 
 describe('重连', () => {
