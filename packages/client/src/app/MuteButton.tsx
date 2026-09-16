@@ -8,13 +8,13 @@
  * 对局顶栏那一格（画布里，见 canvas 的 components/TopBar.ts）和设置页那条开关读的是
  * 同一份，三处必须永远一致。
  *
- * 只写摆位、不写视觉（正式版简化第 3 步的规矩：React 侧只留 layout），
- * 浏览器默认的 `<button>` 外观就是现在要的样子。
+ * 钮面长相归 `ui` 的方块按钮（`pressed` 那一档反色，静音开着时看得出来），
+ * 这里只写把它钉在角上的那几句。
  *
  * 哪一页不渲染它由调用方决定，见 App.tsx。
  */
 
-import { SealButton } from '@ai-duel/ui'
+import { Button } from '@ai-duel/ui'
 import { toggleMuted, useMuted } from '../audio/mute'
 import { usePlatform } from './platform'
 import './muteButton.css'
@@ -24,13 +24,11 @@ export function MuteButton() {
   const muted = useMuted(platform)
 
   return (
-    // SealButton 不收 className（ui 包里只有语义、没有摆位），摆位套在外面这一层上。
+    // Button 不收 className（ui 包里的组件不让外面改样子），摆位套在外面这一层上。
     <div className="mute-button">
-      <SealButton
-        label={muted ? '打开声音' : '关闭声音'}
-        pressed={muted}
-        onClick={() => toggleMuted(platform)}
-      />
+      <Button pressed={muted} onClick={() => toggleMuted(platform)}>
+        {muted ? '打开声音' : '关闭声音'}
+      </Button>
     </div>
   )
 }

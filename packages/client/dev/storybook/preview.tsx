@@ -8,6 +8,7 @@
  * 由这里认出来、换成 `<PixiStage>`。canvas 的 story 于是一行 React 都没有。
  */
 
+import { Button } from '@ai-duel/ui'
 import type { Decorator, Preview } from '@storybook/react-vite'
 import { useState } from 'react'
 import { PixiStage, type PixiStorySpec } from './pixiStory'
@@ -37,6 +38,9 @@ const withPixiStage: Decorator = (Story, context) => {
  *
  * 按钮只在实时那一档出现。手动时钟下画面本来就停在固定的一帧，重播没有意义，
  * 而且截图回归拍的就是这一档——多一颗按钮就是多一块会随主题变化的像素。
+ *
+ * 用 `ui` 的方块按钮而不是原生 `<button>`：目录页是拿来看组件长相的，
+ * 页面上自己那颗钮却是浏览器默认外观的话，看的人分不清哪一种才是这个项目的按钮。
  */
 function PixiStoryHost({ spec, live }: { spec: PixiStorySpec; live: boolean }) {
   const [epoch, setEpoch] = useState(0)
@@ -47,11 +51,7 @@ function PixiStoryHost({ spec, live }: { spec: PixiStorySpec; live: boolean }) {
         上下文永久丢掉，在同一个 <canvas> 上重建是画不出东西的（理由见 pixiStory.tsx）。
       */}
       <PixiStage key={`${live}-${epoch}`} spec={spec} live={live} />
-      {live && (
-        <button type="button" onClick={() => setEpoch((n) => n + 1)}>
-          重播
-        </button>
-      )}
+      {live && <Button onClick={() => setEpoch((n) => n + 1)}>重播</Button>}
     </div>
   )
 }
