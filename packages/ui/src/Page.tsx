@@ -9,6 +9,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { Button } from './Button'
 import './page.css'
 
 export interface PageProps {
@@ -31,11 +32,7 @@ export interface PageProps {
 export function Page({ title, children, onBack, backLabel = '返回', actions }: PageProps) {
   return (
     <main className="ui-page">
-      {onBack === undefined ? null : (
-        <button type="button" onClick={onBack}>
-          {backLabel}
-        </button>
-      )}
+      {onBack === undefined ? null : <Button onClick={onBack}>{backLabel}</Button>}
       <h1>{title}</h1>
       {actions}
       <div className="ui-page__body">{children}</div>

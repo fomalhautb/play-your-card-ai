@@ -100,7 +100,7 @@ export function Dialog({
     >
       <h2>{title}</h2>
       {children}
-      <div>
+      <div className="ui-dialog__actions">
         {cancel === undefined ? null : (
           <Button disabled={cancel.disabled ?? false} onClick={cancel.onSelect}>
             {cancel.label}
