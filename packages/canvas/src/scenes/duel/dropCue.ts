@@ -18,8 +18,15 @@ import type { DuelLayout, Rect } from './layout/types'
 const BOARD_CUE_TEXT = '松手 放到场上'
 /** 取消区那句提示印什么，以及它摆在取消区的哪个角。抄 `.battle__drop-cue--return`。 */
 const RETURN_CUE = { text: '松手 放回手牌', width: 154, height: 37, top: 18, right: 42 } as const
-/** 落点提示进到「松手就打出去」那一档时，战场外框里再套的那一圈往里让多少。 */
-const HOT_RING_INSET = 2
+/**
+ * 落点提示进到「松手就打出去」那一档时，战场外框里再套的那一圈往里让多少。
+ *
+ * 从前是 2：两条 1px 的线隔 2px，肉眼看就是一条稍微粗一点的线，`ready` 和 `hot`
+ * 分不出来。让到 10 之后是明明白白的「框里再套一个框」，一眼认得出换了档。
+ * 只能靠让位来拉开差距——这一版不加颜色也不加动效（见 components/Box.ts 的规矩），
+ * 而手机档连战场那句提示都没有（`layout.dropCue` 是 null），换文案那条路在那一档等于没有。
+ */
+const HOT_RING_INSET = 10
 
 export interface DropCues {
   /** 战场那一圈外框，以及「松手就打出去」时套在它里面的第二圈。 */
@@ -74,7 +81,7 @@ export function placeDropCues(cues: DropCues, layout: DuelLayout): void {
 
 /**
  * 拖拽期间的三档：没在拖（全不画）、拖着（外框、取消区和两句提示亮出来）、
- * 指针已经进到落区里（外框里再套一圈，两条平行线看着就是加粗）。
+ * 指针已经进到落区里（外框里再套明显小一圈的第二个框，见 HOT_RING_INSET）。
  * 抄黑客松版 `.battle__board` / `.battle__return-zone` 的 `data-drop-ready` / `data-drop-hot`。
  *
  * 取消区**不跟着 hot 变**：它亮的意思是「松在这一片就收回手上」，而 hot 说的是
@@ -95,15 +102,22 @@ function boxesOf(cues: DropCues): Box[] {
   return cues.boardCue === null ? all : [...all, cues.boardCue]
 }
 
-/** 一块只画描边、不吃事件的方块。 */
+/**
+ * 一块只画描边、不吃事件的方块。
+ *
+ * 一律 `transparent`：素方块默认是有底的（见 components/Box.ts），而这三块框
+ *（战场外框、加粗圈、取消区）圈住的正是此刻最该看清的东西——铺了底，
+ * 加粗圈会把整块战场和场上的卡糊掉，1672×250 的取消区会把「结束出牌」和 Token 条压掉半截。
+ * 它们要说的只是「这条线画在哪」。
+ */
 function frameBox(rect: Rect, deps: DuelDeps): Box {
-  const box = new Box({ width: rect.width, height: rect.height }, deps)
+  const box = new Box({ width: rect.width, height: rect.height, transparent: true }, deps)
   box.position.set(rect.x, rect.y)
   box.eventMode = 'none'
   return box
 }
 
-/** 一句提示：小号字的素方块，同样不吃事件。 */
+/** 一句提示：小号字的素方块，同样不吃事件。这两块**有底**，压在卡上才读得出来。 */
 function cueBox(label: string, size: { width: number; height: number }, deps: DuelDeps): Box {
   const box = new Box({ width: size.width, height: size.height, label, size: 'small' }, deps)
   box.eventMode = 'none'

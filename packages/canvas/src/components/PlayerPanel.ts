@@ -101,8 +101,12 @@ export class PlayerPanel extends Container {
     this.frame = new Box({ width: options.width, height: options.height }, deps)
     this.nameBox = new Box({ width: 1, height: NAME_HEIGHT, size: 'small' }, deps)
     this.rail = options.tokens === true ? new TokenRail(deps) : null
-    // 名字、牌堆和技能钮都排在框后面：框画在最上层，压在它上面才看得见、点得着。
-    this.addChild(this.heroSlot, this.frame, this.nameBox, this.deckSlot, this.skillSlot)
+    /*
+     * 外框排在**英雄牌之前**：素方块现在是有底的（见 components/Box.ts），
+     * 框排在后面就等于拿一块不透明的底把整张英雄牌盖掉。
+     * 名字、牌堆、技能钮仍然排在框后面——那三样本来就该压在卡和框上面。
+     */
+    this.addChild(this.frame, this.heroSlot, this.nameBox, this.deckSlot, this.skillSlot)
     if (this.rail !== null) this.addChild(this.rail)
     this.layout()
   }
@@ -308,6 +312,8 @@ export class PlayerPanel extends Container {
         {
           width: pile.width - EMPTY_RING_INSET * 2,
           height: pile.height - EMPTY_RING_INSET * 2,
+          // 它套在最上面那层里，是为了让那层的线看着变粗；铺了底就把那层的张数盖没了。
+          transparent: true,
         },
         this.deps,
       )

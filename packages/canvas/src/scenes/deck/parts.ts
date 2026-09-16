@@ -187,7 +187,11 @@ export function createDeckParts(options: DeckPartsOptions): DeckParts {
   tally.eventMode = 'none'
   const progress = {
     track: new Box({ width: layout.progress.width, height: layout.progress.height }, deps),
-    fill: new Box({ width: 1, height: Math.max(1, layout.progress.height - 4) }, deps),
+    // 进度那一段只画一圈线，压在轨上。轨已经有底了，进度再铺一层同色的底就看不出走到哪儿了。
+    fill: new Box(
+      { width: 1, height: Math.max(1, layout.progress.height - 4), transparent: true },
+      deps,
+    ),
   }
   progress.track.eventMode = 'none'
   progress.fill.eventMode = 'none'
