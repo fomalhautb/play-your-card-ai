@@ -8,12 +8,13 @@
  * 正式版简化第 3 步之前，这一页整个压在一张背景图上，还要先过一遍加载页等那张图。
  * 背景图是纯装饰，剥样式时一起去掉了，等图的闸门也就跟着没了意义——
  * 这一页现在没有任何要等的素材，进来就能读。第 5 步把那张图连源文件和清单一起删了。
+ *
+ * 页眉上原先还有一颗静音。现在右上角那颗是全站常驻的（见 app/MuteButton.tsx），
+ * 这一页留着就是同一件事摆两颗，所以删了。
  */
 
-import { Notice, Page, SealButton } from '@ai-duel/ui'
+import { Notice, Page } from '@ai-duel/ui'
 import { useLocation } from 'wouter'
-import { usePlatform } from '../app/platform'
-import { toggleMuted, useMuted } from '../audio/mute'
 
 /** 团队名单，不写分工——四个人的活儿是混着干的（抄旧版的注释）。 */
 const TEAM = ['石在', '司马冰清', '刘利剑', '叶丁元']
@@ -27,22 +28,10 @@ const RULES = [
 ]
 
 export function InfoScreen() {
-  const platform = usePlatform()
   const [, navigate] = useLocation()
-  const muted = useMuted(platform)
 
   return (
-    <Page
-      title="关于本作"
-      onBack={() => navigate('/')}
-      actions={
-        <SealButton
-          label={muted ? '打开声音' : '关闭声音'}
-          pressed={muted}
-          onClick={() => toggleMuted(platform)}
-        />
-      }
-    >
+    <Page title="关于本作" onBack={() => navigate('/')}>
       <h2>怎么玩</h2>
       <ol>
         {RULES.map((rule) => (

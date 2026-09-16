@@ -31,10 +31,15 @@ const MUTED_SLOT: StorageSlot<boolean> = {
 /**
  * 把上次存下的静音状态装回播放器。启动时调一次。
  *
- * 没存过就当有声：默认出声是这类游戏的常态，而且玩家第一次进来还没机会表达意见。
+ * `fallback` 只在**这台机器上从没存过**时作数：默认出声是这类游戏的常态，
+ * 但本地开发要的是默认静音（见 App.tsx 那个调用点）。玩家自己拨过一次开关之后，
+ * 存档就是唯一的准——在本地开过声音的人不该每刷新一次又被静音。
+ *
+ * 这里**故意不读 `import.meta.env`**：vitest 下 `DEV` 也是 true，读了单元测试就会跟着变；
+ * 而且「现在跑在什么构建里」是装配层的知识，这个模块不该认识它。
  */
-export function restoreMuted(platform: Platform): void {
-  platform.audio.setMuted(platform.storage.read(MUTED_SLOT) ?? false)
+export function restoreMuted(platform: Platform, fallback = false): void {
+  platform.audio.setMuted(platform.storage.read(MUTED_SLOT) ?? fallback)
 }
 
 /** 改静音状态并记到本机。界面上那颗按钮走它，不要直接调 `platform.audio.setMuted`。 */

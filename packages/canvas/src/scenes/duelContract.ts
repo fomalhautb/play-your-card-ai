@@ -121,6 +121,14 @@ export interface DuelSceneOptions {
   /** 顶栏那颗「离开」按下时叫谁。不给就是它点了没反应。 */
   onLeave?: () => void
   /**
+   * 顶栏那一格静音按下时叫谁。
+   *
+   * 和 `onLeave` 有一处不一样：**不给就整格不建**，不是「点了没反应」。
+   * 目录页和 bench 都不传它，顶栏因此和从前一模一样，那两套截图基线一张都不用重拍
+   *（见 components/TopBar.ts）。装配层把它接到 client 的 `toggleMuted` 上。
+   */
+  onToggleMute?: () => void
+  /**
    * 关掉会动的那些东西：落地震屏、卡面跟指针跑的倾斜和反光。
    *
    * 玩家在设置页点的那一档（存档里的 `reducedMotion`）由装配层透进来。
@@ -164,6 +172,14 @@ export interface DuelScene {
    *（见 components/TopBar.ts 的 `setStatus`）。单机玩法永远传 null。
    */
   setStatus(text: string | null): void
+  /**
+   * 顶栏那一格静音现在该印哪几个字（「关闭声音」/「打开声音」）。
+   *
+   * 静音状态的真身在 `platform.audio` 上（client 的 audio/mute.ts 负责落盘），
+   * 场景不自己记也不自己读——设置页、全站那颗钮都能改它，装配层订阅到变化再灌进来。
+   * 没建那一格时（目录页、bench 不传 `onToggleMute`）调它什么都不会发生。
+   */
+  setMuted(muted: boolean): void
   /** 玩家在界面上做出的指令（拖出出牌、结束出牌、发英雄技能、确认结算）。 */
   onCommand(callback: (command: DuelCommand) => void): void
   /**

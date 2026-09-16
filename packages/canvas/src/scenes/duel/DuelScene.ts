@@ -141,6 +141,7 @@ class DuelSceneImpl {
         this.onCommandCb?.({ type: 'END_PLAY', player: this.options.seat })
       },
       onLeave: this.options.onLeave,
+      onToggleMute: this.options.onToggleMute,
     })
   }
 
@@ -291,6 +292,11 @@ class DuelSceneImpl {
       setStatus: (text) => {
         this.parts.topBar.setStatus(text)
         // 顶栏那一块是重建出来的，不走补间，所以要自己叫一帧把它画出去。
+        this.frameLoop.wake()
+      },
+      setMuted: (muted) => {
+        this.parts.topBar.setMuted(muted)
+        // 同上：换的是一张文字纹理，没有动画会替我们叫这一帧。
         this.frameLoop.wake()
       },
       onCommand: (callback) => {

@@ -1,9 +1,14 @@
 /**
- * 对局顶栏：一条横贯整幅的素方块，正中一格报「第几轮 + 比分」，右端一颗「离开」。
+ * 对局顶栏：一条横贯整幅的素方块，正中一格报「第几轮 + 比分」，右端「关闭声音」和「离开」两格。
  *
  * 正式版简化第 4 步之二把这一条剥成素方块（见 components/Box.ts）：从前的纸带底、
- * 拆成九段的轮次比分、中间那颗装饰菱形、两颗图标钮全删了。**静音钮这一步一起删掉**——
- * 设置页里有同一个开关（第 31 条做的），顶栏留一颗只是占地方。
+ * 拆成九段的轮次比分、中间那颗装饰菱形、两颗图标钮全删了，静音那颗当时也一起删了
+ *（理由是设置页有同一个开关）。**现在又补回来一格**：全站那颗静音钮钉在视口右上角
+ *（client 的 app/MuteButton.tsx），只有对局页不渲染它——那个位置正压着「离开」。
+ * 而对局页要开关声音，此外就只剩设置页那条路，那得先退出整局才点得到。
+ *
+ * 这一格**只在场景传了 `onToggleMute` 时才建**：目录页和 bench 不传，它们的截图基线
+ * 因此一张都不变（同 `actions: 'none'` 那一档的思路）。
  *
  * 组件仍然是哑的：它不认识引擎，也不知道现在是第几轮——`setRound` / `setScore` /
  * `setStatus` 由场景在收到 cue 时调。宽高由场景给（`resize`），因为桌面和手机是两档
@@ -16,11 +21,25 @@
 import { Container, Graphics } from 'pixi.js'
 import { Box, type BoxDeps, CANVAS_BACKGROUND } from './Box'
 
-/** 正中那一格占顶栏多宽，以及「离开」那一颗的尺寸和它离右缘多远。 */
+/** 正中那一格占顶栏多宽，以及「离开」那一颗的尺寸和它离右缘多远（静音那一格照它一样大）。 */
 const CENTER_RATIO = 0.5
 const LEAVE = { width: 88, height: 36, inset: 16 } as const
 /** 顶栏上下各留多少，正中那一格才不至于顶满整条。 */
 const PAD_Y = 8
+/**
+ * 静音那一格和「离开」之间空多少。
+ *
+ * 两格挨着一样大，中间不留缝的话看着像一整块，手机上还容易点错隔壁那一格。
+ */
+const ACTION_GAP = 12
+/**
+ * 静音那一格印什么字。印的是**按下去会发生什么**，不是当前状态：
+ * 现在有声就写「关闭声音」，已经静了就写「打开声音」。
+ *
+ * 用词和右上角那颗常驻静音钮、设置页那条开关一模一样（client 的 app/MuteButton.tsx、
+ * screens/SettingsScreen.tsx）：同一件事在三处露面，换一套说法只会让人以为是两回事。
+ */
+const MUTE_TEXT = { off: '关闭声音', on: '打开声音' } as const
 
 export type TopBarDeps = BoxDeps
 
@@ -36,6 +55,14 @@ export interface TopBarOptions {
    */
   actions?: 'leave' | 'none'
   onLeave?: () => void
+  /**
+   * 「离开」左边那一格静音按下时叫谁。
+   *
+   * **不给就整格不建**，不是「点了没反应」——这是和 `onLeave` 有意不一样的地方。
+   * 目录页 story 和 bench 的关键帧都不传它，顶栏因此和从前一模一样，那两套截图基线
+   *（其中 linux 那份现在补不了）一张都不用重拍。
+   */
+  onToggleMute?: () => void
 }
 
 export class TopBar extends Container {
@@ -52,11 +79,13 @@ export class TopBar extends Container {
   private readonly plate: Box
   private readonly center: Box
   private readonly leave: Box | null
+  private readonly mute: Box | null
   private boxWidth: number
 
   private round = 1
   private score: { mine: number; theirs: number } | null = null
   private status: string | null = null
+  private muted = false
 
   constructor(options: TopBarOptions, deps: TopBarDeps) {
     super()
@@ -75,7 +104,16 @@ export class TopBar extends Container {
       this.leave.label = 'button:leave'
       if (options.onLeave !== undefined) this.leave.onPress(options.onLeave)
     }
+    if (options.onToggleMute === undefined) {
+      this.mute = null
+    } else {
+      // 尺寸沿用「离开」那一档：两格并排，一大一小只会显得是排版没对齐。
+      this.mute = new Box({ width: LEAVE.width, height: LEAVE.height, label: MUTE_TEXT.off }, deps)
+      this.mute.label = 'button:mute'
+      this.mute.onPress(options.onToggleMute)
+    }
     this.addChild(this.backdrop, this.plate, this.center)
+    if (this.mute !== null) this.addChild(this.mute)
     if (this.leave !== null) this.addChild(this.leave)
     this.layout()
   }
@@ -93,6 +131,19 @@ export class TopBar extends Container {
     if (this.round === round) return
     this.round = round
     this.center.setLabel(this.centerText())
+  }
+
+  /**
+   * 静音那一格跟着真身走。
+   *
+   * 状态的真身在 `platform.audio` 上（client 的 audio/mute.ts 落盘），顶栏自己不记：
+   * 设置页、全站那颗钮都能改它，这一格照着订阅来的值换字就行。
+   * 没建这一格（目录页、bench）时调它什么都不做。
+   */
+  setMuted(muted: boolean): void {
+    if (this.muted === muted) return
+    this.muted = muted
+    this.mute?.setLabel(muted ? MUTE_TEXT.on : MUTE_TEXT.off)
   }
 
   /** 比分。传 null 表示局面还没到手（联机客人在等房主开局），正中那格就只剩轮次。 */
@@ -126,7 +177,7 @@ export class TopBar extends Container {
     return `第 ${this.round} 轮 · 我方 ${this.score.mine} : ${this.score.theirs} 对方`
   }
 
-  /** 正中那格居中、让开右端那颗钮；「离开」贴右缘、纵向居中。 */
+  /** 正中那格居中、让开右端那两颗钮；「离开」贴右缘、静音那一格紧挨着它左边，都纵向居中。 */
   private layout(): void {
     this.backdrop
       .clear()
@@ -136,9 +187,15 @@ export class TopBar extends Container {
     const centerHeight = Math.max(1, this.boxHeight - PAD_Y * 2)
     this.center.setSize(centerWidth, centerHeight)
     this.center.position.set((this.boxWidth - centerWidth) / 2, PAD_Y)
-    this.leave?.position.set(
-      this.boxWidth - LEAVE.inset - LEAVE.width,
-      (this.boxHeight - LEAVE.height) / 2,
-    )
+    const actionY = (this.boxHeight - LEAVE.height) / 2
+    const leaveX = this.boxWidth - LEAVE.inset - LEAVE.width
+    this.leave?.position.set(leaveX, actionY)
+    /*
+     * 静音那一格按「离开」的左边算，而不是自己从右缘量。
+     *
+     * `actions: 'none'` 那一档没有「离开」，但那一档也不会传 `onToggleMute`
+     *（目录页和 bench 两样都不传），所以这里不必为「只有静音没有离开」再分一路。
+     */
+    this.mute?.position.set(leaveX - ACTION_GAP - LEAVE.width, actionY)
   }
 }

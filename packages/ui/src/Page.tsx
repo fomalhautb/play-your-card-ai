@@ -18,7 +18,13 @@ export interface PageProps {
   onBack?: () => void
   /** 返回钮上的字。默认「返回」。 */
   backLabel?: string
-  /** 页眉上那一两颗控件（静音、全屏）。不给就空着。 */
+  /**
+   * 页眉上那一两颗控件（静音、全屏）。不给就空着。
+   *
+   * 眼下**没有真的消费者**：静音搬去了全站常驻那颗（client 的 app/MuteButton.tsx），
+   * 三个文字页都不传它，只剩这个组件自己的 story 和测试在用。先留着口子——
+   * 这类页眉控件迟早还会有（全屏、帮助），删掉再加回来只是白折腾。
+   */
   actions?: ReactNode
 }
 

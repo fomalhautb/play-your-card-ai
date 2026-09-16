@@ -31,6 +31,16 @@ const CARD_PITCH = 0.92
 /** 四周留白占视口短边的比例。 */
 const MARGIN_RATIO = 0.05
 
+/**
+ * 最上面那一排展示卡至少从这个高度开始，给右上角那颗常驻静音钮让出一条。
+ *
+ * 那颗钮是 DOM 的、钉在视口右上角（client 的 app/MuteButton.tsx：上边 8px + 一行
+ * 浏览器默认按钮，一共三十出头），画布这边量不到它。窄屏上四张卡是按宽度铺满的，
+ * 最右那张正好顶到右上角被它压住——实测 375×812 下就是这样。
+ * 宽屏的留白本来就比这条宽，这个数在那儿不起作用。
+ */
+const TOP_RESERVED = 44
+
 /** 展示卡那一条占视口高的几成。下面那一列从它的下边缘开始摆。 */
 const CARD_BAND_RATIO = 0.3
 
@@ -112,7 +122,7 @@ export function pickHomeLayout(
 ): HomeLayout {
   const tier = pickTier(width, height, coarsePointer)
   const margin = Math.min(width, height) * MARGIN_RATIO
-  const cards = seatsOf(width, height, tier, margin)
+  const cards = seatsOf(width, height, tier, Math.max(margin, TOP_RESERVED))
 
   const bandBottom = margin + height * CARD_BAND_RATIO
   const rowWidth = clamp(width * COLUMN.widthRatio, COLUMN.minWidth, COLUMN.maxWidth)

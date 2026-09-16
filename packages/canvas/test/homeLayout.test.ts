@@ -10,6 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { CARD_HEIGHT } from '../src/layout/fanMath'
 import { type HomeRect, pickHomeLayout } from '../src/scenes/home/homeLayout'
 
 /** 桌面档和手机档各取一个真实视口。手机那档是 iPhone 竖屏。 */
@@ -74,6 +75,18 @@ describe('首页版式', () => {
       for (const card of layout.cards) {
         expect(card.y).toBeLessThanOrEqual(layout.start.y)
       }
+    }
+  })
+
+  it('窄屏上展示卡不顶到视口上缘，给右上角那颗常驻静音钮让出一条', () => {
+    /*
+     * 375×812 下按比例算的留白只有 19，四张卡又是按宽度铺满的，最右那张会正好被
+     * 右上角那颗 DOM 静音钮压住（client 的 app/MuteButton.tsx）。所以版式里有一条下限。
+     */
+    const layout = pickHomeLayout(375, 812, LABELS)
+    for (const card of layout.cards) {
+      // 卡的原点在底边中点，减一整张卡高才是这一排的上缘。
+      expect(card.y - CARD_HEIGHT * card.scale).toBeGreaterThanOrEqual(40)
     }
   })
 

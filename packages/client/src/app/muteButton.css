@@ -1,0 +1,17 @@
+/*
+ * 静音钮的摆位：钉在视口右上角，压在画布和各种浮层上面。
+ *
+ * `max(8px, env(safe-area-inset-*))`：手机的刘海和圆角把屏幕右上角吃掉一块，
+ * 贴着 0 摆会被切掉半颗；没有安全区的普通屏走 8px 那一档，不至于紧贴边线。
+ *
+ * z-index 30 比对局那一屏里最高的测试面板（20，见 dev/devPanel.css）再高一档。
+ * 那一屏自己是 `position: fixed`、自成一个层叠上下文，本来按 DOM 顺序也压得住；
+ * 写出数字是为了将来再加浮层时不至于把这颗钮挤到底下去。
+ */
+
+.mute-button {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 30;
+}
