@@ -10,7 +10,9 @@
  * 桌面档回到了黑客松版那套「1672×941 死版式 + 整块等比缩放居中」：`width` / `height`
  * 恒为 1672×941，全部矩形都是**设计坐标**；真实视口和换算写在 `viewport` / `stage` 两项里，
  * 由场景写到舞台根节点的 scale 和 position 上（见 DuelScene 的 applyStageTransform）。
- * 手机档不缩放：`stage.scale` 为 1、偏移为 0，于是设计坐标就是视口坐标，两档共用同一套下游代码。
+ * 手机档是照视口实算的活版式，平时 `stage.scale` 为 1、偏移为 0，设计坐标就是视口坐标；
+ * 只有视口矮到战场摆不下时才整块等比缩小一次，那时 `width / height` 是缩放前的虚拟尺寸
+ *（见 mobileLayout 的文件头）。不管缩没缩，两档共用同一套下游代码。
  *
  * 换句话说：**除了 `viewport`，这里所有的数都是舞台坐标**。指针事件进来的是视口坐标，
  * 要先过一次舞台的 `toLocal`（HandPointer 自己做，见它的文件头）。
@@ -29,12 +31,18 @@ export type { Rect }
 
 export interface DuelLayout {
   tier: LayoutTier
-  /** 舞台自己那套坐标的宽高。桌面档恒为 1672×941，手机档就是视口。 */
+  /**
+   * 舞台自己那套坐标的宽高。桌面档恒为 1672×941；
+   * 手机档平时就是视口，视口矮到战场摆不下时是缩放前的虚拟尺寸（比视口大）。
+   */
   width: number
   height: number
   /** 真实视口。场景靠它判断「尺寸变了没有」，别处一律别读它。 */
   viewport: { width: number; height: number }
-  /** 舞台放进视口的等比缩放和左上角偏移。手机档是 scale 1、偏移 0 的恒等变换。 */
+  /**
+   * 舞台放进视口的等比缩放和左上角偏移。
+   * 手机档平时是 scale 1、偏移 0 的恒等变换，矮视口下会缩小（偏移仍是 0，见 mobileLayout）。
+   */
   stage: { scale: number; x: number; y: number }
   /** 顶栏压在舞台顶边，整条通宽，只有高度两档不同。 */
   topBarHeight: number
@@ -128,6 +136,16 @@ const MIN_BOARD_SCALE = 0.45
  */
 const DESIGN_BOARD_WIDTH = tokens.size.card.tileWidth * 1.12 * 5
 const DESIGN_BOARD_HEIGHT = tokens.size.card.tileHeight * 2 + 40
+
+/**
+ * 战场缩到最小一档时还要占多高（370 × 0.45 = 166.5）。
+ *
+ * 给手机档判「这个视口还排不排得下」用（见 mobileLayout 的 stageScaleFor）：
+ * `fitBoardScale` 到了下限就不再变小，战场高度低于这个数时格子会被外框裁掉，
+ * 那一档于是改成把整块舞台等比缩小。别拿它当「战场应该多高」——
+ * 那是 `fitBoardScale` 按实际可用空间算的，这里只是那条下限对应的高度。
+ */
+export const MIN_BOARD_HEIGHT = DESIGN_BOARD_HEIGHT * MIN_BOARD_SCALE
 
 /**
  * 对手那排扇形整体缩到多小。
