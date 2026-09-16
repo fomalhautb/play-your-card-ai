@@ -42,20 +42,26 @@ async function handSpots(page: Page): Promise<Spot[]> {
 }
 
 /**
- * 松手的地方：战场正中。
+ * 松手的地方：**我方那一排格子**的中心。
  *
- * 出牌区就是战场外框本身（见 canvas 的 desktopLayout），而战场那一格（`board-grid`）
- * 整块都在它里面，所以取这一格的正中一定落得进去。空着的时候这一格里只有中线那条横杆，
- * 横杆横贯整格、竖直居中，所以它的外框正中就是整格的正中。
+ * 不取整块战场的正中：那一点离出牌区下沿还有一大截，「下沿够不够低」这件事它量不到——
+ * 而玩家真会把牌放下去的位置是自己那一排（贴着战场下沿）。2026-09-16 那次出牌区下沿
+ * 收到战场外框上、鼠标拖拽却把整张牌画在指针上方，正是这条用例没抓住的那个洞。
+ *
+ * 怎么取：空着的战场上 `board-grid` 的包围盒只有中线那一条横杆（横贯整格、竖直居中，
+ * 见 canvas 的 BoardGrid），所以它给的是战场的横向范围和**竖直中心**；
+ * 我方那一排就夹在这条中线和手牌之间，取两者正中即可——设计尺寸下算出来离那一排
+ * 真正的中心只差两个像素，照样稳稳落在格子带上。
  */
 async function dropSpot(page: Page): Promise<Spot> {
-  return centerOf(await stageBox(page, STAGE, 'board-grid'))
+  const midline = await stageBox(page, STAGE, 'board-grid')
+  const fan = await stageBox(page, STAGE, 'hand-fan')
+  return { x: centerOf(midline).x, y: (centerOf(midline).y + fan.y) / 2 }
 }
 
-/** 拖第 index 张手牌（0 是最左边那张）到出牌区。点得到的没那么多张就拖最后一张。 */
-async function dragCard(page: Page, index: number): Promise<void> {
-  const spots = await handSpots(page)
-  const from = spots[index] ?? spots.at(-1)
+/** 拖最右边那张手牌（也就是刚用测试面板加进来的那张）到出牌区。 */
+async function dragCard(page: Page): Promise<void> {
+  const from = (await handSpots(page)).at(-1)
   if (from === undefined) throw new Error('一张手牌都点不到')
   const drop = await dropSpot(page)
   await page.mouse.move(from.x, from.y)
@@ -86,6 +92,25 @@ async function setPanel(page: Page, open: boolean): Promise<void> {
   await page.getByRole('button', { name: open ? '测试面板' : '收起面板' }).click()
 }
 
+/**
+ * 往我方手上加一张**确定打得出去**的牌，并返回加完之后的手牌张数。
+ *
+ * 不从洗出来的那五张里挑：里面可能好几张现在打不出去（要选目标的技能牌拖过去只会立起
+ * 选目标层、贵牌引擎直接拒），赌运气的话「拖拽到底通不通」就永远藏在「这张牌不该打出去」
+ * 后面。GPT-3.5 是 2 费的普通 AI 牌，开局 5 点 Token 一定买得起，也不用选目标。
+ * 面板发的是 `DEBUG_ADD_CARD`，走的是和正常抽牌一样的 `execute` 路径。
+ */
+async function addPlayableCard(page: Page): Promise<number> {
+  const before = Number(await page.getByTestId('dev-hand-count').textContent())
+  await page.locator('.dev-panel select').selectOption({ label: 'GPT-3.5' })
+  // 面板上「加 1 张」有两颗，己方那一行排在前面（见 client 的 dev/DevPanel.tsx）。
+  await page.getByRole('button', { name: '加 1 张' }).first().click()
+  await expect
+    .poll(async () => Number(await page.getByTestId('dev-hand-count').textContent()))
+    .toBe(before + 1)
+  return before + 1
+}
+
 /** 不是我出牌就把出牌权交出去——测试房对面座位上没有人，他不会自己点。 */
 async function ensureMyTurn(page: Page): Promise<void> {
   if ((await statusText(page)).includes('行动方 我')) return
@@ -107,30 +132,28 @@ test('从首页开一局测试对局，拖牌出牌，一路打到结算页', as
 
   // 第一步：真的拖一张牌出去。
   const handCount = page.getByTestId('dev-hand-count')
-  const before = Number(await handCount.textContent())
-  expect(before).toBeGreaterThan(0)
+  expect(Number(await handCount.textContent())).toBeGreaterThan(0)
+  await ensureMyTurn(page)
+  const before = await addPlayableCard(page)
 
   let played = false
   /*
-   * 一张张试过去，直到打出一张或者时间用完。判据是「手牌少了一张」。
-   * 这不是在掩盖不稳定，三条都是真规矩：
+   * 拖的每一次都是**同一张确定打得出去的牌**（见 addPlayableCard），落点是**我方那一排
+   * 格子的中心**（见 dropSpot）。所以「这张牌本来就不该打出去」和「落点没对准」这两条
+   * 借口都没有了：只要拖拽这条链是通的，第一次就该成功。判据是「手牌少了一张」。
    *
-   * - **换着牌试**：手上五张里可能好几张现在打不出去——要选目标的技能牌（拖出去只会
-   *   立起选目标层）、Token 不够的贵牌（引擎直接拒）。手牌是洗出来的，赌不了运气。
-   * - **每次等满 2.8 秒**：出牌那一下编排层就把演出锁上了，指令被拒时那把锁靠
-   *   PLAY_LOCK_FALLBACK_MS（2.5 秒）兜底放开，没等满的话下一次拖拽会被锁挡掉，
-   *   白白浪费一张牌的机会。
-   * - **按时间预算而不是按次数重试**：开局那段（抛硬币 3.54 秒 + 发牌）是锁着的，
-   *   而它按**真实帧间隔**推进、每帧最多推 100 毫秒（见 DuelStage 的 MAX_FRAME_MS）。
-   *   跑机上是 SwiftShader 软件渲染，帧率掉到几帧时，这段 8 秒的开局能拖到几十秒，
-   *   前面好几次拖拽全落在锁上（本机实测：闲着的时候第 3 次就出得去，
-   *   旁边有别的活在跑时十几次都还锁着）。数次数的话，「几次才够」就成了一个
-   *   跟着跑机快慢漂的数字；数时间才是这条用例真正想说的：
-   *   **两分半之内总该打得出一张牌**。
+   * 还留着重试和时间预算，只为一件这条用例看不见的事：**开局那段是锁着的**
+   *（抛硬币 3.54 秒 + 发牌），而它按真实帧间隔推进、每帧最多推 100 毫秒
+   *（见 DuelStage 的 MAX_FRAME_MS）。跑机上是 SwiftShader 软件渲染，帧率掉到几帧时
+   * 这段 8 秒的开局能拖到几十秒，前面几次拖拽全落在锁上。数次数的话，「几次才够」
+   * 就成了一个跟着跑机快慢漂的数字；数时间才是这条用例真正想说的：
+   * **一分钟之内总该把这张牌打出去**。
+   *
+   * 每次等满 2.8 秒：出牌那一下编排层就把演出锁上了，指令被拒时那把锁靠
+   * PLAY_LOCK_FALLBACK_MS（2.5 秒）兜底放开，没等满的话下一次拖拽会被锁挡掉。
    */
-  const order = [2, 1, 3, 0, 4]
-  const deadline = Date.now() + 150_000
-  for (let attempt = 0; !played && Date.now() < deadline; attempt += 1) {
+  const deadline = Date.now() + 60_000
+  while (!played && Date.now() < deadline) {
     await setPanel(page, true)
     await ensureMyTurn(page)
     await setPanel(page, false)
@@ -140,12 +163,12 @@ test('从首页开一局测试对局，拖牌出牌，一路打到结算页', as
      */
     const idle = await inertSpot(page, STAGE)
     await page.mouse.click(idle.x, idle.y)
-    await dragCard(page, order[attempt % order.length] ?? 2)
+    await dragCard(page)
     await page.waitForTimeout(2800)
     await setPanel(page, true)
     played = Number(await handCount.textContent()) < before
   }
-  expect(played, '两分半之内把五张手牌轮着拖了好几圈，一张都没能打出去').toBe(true)
+  expect(played, '一分钟之内把一张 2 费的 AI 牌拖到我方那排格子上，一次都没打出去').toBe(true)
 
   /*
    * 第二步：把剩下的轮次走完。
