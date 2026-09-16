@@ -96,7 +96,7 @@ export interface PartsOptions {
   layout: DuelLayout
   onEndPlay: () => void
   onLeave?: () => void
-  /** 顶栏那一格「静音」按下时叫谁。不给就整格不建（见 components/TopBar.ts）。 */
+  /** 顶栏那一格静音按下时叫谁。不给就整格不建（见 components/TopBar.ts）。 */
   onToggleMute?: () => void
 }
 

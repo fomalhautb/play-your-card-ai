@@ -1,5 +1,5 @@
 /**
- * 对局顶栏：一条横贯整幅的素方块，正中一格报「第几轮 + 比分」，右端「静音」和「离开」两格。
+ * 对局顶栏：一条横贯整幅的素方块，正中一格报「第几轮 + 比分」，右端「关闭声音」和「离开」两格。
  *
  * 正式版简化第 4 步之二把这一条剥成素方块（见 components/Box.ts）：从前的纸带底、
  * 拆成九段的轮次比分、中间那颗装饰菱形、两颗图标钮全删了，静音那颗当时也一起删了
@@ -21,22 +21,25 @@
 import { Container, Graphics } from 'pixi.js'
 import { Box, type BoxDeps, CANVAS_BACKGROUND } from './Box'
 
-/** 正中那一格占顶栏多宽，以及「离开」那一颗的尺寸和它离右缘多远（「静音」照它一样大）。 */
+/** 正中那一格占顶栏多宽，以及「离开」那一颗的尺寸和它离右缘多远（静音那一格照它一样大）。 */
 const CENTER_RATIO = 0.5
 const LEAVE = { width: 88, height: 36, inset: 16 } as const
 /** 顶栏上下各留多少，正中那一格才不至于顶满整条。 */
 const PAD_Y = 8
 /**
- * 「静音」和「离开」之间空多少。
+ * 静音那一格和「离开」之间空多少。
  *
  * 两格挨着一样大，中间不留缝的话看着像一整块，手机上还容易点错隔壁那一格。
  */
 const ACTION_GAP = 12
 /**
- * 「静音」那一格印什么字。印的是**按下去会发生什么**，不是当前状态：
- * 现在有声就写「静音」，已经静了就写「取消静音」。
+ * 静音那一格印什么字。印的是**按下去会发生什么**，不是当前状态：
+ * 现在有声就写「关闭声音」，已经静了就写「打开声音」。
+ *
+ * 用词和右上角那颗常驻静音钮、设置页那条开关一模一样（client 的 app/MuteButton.tsx、
+ * screens/SettingsScreen.tsx）：同一件事在三处露面，换一套说法只会让人以为是两回事。
  */
-const MUTE_TEXT = { off: '静音', on: '取消静音' } as const
+const MUTE_TEXT = { off: '关闭声音', on: '打开声音' } as const
 
 export type TopBarDeps = BoxDeps
 
@@ -53,7 +56,7 @@ export interface TopBarOptions {
   actions?: 'leave' | 'none'
   onLeave?: () => void
   /**
-   * 「离开」左边那一格「静音」按下时叫谁。
+   * 「离开」左边那一格静音按下时叫谁。
    *
    * **不给就整格不建**，不是「点了没反应」——这是和 `onLeave` 有意不一样的地方。
    * 目录页 story 和 bench 的关键帧都不传它，顶栏因此和从前一模一样，那两套截图基线
@@ -131,7 +134,7 @@ export class TopBar extends Container {
   }
 
   /**
-   * 「静音」那一格跟着真身走。
+   * 静音那一格跟着真身走。
    *
    * 状态的真身在 `platform.audio` 上（client 的 audio/mute.ts 落盘），顶栏自己不记：
    * 设置页、全站那颗钮都能改它，这一格照着订阅来的值换字就行。
@@ -174,7 +177,7 @@ export class TopBar extends Container {
     return `第 ${this.round} 轮 · 我方 ${this.score.mine} : ${this.score.theirs} 对方`
   }
 
-  /** 正中那格居中、让开右端那两颗钮；「离开」贴右缘、「静音」紧挨着它左边，都纵向居中。 */
+  /** 正中那格居中、让开右端那两颗钮；「离开」贴右缘、静音那一格紧挨着它左边，都纵向居中。 */
   private layout(): void {
     this.backdrop
       .clear()
@@ -188,7 +191,7 @@ export class TopBar extends Container {
     const leaveX = this.boxWidth - LEAVE.inset - LEAVE.width
     this.leave?.position.set(leaveX, actionY)
     /*
-     * 「静音」按「离开」的左边算，而不是自己从右缘量。
+     * 静音那一格按「离开」的左边算，而不是自己从右缘量。
      *
      * `actions: 'none'` 那一档没有「离开」，但那一档也不会传 `onToggleMute`
      *（目录页和 bench 两样都不传），所以这里不必为「只有静音没有离开」再分一路。

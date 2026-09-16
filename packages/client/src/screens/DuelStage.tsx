@@ -166,7 +166,7 @@ export function DuelStage({
         reducedMotion,
         onLeave: () => handlers.current.onLeave(),
         /*
-         * 顶栏那一格「静音」。传了它顶栏才建这一格（见 canvas 的 components/TopBar.ts）——
+         * 顶栏那一格静音。传了它顶栏才建这一格（见 canvas 的 components/TopBar.ts）——
          * 对局页是全站唯一不渲染右上角那颗 DOM 静音钮的一页（那个位置压着「离开」，
          * 见 App.tsx），所以这一格是这一页开关声音的唯一入口。
          * `platform` 是这个 effect 的依赖，换了整套重建，闭包不会过期，不必像 onLeave 那样走 ref。
@@ -281,7 +281,7 @@ export function DuelStage({
   }, [status, ready])
 
   /*
-   * 顶栏那一格「静音」跟着真身走：先灌一次当前值，再订阅后面的变化。
+   * 顶栏那一格静音跟着真身走：先灌一次当前值，再订阅后面的变化。
    *
    * 订阅的是 `platform.audio` 而不是 `useMuted`：状态变了只该换顶栏里那一张文字纹理，
    * 没必要让整个对局界面重渲染一遍。同样带上 `ready`——场景是异步建出来的。

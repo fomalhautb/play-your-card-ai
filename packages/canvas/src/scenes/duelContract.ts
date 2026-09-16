@@ -121,7 +121,7 @@ export interface DuelSceneOptions {
   /** 顶栏那颗「离开」按下时叫谁。不给就是它点了没反应。 */
   onLeave?: () => void
   /**
-   * 顶栏那一格「静音」按下时叫谁。
+   * 顶栏那一格静音按下时叫谁。
    *
    * 和 `onLeave` 有一处不一样：**不给就整格不建**，不是「点了没反应」。
    * 目录页和 bench 都不传它，顶栏因此和从前一模一样，那两套截图基线一张都不用重拍
@@ -173,7 +173,7 @@ export interface DuelScene {
    */
   setStatus(text: string | null): void
   /**
-   * 顶栏那一格「静音」现在该印哪几个字。
+   * 顶栏那一格静音现在该印哪几个字（「关闭声音」/「打开声音」）。
    *
    * 静音状态的真身在 `platform.audio` 上（client 的 audio/mute.ts 负责落盘），
    * 场景不自己记也不自己读——设置页、全站那颗钮都能改它，装配层订阅到变化再灌进来。
