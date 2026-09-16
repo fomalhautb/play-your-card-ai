@@ -96,6 +96,8 @@ export interface PartsOptions {
   layout: DuelLayout
   onEndPlay: () => void
   onLeave?: () => void
+  /** 顶栏那一格「静音」按下时叫谁。不给就整格不建（见 components/TopBar.ts）。 */
+  onToggleMute?: () => void
 }
 
 function makeLayers(stage: Container): DuelLayers {
@@ -136,7 +138,12 @@ export function createParts(options: PartsOptions): DuelParts {
   const desktop = layout.tier === 'desktop'
 
   const topBar = new TopBar(
-    { width: layout.width, height: layout.topBarHeight, onLeave: options.onLeave },
+    {
+      width: layout.width,
+      height: layout.topBarHeight,
+      onLeave: options.onLeave,
+      onToggleMute: options.onToggleMute,
+    },
     deps,
   )
   const sideBar = layout.sideBar === null ? null : frameBox(layout.sideBar, deps)

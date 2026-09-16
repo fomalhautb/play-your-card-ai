@@ -158,6 +158,19 @@ describe('静音开关', () => {
     expect(platform.audio.isMuted()).toBe(false)
   })
 
+  // 本地开发默认静音：App.tsx 把 `import.meta.env.DEV` 当兜底值传进来。
+  it('兜底传 true、又没存过时，启动就是静音的', () => {
+    restoreMuted(platform, true)
+    expect(platform.audio.isMuted()).toBe(true)
+  })
+
+  // 在本地开过声音的人不该每刷新一次又被静音，所以存过的压过兜底值。
+  it('存过「有声」时，兜底传 true 也不静音', () => {
+    platform.storage.setRaw(MUTED_KEY, 'false')
+    restoreMuted(platform, true)
+    expect(platform.audio.isMuted()).toBe(false)
+  })
+
   it('存储整个不可用时照样能静音，只是记不下来', () => {
     platform.storage.setBroken(true)
     expect(() => setMuted(platform, true)).not.toThrow()

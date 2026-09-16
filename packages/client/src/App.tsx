@@ -18,7 +18,8 @@
  * 装回静音状态、装回「减少动效」。两件都是**上一次的选择**（存在本机上），
  * 不装回去的话玩家每次进站都要重新关一遍声音。
  *
- * 这里原先还挂着两层常驻浮层（竖屏提示、全屏入口），在正式版简化第 2 步删掉了。
+ * 常驻浮层现在只有一层：右上角那颗静音钮（见 app/MuteButton.tsx）。
+ * 原先那两层（竖屏提示、全屏入口）在正式版简化第 2 步删掉了。
  * `platform` 的 safeArea / fullscreen 两样能力都留着：设置页那两条开关还在用。
  * 原先这里还 import 过 `@ai-duel/design/tokens.css`，第 5 步连同那份 CSS 产物一起删了：
  * 样式剥成素方块之后没有一条 `var(--…)` 还在读它。
@@ -26,8 +27,9 @@
 
 import type { Platform } from '@ai-duel/platform'
 import { type ComponentType, lazy, Suspense, useEffect } from 'react'
-import { Route, Switch } from 'wouter'
+import { Route, Switch, useLocation } from 'wouter'
 import { MatchSessionProvider } from './app/MatchSession'
+import { MuteButton } from './app/MuteButton'
 import { PlatformProvider } from './app/platform'
 import { applyReducedMotion } from './app/reducedMotion'
 import { restoreMuted } from './audio/mute'
@@ -61,14 +63,30 @@ const DEV_PAGES: Record<string, ComponentType> = import.meta.env.DEV
 
 const DEV_ROUTES = Object.entries(DEV_PAGES)
 
+/**
+ * 右上角那颗静音钮唯一不渲染的一页。
+ *
+ * 对局顶栏右端就是「离开」，DOM 钮正好压在它上面，点「离开」会点到静音上。
+ * 这一页的静音改成顶栏里的一格（见 canvas 的 components/TopBar.ts）。
+ * 别的画布页都验过右上角没有可点的东西，照常渲染。
+ */
+const NO_MUTE_BUTTON = '/match'
+
 export function App({ platform }: { platform: Platform }) {
   /*
    * 把上一次存下来的两项选择装回去。放在 effect 里而不是模块顶层：
    * 它们都要碰浏览器（存储、document），而这个组件在测试里也会被渲染。
    * 依赖只有 platform——这两项一次会话只该装一遍，之后由设置页自己改。
+   *
+   * 静音那一项多带一个兜底值：**本地开发默认静音**是用户提的要求（开着开发服务器
+   * 反复刷新时不想每次都被音乐吵到）。`import.meta.env.DEV` 只在这里读，
+   * 生产构建（网页、Electron、Capacitor 三个壳出的包都是）里它是字面量 false，
+   * 玩家那边仍然默认有声。存过的以存档为准，见 audio/mute.ts。
    */
+  const [location] = useLocation()
+
   useEffect(() => {
-    restoreMuted(platform)
+    restoreMuted(platform, import.meta.env.DEV)
     applyReducedMotion(loadSave(platform).reducedMotion)
   }, [platform])
 
@@ -76,6 +94,8 @@ export function App({ platform }: { platform: Platform }) {
     <PlatformProvider platform={platform}>
       <AuthProvider>
         <MatchSessionProvider>
+          {/* 摆在 Switch 外面：它跟着路由走，但不属于任何一页。 */}
+          {location === NO_MUTE_BUTTON ? null : <MuteButton />}
           <Switch>
             <Route path="/" component={HomeScreen} />
             <Route path="/hero" component={HeroScreen} />
