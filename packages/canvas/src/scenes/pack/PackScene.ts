@@ -104,7 +104,7 @@ class PackSceneImpl {
   }
 
   private get tier(): 'desktop' | 'mobile' {
-    return pickTier(this.viewport.width, this.viewport.height, this.options.coarsePointer === true)
+    return pickTier(this.viewport.width, this.options.coarsePointer === true)
   }
 
   /** 卡的缩放：按视口高占几成算，再折算成相对卡面基准高的倍数。 */

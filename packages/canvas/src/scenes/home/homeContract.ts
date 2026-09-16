@@ -77,7 +77,7 @@ export interface HomeSceneOptions {
   dev?: boolean
   /** true 时不注册任何真实时间源，只靠 step() 推进。目录页拍图那一档用它。 */
   manualClock?: boolean
-  /** 指针是不是粗的。它和视口短边一起决定展示卡放多大（同对局场景的分档判据）。 */
+  /** 指针是不是粗的。它和视口宽度一起决定展示卡放多大（同对局场景的分档判据）。 */
   coarsePointer?: boolean
 }
 

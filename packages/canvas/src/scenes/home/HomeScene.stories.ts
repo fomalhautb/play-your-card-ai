@@ -21,8 +21,8 @@ import type { StoryStage } from '../../storyStage'
 import { mountHomeScene } from './HomeScene'
 
 /*
- * 桌面档那条的画布要**短边不小于 768**，否则 `pickTier` 会判成手机档
- *（见 scenes/duel/layout/pickLayout.ts：短边窄于断点就走触屏那一档）。
+ * 桌面档那条的画布要**宽不小于 768**，否则 `pickTier` 会判成手机档
+ *（见 scenes/duel/layout/pickLayout.ts：宽窄于断点就走触屏那一档）。
  * 目录页的视口钉在 1280×900，1180×790 是在这里面摆得下的最大一档。
  */
 const DESKTOP = { width: 1180, height: 790 }

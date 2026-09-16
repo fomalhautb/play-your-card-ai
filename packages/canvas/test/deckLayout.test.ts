@@ -47,13 +47,13 @@ function fitsIn(
 }
 
 describe('挑档位', () => {
-  it('判据和对局那边同一条：短边窄于断点，或者指针是粗的', () => {
-    expect(pickDeckTier(1280, 800)).toBe('desktop')
-    expect(pickDeckTier(390, 844)).toBe('mobile')
-    // 手机横过来：宽过了断点，但短边只有 390。
-    expect(pickDeckTier(844, 390)).toBe('mobile')
+  it('判据和对局那边同一条：宽窄于断点，或者指针是粗的', () => {
+    expect(pickDeckTier(1280)).toBe('desktop')
+    expect(pickDeckTier(390)).toBe('mobile')
+    // 手机横过来（844×390）宽过了断点，靠「指针是粗的」那条进手机档，不靠短边。
+    expect(pickDeckTier(844, true)).toBe('mobile')
     // 大屏平板照样是手指在点。
-    expect(pickDeckTier(1280, 800, true)).toBe('mobile')
+    expect(pickDeckTier(1280, true)).toBe('mobile')
     expect(pickDeckLayout(390, 844).tier).toBe('mobile')
   })
 })

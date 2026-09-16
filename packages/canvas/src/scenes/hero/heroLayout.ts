@@ -136,7 +136,7 @@ export interface HeroLayout {
 }
 
 export function pickHeroLayout(width: number, height: number, coarsePointer = false): HeroLayout {
-  return pickTier(width, height, coarsePointer) === 'mobile'
+  return pickTier(width, coarsePointer) === 'mobile'
     ? mobileLayout(width, height)
     : desktopLayout(width, height)
 }

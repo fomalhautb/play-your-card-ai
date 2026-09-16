@@ -18,12 +18,12 @@ import { SITE_ORIGIN } from './config'
 import { isSteamAvailable, steamPersonaName } from './steam'
 
 /**
- * 窗口的初始大小。16:9，比 1280×720 大一档——对局界面短边超过 768 才走「有侧栏」那一档版式
+ * 窗口的初始大小。16:9，比 1280×720 大一档——对局界面**宽**超过 768 才走「有侧栏」那一档版式
  *（见 canvas 的 pickLayout），窗口一开就该是玩家真正会看到的那一档。
  */
 const DEFAULT_WIDTH = 1440
 const DEFAULT_HEIGHT = 810
-/** 再小就没法玩了：低于这个尺寸对局界面会被挤成另一档版式。 */
+/** 再小就没法玩了：宽低于这个尺寸对局界面会被挤成另一档版式。 */
 const MIN_WIDTH = 1024
 const MIN_HEIGHT = 640
 

@@ -14,7 +14,7 @@
  *
  * 画布尺寸取 1280×800 和 390×844，理由同 DuelScene.stories.ts：
  * 截图回归的浏览器视口钉死在 1280×900，1920 宽的条目拍不进去；
- * 而 1280×800 的短边 800 仍在断点 768 之上，走的是桌面档那套版式。
+ * 而 1280 的宽仍在断点 768 之上，走的是桌面档那套版式。
  */
 
 import { storyDeps } from '../../storyCards'
@@ -56,7 +56,7 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frame: 
     decks,
     currentId: frame === 'full' ? 'full' : frame === 'dragging' ? 'half' : 'empty',
     manualClock: true,
-    // 手机档靠短边就够了，不用再假装指针是粗的。
+    // 手机档靠 390 的宽度就够了，不用再假装指针是粗的。
     coarsePointer: false,
   })
   ctx.stage.addChild(scene.root)

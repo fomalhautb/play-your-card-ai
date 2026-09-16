@@ -120,7 +120,7 @@ export function pickHomeLayout(
   labels: readonly string[],
   coarsePointer = false,
 ): HomeLayout {
-  const tier = pickTier(width, height, coarsePointer)
+  const tier = pickTier(width, coarsePointer)
   const margin = Math.min(width, height) * MARGIN_RATIO
   const cards = seatsOf(width, height, tier, Math.max(margin, TOP_RESERVED))
 

@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { CARD_HEIGHT } from '../src/layout/fanMath'
+import { CARD_HEIGHT, PLAYER_FAN } from '../src/layout/fanMath'
 import { desktopLayout } from '../src/scenes/duel/layout/desktopLayout'
 import { mobileLayout } from '../src/scenes/duel/layout/mobileLayout'
 import { pickLayout, pickTier, TOUCH_BREAKPOINT } from '../src/scenes/duel/layout/pickLayout'
@@ -21,27 +21,50 @@ import type { DuelLayout } from '../src/scenes/duel/layout/types'
 const DESKTOP = { width: 1920, height: 1080 }
 const MOBILE = { width: 390, height: 844 }
 
-/** 扇形最上沿：卡的原点在底边中点，所以整排最高只到锚点上方一张卡。 */
+/**
+ * 整排手牌静止时的最上沿。
+ *
+ * 卡的原点在底边中点，所以一张牌的上沿在自己原点上方一张卡；整排还整体沉了
+ * `PLAYER_FAN.sink`（负数是往上，见 fanMath）。两项都在扇形自己的坐标系里，
+ * 所以一起乘 `hand.scale` 再挂到锚点上。
+ *
+ * **不算悬停放大**（`HOVER_SCALE` ≈ 1.89）：指针停住的那一张是故意升到战场上面去看清楚的
+ * （同炉石），算进来的话「手牌不压到战场」对两档都不成立。那张盖住我方半排格子是另一件
+ * 已知的事，归后面的视觉重做，不由这条断言管。
+ */
 function fanTop(layout: DuelLayout): number {
-  return layout.hand.y - CARD_HEIGHT * layout.hand.scale
+  return layout.hand.y + (PLAYER_FAN.sink - CARD_HEIGHT) * layout.hand.scale
 }
 
 describe('挑哪一档版式', () => {
   it('大屏走桌面档，小屏走手机档', () => {
-    expect(pickTier(DESKTOP.width, DESKTOP.height)).toBe('desktop')
-    expect(pickTier(MOBILE.width, MOBILE.height)).toBe('mobile')
+    expect(pickTier(DESKTOP.width)).toBe('desktop')
+    expect(pickTier(MOBILE.width)).toBe('mobile')
   })
 
   it('指针是粗的就一律走手机档，屏幕再大也一样', () => {
     // 大屏平板照样是手指在点：热区和手牌区要按触屏来，这和屏幕多大无关。
-    expect(pickTier(DESKTOP.width, DESKTOP.height, true)).toBe('mobile')
+    expect(pickTier(DESKTOP.width, true)).toBe('mobile')
   })
 
-  it('看的是短边不是宽', () => {
-    // 手机横过来宽度过了断点，但高只有 390，竖着排的那几块照样挤不下。
-    expect(pickTier(MOBILE.height, MOBILE.width)).toBe('mobile')
-    expect(pickTier(TOUCH_BREAKPOINT, TOUCH_BREAKPOINT)).toBe('desktop')
-    expect(pickTier(TOUCH_BREAKPOINT, TOUCH_BREAKPOINT - 1)).toBe('mobile')
+  it('看的是宽不是短边', () => {
+    expect(pickTier(TOUCH_BREAKPOINT)).toBe('desktop')
+    expect(pickTier(TOUCH_BREAKPOINT - 1)).toBe('mobile')
+    // 横过来的手机（844×390）由「指针是粗的」那条收走，不靠短边。
+    expect(pickTier(MOBILE.height, true)).toBe('mobile')
+  })
+
+  it('窗口拉矮的鼠标电脑仍然是桌面档', () => {
+    /*
+     * 2026-09-16 的回归：短边判据把 1790×655 这种矮窗口判进手机档，而手机档不缩放，
+     * 顶栏加面板行加对手手牌条加手牌区在 655 高上把战场挤剩一百多像素、落点区更是空的，
+     * 于是牌拖上去怎么松手都回弹——用户看到的就是「打不出牌」。
+     */
+    expect(pickTier(1790)).toBe('desktop')
+    const short = pickLayout(1790, 655)
+    expect(short.tier).toBe('desktop')
+    // 桌面档靠整块缩放装进矮视口，各块的相对关系一个都不变。
+    expect(short.stage.scale).toBeCloseTo(655 / 941, 6)
   })
 
   it('pickLayout 给出的就是对应那一档的版式', () => {
@@ -89,8 +112,16 @@ describe('桌面档还原黑客松版那块 1672×941 死版式', () => {
     expect(layout.board.scale).toBe(1)
   })
 
-  it('落点判定就是战场外框本身', () => {
-    expect(layout.dropZone).toEqual(layout.boardFrame)
+  it('落点区左右和上沿同战场外框，下沿往下让出 0.75 张卡', () => {
+    expect(layout.dropZone.x).toBe(layout.boardFrame.x)
+    expect(layout.dropZone.y).toBe(layout.boardFrame.y)
+    expect(layout.dropZone.width).toBe(layout.boardFrame.width)
+    /*
+     * 下沿 772.25，比外框下沿（691）低 81。鼠标拖拽时牌不抬、原点又在底边中点，
+     * 整张牌画在指针上方：下沿贴着外框的话，玩家把牌拖到「看着盖住战场」时指针还在
+     * 外框下面一截，松手就回弹（见 desktopLayout 的 DROP_GAP_CARDS）。
+     */
+    expect(layout.dropZone.y + layout.dropZone.height).toBeCloseTo(941 - CARD_HEIGHT * 0.75, 6)
   })
 
   it('Token 细条 44×470 贴舞台右缘、纵向居中', () => {
@@ -198,14 +229,19 @@ describe.each([
     expect(layout.board.y + layout.board.height).toBeLessThanOrEqual(fanTop(layout))
   })
 
-  it('出牌区的下沿和手牌锚点拉开至少半张卡', () => {
-    // 贴着手牌的话，指针刚把牌抬起来一点就越线了。
+  it('出牌区的下沿和手牌锚点拉开至少 0.75 张卡', () => {
+    // 鼠标拖拽时指针停在卡的底边上，整张牌画在它上方；贴着手牌的话玩家得把指针一路抬进
+    // 战场里面才算数，而那时牌早就顶出屏幕上沿了。两档各自的让位见各自的 DROP_GAP_CARDS。
     const gap = layout.hand.y - (layout.dropZone.y + layout.dropZone.height)
-    expect(gap).toBeGreaterThanOrEqual((CARD_HEIGHT * layout.hand.scale) / 2)
+    expect(gap).toBeGreaterThanOrEqual(CARD_HEIGHT * layout.hand.scale * 0.75)
   })
 
-  it('出牌区盖得住整个战场', () => {
+  it('出牌区盖得住整个战场，下沿也盖得住', () => {
+    // 下沿这条是新加的：我方那一排贴着战场下沿，盖不住就等于「打到自己这排打不出去」。
     expect(layout.dropZone.y).toBeLessThanOrEqual(layout.board.y)
+    expect(layout.dropZone.y + layout.dropZone.height).toBeGreaterThanOrEqual(
+      layout.board.y + layout.board.height,
+    )
     expect(layout.dropZone.x).toBeLessThanOrEqual(layout.board.x)
     expect(layout.dropZone.x + layout.dropZone.width).toBeGreaterThanOrEqual(
       layout.board.x + layout.board.width,

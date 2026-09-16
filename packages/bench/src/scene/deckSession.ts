@@ -217,8 +217,8 @@ export async function createDeckSession(options: BenchSceneOptions): Promise<Ben
  * 剧本只要「卡池里的一张」和「牌组栏里的一格」，不需要精确到某一格。
  */
 function dragPointsOf(options: BenchSceneOptions) {
-  // 判据和版式那边同一条（短边窄于断点走手机档，见 canvas 的 scenes/duel/layout/pickLayout.ts）。
-  const mobile = Math.min(options.width, options.height) < 768
+  // 判据和版式那边同一条（宽窄于断点走手机档，见 canvas 的 scenes/duel/layout/pickLayout.ts）。
+  const mobile = options.width < 768
   return {
     mobile,
     /** 卡池第一行第 index 张附近。 */

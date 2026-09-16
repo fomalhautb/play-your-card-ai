@@ -47,7 +47,7 @@ export interface PackSceneOptions {
   tier?: EffectTier
   /** true 时不注册任何真实时间源，只靠 step() 推进。 */
   manualClock?: boolean
-  /** 指针是不是粗的。它和视口短边一起决定卡放多大。 */
+  /** 指针是不是粗的。它和视口宽度一起决定卡放多大。 */
   coarsePointer?: boolean
   /** 特效里的随机（烟尘方向、大小）用它定种子，同 seed 同结果（6.9 的确定性前提）。 */
   seed?: number
