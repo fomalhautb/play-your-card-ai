@@ -18,6 +18,9 @@
  * 1920 宽的条目拍不进去。1280 宽和 1920×1080 落在同一档（断点 768 看的是**宽**，
  * 见 layout/pickLayout.ts），所以拍到的仍是桌面档那套版式。
  *
+ * 另有一条 844×390 的横屏：手机档在矮视口上会把整块舞台等比缩小（见
+ * layout/mobileLayout.ts 的 stageScaleFor），这是**唯一**能看见那一档长什么样的条目。
+ *
  * 命名和 title 用英文的理由见 CardSprite.stories.ts 的文件头。
  */
 
@@ -26,14 +29,27 @@ import type { StoryStage } from '../../storyStage'
 import { mountDuelScene } from './DuelScene'
 import { createStoryDuel, STORY_CARD_FACES, STORY_CATALOG, STORY_FRAMES } from './storyDuel'
 
-/** 两档各自的画布尺寸，理由见文件头。 */
+/**
+ * 每一档拍的画布，理由见文件头。
+ *
+ * `coarsePointer` 只有横屏那条要开：844 宽已经过了 768 的断点，靠宽度进不了手机档，
+ * 得按「指针是粗的」那条收进来（见 layout/pickLayout.ts）。
+ */
 const DESKTOP = { width: 1280, height: 800 }
 const MOBILE = { width: 390, height: 844 }
+const MOBILE_LANDSCAPE = { width: 844, height: 390, coarsePointer: true }
+
+/** 一条条目要拍的画布：尺寸，外加这一档是不是按粗指针判的。 */
+interface CanvasView {
+  width: number
+  height: number
+  coarsePointer?: boolean
+}
 
 /** 烟尘方向和大小的种子。写死才有确定性（6.9）。 */
 const SEED = 20260905
 
-function mount(ctx: StoryStage, size: { width: number; height: number }, frameMs: number) {
+function mount(ctx: StoryStage, view: CanvasView, frameMs: number) {
   const deps = storyDeps(ctx)
   const textures = ctx.textures
   if (textures === null) throw new Error('这条条目要卡面图集')
@@ -41,8 +57,8 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frameMs
   const scene = mountDuelScene(ctx.renderer, {
     // 场景挂在目录页的渲染器上，只用这个 canvas 订「上下文丢了」那条事件。
     canvas: ctx.renderer.canvas as HTMLCanvasElement,
-    width: size.width,
-    height: size.height,
+    width: view.width,
+    height: view.height,
     resolution: ctx.resolution,
     // 目录页拍的是版式，特效开到最高档才拍得到落地那圈亮环。
     tier: 'high',
@@ -51,8 +67,8 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frameMs
     cardFaces: STORY_CARD_FACES,
     catalog: STORY_CATALOG,
     manualClock: true,
-    // 手机档靠 390 的宽度就够了，不用再假装指针是粗的。
-    coarsePointer: false,
+    // 竖屏那几条靠 390 的宽度就进手机档了，只有横屏那条要按粗指针判。
+    coarsePointer: view.coarsePointer ?? false,
     seed: SEED,
   })
   ctx.stage.addChild(scene.root)
@@ -67,15 +83,18 @@ function mount(ctx: StoryStage, size: { width: number; height: number }, frameMs
   }
 }
 
-function spec(size: { width: number; height: number }, frameMs: number) {
+function spec(view: CanvasView, frameMs: number) {
+  // 画布参数只认宽高，`coarsePointer` 是给场景的，别跟着展开进去。
+  const { width, height } = view
   return {
     pixi: {
-      ...size,
+      width,
+      height,
       needsAtlas: true,
       // 时间由这条条目自己在 mount 里推完（脚本化对局要一边发指令一边推），
       // 所以目录页那边不用再步进。
       settleMs: 0,
-      mount: (ctx: StoryStage) => mount(ctx, size, frameMs),
+      mount: (ctx: StoryStage) => mount(ctx, view, frameMs),
     },
   }
 }
@@ -130,4 +149,14 @@ export const MobilePlaying = {
 export const MobileSettling = {
   name: '手机档 · 结算层打开',
   parameters: spec(MOBILE, STORY_FRAMES.settling),
+}
+
+/**
+ * 手机档横过来：390 的高摆不下战场，整块舞台等比缩到约 0.574。
+ *
+ * 看点是缩完之后各块的相对关系还是竖屏那一套——战场没被挤没，落点区下沿仍盖得住战场下沿。
+ */
+export const MobileLandscape = {
+  name: '手机档 · 横屏',
+  parameters: spec(MOBILE_LANDSCAPE, STORY_FRAMES.dealt),
 }

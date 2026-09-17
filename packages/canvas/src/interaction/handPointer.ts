@@ -174,7 +174,8 @@ export class HandPointer {
    * 事件带的视口坐标换成舞台坐标。
    *
    * 舞台在桌面档是缩放居中过的（1672×941 的死版式放进视口），不换算的话拖着的牌会
-   * 一边走一边偏，落点判定也会整体错位。手机档舞台是恒等变换，这一步等于原样返回。
+   * 一边走一边偏，落点判定也会整体错位。手机档平时是恒等变换、这一步等于原样返回，
+   * 但矮视口下那一档也会整块缩小（见 duel/layout/mobileLayout.ts），所以两档都得换算。
    */
   private stagePoint(event: FederatedPointerEvent): Point {
     this.pointerScratch.copyFrom(event.global)
