@@ -1,9 +1,10 @@
 /*
  * 测试面板的版式：贴在右下角，展开时往上长。
  *
- * 正式版简化第 3 步把底色剥了，所以这一块现在是**透底的**，压在画布上时字会和
- * 画面叠在一起。只有开发构建里有这一页，端到端也是按角色和 testid 找控件、不看样子，
- * 所以先这样；重做视觉时给它配一块底。
+ * 展开的那一块是**不透明**的：它压在画布上，透底的话字会和画面叠在一起看不清。
+ * 底色 / 线色 / 字色和方块按钮（ui 的 button.css）取同一组数，也就是画布上 Box 的
+ * CANVAS_BACKGROUND / BOX_LINE / BOX_INK（canvas/src/components/Box.ts）——
+ * 这一页不另开一套配色。收起时只剩那颗方块按钮，它自己带底，不用再铺。
  */
 
 .dev-panel {
@@ -23,7 +24,9 @@
   flex-direction: column;
   gap: 4px;
   padding: 8px;
-  border: 1px solid currentColor;
+  border: 1px solid #222;
+  background: #eee;
+  color: #000;
 }
 
 .dev-panel__row {

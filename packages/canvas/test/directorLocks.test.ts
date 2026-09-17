@@ -10,6 +10,7 @@ import {
   aiAnswered,
   aiDeployed,
   answeredQuestion,
+  commandRejected,
   cuesOf,
   makeDirector,
   makeView,
@@ -250,5 +251,68 @@ describe('中断清场', () => {
     director.advance(60_000)
     expect(director.drain()).toEqual([])
     expect(director.userAction({ kind: 'inspect-open', source: 'tile', flipId: 'x' })).toBe(false)
+  })
+})
+
+/**
+ * 「打出去的那张牌归谁」。
+ *
+ * 玩家松手那一刻牌就离开了扇形、开始朝落点飞（见 scenes/duel/input.ts），而这一下成不成
+ * 要等回包。不成的那几条路上没有别的 cue 会来接手它，所以编排层必须自己说一句「它回来」——
+ * 少了这句，那张牌会一直停在最顶上的拖拽层里，把战场和手牌一起挡死。
+ */
+describe('打出去却没人接手的那张牌', () => {
+  it('指令被拒：红字之外还要把牌收回来', () => {
+    const director = makeDirector(0)
+    prime(director)
+    director.userAction({ kind: 'play-card', instanceId: 'p0-a' })
+    director.push({ events: [commandRejected()], view: makeView() })
+    director.advance(60_000)
+    const cues = director.drain()
+    expect(cuesOf(cues, 'error')).toHaveLength(1)
+    expect(cuesOf(cues, 'play-return').map((cue) => cue.instanceId)).toEqual(['p0-a'])
+  })
+
+  it('演出真的起来了就不收：那张牌已经在飞了', () => {
+    const director = makeDirector(0)
+    prime(director)
+    director.userAction({ kind: 'play-card', instanceId: 'p0-a' })
+    director.push({ events: [aiDeployed(0, 'p0-a')], view: makeView() })
+    director.advance(60_000)
+    expect(cuesOf(director.drain(), 'play-return')).toHaveLength(0)
+  })
+
+  it('回包一直不来：兜底解锁的同时把牌放回手上', () => {
+    const director = makeDirector(0)
+    prime(director)
+    director.userAction({ kind: 'play-card', instanceId: 'p0-a' })
+    director.advance(3000)
+    const cues = director.drain()
+    expect(cuesOf(cues, 'play-return').map((cue) => cue.instanceId)).toEqual(['p0-a'])
+    // 顺序要紧：先把牌收回去再解冻手牌，否则界面解冻的那一拍战场上还压着一张飞了一半的牌。
+    const returnAt = cues.findIndex((cue) => cue.kind === 'play-return')
+    const releaseAt = cues.findIndex((cue) => cue.kind === 'lock-release')
+    expect(returnAt).toBeLessThan(releaseAt)
+  })
+
+  it('演出接手之后，兜底不会再去收一张已经飞走的牌', () => {
+    const director = makeDirector(0)
+    prime(director)
+    director.userAction({ kind: 'play-card', instanceId: 'p0-a' })
+    director.push({ events: [aiDeployed(0, 'p0-a')], view: makeView() })
+    director.advance(60_000)
+    director.drain()
+    // 兜底那条排程早该被撤掉了（clearPlayLockFallback），再推多久也不该冒出收牌那条。
+    director.advance(60_000)
+    expect(cuesOf(director.drain(), 'play-return')).toHaveLength(0)
+  })
+
+  it('对局中断：那张飞到一半的牌一并收回', () => {
+    const director = makeDirector(0)
+    prime(director)
+    director.userAction({ kind: 'play-card', instanceId: 'p0-a' })
+    director.drain()
+    director.abort()
+    expect(cuesOf(director.drain(), 'play-return')).toHaveLength(1)
   })
 })

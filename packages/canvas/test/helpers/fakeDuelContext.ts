@@ -178,6 +178,7 @@ export function createFakeDuelContext(): { ctx: DuelContext; calls: FakeCalls } 
     wake: () => names.push('wake'),
     userAction: () => names.push('userAction'),
     command: () => names.push('command'),
+    returnPlayedCard: () => names.push('returnPlayedCard'),
     refreshLocks: () => names.push('refreshLocks'),
   }
 

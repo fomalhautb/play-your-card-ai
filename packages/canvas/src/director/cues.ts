@@ -84,6 +84,16 @@ export type CueSpec =
   /** 我方 AI 牌从手牌飞到战场格。 */
   | { kind: 'play-flip'; durationMs: number; instanceId: InstanceId }
   /**
+   * 这张牌没打出去，放回手上。
+   *
+   * 玩家松手那一刻牌就离开了扇形、开始朝落点飞（见 scenes/duel/input.ts），而这一下
+   * 到底成不成要等回包。**不成的那几条路上没有任何别的 cue 会来接手它**：指令被拒时
+   * 局面压根没变，兜底解锁到点时回包干脆还没到。所以单列一条，把"这张牌回来"说出来——
+   * 少了它那张牌会一直停在拖拽层上，把底下的战场和手牌一起挡死。
+   * `durationMs` 记 0：回扇形那段补间多长由手牌扇形自己定（`HandFan.returnToFan`）。
+   */
+  | { kind: 'play-return'; durationMs: number; instanceId: InstanceId }
+  /**
    * 我方技能牌在中央亮相。
    * 有目标时 `durationMs` 只到起飞那一刻，后面接 `skill-fly`；无目标时含淡出。
    */

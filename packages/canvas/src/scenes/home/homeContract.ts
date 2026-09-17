@@ -13,16 +13,12 @@
  * 这条分工和房间页是一样的：canvas 里有中文文案不奇怪，那是界面的一部分；
  * 但**没有任何路由和存档**，那是装配层的事。
  *
- * ## 卡牌数据由装配层给
+ * ## 这一页不要任何资源
  *
- * 场景不管资源从哪来（架构第 2 节第 5 条），也不许 import `content`
- *（依赖方向见 7.2 第 1 条）。所以四张展示卡是哪四张，由装配层查好、连纹理一起传进来。
- * 原先这里还有一份 `HomeTextures`（夜空底、桌面弧、前景道具、匾额底图），
- * 正式版简化第 4 步把这一页剥成素方块，那四张图连同底下的素材一起删了。
+ * 入参里从前有 `HomeTextures`（夜空底、桌面弧、前景道具、匾额底图），后来又有一排展示卡
+ *（连纹理由装配层查好传进来）。两批都删了，所以现在只剩尺寸和几个开关：
+ * 装配层不用先装图集就能把这一页建起来。
  */
-
-import type { CardVisual } from '../../components/CardSprite'
-import type { EffectTier } from '../../fx/effectTier'
 
 /** 菜单上那几项。「开始游戏」不在里面——它是主入口，单独一块。 */
 export type HomeMenuId = 'deck' | 'hero' | 'online' | 'test' | 'account' | 'about' | 'settings'
@@ -69,16 +65,10 @@ export interface HomeSceneOptions {
   height: number
   /** 渲染倍率，调用方负责封顶（纪律 3.3）。 */
   resolution: number
-  /** 四张展示卡。取的是卡池里的真卡，查好了传进来。 */
-  cards: CardVisual[]
-  /** 效果档位，决定展示卡要不要跟指针倾斜和反光。不给就是中档。 */
-  tier?: EffectTier
   /** 开发构建才摆「测试对局」那一项。 */
   dev?: boolean
   /** true 时不注册任何真实时间源，只靠 step() 推进。目录页拍图那一档用它。 */
   manualClock?: boolean
-  /** 指针是不是粗的。它和视口宽度一起决定展示卡放多大（同对局场景的分档判据）。 */
-  coarsePointer?: boolean
 }
 
 export interface HomeScene {
@@ -89,8 +79,8 @@ export interface HomeScene {
   /**
    * 没有动画在跑；此时帧循环必须停（3.6）。
    *
-   * 这一页现在**真的会空闲**：主入口从前那颗常驻上下浮动的匾额在正式版简化第 4 步
-   * 换成了素方块，页面静止时只剩展示卡的 hover 还会动。
+   * 这一页现在**恒为 true**：主入口从前那颗常驻上下浮动的匾额换成了素方块，
+   * 最后一处会动的东西（展示卡的 hover）也随展示卡一起删了。
    */
   isIdle(): boolean
   /** 视口变了，整页重排。 */

@@ -172,6 +172,13 @@ export interface InputProbe {
   actions: UserAction[]
   /** 组件被调了什么，形如 `targeting.begin`、`board.highlightTargets(u1)`。 */
   calls: string[]
+  /**
+   * 建过的补间，按先后顺序。
+   *
+   * 只有「松手之后牌有没有动起来」这一条需要看它：那一段是补间，不是逐帧跟随，
+   * 光看卡此刻的 x/y 是看不出来的（假的 Animator 不会真去推进任何东西）。
+   */
+  tweens: { target: unknown; vars: Record<string, unknown> }[]
   /** 「结束出牌」现在灰不灰。null 表示 refresh 一次都没跑过。 */
   endPlayDisabled: boolean | null
   /** 「结束出牌」现在在不在场。等对方出牌时它整颗收起来。 */
@@ -209,8 +216,9 @@ export function createInputProbe(view: PlayerView): InputProbe {
   const commands: DuelCommand[] = []
   const actions: UserAction[] = []
   const calls: string[] = []
+  const tweens: InputProbe['tweens'] = []
   const cards = view.self.hand.map((one) => fakeCard(one.instanceId))
-  /** 被拖出扇形的那几张。`all()` 要照实排除它们，压暗候选牌那段才对得上。 */
+  /** 被拖出扇形的那几张。`laid()`（参与排布的）要排除它们。 */
   const detached = new Set<InstanceId>()
   /** 此刻挂在拖拽层上的那几张。真场景里这就是 `layers.drag` 的子节点列表。 */
   const onDragLayer = new Set<InstanceId>()
@@ -218,7 +226,9 @@ export function createInputProbe(view: PlayerView): InputProbe {
   const fireStage = (event: string) => stageHandlers.get(event)?.()
 
   const fan = {
-    all: () => cards.filter((card) => !detached.has(card.instanceId)),
+    // 真扇形的 `all()` 含摘出去的那几张（见 HandFan 的注释），这份替身照它来：
+    // 「把打出去那张送回手上」正是按这张表找人的。参与排布的那几张才排除。
+    all: () => cards,
     laid: () => cards.filter((card) => !detached.has(card.instanceId)),
     // 灰墨态整排下沉写的是 pivot，提示小字的落点也要读它（见 handMood 的 place）。
     pivot: { y: 0 },
@@ -249,6 +259,7 @@ export function createInputProbe(view: PlayerView): InputProbe {
     commands,
     actions,
     calls,
+    tweens,
     endPlayDisabled: null,
     endPlayVisible: null,
     turnPlaqueOn: null,
@@ -296,7 +307,15 @@ export function createInputProbe(view: PlayerView): InputProbe {
       begin: (name: string) => calls.push(`targeting.begin(${name})`),
       end: () => calls.push('targeting.end'),
     },
-    reveal: { on: () => undefined, removeAllListeners: () => undefined },
+    /*
+     * 展示层。这一组只用到它的 `center()`：技能牌松手之后先朝中央亮相位飞一段
+     *（见 input.ts 的 glideAfterPlay）。数值随便给一个屏幕中央附近的点就够。
+     */
+    reveal: {
+      on: () => undefined,
+      removeAllListeners: () => undefined,
+      center: () => ({ x: 836, y: 470, scale: 1.7 }),
+    },
     board: {
       highlightTargets: (ids: InstanceId[]) =>
         calls.push(`board.highlightTargets(${ids.join(',')})`),
@@ -347,7 +366,10 @@ export function createInputProbe(view: PlayerView): InputProbe {
     parts,
     deps: {
       animator: {
-        tween: () => calls.push('animator.tween'),
+        tween: (target: unknown, vars: Record<string, unknown>) => {
+          calls.push('animator.tween')
+          tweens.push({ target, vars })
+        },
         killTweensOf: () => undefined,
         // 小字提示是一条「淡入 → 停 → 淡出」的时间线，链式调用要能接得住。
         timeline: () => {
@@ -365,6 +387,11 @@ export function createInputProbe(view: PlayerView): InputProbe {
     handCardIds: new Map(view.self.hand.map((one) => [one.instanceId, one.cardId])),
     locks: new Set<number>(),
     wake: () => undefined,
+    /*
+     * 「那一格在哪儿」。这一组测的是指针判定，牌飞去哪儿无所谓，所以一律报查不到——
+     * 联机时回包还没到就是这一档，过渡飞行会退到我方那排的中心（见 input.ts）。
+     */
+    tilePoint: () => null,
     userAction: (action: UserAction) => actions.push(action),
     command: (command: DuelCommand) => commands.push(command),
   } as unknown as DuelContext

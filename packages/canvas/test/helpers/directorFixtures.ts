@@ -132,6 +132,11 @@ export function skillCanceled(
   }
 }
 
+/** 指令被拒。理由原样透给红字提示，编排层自己不解读它。 */
+export function commandRejected(reason = '还没轮到你出牌'): GameEvent {
+  return { type: 'COMMAND_REJECTED', reason }
+}
+
 export function cardDrawn(player: PlayerId): GameEvent {
   return { type: 'CARD_DRAWN', player }
 }

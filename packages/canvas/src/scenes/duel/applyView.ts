@@ -95,20 +95,28 @@ function setHero(ctx: DuelContext, panel: PlayerPanel, side: PlayerSideView): vo
  *
  * 摘下来的那张**不销毁**：出牌那一批事件和新视图是同一拍到的，
  * `play-flip` / `skill-showcase` 还得拿它从手上飞出去（见 cuePlayers/hand.ts）。
+ *
+ * 拖出去打的那张要单独认一下：它在松手那一刻就已经被摘出扇形、挪到拖拽层上了
+ *（见 interaction/handPointer 的 beginDrag），身上那对 x/y **已经是舞台坐标**。
+ * 照着扇形那条路再换算一遍，等于把舞台坐标当扇形坐标又加了一次锚点和缩放——
+ * 桌面档锚点在 (989, 941)，指针松在战场正中的一张牌会被甩到 (1689, 1341)，
+ * 整张飞出 1672×941 的舞台外，玩家看到的就是"牌不见了 / 从屏幕角落飞进来"。
  */
 function syncHand(ctx: DuelContext, view: PlayerView): void {
   const wanted = new Map(view.self.hand.map((card) => [card.instanceId, card.cardId]))
   for (const card of [...ctx.parts.fan.all()]) {
     if (wanted.has(card.instanceId)) continue
-    const world = fanToWorld(ctx.layout, card.x, card.y, card.scale.x)
-    // 先换层再从扇形里摘：位置要换算成视口坐标，留在扇形容器上就还是扇形坐标。
-    ctx.parts.layers.drag.addChild(card)
-    applyPose(card, { x: world.x, y: world.y, rotation: 0, scale: world.scale })
+    // 已经在拖拽层上的那张原样留着：它的姿态归拖拽和随后的过渡飞行管，这里碰一下就是跳变。
+    if (!ctx.parts.fan.isDetached(card)) {
+      const world = fanToWorld(ctx.layout, card.x, card.y, card.scale.x)
+      // 先换层再从扇形里摘：位置要换算成舞台坐标，留在扇形容器上就还是扇形坐标。
+      ctx.parts.layers.drag.addChild(card)
+      applyPose(card, { x: world.x, y: world.y, rotation: 0, scale: world.scale })
+    }
     ctx.parts.fan.remove(card)
     ctx.leaving.set(card.instanceId, {
       card,
       cardId: ctx.handCardIds.get(card.instanceId) ?? '',
-      from: world,
     })
   }
 

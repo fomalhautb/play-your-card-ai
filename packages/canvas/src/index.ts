@@ -221,12 +221,7 @@ export {
   type HomeSceneOptions,
   homeMenu,
 } from './scenes/home/homeContract'
-export {
-  type HomeCardSpot,
-  type HomeLayout,
-  type HomeRect,
-  pickHomeLayout,
-} from './scenes/home/homeLayout'
+export { type HomeLayout, type HomeRect, pickHomeLayout } from './scenes/home/homeLayout'
 export { createPackScene } from './scenes/pack/PackScene'
 export type {
   PackAction,

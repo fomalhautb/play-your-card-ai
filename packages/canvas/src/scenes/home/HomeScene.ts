@@ -1,26 +1,22 @@
 /**
  * 首页渲染器（迁移第 30 条「主页人物上 Pixi」，正式版简化第 4 步剥成素方块）。
  *
- * 现在只剩两层：上面一排展示卡（还带 hover 抬起和跟指针倾斜，那是卡牌动画，留着），
- * 下面一列素方块（「开始游戏」加菜单）。
+ * 现在整页只剩一列素方块（「开始游戏」加菜单）。
  *
  * 从前这一页是一幅 1672×941 的画：夜空底 → 展示卡 → 桌面弧 → 前景道具 → 标题和匾额。
- * 视觉后面整套重做，那四层底图、花饰、匾额按钮、文字钮一起删了，
- * 连带着「等图」这道闸门也不需要了（见 client 的 HomeScreen.tsx）。
+ * 视觉后面整套重做，那四层底图、花饰、匾额按钮、文字钮先删了，连带着「等图」这道闸门
+ *（见 client 的 HomeScreen.tsx）；剩下的那一排展示卡随后也删了，所以这一页再没有
+ * 任何图片资源，也**没有任何动画**——见下面 `idle`。
  *
  * 这个文件做四件事：建渲染器、推帧循环、摆版式、把方块发出的操作转给调用方。
  * 菜单那一列直接建在这里而不是另起一层——它现在就是一个 for 循环加几个 Box。
  */
 
 import { Container, Graphics, type Renderer } from 'pixi.js'
-import { Box, CANVAS_BACKGROUND } from '../../components/Box'
-import { bakeTextures } from '../../fx/bakedTextures'
-import { TIER_CONFIG } from '../../fx/effectTier'
-import { Animator } from '../../runtime/animator'
+import { Box, type BoxDeps, CANVAS_BACKGROUND } from '../../components/Box'
 import { FrameLoop } from '../../runtime/frameLoop'
 import { createSceneRenderer } from '../../runtime/sceneRenderer'
 import { TextTextureCache } from '../../runtime/textCache'
-import { HomeCards, type HomeCardsDeps } from './homeCards'
 import {
   type HomeAction,
   type HomeMenuItem,
@@ -54,48 +50,34 @@ class HomeSceneImpl {
   private readonly renderer: Renderer
   private readonly stage = new Container()
   private readonly frameLoop: FrameLoop
-  private readonly deps: HomeCardsDeps & { text: TextTextureCache }
+  private readonly deps: BoxDeps
   /**
    * 垫在最底下那块浅灰。渲染器的底色只在自己建渲染器那一档管用，
    * 挂在目录页的渲染器上时靠这一块（见 Box.ts 的 CANVAS_BACKGROUND）。
    */
   private readonly backdrop = new Graphics()
-  private readonly cards: HomeCards
   /** 「开始游戏」和菜单那一列。换版式时整层重建。 */
   private readonly ui = new Container()
   private readonly ownsRenderer: boolean
-  private readonly coarsePointer: boolean
   private readonly menu: HomeMenuItem[]
   private viewport: { width: number; height: number }
   private layout: HomeLayout
   private onAction: ((action: HomeAction) => void) | null = null
-  /** 上一帧展示卡的倾斜收敛了没有。帧循环每帧都要问一次「忙不忙」，缓存下来省得重算。 */
-  private tiltBusy = false
   private destroyed = false
 
   constructor(renderer: Renderer, options: HomeSceneOptions, ownsRenderer: boolean) {
     this.renderer = renderer
     this.ownsRenderer = ownsRenderer
-    this.coarsePointer = options.coarsePointer === true
     this.viewport = { width: options.width, height: options.height }
     this.frameLoop = new FrameLoop({
       manual: options.manualClock === true,
       render: (deltaMs) => this.render(deltaMs),
       isBusy: () => !this.idle(),
     })
-    const tier = TIER_CONFIG[options.tier ?? 'mid']
-    this.deps = {
-      baked: bakeTextures(renderer),
-      text: new TextTextureCache(renderer),
-      animator: new Animator(() => this.frameLoop.wake()),
-      glare: tier.glare,
-      shadow: tier.cardShadow,
-      tilt: tier.cardTilt,
-    }
+    this.deps = { text: new TextTextureCache(renderer) }
 
     this.menu = homeMenu(options.dev === true)
-    this.cards = new HomeCards(options.cards, this.deps)
-    this.stage.addChild(this.backdrop, this.cards, this.ui)
+    this.stage.addChild(this.backdrop, this.ui)
 
     this.layout = this.pick()
     this.applyLayout()
@@ -120,7 +102,6 @@ class HomeSceneImpl {
       this.viewport.width,
       this.viewport.height,
       this.menu.map((item) => item.label),
-      this.coarsePointer,
     )
   }
 
@@ -134,7 +115,6 @@ class HomeSceneImpl {
   private applyLayout(): void {
     const { width, height } = this.viewport
     this.backdrop.clear().rect(0, 0, width, height).fill({ color: CANVAS_BACKGROUND })
-    this.cards.place(this.layout.cards)
     for (const child of this.ui.removeChildren()) child.destroy({ children: true })
     this.ui.addChild(this.box(this.layout.start, START_LABEL, { kind: 'start' }))
     this.menu.forEach((item, index) => {
@@ -155,19 +135,21 @@ class HomeSceneImpl {
     return box
   }
 
-  private advance(deltaMs: number): boolean {
-    // 展示卡的倾斜是逐帧跟随（不走补间），要单独问它收敛了没有。
-    this.tiltBusy = this.cards.advance(deltaMs)
-    return this.tiltBusy || this.deps.animator.isBusy()
+  /**
+   * 推一帧。这一页上没有任何会动的东西（方块是静的），所以这里什么也不用推，
+   * 返回的「还忙着吗」恒为 false。留着这个方法是因为目录页那条路要按帧驱动（见 mounted）。
+   */
+  private advance(_deltaMs: number): boolean {
+    return false
   }
 
-  private render(deltaMs: number): void {
-    this.advance(deltaMs)
+  private render(_deltaMs: number): void {
     this.renderer.render(this.stage)
   }
 
+  /** 永远空闲：整页静止，帧循环因此一醒就停（3.6）。 */
   private idle(): boolean {
-    return !this.deps.animator.isBusy() && !this.tiltBusy
+    return true
   }
 
   handle(): HomeScene {
@@ -199,13 +181,9 @@ class HomeSceneImpl {
   private destroy(): void {
     if (this.destroyed) return
     this.destroyed = true
-    // 顺序要紧：先掐补间，再还 GSAP 的时钟（同 DuelScene 的 destroy）。
-    this.deps.animator.destroy()
     this.frameLoop.destroy()
-    this.deps.baked.destroy()
     this.deps.text.destroy()
-    // 外面给的纹理不归这里收（那是调用方的资源）。
-    this.stage.destroy({ children: true, texture: false, textureSource: false })
+    this.stage.destroy({ children: true })
     if (this.ownsRenderer) this.renderer.destroy()
   }
 }

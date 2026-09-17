@@ -60,10 +60,24 @@ function flyToTile(ctx: DuelContext, card: CardSprite, instanceId: string): void
   })
 }
 
-/** 从牌库那摞牌起飞的姿态，兜底给现建的卡用。 */
-function deckOrigin(ctx: DuelContext): LeavingCard['from'] {
+/**
+ * 现建一张从牌库那摞牌起飞的卡，认领不到时兜底。
+ *
+ * 摆进拖拽层并按牌库姿态定位，好让它和真正从手上摘下来的那几张一样——
+ * 下游一律按「卡自己身上那对 x/y 就是它此刻在舞台上的位置」读姿态（见 poseOf）。
+ */
+function makeFromDeck(ctx: DuelContext, cardId: CardId, key: string): LeavingCard {
+  const card = ctx.makeCard(cardId, key)
   const { deck } = ctx.layout
-  return { x: deck.x, y: deck.y, scale: deck.scale }
+  ctx.parts.layers.drag.addChild(card)
+  card.position.set(deck.x, deck.y)
+  card.scale.set(deck.scale)
+  return { card, cardId }
+}
+
+/** 这张等着被认领的卡此刻在舞台上的姿态。 */
+function poseOf(card: CardSprite): { x: number; y: number; scale: number } {
+  return { x: card.x, y: card.y, scale: card.scale.x }
 }
 
 /**
@@ -78,7 +92,7 @@ function claimByInstance(ctx: DuelContext, instanceId: string, cardId: CardId): 
     ctx.leaving.delete(instanceId)
     return leaving
   }
-  return { card: ctx.makeCard(cardId, `play:${instanceId}`), cardId, from: deckOrigin(ctx) }
+  return makeFromDeck(ctx, cardId, `play:${instanceId}`)
 }
 
 /**
@@ -93,59 +107,93 @@ function claimByCard(ctx: DuelContext, cardId: CardId): LeavingCard {
     ctx.leaving.delete(instanceId)
     return leaving
   }
-  return { card: ctx.makeCard(cardId, `skill:${cardId}`), cardId, from: deckOrigin(ctx) }
+  return makeFromDeck(ctx, cardId, `skill:${cardId}`)
 }
 
-export const handPlayers: CuePlayerGroup<'deal' | 'play-flip' | 'skill-showcase'> = {
-  /**
-   * 一批牌从卡堆飞进扇形。
-   *
-   * 对手那排不需要知道是哪几张（牌背之间没有区别），所以只改张数。
-   * 我方这排从 `pendingHand` 里按顺序取——那个队列由 applyView 按视图填好，
-   * 顺序就是引擎发牌的顺序。
-   */
-  deal(ctx, cue) {
-    if (cue.side === 'opponent') {
-      ctx.parts.foeHand.setCount(ctx.parts.foeHand.count + cue.count)
-      ctx.pendingFoeDeal = Math.max(0, ctx.pendingFoeDeal - cue.count)
-      return
-    }
-    const taken = ctx.pendingHand.splice(0, cue.count)
-    if (taken.length === 0) return
-    const from = ctx.deckPose()
-    const delays = new Map<string, number>()
-    taken.forEach((entry, index) => {
-      const card = ctx.makeCard(entry.cardId, entry.instanceId)
-      ctx.parts.fan.insert(card, from)
-      ctx.bindHandCard(card)
-      delays.set(entry.instanceId, HandFan.staggerOf(index))
-    })
-    ctx.parts.fan.layout('reflow', delays)
-  },
+export const handPlayers: CuePlayerGroup<'deal' | 'play-flip' | 'skill-showcase' | 'play-return'> =
+  {
+    /**
+     * 一批牌从卡堆飞进扇形。
+     *
+     * 对手那排不需要知道是哪几张（牌背之间没有区别），所以只改张数。
+     * 我方这排从 `pendingHand` 里按顺序取——那个队列由 applyView 按视图填好，
+     * 顺序就是引擎发牌的顺序。
+     */
+    deal(ctx, cue) {
+      if (cue.side === 'opponent') {
+        ctx.parts.foeHand.setCount(ctx.parts.foeHand.count + cue.count)
+        ctx.pendingFoeDeal = Math.max(0, ctx.pendingFoeDeal - cue.count)
+        return
+      }
+      const taken = ctx.pendingHand.splice(0, cue.count)
+      if (taken.length === 0) return
+      const from = ctx.deckPose()
+      const delays = new Map<string, number>()
+      taken.forEach((entry, index) => {
+        const card = ctx.makeCard(entry.cardId, entry.instanceId)
+        ctx.parts.fan.insert(card, from)
+        ctx.bindHandCard(card)
+        delays.set(entry.instanceId, HandFan.staggerOf(index))
+      })
+      ctx.parts.fan.layout('reflow', delays)
+    },
 
-  /** 我方 AI 牌从手牌飞到战场格。 */
-  'play-flip'(ctx, cue) {
-    const claimed = claimByInstance(ctx, cue.instanceId, ctx.cardIdOf(cue.instanceId) ?? '')
-    flyToTile(ctx, claimed.card, cue.instanceId)
-  },
+    /**
+     * 这张牌没打出去：把它放回扇形。
+     *
+     * 指令被拒、或者兜底解锁到点都还等不到回包时走这条（见 director/locks.ts）。
+     * 那两种情况下视图压根没变，牌既不进 `leaving` 也等不到 `play-flip`，
+     * 不接回去就会一直停在拖拽层上——那一层在最顶上还吃指针事件，会把战场和手牌一起挡死。
+     *
+     * 分两种收法：牌还在手牌视图里（被拒那条）就送回扇形；已经不在了（视图变过、
+     * 只是没有哪条 cue 认领它）就原地销毁，留着也没有它该去的位置。
+     */
+    'play-return'(ctx, cue) {
+      const leaving = ctx.leaving.get(cue.instanceId)
+      if (leaving !== undefined) {
+        ctx.leaving.delete(cue.instanceId)
+        killAndDestroy(ctx.deps.animator, leaving.card)
+        return
+      }
+      ctx.returnPlayedCard(cue.instanceId)
+    },
 
-  /**
-   * 我方技能牌在中央亮相。
-   *
-   * 有目标时这一条只演到「停够了、该起飞」为止，后面接 `skill-fly`；
-   * 无目标时自己收尾——停完原地淡出，淡完把卡销毁。
-   */
-  'skill-showcase'(ctx, cue) {
-    dropShowcase(ctx)
-    const claimed = claimByCard(ctx, cue.cardId)
-    // 展示位那张浮在遮罩上，投影跟着它（见 CardSprite.setLifted）。
-    claimed.card.setLifted(true)
-    ctx.showcased = claimed.card
-    ctx.parts.reveal.enter(claimed.card, claimed.from)
-    if (cue.targetInstanceId !== null) return
-    ctx.after(SKILL_SHOWCASE_IN_MS + SKILL_SHOWCASE_HOLD_MS, () => ctx.parts.reveal.fade())
-    ctx.after(SKILL_SHOWCASE_IN_MS + SKILL_SHOWCASE_HOLD_MS + SKILL_SHOWCASE_OUT_MS, () =>
-      dropShowcase(ctx),
-    )
-  },
-}
+    /** 我方 AI 牌从手牌飞到战场格。 */
+    'play-flip'(ctx, cue) {
+      const claimed = claimByInstance(ctx, cue.instanceId, ctx.cardIdOf(cue.instanceId) ?? '')
+      flyToTile(ctx, claimed.card, cue.instanceId)
+    },
+
+    /**
+     * 我方技能牌在中央亮相。
+     *
+     * 有目标时这一条只演到「停够了、该起飞」为止，后面接 `skill-fly`；
+     * 无目标时自己收尾——停完原地淡出，淡完把卡销毁。
+     */
+    'skill-showcase'(ctx, cue) {
+      dropShowcase(ctx)
+      const claimed = claimByCard(ctx, cue.cardId)
+      // 展示位那张浮在遮罩上，投影跟着它（见 CardSprite.setLifted）。
+      claimed.card.setLifted(true)
+      ctx.showcased = claimed.card
+      /*
+       * 起飞点要在归零之前读：`RevealOverlay.enter` 把卡挂进它自己那个 slot，位置和缩放
+       * 全写在 slot 上，卡在 slot 里必须待在原点。从手上摘下来的这张身上还留着舞台坐标，
+       * 不归零的话它会在 slot 的位置上再偏移一整个自己的坐标，整张飞出屏幕——
+       * 强制展示那条走不到这个坑，因为它用的是现建的、位置本来就是 (0, 0) 的卡。
+       */
+      const from = poseOf(claimed.card)
+      // 松手之后那段过渡飞行可能还在跑（见 input.ts 的 glideAfterPlay），先掐掉再交给展示层，
+      // 否则它会继续往中转姿态写位置，而位置这时候已经归 slot 管了。
+      ctx.deps.animator.killTweensOf(claimed.card)
+      ctx.deps.animator.killTweensOf(claimed.card.scale)
+      claimed.card.position.set(0, 0)
+      claimed.card.scale.set(1)
+      ctx.parts.reveal.enter(claimed.card, from)
+      if (cue.targetInstanceId !== null) return
+      ctx.after(SKILL_SHOWCASE_IN_MS + SKILL_SHOWCASE_HOLD_MS, () => ctx.parts.reveal.fade())
+      ctx.after(SKILL_SHOWCASE_IN_MS + SKILL_SHOWCASE_HOLD_MS + SKILL_SHOWCASE_OUT_MS, () =>
+        dropShowcase(ctx),
+      )
+    },
+  }

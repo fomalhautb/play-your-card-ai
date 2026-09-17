@@ -37,6 +37,8 @@ function finishSkillShow(context: DirectorContext, token: number): void {
 function takePlayLock(context: DirectorContext): number {
   const token = context.playLockToken
   context.playLockToken = null
+  // 演出接手了那张牌，它就不再是「没人管的一张」——留着的话兜底到点会把已经飞走的牌往回收。
+  context.playPending = null
   clearPlayLockFallback(context)
   return token ?? acquireLanding(context, 'play')
 }

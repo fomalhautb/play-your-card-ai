@@ -21,10 +21,17 @@ import type { CardSprite } from '../../components/CardSprite'
 import { CardTilt } from '../../components/cardTilt'
 import { CASTING_DIM } from '../../components/TargetingLayer'
 import type { DirectorLocks } from '../../director/director'
-import { HAND_FLIP_MS, HAND_UNFLIP_MS } from '../../director/timings'
+import {
+  HAND_FLIP_MS,
+  HAND_UNFLIP_MS,
+  PLAY_FLIP_MS,
+  SKILL_SHOWCASE_IN_MS,
+} from '../../director/timings'
 import { HandPointer } from '../../interaction/handPointer'
+import { CARD_HEIGHT } from '../../layout/fanMath'
 import type { DuelContext } from './context'
 import { setDropCueState } from './dropCue'
+import { selfRowPointOf } from './geometry'
 import { createHandMood } from './handMood'
 import { fanToWorld, toFanLocal } from './layout/types'
 import {
@@ -67,6 +74,11 @@ export interface DuelInput {
   beginHeroSkill(): boolean
   /** 取消正在进行的选目标（切阶段、对局中断时）。 */
   cancelTargeting(): void
+  /**
+   * 把一张打出去、却没有任何演出来接手的牌放回扇形（`play-return` cue 走这条）。
+   * 那张牌已经不在扇形排布里、也不在指针手上了，所以只能按实例 id 找。
+   */
+  returnPlayedCard(instanceId: InstanceId): void
   destroy(): void
 }
 
@@ -230,11 +242,52 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     if (!consumePlay(card)) pointer.returnToFan(card)
   }
 
+  /**
+   * 松手之后那一小段过渡飞行：牌不能定格在指针松开的地方。
+   *
+   * 指令发出去到演出接手之间隔着一次回包——单机只是一两帧，联机是一整个来回。
+   * 这段时间里牌就那么悬在战场正中不动，看着完全像卡死了（玩家的原话就是「卡住了」）。
+   * 所以松手当场先把它送到"接下来它本来就该在的地方"，等 `play-flip` / `skill-showcase`
+   * 到了再从当前位置接着演——两边都是 overwrite 'auto' 的补间，天然能接上。
+   *
+   * 落到哪一格只有引擎说了算，而单机那条路的回包是同步的（`play()` 返回时 applyView
+   * 已经把那一格建好了），所以查得到就直接飞真正的落点；查不到（联机还在等回包）
+   * 就飞我方那排的中心当中转姿态，差的只是最后一小段。
+   */
+  const glideAfterPlay = (card: CardSprite, kind: HandCard['kind']): void => {
+    const { animator } = ctx.deps
+    const showcase = kind === 'skill'
+    const target = showcase
+      ? ctx.parts.reveal.center()
+      : (ctx.tilePoint(card.instanceId) ?? selfRowPointOf(ctx.layout))
+    const duration = (showcase ? SKILL_SHOWCASE_IN_MS : PLAY_FLIP_MS) / 1000
+    animator.tween(card, {
+      x: target.x,
+      // 落点给的是中心，而卡的原点在底边中点，所以要往下补半张卡（同 cuePlayers/hand 的 flyToTile）。
+      y: target.y + (CARD_HEIGHT * target.scale) / 2,
+      rotation: 0,
+      duration,
+      ease: 'power2.inOut',
+      overwrite: 'auto',
+    })
+    animator.tween(card.scale, {
+      x: target.scale,
+      y: target.scale,
+      duration,
+      ease: 'power2.inOut',
+      overwrite: 'auto',
+    })
+    ctx.wake()
+  }
+
   /** 这一下受理没有：发了指令、或者进了选目标态才算。false 一律由 onPlay 收尾。 */
   const consumePlay = (card: CardSprite): boolean => {
     const view = ctx.view
     if (view === null) return false
     const instanceId = card.instanceId
+    // 这一下是拖出来的还是原地轻点的，得在发指令**之前**问：指令是同步走完的，
+    // 回包里的 applyView 会把这张牌从扇形里彻底摘掉，那之后 `isDetached` 一律是假。
+    const dragged = ctx.parts.fan.isDetached(card)
     // 正在给「模型蒸馏」这类牌选手牌目标时，点一张手牌的含义是选中它，不是把它打出去。
     if (targeting !== null && targeting.kind === 'card' && targeting.scope === 'hand') {
       if (!targeting.legal.has(instanceId)) return false
@@ -258,11 +311,17 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     /*
      * 要选目标、却一个目标都没有（第一轮打「黑白颠倒」、对面场上还空着就是这样）：
      * 指令照发，为什么打不出去由引擎那条红字说清楚；但这一下**必被拒**（候选名单和引擎
-     * 同一份判据，见 skillTargets.ts 的文件头），而被拒那条路上没有任何 cue 会来接手
-     * 拖拽层上的它，所以照样报「没受理」，让 onPlay 把它送回扇形。
-     * 2026-09-16 在浏览器里复现到的「打不出牌」，现场就是这样一张卡停在战场正中。
+     * 同一份判据，见 skillTargets.ts 的文件头），所以当场就报「没受理」，
+     * 让 onPlay 把它送回扇形，省掉一次白飞出去又飞回来。
+     *
+     * 其余被拒的理由（比如手快到 Token 已经被上一张花掉）在这里是分辨不出来的，
+     * 那些由编排层的 `play-return` cue 兜底收回（见 director/locks.ts）——
+     * 这一条只是"已经知道必被拒"时的一条捷径，不是唯一的收口。
      */
-    return targetScopeOf(definition) === 'none'
+    if (targetScopeOf(definition) !== 'none') return false
+    // 拖出来的那张此刻悬在指针松开的地方，先让它动起来（见 glideAfterPlay）。
+    if (dragged) glideAfterPlay(card, definition.kind)
+    return true
   }
 
   /** 点一格：选目标时是选中它，平时是点开放大查看。 */
@@ -381,6 +440,15 @@ export function createDuelInput(ctx: DuelContext): DuelInput {
     moveTo: (x, y) => pointer.moveTo(x, y),
     releaseAt: (x, y) => pointer.releaseAt(x, y),
     cancelTargeting: endTargeting,
+    returnPlayedCard(instanceId) {
+      const card = ctx.parts.fan.all().find((one) => one.instanceId === instanceId)
+      if (card === undefined) return
+      // 过渡飞行还在跑就先掐掉，否则它会和回扇形那段补间抢同一对 x/y。
+      ctx.deps.animator.killTweensOf(card)
+      ctx.deps.animator.killTweensOf(card.scale)
+      pointer.returnToFan(card)
+      ctx.wake()
+    },
     destroy() {
       pointer.destroy()
       mood.destroy()

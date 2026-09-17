@@ -284,3 +284,66 @@ describe('点战场格子', () => {
     expect(probe.actions).toEqual([])
   })
 })
+
+/**
+ * 松手之后那一段过渡飞行，以及没人接手时的回手。
+ *
+ * 这一组盯的是玩家反馈的那句「卡牌拖拽到了战场中央就卡住了」：指令发出去到演出接手之间
+ * 隔着一次回包，那张牌不能就那么定在指针松开的地方。
+ */
+describe('松手之后那张牌去哪儿', () => {
+  /** 这张卡身上有没有一条往某个坐标去的位置补间，有就报它飞向哪儿。 */
+  function flightOf(probe: InputProbe, card: FakeCard): { x: number; y: number } | null {
+    for (const one of probe.tweens) {
+      if (one.target !== card) continue
+      const { x, y } = one.vars as { x?: number; y?: number }
+      if (typeof x === 'number' && typeof y === 'number') return { x, y }
+    }
+    return null
+  }
+
+  it('AI 牌松手就朝战场飞，不停在指针松开的地方', () => {
+    const { probe, input } = setup()
+    const card = probe.card('h1')
+    drag(input, card, IN_HAND, IN_ZONE)
+    const flight = flightOf(probe, card)
+    expect(flight).not.toBeNull()
+    // 落格还不知道（联机时要等回包），所以先飞我方那排的中心：x 在战场正中、
+    // y 落在中线以下那半块（版式见 desktopLayout）。
+    expect(flight?.x).toBeCloseTo(989, 0)
+    expect(flight?.y ?? 0).toBeGreaterThan(IN_ZONE[1])
+  })
+
+  it('技能牌松手朝中央亮相位飞，同样不定格', () => {
+    const probe = createInputProbe(fakeView({ hand: [['h1', 'plain']] }))
+    const input = createDuelInput(probe.ctx)
+    const card = probe.card('h1')
+    drag(input, card, IN_HAND, IN_ZONE)
+    expect(probe.commands).toEqual([{ type: 'PLAY_CARD', player: 0, instanceId: 'h1' }])
+    expect(flightOf(probe, card)?.x).toBe(836)
+  })
+
+  it('鼠标轻点打出的那张不飞：它压根没离开过扇形', () => {
+    const { probe, input } = setup()
+    const card = probe.card('h1')
+    input.pressAt(asSprite(card), IN_HAND[0], IN_HAND[1])
+    input.releaseAt(IN_HAND[0], IN_HAND[1])
+    expect(probe.commands).toHaveLength(1)
+    expect(flightOf(probe, card)).toBeNull()
+  })
+
+  it('指令被拒（play-return 到达）：牌回扇形，拖拽层不留东西', () => {
+    const { probe, input } = setup()
+    drag(input, probe.card('h1'), IN_HAND, IN_ZONE)
+    expect(probe.onDragLayer()).toEqual(['h1'])
+    input.returnPlayedCard('h1')
+    expect(probe.calls).toContain('fan.returnToFan')
+    expect(probe.onDragLayer()).toEqual([])
+  })
+
+  it('已经不在手上的那张收不回来，也不该抛', () => {
+    const { probe, input } = setup()
+    expect(() => input.returnPlayedCard('nope')).not.toThrow()
+    expect(probe.calls).not.toContain('fan.returnToFan')
+  })
+})
