@@ -190,6 +190,7 @@ class DuelSceneImpl {
       userAction: (action) => this.onUserActionCb?.(action),
       command: (command) => this.onCommandCb?.(command),
       beginHeroSkill: () => this.input.beginHeroSkill(),
+      returnPlayedCard: (instanceId) => this.input.returnPlayedCard(instanceId),
       refreshLocks: () => this.refreshLocks(),
     }
   }

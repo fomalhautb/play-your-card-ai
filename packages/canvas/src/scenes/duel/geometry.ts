@@ -34,6 +34,24 @@ export function tilePointOf(
 }
 
 /**
+ * 我方那一排战场的中心在**舞台坐标**里的位置，以及卡落在那儿该有的缩放。
+ *
+ * 只给「牌已经打出去、但还不知道它会落到哪一格」那一档用：联机时落格要等对面把事件送回来，
+ * 在那之前 `tilePoint` 查不到任何格子。拿它当中转姿态，牌才不会定格在指针松手的地方，
+ * 等 `play-flip` 到了再从这里接着飞到真正那一格。
+ *
+ * 下半块是我方那排（上半块是对方，见 BoardGrid 的文件头），所以纵向取四分之三处。
+ */
+export function selfRowPointOf(layout: DuelLayout): RevealPoint {
+  const { board } = layout
+  return {
+    x: board.x + board.width / 2,
+    y: board.y + board.height * 0.75,
+    scale: tokens.size.card.tileScale * board.scale,
+  }
+}
+
+/**
  * 侧栏那张英雄牌在**视口坐标**里的中心和缩放。放大查看拿它当起飞点和落点。
  *
  * 面板自己只知道「英雄牌在我这块板子里占哪一格」，而展示层认的是视口坐标，

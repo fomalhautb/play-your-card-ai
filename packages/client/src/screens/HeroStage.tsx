@@ -15,7 +15,7 @@ import { HEROES } from '@ai-duel/content'
 import type { HeroId } from '@ai-duel/core'
 import type { Platform } from '@ai-duel/platform'
 import { useEffect, useRef, useState } from 'react'
-import { loadHeroTextures } from '../match/homeArt'
+import { loadHeroTextures } from '../match/heroArt'
 import './heroStage.css'
 
 /** 渲染倍率封顶（纪律 3.3），和对局那边同一个数。 */

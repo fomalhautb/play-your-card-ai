@@ -23,7 +23,7 @@ import { createContext } from './context'
 import type { Cue } from './cues'
 import { armOpeningDealFallback, isDealing, resetDeal } from './deal'
 import { handleBatch } from './events'
-import { acquirePlayLanding, releaseLanding } from './locks'
+import { acquirePlayLanding, releaseLanding, returnPendingPlay } from './locks'
 import { abortInspect, abortReveal, closeInspect, openInspect } from './reveal'
 import { confirmSettle } from './settleTimeline'
 
@@ -119,7 +119,7 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
         case 'play-card':
           context.awaiting = true
           context.targeting = false
-          context.playLockToken = acquirePlayLanding(context)
+          context.playLockToken = acquirePlayLanding(context, action.instanceId)
           return true
         case 'end-play':
           context.awaiting = true
@@ -224,6 +224,8 @@ export function createDirector(options: { seat: PlayerId; rng: Rng }): Director 
       context.revealRun = null
       context.playLockToken = null
       context.lockFallback = null
+      // 中断时那张飞到一半的牌也要有个交代：不收的话它会停在拖拽层上，把底下的界面挡死。
+      returnPendingPlay(context)
       // 无条件强放：这时候锁着的界面没有任何意义，谁拿的都不重要。
       releaseLanding(context)
       resetDeal(context)

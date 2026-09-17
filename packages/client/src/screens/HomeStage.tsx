@@ -7,14 +7,14 @@
  * `renderer.destroy()` 会把这块画布的 WebGL 上下文**永久**丢掉，
  * 而 StrictMode 会把每个 effect 跑两遍，第二遍必然落在一块已经废掉的画布上。
  *
- * 建场景之前要先把卡面图集装好（四张展示卡要卡面），所以这一层自己等一个 await。
- * 正式版简化第 4 步之前还要等那幅画的四层整幅图，现在那四张连同素材一起删了。
+ * 这一页**不等任何资源**：整幅画的四层底图随正式版简化第 4 步删了，那一排展示卡
+ *（唯一还要卡面图集的东西）后来也删了。下面那个 `boot` 仍然是异步的，
+ * 因为 `createHomeScene` 自己要等渲染器建起来。
  */
 
 import { createHomeScene, type HomeAction, type HomeScene } from '@ai-duel/canvas'
 import type { Platform } from '@ai-duel/platform'
 import { useEffect, useRef, useState } from 'react'
-import { loadHomeCards } from '../match/homeArt'
 import './homeStage.css'
 
 /** 渲染倍率封顶（纪律 3.3），和对局那边同一个数。 */
@@ -48,8 +48,6 @@ export function HomeStage({ platform, onAction }: HomeStageProps) {
     let disposed = false
 
     const boot = async () => {
-      const cards = await loadHomeCards()
-      if (disposed) return
       const rect = host.getBoundingClientRect()
       const metrics = platform.safeArea.metrics()
       const scene = await createHomeScene({
@@ -57,10 +55,8 @@ export function HomeStage({ platform, onAction }: HomeStageProps) {
         width: rect.width,
         height: rect.height,
         resolution: Math.min(metrics.pixelRatio, MAX_RESOLUTION),
-        cards,
         // 开发构建才摆「测试对局」。生产构建里 import.meta.env.DEV 是字面量 false。
         dev: import.meta.env.DEV,
-        coarsePointer: platform.safeArea.isCoarsePointer(),
       })
       if (disposed) {
         scene.destroy()

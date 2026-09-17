@@ -24,12 +24,17 @@ import type { DuelDeps } from './deps'
 import type { DuelLayout } from './layout/types'
 import type { DuelParts } from './parts'
 
-/** 一张等着被认领的手牌：卡本身、它是哪张牌面，以及它离开扇形那一刻在视口里的姿态。 */
+/**
+ * 一张等着被认领的手牌：卡本身，加上它是哪张牌面。
+ *
+ * 这里**不记起飞姿态**。卡自己身上那对 x/y 就是它此刻在舞台上的位置，而它在等 cue 的
+ * 这一段里是会动的（拖出去打的那张松手就开始朝落点飞，见 input.ts 的 glideAfterPlay）。
+ * 另记一份的话，cue 到点时读到的是松手那一瞬的旧坐标，画面会当场往回跳一格。
+ */
 export interface LeavingCard {
   card: CardSprite
   /** 卡牌 id。技能牌那条 cue 只带 cardId，得靠它把人找出来（见 cuePlayers/hand.ts）。 */
   cardId: CardId
-  from: RevealPoint
 }
 
 export interface DuelContext {
@@ -141,6 +146,14 @@ export interface DuelContext {
    * 面板手里存一份旧的输入层引用迟早指向一个已经销毁的东西。
    */
   beginHeroSkill(): boolean
+  /**
+   * 把一张打出去、却没有任何演出来接手的牌放回扇形（`play-return` cue 走这条）。
+   *
+   * 指令被拒时视图压根没变，那张牌既不会进 `leaving`、也等不到 `play-flip`，
+   * 于是就停在拖拽层上——那一层在最顶上还吃指针事件，忘在那儿的牌会把底下的战场和手牌
+   * 一起挡死。和 `beginHeroSkill` 一样绕上下文走，理由见那一条。
+   */
+  returnPlayedCard(instanceId: InstanceId): void
   /** 手牌和按钮现在许不许动。锁变了要重算一次。 */
   refreshLocks(): void
 }

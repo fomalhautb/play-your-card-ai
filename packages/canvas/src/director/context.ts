@@ -145,6 +145,14 @@ export interface DirectorContext {
    * 事件回来时接过它继续用，而不是再上一把——中间隔着的是同一段「这张牌正在飞」。
    */
   playLockToken: number | null
+  /**
+   * 刚打出去、还没被任何演出接手的那张牌。
+   *
+   * 它和 `playLockToken` 是同一段等待的两面：锁管"界面冻到什么时候"，这个管"那张牌归谁"。
+   * 演出真的起来了就由 `takePlayLock` 认领走；等不到（被拒、兜底到点）就发 `play-return`
+   * 把它放回手上——见 locks.ts 的 returnPendingPlay。
+   */
+  playPending: InstanceId | null
 
   // ---------- 发牌闸门（deal.ts） ----------
   dealHeld: boolean
@@ -263,6 +271,7 @@ export function createContext(seat: PlayerId, rng: Rng): DirectorContext {
     landingToken: 0,
     lockFallback: null,
     playLockToken: null,
+    playPending: null,
 
     // 开局的手牌默认憋着，等抛硬币过场收尾才放行（旧版 dealHeld 的初值也是 true）。
     dealHeld: true,

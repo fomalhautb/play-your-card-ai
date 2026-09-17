@@ -43,6 +43,7 @@ const SAMPLE_CUES: Record<Cue['kind'], Cue> = {
   'inspect-enter': { kind: 'inspect-enter', at: 0, durationMs: 550, source: 'tile', flipId: 'u1' },
   'inspect-exit': { kind: 'inspect-exit', at: 0, durationMs: 600, source: 'tile', flipId: 'u1' },
   'play-flip': { kind: 'play-flip', at: 0, durationMs: 650, instanceId: 'u1' },
+  'play-return': { kind: 'play-return', at: 0, durationMs: 0, instanceId: 'u1' },
   'skill-showcase': {
     kind: 'skill-showcase',
     at: 0,

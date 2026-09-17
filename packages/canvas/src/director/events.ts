@@ -25,6 +25,7 @@ import { pumpBanner, queueSkillCancel, showBanner } from './banner'
 import type { DirectorContext } from './context'
 import type { CueSides } from './cues'
 import { clearOpeningDealFallback, flushDeal, holdRoundDeal, noteDrawn, releaseDeal } from './deal'
+import { returnPendingPlay } from './locks'
 import { playMyAi, playMySkill } from './myPlay'
 import { abortReveal, startReveal } from './reveal'
 import {
@@ -286,6 +287,12 @@ export function handleBatch(context: DirectorContext, events: GameEvent[], view:
         break
       case 'COMMAND_REJECTED':
         context.emit({ kind: 'error', durationMs: 0, reason: event.reason })
+        /*
+         * 被拒的那一条如果是出牌，局面压根没变：那张牌既不会进场景的 `leaving`，
+         * 也永远等不到 `play-flip` 来接手，会一直停在拖拽层上。红字只解释了「为什么」，
+         * 还得有一条把牌收回去。已经被演出认领走的那张这里是 null，调了也不做事。
+         */
+        returnPendingPlay(context)
         break
     }
   }
