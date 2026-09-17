@@ -43,7 +43,7 @@ function fakeTextCache(): TextTextureCache {
   return { get: () => Texture.EMPTY } as unknown as TextTextureCache
 }
 
-export function fakeCardDeps(): CardSpriteDeps {
+function fakeCardDeps(): CardSpriteDeps {
   return { baked: fakeBaked(), text: fakeTextCache(), glare: false, shadow: true }
 }
 
